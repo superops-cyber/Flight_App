@@ -1,2 +1,14 @@
 credentials.json
 token.json
+
+# macOS / editor cruft
+.DS_Store
+
+# Python local env/cache
+.venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+
+# Node dependencies
+node_modules/
