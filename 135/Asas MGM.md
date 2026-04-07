@@ -1,0 +1,677 @@
+::: {custom-style="Title"}
+MGM — ASAS DE SOCORRO TÁXI AÉREO (Consolidado)
+:::
+
+```{=openxml}
+<w:p><w:r><w:br w:type="page"/></w:r></w:p>
+```
+
+### Página de Controle de Revisões & Lista de Páginas Efetivas (LPE)
+
+#### Documento
+
+| Documento | Código | Revisão | Data | Autor | Aprovador |
+| --- | --- | --- | --- | --- | --- |
+| MGM — ASAS DE SOCORRO TÁXI AÉREO | MGM‑AS‑U206G | 0.0 | YYYY‑MM‑DD | Nome | Aprovador |
+
+#### Lista de Páginas Efetivas (LPE)
+
+| Nº pág. | Título / Seção | Código anexo (se aplicável) | Revisão |
+| --- | --- | --- | --- |
+| 1 | Prefácio / Finalidade | - | 0.0 |
+| 2 | Seção 1 — Prefácio | - | 0.0 |
+| ... | ... | ... | ... |
+
+#### Registro de Revisões
+
+| Revisão | Data | Sumário das Alterações | Autor | Aprovador |
+| --- | --- | --- | --- | --- |
+| 0.0 | YYYY‑MM‑DD | Emissão inicial | Nome | Aprovador |
+
+## Seção 1 — Prefácio
+
+### 1.1 Finalidade
+Este Manual Geral de Manutenção (MGM) estabelece a política de gestão da manutenção, as responsabilidades organizacionais, os critérios de coordenação com organizações de manutenção contratadas e o arcabouço documental necessário para assegurar a continuidade da aeronavegabilidade das aeronaves operadas por Asas de Socorro Táxi Aéreo.
+Referências: RBAC nº 43; RBAC nº 145; RBAC nº 135; IS nº 119-004M.
+
+### 1.2 Escopo e Aplicabilidade
+- Este MGM aplica-se a todas as atividades de gestão de manutenção, controle de conformidade técnica e coordenação com prestadores de serviço relacionadas às aeronaves e ao escopo autorizado pelo COA/EO da empresa.
+  - Observação: informações variáveis (matrícula, número de série, prestadores contratados, contatos) são mantidas em documentos externos controlados e não são reproduzidas neste MGM (ver Seção 1.4 do MGO). (MGO Seção 1.4; SOP Seção 1.6.1)
+- Para atividades executadas por organização de manutenção certificada, aplicam-se os requisitos e obrigações da OM RBAC‑145 contratada, bem como as responsabilidades de coordenação interna da operação. (RBAC nº 145; MGO Seção 2.7)
+Referências: RBAC nº 145; RBAC nº 43; MGO_Asas_de_Socorro_Draft.md; SOP_Asas_de_Socorro_U206G_Draft.md.
+
+### 1.3 Estrutura do MGM e Inter-relação com MGO / SOP
+- O MGM fornece políticas, responsabilidades e processos de gestão de manutenção; procedimentos operacionais e normas de pilotagem permanecem no MGO e no SOP, que continuam sendo os manuais de referência operacional. (IS nº 119-004M; IS nº 135-002)
+- Os anexos técnicos (MEL, formulários de manutenção, matrizes de inspeção, planos de manutenção) são documentos controlados e referenciados neste MGM; seus conteúdos variáveis devem residir em cadernos ou arquivos externos controlados por revisão.
+Referências: IS nº 119-004M; IS nº 135-002; MGO Seção 13.
+
+### 1.4 Referências Normativas Principais
+Documentos normativos e de orientação consultados e que fundamentam este MGM:
+
+- RBAC nº 43 — Continuidade da Aeronavegabilidade e Registros de Manutenção. (continuação de aeronavegabilidade; registros)
+- RBAC nº 145 — Certificação e requisitos de Organizações de Manutenção. (habilitação de OM contratada)
+- RBAC nº 135 — Obrigações do operador relativas à manutenção e operação sob COA/EO. (interface operação/manutenção)
+- RBAC nº 21 — Modificações de tipo e STC (quando aplicável a alterações de configuração).
+- RBAC nº 91 — Regras gerais de aeronavegabilidade e operação quando aplicáveis.
+- IS nº 119-004M — Orientações sobre COA/EO e interface documental (mencionado no MGO/SOP).
+- IS nº 135-021-001B (ou IS aplicável ao MGM) — Modelo/guia para elaboração de documentos de manutenção (quando aplicável).
+Observação: onde aplicável, referências específicas de cláusulas, seções e itens serão inseridas nos procedimentos e anexos técnicos (por exemplo: requisitos de registro e retenção conforme RBAC 43.x; requisitos de liberação técnica conforme RBAC 145.x).
+
+### 1.4.1 Fontes Regulatórias & Ações
+Principais fontes regulamentares identificadas e ações recomendadas para rastreabilidade e implementação:
+
+- Fontes: RBAC 43, RBAC 145, RBAC 135, RBAC 21, IS 119-004M, IS 135-021-001B, IS 135-003, IS 135-008, IS 117-002.
+- Ação 1 — Matriz de Rastreabilidade: mapear cláusulas e requisitos aplicáveis por capítulo do MGM e incluir como anexo controlado (responsável: Coordenador Interno de Manutenção / DOPS).
+- Ação 2 — Referências completas: anexar versões completas dos IS/RBAC citados e registrar localização no índice mestre (responsável: GR).
+- Ação 3 — Coordenação com OM RBAC-145: definir pontos de contato, responsabilidades contratuais e prazos para entrega de planos técnicos e matrizes por tipo (responsável: DOPS / Coordenador Interno).
+Estas ações suportam a elaboração dos anexos técnicos (MEL, matrizes de inspeção, modelos de liberação) e garantem evidência documental para auditorias e conformidade regulatória.
+
+### 1.5 Definições e Termos-chave
+Para este MGM, aplicam-se as definições constantes do RBAC nº 01 e das normas citadas. Termos usados com frequência neste capítulo:
+
+- OM RBAC‑145: organização de manutenção certificada sob RBAC nº 145.
+- Liberação para Retorno ao Serviço (Release to Service): documento/carimbo ou registro técnico emitido pela OM ou pessoa autorizada que permite o retorno da aeronave ao serviço.
+- Registro de Manutenção: diário de manutenção, folhas de serviço, fichas de inspeção e registros eletrônicos exigidos por RBAC nº 43.
+- AFM/POH e STC: documentos técnicos do fabricante e suplementos aprovados que regem limites e procedimentos por tipo.
+Referências: RBAC nº 43; RBAC nº 145; RBAC nº 21.
+
+### 1.6 Responsabilidades Organizacionais (Sumário)
+- Diretor de Operações (DOPS) — autoridade técnica da operação para interface com manutenção; coordena solicitações de manutenção, priorização de inspeções e comunicação com a OM contratada. (MGO Seção 2.3; MGO Seção 2.7)
+- Gestor Responsável (GR) — suporte à governança, manutenção de registros documentais e ponto de contato executivo para questões contratuais. (MGO Seção 2.2)
+- Coordenador Interno de Manutenção — função designada internamente; preferencialmente o Diretor de Operações (DOPS) como coordenador primário e o Gestor Responsável (GR) como coordenador alternativo, conforme cadeia funcional descrita no MGO Seção 2.7. Esta função acompanha vencimentos, aciona a OM RBAC‑145 para serviços programados e emergenciais e verifica o recebimento da liberação técnica. (MGO Seção 2.7)
+- Organização de Manutenção RBAC‑145 (Contratada) — executa inspeções, reparos, modificações e liberações para retorno ao serviço conforme sua certificação, procedimentos técnicos e os requisitos deste MGM/contrato. (RBAC nº 145)
+- Piloto em Comando (PIC) — reporta discrepâncias, registra anomalias no Diário de Bordo e não opera aeronave com pendência impeditiva; segue critérios de liberação/despacho do MGO/SOP. (RBAC nº 135; MGO Seção 3; SOP Seção 6)
+Referências: RBAC nº 135; RBAC nº 145; RBAC nº 43; MGO/SOP referências.
+
+### 1.7 Política de Gestão de Continuidade da Aeronavegabilidade
+- A empresa mantém, por meio deste MGM e de contratos com OM RBAC‑145, um sistema que garante:
+  - execução de inspeções e manutenção periódica conforme planejamento técnico;
+  - registro íntegro e rastreável de todas as intervenções de manutenção; e
+  - liberação formal de retorno ao serviço somente por pessoal/entidade autorizada. (RBAC nº 43; RBAC nº 145)
+- A operação utilizará somente aeronaves liberadas conforme processo técnico aplicável e somente seguirá retorno ao serviço com documentação de liberação ou evidência técnica equivalente. (RBAC nº 145; MGO Seção 2.7)
+Referências: RBAC nº 43; RBAC nº 145; MGO Seção 2.7.
+
+### 1.8 Controle Documental e Dados Variáveis
+- Dados variáveis (listas de aeronaves, matrículas, nomes de responsáveis, fornecedores contratados e contatos) não constam neste MGM, devendo ser mantidos em documentos externos controlados vinculados por referência. (MGO Seção 1.4; SOP Seção 1.6.1)
+- Procedimentos, formulários e anexos técnicos (ex.: modelos de OS, FCDA, ficha de pesagem, checklists técnicos) serão identificados por código, revisão e local de armazenamento no índice mestre de documentos do sistema documental da empresa.
+Referências: MGO Seção 1.4; IS nº 119-004M.
+
+### 1.9 Pendências / Itens a desenvolver nos Anexos
+- Matriz de inspeções periódicas por tipo e horas/ciclos (anexo técnico controlado) — referenciar AFM/POH e dados da OM.
+- Modelo de liberação para retorno ao serviço (formato e campos mínimos) — anexo controlado (RBAC nº 43; RBAC nº 145).
+- Critérios de aceitação de peças, materiais e fornecedores — anexo de compras e controle de qualidade.
+Referências: RBAC nº 43; RBAC nº 145; RBAC nº 21.
+
+### 1.10 Registro de Modificações, STC e ICAs (placeholder)
+- A empresa manterá um registro controlado de modificações e STCs aplicáveis a cada aeronave operada. Esse registro deverá listar, por aeronave (matrícula/serial), todos os STCs, suplementos e modificações aprovadas, incluindo referência de aprovação e data.
+- Exemplo de itens identificados (lista não exaustiva — preencher no registro externo controlado):
+  - AeroLed Farol LED SA02386AK
+  - Bancos S‑Frame
+  - Flint SA4366WE
+  - G3X Touch
+  - G5 SAO1818WI
+  - GFC 500
+  - GNC355 SA02636SE
+  - Hélice Hartzell SA02507AT‑D
+  - Interruptor do Flape 2022S07‑01
+  - Motor IO550N SA02507AT‑D
+  - Robertson STOL SA1513WE
+  - Trilho do Banco SA1335SO
+- A lista completa de STCs e modificações será mantida em documento externo controlado (localização e código do documento devem constar no índice mestre). Os dados variáveis (matrículas/serials/STC aplicáveis por aeronave) não são reproduzidos neste MGM.
+- Conformidade técnica e aplicação de instruções de manutenção: a OM contratada RBAC‑145 deverá aplicar todas as Instruções de Conformidade/Acionamento (ICA), Service Bulletins (SB) e demais recomendações técnicas aplicáveis às modificações/STCs, seguindo os procedimentos de rastreabilidade e evidência exigidos por RBAC nº 43 e RBAC nº 145. O MGM exigirá declaração contratual de cumprimento das ICAs pelo prestador de manutenção.
+
+### 1.11 Procedimento de Gestão de Frota — Inclusão e Exclusão de Aeronaves
+- Objetivo: estabelecer o procedimento obrigatório e rastreável para inclusão e exclusão de aeronaves na "Master Control Sheet" da operação, garantindo validação técnica prévia à entrada em serviço sob o COA/EO.
+- Escopo: aplica-se a todas as aquisições, arrendamentos, retornos de leasing, transferências e transferências temporárias de aeronaves para a frota da empresa. Dados variáveis (matrícula, S/N, fornecedor) permanecem em documento externo controlado (maintenance/Fleet_Control_Master.md).
+- Documentos mínimos a recolher antes da avaliação:
+  - AFM/POH (revisão aplicável);
+  - Lista de equipamentos/electrónicos (ELT, transponder, aviônicos instalados);
+  - Lista de STCs/modificações e ICAs aplicáveis;
+  - Histórico de SB/AD/ICA (registos de cumprimento);
+  - Logbooks (últimos trabalhos relevantes) e registos de peças críticas;
+  - Certificados de matrícula, emissão e documentação legal aplicável.
+  - Fluxo de trabalho — passos obrigatórios: a) Iniciação: comprador/contratos notifica o Coordenador Interno (DOPS) e abre processo de entrada de frota. b) Recepção de documentação: todos os documentos listados no item 3 são entregues ao DOPS e arquivados no dossier de avaliação. c) Revisão técnica inicial pela OM RBAC‑145 contratada: validar aplicabilidade de AMM/IPC, identificar ADs pendentes, verificar STCs e ICAs; emitir relatório técnico com pendências e ações corretivas necessárias. d) Correções e trabalhos pré‑entrada: a OM executa trabalhos identificados (se aplicável) e emite workcards e RTS conforme maintenance/ templates. e) Parecer técnico final: a OM emite declaração escrita de conformidade técnica (incluindo referências AMM/IPC/SB/STC/ICA aplicadas) e confirma que a aeronave está pronta para liberação ao serviço. f) Aprovação operacional e contratual: DOPS verifica compatibilidade com Especificações Operativas (EO) e o Gestor Responsável (GR) confirma aspectos contratuais/seguro; ambos assinam o registo de "Fleet Entry Approval". g) Atualizações de registos: após aprovação, atualizar a Master Control Sheet, registro de STCs/ADs por aeronave e comunicar a tripulação, seguradora e OM contratada. h) Arquivo e retenção: anexar todo o pacote de evidência (relatórios, workcards, certificados) ao dossier da aeronave; retenção conforme RBAC nº 43 e política documental interna.
+  - Exclusão de aeronave da lista: remoção só mediante aprovação conjunta de DOPS e GR, com justificativa documental (venda, cancelamento de matrícula, desativação) e atualização do índice mestre e notificações necessárias.
+  - Responsabilidades (resumido):
+  - OM RBAC‑145: responsabilidade primária pela validação técnica (AMM/IPC/STC/ICA/AD) e emissão de declaração técnica;
+  - DOPS: verificação de conformidade operacional com EO, coordenação do processo e assinatura final de aceitação operacional;
+  - GR: validação contratual, de seguros e autorização administrativa/financeira para inclusão/removal.
+  - Referência a documentos externos: o procedimento detalhado, checklist e o template de "Fleet Entry Approval" estão disponíveis em maintenance/Fleet_Control_Master.md (fonte editável e controlada).
+
+## Seção 2 — Estrutura Organizacional e Responsabilidades de Manutenção
+
+### 2.1 Objetivo
+Esta seção define a estrutura organizacional, as responsabilidades, as interfaces entre a operação e a(s) organização(ões) de manutenção (OM RBAC‑145) contratada(s), de forma a assegurar a continuidade da aeronavegabilidade e a conformidade com RBAC nº 43, RBAC nº 145 e RBAC nº 135.
+
+### 2.2 Princípios Gerais
+- A empresa é responsável pela segurança operacional e pela garantia de continuidade da aeronavegabilidade das aeronaves sob seu COA/EO.
+- As atividades técnicas de execução de manutenção podem ser realizadas por OM certificada RBAC‑145 ou por pessoal autorizado conforme contrato; o MGM estabelece os requisitos de coordenação e as evidências exigidas.
+- Os dados variáveis (listas de aeronaves, contratos, nomes e contactos) constam em documentos externos controlados e vinculados por referência no índice mestre.
+
+### 2.3 Funções e Responsabilidades (sumário)
+As responsabilidades abaixo definem papéis mínimos; poderes e delegações formais devem constar no registro de delegações da empresa (documento externo).
+
+- Diretor de Operações (DOPS) — autoridade técnica da operação. Responsável por:
+  - garantir que procedimentos do MGM sejam implementados e seguidos;
+  - aprovar o plano de manutenção e as políticas de desvio/deferral em coordenação com o Gestor Responsável;
+  - nomear o Coordenador Interno de Manutenção e manter a lista de pessoas autorizadas para liberação operacional de voo (quando aplicável).
+- Gestor Responsável (GR) — responsável executivo pela conformidade regulamentar e pela manutenção de contratos e registros. Responsável por:
+  - assegurar disponibilidade de recursos e contratos necessários;
+  - manter a política de revisão contratual e acompanhar renovação de contratos (manutenção e fornecedores);
+  - zelar pela guarda e disponibilização dos documentos para auditoria.
+- Coordenador Interno de Manutenção — função delegada ao Diretor de Operações (DOPS); o Gestor Responsável (GR) atua como coordenador alternativo. Responsável por:
+  - acionar e priorizar trabalhos com a OM RBAC‑145;
+  - acompanhar status de inspeções, pendências (open items) e prazos de deferral;
+  - verificar recepção da liberação para retorno ao serviço e consolidar evidências (workcards, partes, fotos, relatórios);
+  - manter a matriz de inspeção atualizada com input do provedor técnico.
+- Piloto em Comando (PIC) — reportar discrepâncias, não aceitar aeronave com pendência impeditiva, preencher relatório de anomalia e seguir o procedimento de deferral/MEL do SOP.
+- OM RBAC‑145 (Contratada) — responsabilidades técnicas e de execução:
+  - executar manutenção, inspeções e liberações em conformidade com AMM/IPC, SBs, ADs, ICAs e STC aplicáveis;
+  - fornecer workcards, listas de tarefas detalhadas, fichas de trabalho e declaração de conformidade para cada serviço;
+  - manter evidências de conformidade (fotos, relatórios, partes usadas, etiquetas) e disponibilizá‑las para auditoria;
+  - cooperar em programas de correção de SB/AD/ICA e informar a operação sobre implicações de conformidade.
+
+### 2.4 Delegações e Autorizações
+- A empresa manterá uma Matriz de Autorizações (documento externo) indicando quem pode autorizar deferrals, aceitar tarefas concluídas, assinar liberação para retorno ao serviço (quando delegado) e autorizar pagamentos/ordens de serviço.
+- A liberação final para retorno ao serviço é responsabilidade do certificador autorizado da OM RBAC‑145. A empresa somente realizará liberação interna quando disposições regulatórias e delegações formais o permitirem e estiverem expressas em documento assinado.
+
+### 2.5 Interface Operação — Manutenção
+- Comunicação de discrepâncias: o PIC deve registrar discrepâncias no diário de bordo e notificar o Coordenador Interno de Manutenção imediatamente.
+- Prioridade e planejamento: o Coordenador Interno define prioridades operacionais, mas a OM RBAC‑145 propõe planos técnicos e prazos; acordos contratuais definem SLAs para resposta a discrepâncias e emergências.
+- SB/AD/ICA management: a OM fornecerá análise de aplicabilidade e recomendações; o Coordenador Interno manterá registro das ações e datas de conformidade.
+- Gestão de peças: o MGM definirá critérios de aceitação de peças, uso de peças novas/overhauled/repairables e procedimentos de rastreabilidade; o fornecedor deve fornecer certificados e etiquetas de identificação quando aplicável.
+
+### 2.6 Registros e Evidências Técnicas
+- Todos os trabalhos e inspeções devem ser documentados em workcards e transferidos ao registro de manutenção do aeronave (logbook e base de dados eletrônica).
+- A OM RBAC‑145 deve anexar as evidências de SB/AD/ICA aplicadas, peças substituídas, e qualquer teste funcional realizado.
+- Retenção de registros: conforme RBAC nº 43, com cópias de trabalhos críticos mantidas pelo operador conforme índice mestre do MGM.
+
+### 2.7 Auditorias, Revisões e Monitoramento de Desempenho
+- Auditorias: a empresa conduzirá auditorias periódicas da OM contratada (programa anual de auditoria) para verificar conformidade técnica e documental.
+- Indicadores de desempenho: tempo médio de resposta para discrepâncias, tempo médio para liberação, taxa de re‑trabalho, conformidade com SB/AD/ICA — estes KPIs serão definidos e monitorados pelo GR e Coordenador Interno.
+- Revisão do MGM: revisão anual ou quando houver alteração regulatória ou operacional significativa.
+
+### 2.8 Emergência Técnica e Manutenção de Linha
+- Procedimentos para manutenção emergencial (linha): a OM RBAC‑145 deve disponibilizar um plano de suporte emergencial (contatos 24/7, disponibilidade de peças críticas, prazo de mobilização).
+- Decisão de retirada de serviço: a autoridade final para retirada de serviço e não‑liberação é do certificador/OM quando houver condição de aeronavegabilidade comprometida; o PIC ou DOPS pode suspender operações por razão de segurança.
+Nota sobre delegação de emergência ao PIC: o PIC está autorizado a atuar em nome da Asas de Socorro para contratar manutenção de emergência junto de uma organização certificada pela ANAC (RBAC‑145) em locais onde não existam acordos prévios, observando os procedimentos de coordenação estabelecidos no MGO Seção 3.3.3. Todas as contratações emergenciais deverão ser reportadas ao Coordenador Interno/DOPS assim que possível e documentadas conforme Seção 4.2.1.
+
+### 2.9 Treinamento e Competência
+- O operador assegurará que o Coordenador Interno e DOPS recebam formação suficiente sobre requisitos de manutenção, SB/AD/ICA management e processos de liberação.
+- A OM RBAC‑145 deve manter qualificação e licenças válidas de pessoal técnico; provas de competência e autorizações deverão estar disponíveis para verificação.
+
+### 2.10 Contato e Escalonamento
+- O MGM referenciará um documento externo com nomes e contactos (DOPS, GR, Coordenador Interno, OM RBAC‑145 Ponto Focal) e o plano de escalonamento para emergências técnicas.
+
+## Seção 3 — Planejamento de Inspeções, Programação de Manutenção e Gestão de SB/AD/ICA
+
+### 3.1 Objetivo
+Esta seção estabelece princípios para o planeamento das inspeções periódicas, gestão de Service Bulletins (SB), Airworthiness Directives (AD) e Instruções de Conformidade/Acionamento (ICA), além das responsabilidades pelo planeamento e execução dos trabalhos.
+
+### 3.2 Programa de Manutenção e Responsabilidades
+- O programa de manutenção formal será produzido e detalhado pela OM RBAC‑145 contratada com referência ao AMM/IPC, STC ICAs e dados do fabricante; o MGM define obrigações mínimas e critérios de aceitação.
+- A responsabilidade pela coordenação operacional do programa (scheduling, prioridades) é do Diretor de Operações (DOPS) na qualidade de Coordenador Interno de Manutenção, com o Gestor Responsável (GR) como backup.
+- A OM RBAC‑145 é responsável por elaborar task cards/workcards detalhados, identificar referências AMM/IPC/SB/STC/ICA aplicáveis e executar as tarefas técnicas.
+
+### 3.3 Intervalos e Matriz de Inspeções
+- Intervalos baselines da empresa (conforme matriz em anexo/maintenance/Inspection_Matrix_U206G.md): 50‑h, 100‑h, 200‑h e CVA/Annual.
+- A OM deve justificar tecnicamente quaisquer mudanças de intervalo (ex.: redução por ciclos, aumento por condições benignas) e registrar as justificativas no anexo técnico.
+
+### 3.4 Gestão de SB/AD/ICA e Conformidade
+- Monitoramento: a OM RBAC‑145 manterá uma lista viva de SB/AD/ICA aplicáveis por aeronave (referenciando STCs instalados). O Coordenador Interno acompanhará a aplicação e o prazo de cumprimento.
+- Avaliação de aplicabilidade: para cada nova SB/AD/ICA a OM fornecerá relatório de aplicabilidade, impacto operacional e plano de ação (quando aplicável).
+- Prioridade e execução: ADs são mandatórios e devem ser cumpridos nos prazos legais; SBs/ICAs serão atendidos conforme criticidade técnica e acordos contratuais.
+- Evidência: cada tarefa de conformidade deverá gerar workcard com referências, peças usadas, assinatura do certificador e anexos que demonstrem a execução (fotos, relatórios, etiquetas).
+
+### 3.5 Planeamento Anual e Gestão de Peças
+- A OM providenciará um plano de manutenção anual e previsão de peças de consumo/rotas críticas; o GR validará orçamentos e prazos contratuais.
+- A política de aceitação de peças será conforme o anexo de compras (certificados, etiquetas, rastreabilidade) — o MGM exige evidência documental para peças críticas.
+
+### 3.6 Auditoria de Conformidade e KPIs
+- Auditoria: o operador realizará auditoria anual da OM RBAC‑145 e revisões pontuais após eventos significativos.
+- KPIs sugeridos (para inclusão no plano de monitoramento):
+  - Monitoramento mínimo (KPIs reduzidos para Operador Simples):
+  - Número mensal de interrupções por aeronave (consolidadas no "Relatório Sumário Mensal de Interrupções").
+  - Tempo médio para liberação/RTS após conclusão do trabalho (meta operacional: ≤ 48 horas).
+  - Percentual de ADs/ICAs aplicáveis cumpridos no prazo (meta: ≥ 95%).
+  - Número de itens com vida limitada vencidos ou próximos do limite (monitoramento mensal).
+Observação: o operador manterá SLA contratuais com a OM RBAC‑145 para tempos de resposta e execução; relatórios simples e mensais são suficientes para o monitoramento operacional do Operador Simples.
+
+### 3.7 Registo e Retenção
+- Todos os registos de inspeção, conformidade AD/SB/ICA e workcards serão mantidos conforme RBAC nº 43 prazos de retenção; cópias digitais e físicas críticas serão conservadas pelo operador conforme índice mestre.
+
+### 3.8 Revisões e Atualizações
+- O programa de manutenção e a matriz de inspeção serão revistos anualmente ou quando houver alteração regulatória, introdução de STC/modify ou alteração de utilização da aeronave.
+
+**Fim da Seção 3 — Rascunho inicial**
+
+## Seção 4 — Liberação para Retorno ao Serviço, Registros e Supervisão Contratual
+
+### 4.1 Finalidade
+Estabelecer os requisitos e responsabilidades para a liberação para retorno ao serviço (Release to Service — RTS), manutenção de registos, supervisão da OM contratada e a gestão de não conformidades e garantias.
+
+### 4.2 Liberação para Retorno ao Serviço (RTS)
+- A liberação para retorno ao serviço será efetuada pelo certificador/autoridade técnica da OM RBAC‑145, mediante preenchimento de workcard e do formulário de RTS que contenha referência das publicações técnicas utilizadas (AMM/IPC/SB/STC/ICA) e a assinatura do autorizador.
+- O MGM exige que o RTS inclua declaração de aplicação de ADs/SBs/ICAs aplicáveis ou, quando não aplicável, justificativa técnico assinada.
+- Se for necessária limitação temporária de operação, esta deve constar explicitamente no ato de liberação (condição, restrição, prazo) e ser registada no log e no sistema eletrônico.
+- A empresa somente aceitará RTS cuja documentação esteja completa; em casos excepcionais, o DOPS pode autorizar operação condicional com registro explícito e medidas mitigadoras.
+
+### 4.2.1 Procedimento de Recebimento de Serviço e Auditoria de Registos
+- Objetivo: assegurar que, no retorno da aeronave da OM RBAC‑145 (ou oficina contratada), todos os trabalhos executados, ADs/SBs/ICAs aplicados e registos associados foram corretamente lançados, evidenciados e arquivados antes da aceitação operacional.
+- Pacote de serviço exigido da OM (entrega obrigatória no recebimento):
+  - Formulário RTS assinado;
+  - Workcards completos e assinados;
+  - Registos de peças (tags/PN/SN) e certificados de conformidade quando aplicável;
+  - Relatórios de testes/ground run e fotos de evidência;
+  - Lista consolidada de ADs/SBs/ICAs aplicados com referências e números de autorização;
+  - Notas fiscais e documentos contratuais relacionados (quando aplicável).
+  - Atividades de verificação na Asas de Socorro (recebimento):
+  - Imediatamente após recepção, o Coordenador Interno / DOPS realizará uma auditoria de recebimento verificando: a) correspondência entre workcards e entradas nas cadernetas de célula e motor (logbooks); b) que todos os ADs/SBs/ICAs identificados no pacote possuem lançamentos e referências no registro da aeronave; c) validade e rastreabilidade de peças substituídas (tags, certificados); d) que o RTS reflete todas as ações e não omite pendências; e e) anexação de evidências (fotos, relatórios) ao workcard.
+  - Prazo: a verificação inicial deverá ocorrer dentro de 24 horas a partir do retorno da aeronave à base; verificação completa/assinatura da aceitação deverá ocorrer em até 48 horas, salvo acordo diferente documentado.
+  - Critérios de aceitação e ações em caso de não conformidade:
+  - Se todos os itens acima estiverem conformes, o Coordenador Interno/DOPS assinará o formulário de aceite e arquivará o pacote no dossier da aeronave.
+  - Se houver discrepâncias (lançamentos em falta, peças sem documentação, ADs não comprovados), a aeronave permanecerá em status de retido para operação até correção; o Coordenador Interno notificará a OM e abrirá um registro de não conformidade/CAPA; exceção operacional temporária somente com autorização escrita do DOPS e mitigação documentada.
+  - Delegação e papéis adicionais:
+  - Quando a empresa dispor de um Diretor de Manutenção (DM) ou pessoa com delegação técnica formal, o DM realizará a verificação final dos registos antes da aceitação operacional, conforme modelo PEC; na ausência dessa função, o Coordenador Interno/DOPS assume esta responsabilidade.
+  - O Gestor Responsável (GR) verificará aspetos contratuais/financeiros e confirmações de garantia quando necessário.
+  - Registos e retenção:
+  - Todo o pacote de serviço e o checklist de recebimento deverão ser anexados ao registro de manutenção do ativo e retidos conforme RBAC nº 43 e índice mestre do MGM.
+  - Auditoria periódica:
+  - A empresa realizará amostragens periódicas de auditoria aos pacotes de serviço recebidos (programa de auditoria anual da OM) para verificar conformidade do processo e qualidade técnica do prestador.
+
+### 4.3 Registos de Manutenção e Retenção
+- Registos exigidos: workcards, fichas de inspeção, relatórios de conformidade AD/SB/ICA, etiquetas de peças, notas fiscais, fotos e relatórios de testes.
+- Períodos de retenção: conforme RBAC nº 43; documentos críticos permanecerão disponíveis por pelo menos o período mínimo exigido pelo RBAC e conforme políticas internas (ver índice mestre).
+- Formato e acesso: registros digitais são preferíveis quando mantidos em sistema seguro com backup; o operador deverá assegurar acesso controlado para auditorias e backups redundantes.
+
+### 4.4 Supervisão Contratual da OM RBAC‑145
+- Contrato e resumo: o MGM fará referência a um resumo contratual (documento externo) contendo escopo, SLA, contatos e responsabilidades. O contrato completo permanecerá no arquivo externo.
+- Auditorias: a empresa conduzirá auditorias periódicas (anual) e auditorias pontuais após eventos maiores. A OM deverá fornecer evidência documental durante as auditorias.
+- KPIs e SLAs: a OM concorda com os indicadores monitorados (ver Seção 3.6) e com prazos de resposta a discrepâncias e disponibilidade de peças críticas.
+- Subcontratação: a OM só poderá subcontratar serviços técnicos a terceiros autorizados e deverá informar o operador e manter rastreabilidade de execução.
+
+### 4.5 Garantias, Peças e Fornecedores
+- A política de aceitação de peças exige certificados de origem, conformidade e rastreabilidade para peças críticas. Peças recertificadas ou overhaul devem apresentar documentação correspondente.
+- Warranties: a OM e fornecedores devem documentar garantias para trabalhos e peças; o MGM requer registro de termos de garantia e procedimentos para reclamação.
+
+### 4.6 Controle de Ferramentas, Calibração e Equipamentos de Teste
+- A OM deve manter controle de ferramentas especiais e calibração de equipamentos conforme requisitos do fabricante e do AMM; registros de calibração devem ser fornecidos ao operador mediante solicitação.
+
+### 4.7 Qualidade, Não Conformidades e Ações Corretivas
+- Não conformidades técnicas detectadas após liberação devem ser tratadas via procedimento de NC: registro, contenção, investigação, ação corretiva e verificação de eficácia; trabalho de correção deve ser documentado e verificado por certificador.
+
+### 4.8 Privacidade, Acesso e Auditoria
+- O operador e a OM garantirão que os registos estejam disponíveis para auditoria da ANAC e de partes internas autorizadas; acesso externo será regulado por acordos de confidencialidade quando aplicável.
+
+### 4.9 Referências e Anexos
+- Os modelos de RTS, workcard, matriz de inspeção e MEL simples estão disponíveis em maintenance/ e são referenciados no índice mestre do MGM.
+
+## Seção 5 — Treinamento, Competência, Segurança e Gestão da Fadiga
+
+### 5.1 Objetivo
+Estabelecer requisitos mínimos de qualificação, formação contínua, segurança do trabalho em manutenção e gestão de fadiga aplicáveis ao pessoal de manutenção, supervisão e coordenadores responsáveis pelo programa de manutenção.
+
+### 5.2 Requisitos de Competência e Autorizações
+- O operador exigirá que a OM RBAC‑145 mantenha pessoal técnico qualificado e certificado conforme RBAC‑145 e legislação aplicável. Certificados, licenças e autorizações devem estar disponíveis para verificação durante auditorias.
+- O Coordenador Interno (DOPS) e o Gestor Responsável (GR) deverão receber formação básica sobre gestão de manutenção, SB/AD/ICA management e requisitos de liberação para retorno ao serviço.
+
+### 5.3 Treinamento Inicial e Periódico
+- A OM e o operador definirão programas de treinamento inicial e recurrente para técnicos e certificadores, incluindo: procedimentos do AMM/IPC relevantes, STC ICAs, procedimentos de segurança e uso de ferramentas especiais, e requisitos de registro.
+- Registros de treinamento (conteúdo, data, participantes) serão mantidos conforme o índice mestre do MGM.
+
+### 5.4 Gestão de Segurança no Trabalho de Manutenção
+A responsabilidade pela segurança no trabalho, fornecimento de EPI e procedimentos de hangar é da OM RBAC‑145 contratada. O operador exigirá evidências de conformidade (políticas, certificados, registros de treinamento) e realizará auditorias contratuais pontuais para verificar a implementação.
+
+### 5.5 Gestão da Fadiga para Pessoal Crítico
+A gestão da fadiga do pessoal de manutenção é responsabilidade da OM RBAC‑145 contratada; a gestão da fadiga da tripulação está tratada no MGO Seção 5.
+
+### 5.6 Avaliação de Desempenho e Qualidade
+- Competência será verificada por avaliações periódicas, observações de trabalho e auditorias; requalificação obrigatória será aplicada quando necessário.
+- KPIs de qualidade relacionados ao pessoal técnico (re‑trabalho, conformidade com procedimentos SB/AD/ICA, pontualidade de RTS) serão monitorados conforme Seção 3.6.
+
+### 5.7 Registros e Disponibilidade
+- Todos os registos de formação, competência, autorizações e avaliações serão mantidos e disponibilizados para auditoria; cópias eletrónicas deverão ser armazenadas em sistema seguro com backups redundantes.
+
+Anexos — Modelos e Formulários (completos)
+Os modelos e formulários completos abaixo destinam‑se a servir como anexos controlados do MGM. Versões definitivas devem ser mantidas no índice mestre e no sistema eletrónico.
+Nota sobre AEV (Autorização Especial de Voo): o MGM não inclui um modelo de AEV em anexo. Para AEVs, utilizar o formulário e procedimento online no portal eAev da ANAC (https://eAev.anac.gov.br) e anexar a confirmação/recibo gerado pelo portal ao dossiê da aeronave. Esta abordagem evita diferença entre o formulário oficial da ANAC e versões locais não autorizadas.
+Observação sobre anexos embutidos: os modelos referenciados em maintenance/ (RTS, Workcard, Matriz de Inspeção, Part Tagging, Weight & Balance, Fleet Control) estão também mantidos como anexos controlados no índice mestre; a versão consolidada do MGM referencia esses anexos e inclui modelos exemplares neste documento.
+1) Matriz de Inspeção — Resumo para U206G
+Intervalos (baseline da empresa): 50‑h, 100‑h, 200‑h, CVA/Anual.
+Escopo (resumo — a OM RBAC‑145 detalhará por AMM/IPC/STC):
+
+- 50‑h: troca/inspeção de óleo/filtro; verificação de jogo dos comandos; inspeção visual da célula; inspeção do trem e pneus; verificação funcional de aviônicos; lançamento de registo.
+- 100‑h: inclui itens de 50h mais verificação do sistema de combustível; testes operacionais do motor; testes elétricos; verificação de torque de fixadores; revisão de SB/AD/ICA.
+- 200‑h: inclui itens de 50/100h mais inspeção estrutural conforme AMM/STC; inspeção da hélice; verificações funcionais detalhadas.
+- CVA/Anual: conformidade com AD/SB/ICA e limitações do AFM/STC; auditoria de registos.
+Observação: a OM deve detalhar cada tarefa por referência AMM/IPC/SB/STC/ICA e gerar workcards para execução.
+2) Formulário de Liberação para Retorno ao Serviço (RTS) — Modelo
+Empresa / Aeronave: ____________________ Matrícula: ______________ S/N: ___________ Workcard / Ref. serviço: ____________________ Prestador de Manutenção: ____________________ Data: ___________ Hora: ______ Local: ____________________
+Descrição do trabalho executado:
+Peças usadas (ref/PN/QTD):
+Referências técnicas (AMM/IPC/SB/STC/ICA):
+Horas de mão de obra: ______ Certificador / Técnico autorizados: __________________ Número de autorização / licença: ____________________
+Declaração de liberação (a preencher pelo certificador autorizado):
+Declaro que o trabalho descrito acima foi executado de acordo com as práticas aceitas e dados técnicos referenciados, e que a aeronave se encontra apta ao retorno ao serviço, sujeito às condições indicadas abaixo.
+Condições / limitações (se houver):
+Assinatura: _______________________ Data: ___________
+Nome legível: ____________________ Função / Autorização: __________________
+Empresa (OM RBAC‑145): ____________________ Contacto: __________________
+Notas:
+
+- A OM deverá aplicar todas as ICAs, SBs e ADs aplicáveis. Evidências de conformidade devem acompanhar o pacote de serviço.
+3) Workcard / Ficha de Trabalho — Modelo
+Workcard Nº: ________________ Aeronave: ______________ Matrícula: __________ S/N: ___________ Data abertura: _______ Data encerramento: _______ Local: __________________
+Reportado por / Referência: __________________________________________________________
+Descrição da tarefa / Falha reportada:
+Tarefas executadas (referência AMM/IPC/SB/STC/ICA):
+
+- __________________________________________________ (ref: AMM cap. ___ / SB ___)
+Peças / materiais consumidos (PN/QTD/Lote):
+Mão de obra (nome / autorização / horas):
+Resultados de testes / ground run / verificação operacional:
+Certificação (Técnico / Certificador): Declaro que as tarefas acima foram executadas de acordo com os dados técnicos referenciados e que a aeronave foi liberada para retorno ao serviço, sujeito às limitações indicadas.
+Assinatura: _______________________ Data: ___________ Nome (legível): ____________________ Autorização / Licença: __________________
+Contratante: ______________________ Referência do serviço: __________________
+Anexar: checklist SB/AD/ICA, etiquetas de peças, fotos, relatórios de boroscopia (se aplicável)
+4) Registo de Manutenção — Modelo (Resumo)
+Aeronave: __________________ Matrícula: __________ S/N: __________
+Data
+Workcard Nº
+Sumário da tarefa
+Certificador
+Peças usadas (ref)
+Próxima inspeção
+Observações
+YYYY‑MM‑DD
+WC‑0001
+Troca de óleo; Insp. 50h
+Nome / Aut
+Óleo PN x1
+50h a partir da data / __________
+
+Instruções:
+
+- Cada workcard concluído deve ser lançado no registo de manutenção e ligado aos registos da aeronave. Manter anexos e evidências conforme prazos de retenção do RBAC nº 43.
+5) Procedimento de Adiamento (Deferral) & Modelo MEL Simples
+Contexto: a empresa não mantém um MEL mestre extensivo. Deferrals são aplicados conforme critérios do SOP_Asas_de_Socorro_U206G_Draft.md. Todos os adiamentos devem obedecer à matriz de delegação para autorizações.
+Procedimento resumido:
+
+- PIC identifica defeito não crítico e consulta critérios do SOP.
+- Se permitido, o PIC preenche Pedido de Adiamento e obtém autorização do delegatário (DOPS ou delegado), registrando condições e prazo.
+- O defeito, a autorização, as medidas mitigadoras e o prazo máximo devem ser registrados no registo de manutenção.
+- A OM RBAC‑145 será notificada para agendar manutenção corretiva dentro do prazo de adiamento.
+- Se a condição se agravar, a aeronave será imobilizada até retificação e liberação por pessoal autorizado.
+Modelo de MEL simples (exemplo):
+Item
+Sistema
+Descrição do defeito
+Despacho permitido? (S/N)
+Limitações / Condições
+Prazo máximo
+Autoriza
+Data
+MEL‑001
+Farol de aterragem
+Inoperante
+S
+VFR diurno apenas; transportar lâmpada sobressalente
+
+- dias / 20 h
+DOPS
+YYYY‑MM‑DD
+Notas:
+
+- Qualquer item do MEL deve ser justificado em relação a limitações do AFM/POH; itens proibidos pelo AFM não podem constar no MEL.
+- Registos de adiamento devem ser mantidos conforme RBAC nº 43.
+6) Formulário CAPA (Ação Corretiva e Preventiva) — Modelo
+ID CAPA: Data de abertura: Reportado por: Contacto (opcional): Referência do evento / Workcard: Aeronave (Matrícula / S/N): Gravidade (Baixa/Média/Alta/Crítica):
+
+- Descrição da não conformidade / ocorrência:
+  - Ações imediatas de contenção (quem, o quê, quando):
+  - Evidências anexas (workcards, fotos, etiquetas, registos):
+  - Análise de Causa Raiz (método utilizado):
+  - Ações corretivas (responsável / prazo):
+  - Ações preventivas (responsável / prazo):
+  - Verificação de eficácia (método, responsável, data):
+  - Encerramento (nome / função / data):
+7) Relatório de Ocorrência / Investigação (Formulário Unificado)
+ID ocorrência: Data abertura: Data/hora do evento: Reportado por: Consentimento de contacto (S/N): Aeronave (Matrícula / S/N): Local: Workcard / Ref.:
+
+- Tipo de reporte: ( ) Ocorrência técnica ( ) Evento de manutenção ( ) Reporte confidencial (marcar se aplicável)
+- Sumário executivo:
+  - Factos e cronologia:
+  - Evidências recolhidas (workcards, fotos, etiquetas, peças):
+  - Pessoas entrevistadas / envolvidos:
+  - Análise de causa raiz (resumo):
+  - Ações imediatas de contenção (quem, o quê, quando):
+  - Ações corretivas / preventivas propostas (ligar a CAPA):
+  - Responsáveis e prazos:
+  - Verificação de eficácia / encerramento:
+  - Notificações regulatórias (se aplicável):
+Observação sobre confidencialidade: se o reportante optar por confidencialidade, assinale o campo apropriado no topo; a empresa protegerá a identidade do reportante conforme política interna e legislação aplicável.
+Elaborado por: Nome / Função / Data
+
+Controlo documental: o formulário unificado substitui os relatórios separados de investigação e confidencial. Manter versões controladas no índice mestre e anexar evidências no dossier da aeronave quando aplicável.
+9) Relatório Sumário Mensal de Interrupções — Modelo
+Objetivo: consolidar, para efeitos de monitoramento de manutenção e reporte regulatório, um resumo mensal das interrupções de voo por motivos técnicos/mecânicos.
+Empresa: ____________________ Mês / Ano: ______________
+Matrícula
+Nº Interrupções
+Horas Perdidas (total)
+Principais Causas (resumo)
+Workcard Ref(s)
+Ações Corretivas / Preventivas
+Observações
+
+Instruções de preenchimento:
+
+- Matrícula: identificar a aeronave afetada.
+- Nº Interrupções: número de voos cancelados/retidos/alterados por motivo técnico no mês.
+- Horas Perdidas: soma de horas de voo/planned downtime perdidas atribuíveis às interrupções.
+- Principais Causas: breve resumo (ex.: falha de motor, avionics, peça crítica).
+- Workcard Ref(s): listar referências dos workcards ou RTS ligados às interrupções.
+- Ações Corretivas / Preventivas: medidas tomadas e responsáveis.
+- Observações: notas relevantes, impacto operacional, se notificado ANAC.
+Responsável pelo relatório: ____________________ Data: ____________
+Este relatório deverá ser compilado mensalmente pelo Coordenador Interno e enviado ao GR e à Direção para revisão e arquivo no índice mestre do MGM. Evidências detalhadas (workcards, fotos, CAPAs) devem ser anexadas ao dossier da aeronave.
+
+## Seção 6 — Implementação, Transição e Distribuição
+
+### 6.1 Objetivo
+Estabelecer o plano de implementação do MGM, responsabilidades durante a fase de transição, distribuição e controlo de versões, e requisitos de comunicação interna.
+
+### 6.2 Plano de Implementação
+- Data efetiva: o MGM terá uma data efetiva (documentar quando aprovado internamente). A partir dessa data, os procedimentos e requisitos passam a vigorar para todas as operações cobertas pelo COA/EO.
+- Cronograma de transição: definir prazos para completar a matriz de inspeções por aeronave, acordos contratuais com a OM RBAC‑145, carga inicial de SB/AD/ICA pendentes e migração de registos para o sistema eletrônico.
+- Responsáveis por implementação: DOPS (coordenação), GR (recursos e contratos), OM RBAC‑145 (entregáveis técnicos).
+
+### 6.3 Distribuição, Controle de Versões e Treinamento
+- Distribuição: o MGM consolidado será disponibilizado em formato eletrônico no índice mestre; cópias controladas impressas serão mantidas conforme política documental.
+- Controle de versões: cada revisão deverá ser registrada no registro de revisões do MGM com data, autor, resumo das alterações e aprovador.
+- Treinamento de publicação: antes da data efetiva, realizar sessões de sensibilização e treinamento para DOPS, GR, Coordenador Interno e pessoal relevante da OM.
+
+### 6.4 Acompanhamento Pós-Implementação
+- Período de observação: os primeiros 3 meses após implementação servem como período de observação para identificar ajustes práticos e recolher feedback.
+- Plano de ação corretiva: criar um registro de ações pendentes e responsáveis para itens identificados durante a observação.
+
+### 6.5 Revisão e Atualização
+- Revisão formal: o MGM será revisto anualmente ou quando mudanças regulatórias/operacionais exigirem revisão.
+- Alterações urgentes: alterações que tenham impacto de segurança devem ser emitidas como revisão imediata com controladoria e comunicação rápida.
+
+### 6.6 Qualidade de Combustível — Política e Procedimentos (Instalações e Facilidades)
+- Política: é política da Asas de Socorro que somente combustível livre de contaminação e dentro das especificações do fabricante seja utilizado nas aeronaves operadas sob o COA/EO da empresa. Quando a estocagem/fornecimento for efetuada por terceiros, a empresa exercerá garantia por meio de inspeções sensoriais, drenagens mandatórias e controles documentais.
+- Alcance: aplica-se a todas as operações de abastecimento realizadas pela empresa, incluindo abastecimentos efetuados em bases fora da sede e por prestadores terceiros contratados.
+- Procedimentos mínimos (resumo e referências operacionais):
+  - Antes do primeiro voo do dia e após cada reabastecimento o PIC e a equipa de manutenção/linha deverão efetuar drenagens e verificação sensorial para presença de água, sedimentos ou contaminação (ver MGO Seção 9 e SOP Seção 11 para procedimentos operacionais detalhados).
+  - Medidas de proteção contra incêndio, prevenção de eletricidade estática e proibições de operação de sistemas durante o abastecimento seguem o conteúdo do SOP Seção 11 (incorporado por referência).
+  - Para abastecimento em bases externas, aplicar as mesmas verificações e documentar recepção de combustível e resultados de drenos no diário de bordo / sistema eletrônico.
+  - Responsabilidades:
+  - PIC: executar e registar drenagens e inspeções pré‑voo; recusar partida/voo se houver suspeita de contaminação; reportar imediatamente ao Coordenador Interno (DOPS).
+  - DOPS / Coordenador Interno: assegurar que os procedimentos operacionais (MGO Seção 9 / SOP Seção 11) sejam seguidos e que contratos com fornecedores incluam garantias de qualidade do combustível.
+  - GR: garantir inclusão de requisitos contratuais com fornecedores e supervisão documental para auditoria.
+  - Registos e evidência:
+  - Registar todas as drenagens, inspeções e ações corretivas no diário de bordo e no sistema eletrônico de manutenção; anexar fotos e evidências quando aplicável.
+  - Manter registros de fornecedores e relatórios de qualidade do combustível conforme índice mestre do MGM.
+  - Conformidade normativa: esta política atende ao requisito da IS 135.21-001B (seção 5.2.7.3) que exige descrição de procedimentos para eliminação de contaminação de combustível; os procedimentos detalhados de execução operacionais permanecem em MGO/SOP e são incorporados por referência.
+
+## Seção 7 — Não Conformidades, Relato de Ocorrências e Melhoria Contínua
+
+### 7.1 Objetivo
+Estabelecer o processo para identificação, relato, investigação e tratamento de não conformidades e ocorrências técnicas, assim como os mecanismos de monitoramento, análise de tendências e ações de melhoria contínua relacionadas à manutenção.
+Observação sobre SGSO e papel de investigação: a empresa encontra‑se isenta da obrigação de manter um SGSO completo e, consequentemente, não possui um Diretor de Segurança Operacional (DSO) dedicado como requisito do COA/EO. As responsabilidades de investigação de ocorrências, abertura de CAPA e gestão de ações corretivas são desempenhadas pelas funções já definidas neste MGM (Coordenador Interno / DOPS e Gestor Responsável), de acordo com os procedimentos desta seção.
+
+### 7.2 Obrigação de Relato
+- Piloto em Comando (PIC): reportar imediatamente qualquer defeito, falha ou evento que possa afetar a aeronavegabilidade ao Coordenador Interno de Manutenção e registrar no diário de bordo.
+- Pessoal de Manutenção / OM RBAC‑145: reportar não conformidades técnicas, eventos de qualidade ou ocorrências de segurança ao Coordenador Interno e ao Gestor Responsável conforme procedimento interno.
+- Terceiros / Fornecedores: devem comunicar ao operador quaisquer descobertas que possam afetar a aeronavegabilidade ou a conformidade de peças/serviços.
+
+### 7.3 Ações Imediatas e Contenção
+- Ao receber o relato, o Coordenador Interno (DOPS) avaliará o risco operacional e determinará ações imediatas (retenção de aeronave, limitação de operação, bloqueio de peça, etc.).
+- Itens críticos que comprometam a segurança devem ser isolados, sinalizados e documentados; a OM deverá suspender uso de peças/equipamentos afetados até avaliação técnica.
+
+### 7.4 Investigação e Análise de Causa Raiz
+- A investigação será conduzida com participação do Coordenador Interno, representante da OM RBAC‑145 e, quando aplicável, do PIC e do GR.
+- A investigação deve incluir: descrição do evento, evidências (workcards, fotos, registros), análise de causa raiz, ações corretivas propostas e responsáveis, prazos e verificação de eficácia.
+- Para eventos significativos, a empresa poderá convocar uma reunião técnica formal e gerar relatório de investigação com níveis de severidade e lições aprendidas.
+
+### 7.5 Ações Corretivas e Preventivas (CAPA)
+- As ações corretivas devem ser registradas em um plano CAPA com responsáveis, prazos e critérios de verificação.
+- A OM RBAC‑145 é responsável por executar ações corretivas técnicas; o operador monitora execução e valida eficácia antes de reverter limitações operacionais.
+- Medidas preventivas (treinamento, alterações de procedimento, revisões de checklists) deverão ser definidas quando a causa raiz indicar necessidade sistêmica.
+
+### 7.6 Monitoramento, Tendências e Indicadores
+- O GR e o Coordenador Interno consolidarão indicadores relacionados a não conformidades: número de eventos, tempo médio de resolução, reincidência por sistema, custo por evento e taxa de ações verificadas.
+- Revisões periódicas de tendências (mensal/quarterly) devem alimentar o programa de melhoria contínua e subsidiar decisões contratuais e de alocação de recursos.
+
+### 7.7 Comunicação Regulatória e Obrigações de Reporte
+- O operador notificará as autoridades competentes (ANAC) e outros órgãos competentes quando exigido por RBAC/legislação aplicável ou por orientação da OM; prazos e formato de notificação seguirão os requisitos normativos.
+- Para incidentes que impliquem investigação regulatória, preservar evidências e garantir coordenação formal entre operador, OM e autoridades.
+
+### 7.8 Confidencialidade e Cultura de Segurança
+- O operador promoverá um mecanismo de relatório confidencial e proteção a denunciantes para encorajar relato de ocorrências sem retaliação.
+- Lições aprendidas e medidas de mitigação serão comunicadas de forma aberta internamente para promover melhoria contínua.
+
+### 7.9 Registros e Retenção
+- Todos os registros de não conformidade, investigações e CAPA serão mantidos conforme requisitos do RBAC nº 43 e conforme política documental da empresa.
+- Evidências associadas (workcards, fotos, peças retidas, relatórios) serão anexadas aos registros e disponibilizadas para auditoria.
+
+### 7.10 Revisão Gerencial e Melhoria Contínua
+- Os resultados das investigações, CAPAs e indicadores de não conformidade serão apresentados em revisão gerencial anual e em reuniões de segurança técnica.
+- O plano de ação para melhoria contínua será revisado e priorizado pela direção (GR/DOPS) e incorporado ao ciclo anual de revisão do MGM.
+
+## Seção 8 — Directivas de Aeronavegabilidade (AD), Modificações e Peças com Vida Limitada
+
+### 8.1 Objetivo
+Estabelecer requisitos e responsabilidades para gestão e cumprimento de Airworthiness Directives (AD), incorporação de Modificações aprovadas (STC e alterações), e o controlo de peças com vida limitada, de forma a assegurar a continuidade da aeronavegabilidade e cumprimento normativo.
+
+### 8.2 Gestão de Airworthiness Directives (AD)
+- A OM RBAC‑145 contratada será responsável por monitorar e avaliar a aplicabilidade das ADs aos equipamentos e aeronaves operadas, fornecendo relatório de aplicabilidade e plano de ação quando necessário.
+- O Coordenador Interno manterá registro de todas as ADs aplicáveis por aeronave e acompanhará prazos de cumprimento.
+- ADs de caráter urgente ou com prazo regulamentar devem ser tratadas com prioridade máxima; a OM e o operador acordarão plano de execução e reporte.
+
+### 8.3 Modificações e STCs
+- Todas as modificações (incluindo STCs) devem ser aprovadas por autoridade competente e documentadas no registro de modificações do operador (documento externo controlado).
+- A OM deverá aplicar as ICAs e SBs necessários para execução segura da modificação e prover documentação completa (placas/labels, fichas de instalação, alterações de AFM/POH quando aplicável).
+- Alterações que afetam limites de desempenho, pesos, centro de gravidade, ou procedimentos de operação deverão ser acompanhadas por atualização de AFM/POH/Checklists e treinamento para tripulações.
+
+### 8.4 Peças com Vida Limitada e Contagem de Ciclos/Horas
+- A política para peças com vida limitada (LLP) será mantida em anexo técnico e obedecerá às recomendações do fabricante e regulamentação aplicável.
+- A OM e o operador registrarão a vida acumulada (horas/ciclos) de componentes críticos e planejarão substituições conforme limites do fabricante ou programa de manutenção aprovado.
+
+### 8.4.1 Controle de Itens com Limite de Vida e Inspeções Mandatórias
+- Alertas de vida útil e margens: o sistema de gestão de manutenção deverá gerar alertas visuais e operacionais para itens com vida limitada nos seguintes limites mínimos recomendados:
+  - Alerta Amarelo (planejamento): quando o componente atingir 90% da vida útil especificada (equivalente a 10% restante) — ação: planejar e programar a substituição/subscrição antes do próximo ciclo/voo crítico.
+  - Alerta Vermelho (ação imediata): quando o componente atingir 100% da vida útil ou tiver ≤10% de disponibilidade restante conforme cálculo do sistema — ação: não operar/instalar o componente além do limite; providenciar substituição imediata.
+  - Implementação de alertas: os alertas deverão ser apresentados como indicadores visuais (Amarelo/Vermelho) no Master Control Sheet e no sistema eletrônico de manutenção, com geração de tarefas e notificações por email/SMS para DOPS, GR e OM responsável.
+  - Registos regulamentares e inspeções mandatórias (exemplos aplicáveis):
+  - ELT (Emergency Locator Transmitter): inspeção funcional e/ou manutenção periódica obrigatória a cada 12 meses; registar no log da aeronave e no Master Control Sheet.
+  - Transponder (Mode A/C/S): inspeção/verificação funcional e manutenção conforme Apêndice F do RBAC 43, normalmente a cada 24 meses; registar evidências e datas de próxima inspeção.
+  - Outros itens mandatórios: seguir intervalos e requisitos do fabricante e do RBAC (ex.: baterias de ELT, rádios, equipamentos de emergência) e registar conformidade.
+  - Procedimento de reconciliação e verificação:
+  - Realizar reconciliação mensal do inventário de peças com vida limitada e checagem dos alertas gerados;
+  - Antes de cada voo programado com carga crítica, verificar itens cuja vida útil esteja no estado Amarelo e assegurar plano de substituição;
+  - Documentar qualquer exceção ou operação em situação de limite no workcard, com autorização de DOPS e plano de mitigação.
+  - Registos e evidência:
+  - Entradas de substituição/inspeção devem incluir PN/SN, horas/ciclos registados, data da ação, nome do técnico/certificador e referência do workcard; anexar certificado/relatório quando aplicável.
+  - Responsabilidades:
+  - OM RBAC‑145: manter rastreabilidade das leituras de horas/ciclos, executar inspeções periódicas e fornecer relatórios comprovativos;
+  - DOPS: assegurar que alertas gerem ações operacionais e validar autorizações para exceções;
+  - GR: assegurar que requisitos contratuais com fornecedores considerem inspeções mandatórias e que o sistema de gestão suporte alertas.
+  - Referências: RBAC nº 43 (Apêndice F), manual do fabricante, e anexos técnicos do MGM. Intervalos específicos do fabricante prevalecem; o operador manterá mapa de vencimentos no Master Control Sheet.
+
+### 8.4.2 Gestão de Instruções para Aeronavegabilidade Continuada (ICAs) vinculadas a STCs
+- Obrigação contratual: a OM RBAC‑145 contratada deverá verificar, aplicar e registar todas as Instruções para Aeronavegabilidade Continuada (ICAs) emitidas em ligação a STCs instalados na aeronave. Os contratos de prestação de serviços devem conter cláusula clara atribuindo à OM a responsabilidade pela aplicação tempestiva das ICAs, inclusão em workcards e entrega de evidências documentais.
+- Requisitos mínimos da OM ao gerir ICAs de STCs:
+  - manter lista atualizada de STCs instalados por aeronave e as ICAs aplicáveis; esta lista fará parte do registro de STCs (documento externo controlado);
+  - ao elaborar um workcard relacionado a um STC, referenciar explicitamente a ICA aplicada (nº/data) e anexar relatórios de inspeção/teste e evidências (fotos, medições, certificados quando aplicável);
+  - notificar o Coordenador Interno/DOPS sobre ICAs críticas, prazos e impacto operacional, propondo plano de ação quando a ICA exigir intervenção;
+  - registar, no STC register, a data de aplicação da ICA, workcard de referência e o certificador responsável.
+  - Verificação pelo operador: o procedimento de recebimento de serviço (Seção 4.2.1) incluirá uma checagem obrigatória das ICAs aplicáveis a STCs; a aceitação operacional só ocorrerá quando as ICAs tiverem lançamentos claros e evidências anexadas ao pacote de serviço.
+  - Gestão de não conformidades: a não aplicação ou aplicação incompleta de uma ICA deverá originar abertura de NC/CAPA e poderá resultar em retenção operacional, sanções contratuais e, quando aplicável, notificação às autoridades regulatórias conforme RBAC.
+  - Responsabilidades resumidas:
+  - OM RBAC‑145: revisar, aplicar e registrar ICAs; gerar workcards com referências às ICAs; fornecer evidências ao operador;
+  - DOPS / Coordenador Interno: supervisionar a aplicação de ICAs, aceitar o pacote somente após verificação e coordenar ações corretivas com a OM;
+  - GR: assegurar que as obrigações contratuais cubram aplicação de ICAs e que os fornecedores mantenham rastreabilidade documental.
+  - Referências: RBAC nº 43; RBAC nº 145; documentação técnica do STC e publicações do fabricante.
+
+### 8.5 Gestão de Peças Recondicionadas, Overhaul e Fontes Alternativas
+Peças recondicionadas/overhaul deverão apresentar documentação de conformidade e rastreabilidade; a elegibilidade de peças e a avaliação de fornecedores serão tratadas pela OM RBAC‑145 contratada. O operador não pretende adquirir peças de fontes alternativas diretamente; qualquer utilização de PMA/alternativas deverá ser acordada contratualmente com a OM e documentada no registro de manutenção, seguindo autorização do fabricante e/ou da autoridade quando aplicável.
+
+### 8.6 Registo e Rastreabilidade
+- Todas as ações relacionadas a ADs, modificações e substituições de peças devem ser documentadas em workcards e integradas ao registro de manutenção do ativo.
+- O índice mestre do MGM indicará a localização dos registos e a quem reportar em caso de auditoria.
+
+### 8.7 Avaliação de Impacto e Comunicação às Partes Interessadas
+- Antes da execução de modificações significativas, a OM fornecerá avaliação de impacto técnico e operacional; o operador assegurará comunicação às tripulações, seguradoras e partes afetadas.
+
+### 8.8 Não Conformidades em AD/Modificação
+- Divergências ou execução incompleta de ADs e modificações deverão ser tratadas conforme Seção 7 (NC / CAPA). A falta de cumprimento de ADs é reportável à autoridade e pode implicar ações corretivas contratuais.
+
+### 8.9 Política de Pesagem e Balanceamento
+- Requisito de repesagem: em conformidade com o disposto no RBAC 135.185, a empresa declara que cada aeronave da frota será submetida a uma pesagem certificada a cada 36 meses (repesagem periódica) como método de verificação do peso e do centro de gravidade operacional.
+- Gatilhos para pesagem adicional: para além da repesagem periódica, uma nova pesagem é obrigatória sempre que ocorrerem alterações que possam afetar significativamente o peso ou o centro de gravidade, incluindo, mas não se limitando a:
+  - modificações estruturais ou instalação de STCs que alterem massa ou distribuição de massa;
+  - pintura integral que possa alterar a massa total ou a distribuição de cargas;
+  - substituição de equipamentos significativos (aviônicos, assentos, sistemas de carga) que alterem a distribuição do CG;
+  - reparos estruturais que afetem a configuração ou massa; ou
+  - retorno de aeronave após intervenção que não tenha evidência de conformidade de massa/CG.
+  - Responsabilidades:
+  - OM RBAC‑145 ou oficina/entidade de pesagem autorizada: executar a pesagem, emitir relatório de pesagem com diagrama de pontos de referência, tabelas de pesos e cálculos de CG, e fornecer declaração técnica assinada pelo responsável autorizado;
+  - DOPS: solicitar e aprovar a pesagem, verificar que as informações de pesagem satisfazem os requisitos do EO e atualizar o registro da aeronave;
+  - GR: verificar requisitos contratuais/seguros relacionados a alterações de massa e arquivar o relatório de pesagem no dossier da aeronave.
+  - Registos e atualizações: o relatório de pesagem deve ser anexado ao dossier da aeronave e uma cópia atualizada da ficha de pesagem (Weight and Balance) deve ser incluída no maintenance/Weight_and_Balance_Policy.md e no índice mestre; o próximo vencimento de repesagem (36 meses) será calculado e registado no Master Control Sheet.
+  - Critérios técnicos mínimos do relatório de pesagem: o relatório deve conter identificação da aeronave (matrícula / S/N), data, local, equipamento instalado, massa em cada estação medida, fatores de conversão, cálculo do CG em milímetros/polegadas e percent %MAC (quando aplicável), assinaturas e referência às publicações técnicas utilizadas.
+  - Conformidade com AFM/POH: quaisquer alterações aos limites de CG ou procedimentos de carregamento resultantes da pesagem devem ser refletidas em suplementos do AFM/POH ou em bulletins operacionais e comunicadas às tripulações.
+Fim do MGM — Rascunho consolidado (Seções 1–8)
+
+### 8.10 Política de Identificação e Etiquetagem de Peças
+- Objetivo: garantir a identificação, rastreabilidade e o controlo de integridade das peças, componentes e conjuntos manipulados na operação e nas oficinas contratadas, reduzindo o risco de instalação de peças não conformes.
+- Alcance: aplica‑se a todas as peças removidas de aeronaves, peças em stock, peças recebidas de fornecedores, peças em quarentena e peças destinadas ao descarte por todas as entidades que prestam manutenção para a empresa (OM RBAC‑145 e oficinas autorizadas).
+- Sistema de etiquetagem (código de cores) — significado mínimo:
+  - Verde: Peça serviceable, com certificação/documentação completa — pronta para instalação.
+  - Amarelo: Peça em quarentena ou pendente de documentação/verificação — somente instalar mediante autorização documentada do DOPS ou certificador da OM.
+  - Vermelho: Peça não‑serviceable / condenada — não instalar; destinação para overhaul/disposição conforme procedimento de sucata.
+  - Azul: Peça retida para investigação (ex.: devolução para análise, garantia ou investigação de ocorrência) — não instalar até resolução.
+  - Conteúdo mínimo da etiqueta / tag:
+  - Número de peça (PN) e número de série (SN), quando aplicável;
+  - Quantidade (se aplicável) e unidade de embalagem;
+  - Origem / aeronave (matrícula) ou fornecedor;
+  - Referência do workcard / serviço (WC‑###) ou do recebimento;
+  - Data/hora e responsável pela retirada/recepção;
+  - Motivo da etiquetagem (ex.: removida por manutenção, quarentena documental, condenada, investigação);
+  - Disposição prevista (reinstalar / overhaul / descartar) e assinatura do responsável.
+  - Procedimento resumido:
+  - A etiqueta deverá ser afixada diretamente na peça ou na embalagem de proteção de forma visível e resistente; peças pequenas deverão ser acondicionadas em saco/envelope identificado.
+  - Peças sem etiqueta imprimível ou com etiqueta ilegível deverão ser colocadas imediatamente em quarentena (Amarelo) até verificação documental.
+  - Peças condenadas recebem etiqueta Vermelha e são segregadas fisicamente; procedimentos de descarte e documentação deverão ser aplicados.
+  - Peças em investigação recebem etiqueta Azul e um docket de investigação com evidências (fotos, workcards, relatórios) deverá acompanhar a peça.
+  - Todas as etiquetas devem ter um identificador único (ID/QR) quando suportado pelo sistema eletrônico de manutenção para facilitar rastreabilidade.
+  - Registos e evidência:
+  - A informação da etiqueta e fotografia da peça etiquetada devem ser anexadas ao workcard e registadas no sistema de manutenção eletrônico; qualquer alteração de estado da peça (quarentena → serviceable) exige registo e autorização.
+  - Responsabilidades:
+  - OM RBAC‑145 / oficina: aplicar etiquetas durante intervenções, assegurar documentação de origem e enviar evidências ao operador;
+  - DOPS: autorizar exceções de instalação para peças Amarelas; validar devoluções de peças para uso;
+  - GR: garantir disponibilidade de etiquetas, requisitos contratuais com fornecedores e supervisão de conformidade de processo.
+  - Auditoria e formação: o operador realizará verificações periódicas (inventário de etiquetas e reconciliação) e incluirá o processo de etiquetagem nos programas de formação de manutenção.
+  - Anexos: modelo de etiqueta, formulário de rastreabilidade e fluxograma estão disponíveis em maintenance/Part_Tagging_Policy.md.

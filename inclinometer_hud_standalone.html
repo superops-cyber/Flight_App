@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Inclinometer HUD</title>
+  <style>
+    :root {
+      --hud: #00ff88;
+      --hud-dim: rgba(0, 255, 136, 0.55);
+      --bg: #000;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #06121b;
+      color: #d8e7ef;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .page {
+      min-height: 100vh;
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .launcher {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .launcher input {
+      min-width: 120px;
+      height: 40px;
+      border-radius: 8px;
+      border: 1px solid #3d5566;
+      padding: 0 10px;
+      font-size: 16px;
+      background: #fff;
+      color: #111;
+    }
+    .launcher button {
+      min-height: 42px;
+      border: none;
+      border-radius: 8px;
+      background: #0f766e;
+      color: #fff;
+      padding: 0 12px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 9999;
+    }
+    .hud {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      color: var(--hud);
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.68) contrast(1.2);
+    }
+    #horizon {
+      position: absolute;
+      width: 220%;
+      height: 2px;
+      background: var(--hud);
+      top: 50%;
+      left: -60%;
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
+      pointer-events: none;
+    }
+    #pitchLadder {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .aircraft-ref {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 72px;
+      height: 2px;
+      background: var(--hud);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
+      pointer-events: none;
+    }
+
+    .hud-data {
+      position: absolute;
+      bottom: 20px;
+      left: 12px;
+      text-shadow: 0 0 8px rgba(0, 255, 136, 0.7);
+    }
+    .hud-data .deg {
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .hud-data .pct {
+      font-size: 22px;
+      font-weight: 800;
+      opacity: 0.95;
+      line-height: 1.1;
+    }
+    .hud-data .meta {
+      margin-top: 6px;
+      font-size: 12px;
+      opacity: 0.85;
+    }
+    .hud-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 12px;
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+    }
+    .hud-controls button {
+      background: rgba(0, 0, 0, 0.62);
+      color: var(--hud);
+      border: 1px solid var(--hud);
+      min-height: 44px;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+  <!-- Tap-to-start splash: required on iOS so openInclinometer() fires from a real user gesture -->
+  <div id="startScreen" style="
+    position:fixed; inset:0; z-index:99999;
+    background:#0b1118;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:24px; padding:32px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    color:#d9e6ef;
+  ">
+    <div style="font-size:48px;">&#127757;</div>
+    <div id="startTitle" style="font-size:22px; font-weight:800; letter-spacing:0.04em;">INCLINOMETER</div>
+    <div id="startSubtitle" style="font-size:14px; color:#7ba4bc; text-align:center; max-width:280px; line-height:1.5;">Place the iPad edge against a known vertical surface, then tap start.</div>
+    <button id="startBtn" data-action="start" onclick="handleStartTap()" style="
+      margin-top:8px; padding:18px 42px;
+      background:#0f766e; color:#fff; border:none;
+      border-radius:12px; font-size:18px; font-weight:900;
+      letter-spacing:0.06em; cursor:pointer;
+    ">START</button>
+  </div>
+
+  <div id="inclinometerModal" class="modal">
+    <div id="hud" class="hud">
+      <video id="camera" autoplay playsinline muted></video>
+      <div id="horizon"></div>
+      <div id="pitchLadder"></div>
+      <div class="aircraft-ref"></div>
+
+      <div class="hud-data">
+        <div class="deg" id="degrees">0.0°</div>
+        <div class="pct" id="percent">0.0%</div>
+        <div class="meta" id="meta">Stabilize on a known vertical reference</div>
+      </div>
+
+      <!-- SET VERTICAL in top-left, away from the save button -->
+      <div style="position:absolute; top:16px; left:12px; z-index:10;">
+        <button id="setHorizonBtn" onclick="setZero(); event.stopPropagation();" style="background:rgba(0,0,0,0.62); color:var(--hud); border:1px solid var(--hud); min-height:44px; border-radius:8px; padding:0 12px; font-size:13px; font-weight:800;">SET VERTICAL</button>
+      </div>
+
+      <div class="hud-controls">
+        <button id="useBtn" onclick="useAngle(); event.stopPropagation();">SAVE ANGLE</button>
+        <button onclick="closeInclinometer(); event.stopPropagation();">EXIT</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CALIBRATION_KEY = 'missionBriefing.inclinometerCalibration';
+    const CALIBRATION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+
+    const state = {
+      zeroOffset: 0,
+      rawBeta: null,
+      smoothedPitch: 0,
+      currentAngle: 0,
+      _samples: [],
+      autoZeroed: false,
+      pxPerDeg: 6,
+      stream: null,
+      orientationBound: false,
+      storageKey: new URLSearchParams(location.search).get('storageKey') || 'missionBriefing.inclinometerResult',
+      returnUrl: new URLSearchParams(location.search).get('returnUrl') || '',
+      targetInputId: new URLSearchParams(location.search).get('targetInputId') || 'angleInput',
+      saveLabel: new URLSearchParams(location.search).get('saveLabel') || 'Save angle'
+    };
+
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v || 0)));
+
+    function getScreenAngle_() {
+      try {
+        if (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
+          return Number(window.screen.orientation.angle);
+        }
+      } catch (e) {}
+      if (typeof window.orientation === 'number') return Number(window.orientation);
+      return 0;
+    }
+
+    function formatAgeText_(savedAt) {
+      const ageMs = Math.max(0, Date.now() - Number(savedAt || 0));
+      const mins = Math.round(ageMs / 60000);
+      if (mins <= 1) return 'just now';
+      if (mins < 60) return mins + ' min ago';
+      const hours = Math.round((mins / 60) * 10) / 10;
+      return hours + ' hr ago';
+    }
+
+    function loadSavedCalibration_() {
+      let payload = null;
+      try {
+        payload = JSON.parse(localStorage.getItem(CALIBRATION_KEY) || 'null');
+      } catch (e) {
+        payload = null;
+      }
+      if (!payload || typeof payload.zeroOffset !== 'number' || !payload.savedAt) return null;
+      const ageMs = Date.now() - Number(payload.savedAt || 0);
+      if (ageMs > CALIBRATION_MAX_AGE_MS) {
+        try { localStorage.removeItem(CALIBRATION_KEY); } catch (e) {}
+        return null;
+      }
+      const currentAngle = getScreenAngle_();
+      if (Number(payload.screenAngle || 0) !== Number(currentAngle || 0)) {
+        return null;
+      }
+      return payload;
+    }
+
+    function saveCalibration_(source) {
+      try {
+        localStorage.setItem(CALIBRATION_KEY, JSON.stringify({
+          zeroOffset: Number(state.zeroOffset || 0),
+          savedAt: Date.now(),
+          screenAngle: getScreenAngle_(),
+          source: String(source || 'manual')
+        }));
+      } catch (e) {}
+    }
+
+    function refreshStartScreenHint_() {
+      const subtitleEl = document.getElementById('startSubtitle');
+      const saved = loadSavedCalibration_();
+      if (!subtitleEl) return;
+      if (saved) {
+        subtitleEl.textContent = 'Saved vertical reference available from ' + formatAgeText_(saved.savedAt) + '. Tap start to reuse it, or re-calibrate if the iPad orientation changed.';
+        return;
+      }
+      subtitleEl.textContent = 'Place the iPad edge against a known vertical surface, then tap start.';
+    }
+
+    function buildPitchLadder() {
+      const ladder = document.getElementById('pitchLadder');
+      ladder.innerHTML = '';
+      for (let d = -30; d <= 30; d += 5) {
+        const line = document.createElement('div');
+        line.style.position = 'absolute';
+        line.style.left = '10%';
+        line.style.width = '80%';
+        line.style.height = d % 10 === 0 ? '2px' : '1px';
+        line.style.background = d % 10 === 0 ? 'rgba(0,255,136,.95)' : 'rgba(0,255,136,.55)';
+        line.style.top = `calc(50% + ${-d * state.pxPerDeg}px)`;
+        ladder.appendChild(line);
+
+        if (d % 10 === 0 && d !== 0) {
+          const txt = document.createElement('div');
+          txt.textContent = String(Math.abs(d));
+          txt.style.position = 'absolute';
+          txt.style.right = '6%';
+          txt.style.top = `calc(50% + ${-d * state.pxPerDeg - 9}px)`;
+          txt.style.color = 'rgba(0,255,136,.85)';
+          txt.style.fontSize = '12px';
+          txt.style.fontWeight = '700';
+          ladder.appendChild(txt);
+        }
+      }
+    }
+
+    function updateReadout(angle) {
+      const a = clamp(angle, -30, 30);
+      state.currentAngle = a;
+      document.getElementById('degrees').textContent = `${a.toFixed(1)}°`;
+      document.getElementById('percent').textContent = `${(Math.tan(a * Math.PI / 180) * 100).toFixed(1)}%`;
+    }
+
+    function renderHud() {
+      const pitch = clamp(state.smoothedPitch, -30, 30);
+      const offset = pitch * state.pxPerDeg;
+      document.getElementById('horizon').style.transform = `translateY(${offset}px)`;
+      document.getElementById('pitchLadder').style.transform = `translateY(${offset}px)`;
+
+      updateReadout(pitch);
+    }
+
+    function onOrientation(e) {
+      if (!e || typeof e.beta !== 'number') return;
+      state.rawBeta = Number(e.beta);
+      const corrected = state.rawBeta - state.zeroOffset;
+      state.smoothedPitch = state.smoothedPitch * 0.86 + corrected * 0.14;
+      renderHud();
+
+      // Auto-calibrate: wait for device to be stable for ~2 seconds then zero
+      if (!state.autoZeroed) {
+        state._samples.push(state.rawBeta);
+        if (state._samples.length > 25) state._samples.shift();
+        if (state._samples.length >= 15) {
+          const n = state._samples.length;
+          const mean = state._samples.reduce((a, b) => a + b, 0) / n;
+          const variance = state._samples.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+          if (variance < 0.4) {
+            state.zeroOffset = mean;
+            state.smoothedPitch = 0;
+            state.autoZeroed = true;
+            saveCalibration_('auto');
+            const btn = document.getElementById('setHorizonBtn');
+            if (btn) btn.textContent = 'RE-CALIBRATE';
+            document.getElementById('meta').textContent = 'Reference set ✓  —  remove from surface, aim, then SAVE';
+          } else {
+            document.getElementById('meta').textContent = 'Hold on vertical surface · stabilizing...';
+          }
+        } else {
+          document.getElementById('meta').textContent = 'Hold on vertical surface · stabilizing...';
+        }
+      }
+    }
+
+    async function requestMotionPermission() {
+      if (!window.DeviceOrientationEvent) return true;
+      try {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+          return (await DeviceOrientationEvent.requestPermission()) === 'granted';
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    async function startCamera() {
+      const video = document.getElementById('camera');
+      if (!window.isSecureContext) {
+        throw new Error('HTTPS required');
+      }
+
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('autoplay', 'true');
+      video.muted = true;
+
+      const tries = [
+        { audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        { audio: false, video: { facingMode: { exact: 'environment' } } },
+        { audio: false, video: { facingMode: 'environment' } },
+        { audio: false, video: true }
+      ];
+
+      let stream = null;
+      let lastErr = null;
+      for (let i = 0; i < tries.length; i++) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(tries[i]);
+          break;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      if (!stream) {
+        const errName = String(lastErr && lastErr.name || 'Error');
+        const errMsg = String(lastErr && lastErr.message || 'Unknown');
+        throw new Error(errName + ': ' + errMsg);
+      }
+
+      state.stream = stream;
+      video.srcObject = stream;
+      try {
+        await video.play();
+      } catch (e) {
+        // iOS can still show first frame even if autoplay promise rejects
+      }
+    }
+
+    function stopCamera() {
+      if (state.stream) {
+        state.stream.getTracks().forEach(t => t.stop());
+        state.stream = null;
+      }
+      const video = document.getElementById('camera');
+      video.srcObject = null;
+    }
+
+    function cameraErrorText_(err) {
+      const msg = String(err && err.message || err || '').toLowerCase();
+      const host = String((window.location && window.location.hostname) || 'this site');
+      if (!window.isSecureContext) return 'Must use HTTPS for camera.';
+      if (msg.indexOf('notallowederror') >= 0 || msg.indexOf('permission') >= 0 || msg.indexOf('denied') >= 0) {
+        if (window.top !== window.self) {
+          return 'Camera denied in embedded view. Open in a full Safari tab and allow camera for ' + host + '. (Location permission does not grant camera)';
+        }
+        return 'Camera permission denied for ' + host + '. In Safari (aA > Website Settings), set Camera = Allow. Location permission does not grant camera.';
+      }
+      if (msg.indexOf('notreadableerror') >= 0 || msg.indexOf('trackstarterror') >= 0 || msg.indexOf('in use') >= 0) {
+        return 'Camera is busy. Close other apps using camera and try again.';
+      }
+      if (msg.indexOf('notfounderror') >= 0 || msg.indexOf('overconstrained') >= 0) {
+        return 'Rear camera not found on this device.';
+      }
+      return 'Camera unavailable on this device/browser.';
+    }
+
+    async function openInclinometer() {
+      // Pick up context injected by opener (popup mode)
+      if (window._incTargetInputId) state.targetInputId = window._incTargetInputId;
+      if (window._incSaveLabel) state.saveLabel = window._incSaveLabel;
+      if (window._incReturnUrl) state.returnUrl = window._incReturnUrl;
+      if (window._incStorageKey) state.storageKey = window._incStorageKey;
+
+      // Reset calibration state for fresh open
+      state.zeroOffset = 0;
+      state.smoothedPitch = 0;
+      state.autoZeroed = false;
+      state._samples = [];
+
+      document.getElementById('inclinometerModal').style.display = 'block';
+      document.getElementById('useBtn').textContent = state.saveLabel.toUpperCase();
+      const btn = document.getElementById('setHorizonBtn');
+      if (btn) btn.textContent = 'SET VERTICAL';
+
+      const savedCalibration = loadSavedCalibration_();
+      if (savedCalibration) {
+        state.zeroOffset = Number(savedCalibration.zeroOffset || 0);
+        state.autoZeroed = true;
+        if (btn) btn.textContent = 'RE-CALIBRATE';
+      }
+
+      const rect = document.getElementById('hud').getBoundingClientRect();
+      state.pxPerDeg = Math.max(4, Math.min(11, rect.height / 58));
+      buildPitchLadder();
+
+      const granted = await requestMotionPermission();
+      if (!granted) {
+        document.getElementById('meta').textContent = 'No sensors — use a known vertical surface, then SAVE';
+      } else if (!state.orientationBound) {
+        window.addEventListener('deviceorientation', onOrientation, true);
+        state.orientationBound = true;
+        document.getElementById('meta').textContent = savedCalibration
+          ? 'Using saved vertical from ' + formatAgeText_(savedCalibration.savedAt) + ' · re-calibrate if needed'
+          : 'Hold on vertical surface · stabilizing...';
+      } else if (savedCalibration) {
+        document.getElementById('meta').textContent = 'Using saved vertical from ' + formatAgeText_(savedCalibration.savedAt) + ' · re-calibrate if needed';
+      }
+
+      try {
+        await startCamera();
+        if (!granted) {
+          document.getElementById('meta').textContent = 'Camera active — no sensors. Manual vertical reference required';
+        }
+        // If motion granted, onOrientation will update meta text as it calibrates
+      } catch (err) {
+        document.getElementById('meta').textContent = cameraErrorText_(err);
+      }
+    }
+
+    function showStartScreen(title, subtitle, buttonText) {
+      const screen = document.getElementById('startScreen');
+      const titleEl = document.getElementById('startTitle');
+      const subtitleEl = document.getElementById('startSubtitle');
+      const buttonEl = document.getElementById('startBtn');
+      if (titleEl) titleEl.textContent = title;
+      if (subtitleEl) subtitleEl.textContent = subtitle;
+      if (buttonEl) buttonEl.textContent = buttonText;
+      if (screen) screen.style.display = 'flex';
+      refreshStartScreenHint_();
+    }
+
+    function returnToMission() {
+      const hasOpener = !!(window.opener && !window.opener.closed);
+      if (hasOpener) {
+        try { window.opener.focus(); } catch (e) {}
+        try { window.close(); } catch (e) {}
+        return;
+      }
+      if (state.returnUrl) {
+        window.location.href = state.returnUrl;
+        return;
+      }
+      const screen = document.getElementById('startScreen');
+      if (screen) screen.style.display = 'none';
+      openInclinometer();
+    }
+
+    function finishStandalone(saved) {
+      stopCamera();
+      document.getElementById('inclinometerModal').style.display = 'none';
+      const hasOpener = !!(window.opener && !window.opener.closed);
+      if (hasOpener) {
+        try { window.opener.focus(); } catch (e) {}
+      }
+      try { window.close(); } catch (e) {}
+
+      window.setTimeout(function() {
+        if (hasOpener) {
+          const buttonEl = document.getElementById('startBtn');
+          if (buttonEl) buttonEl.dataset.action = 'return';
+          showStartScreen(
+            saved ? 'ANGLE SAVED' : 'INCLINOMETER CLOSED',
+            'Return to the mission tab if this window did not close automatically.',
+            'RETURN'
+          );
+          return;
+        }
+
+        if (state.returnUrl) {
+          window.location.href = state.returnUrl;
+          return;
+        }
+
+        showStartScreen(
+          saved ? 'ANGLE SAVED' : 'INCLINOMETER CLOSED',
+          'Tap below to reopen the inclinometer or use browser back to return.',
+          'START'
+        );
+        const buttonEl = document.getElementById('startBtn');
+        if (buttonEl) buttonEl.dataset.action = 'start';
+      }, 120);
+    }
+
+    function closeInclinometer() {
+      finishStandalone(false);
+    }
+
+
+
+    function setZero() {
+      if (typeof state.rawBeta !== 'number') return;
+      state.zeroOffset = state.rawBeta;
+      state.smoothedPitch = 0;
+      state.autoZeroed = true;
+      state._samples = [];
+      saveCalibration_('manual');
+      const btn = document.getElementById('setHorizonBtn');
+      if (btn) btn.textContent = 'RE-CALIBRATE';
+      document.getElementById('meta').textContent = 'Reference set ✓  —  remove from surface, aim, then SAVE';
+      renderHud();
+    }
+
+    function useAngle() {
+      const value = state.currentAngle.toFixed(1);
+
+      try {
+        localStorage.setItem(state.storageKey, JSON.stringify({
+          value: value,
+          targetInputId: state.targetInputId,
+          savedAt: Date.now()
+        }));
+      } catch (_) {}
+
+      // Write back to the parent app's input field (popup mode via window.opener)
+      if (window.opener && !window.opener.closed) {
+        try {
+          const input = window.opener.document.getElementById(state.targetInputId);
+          if (input) {
+            input.value = value;
+            try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch(_) {}
+            try { input.dispatchEvent(new Event('change', { bubbles: true })); } catch(_) {}
+          }
+          if (typeof window.opener.setInclinometerValue === 'function') {
+            window.opener.setInclinometerValue(value, state.targetInputId);
+          }
+        } catch (_) {}
+      }
+
+      finishStandalone(true);
+    }
+
+    // Splash tap handler — this IS a user gesture, so motion permission will work
+    function handleStartTap() {
+      const buttonEl = document.getElementById('startBtn');
+      const action = String(buttonEl && buttonEl.dataset && buttonEl.dataset.action || 'start');
+      if (action === 'return') {
+        returnToMission();
+        return;
+      }
+      const screen = document.getElementById('startScreen');
+      if (screen) screen.style.display = 'none';
+      if (buttonEl) buttonEl.dataset.action = 'start';
+      openInclinometer();
+    }
+
+    refreshStartScreenHint_();
+    window.addEventListener('beforeunload', stopCamera);
+    // Do NOT auto-launch via setTimeout — must come from user tap for iOS motion permission
+  </script>
+</body>
+</html>

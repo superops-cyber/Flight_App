@@ -1,0 +1,75 @@
+RBAC_Clause,Descricao,PTO_Localizacao,MGO_Localizacao,MGM_Localizacao,SOP_Localizacao,Notas
+135.1,Aplicabilidade - define o âmbito e aplicabilidade,PTO Seção 1.1,MGO Seção 1.1,MGM Seção 1.1,SOP Seção 1.1,"PTO declara aplicabilidade; MGO/MGM/SOP referenciam escopo e EO"
+135.3,Regras especiais aplicáveis (internacionais/outros regulamentos),PTO Seção 1.3,MGO Seção 1.3,MGM Seção 1.4,SOP Seção 1.3,"PTO cita conformidade; MGO refere conformidade internacional; MGM Seção 1.4 (referências normativas)"
+135.19,Operações de emergência - autoridade para desvio e reporte,PTO Seção 3.6 / 7.6,MGO Seção 12.6,MGM Seção 7.2,SOP Seção 10.2,"PTO e SOP tratam desvios e reporte; MGO descreve notificações; MGM referencia reporte técnico"
+135.21,Requisitos do manual geral da empresa (MGO) - preparar e submeter,PTO Seção 1.3 / 1.6,MGO Seção 1.1 e 1.6,MGM Seção 1.3,SOP Seção 1.5,"PTO referencia o MGO; MGO contém procedimentos de submissão e controle (1.6 Sistema de Revisão)"
+135.23,Conteúdo mínimo do MGO (itens exigidos: nomes, procedimentos),PTO Seção 1.2 / 1.3,MGO Seção 1.3 e 13.1,MGM Seção 1.4,SOP Seção 1.6,"PTO referencia conteúdo; MGO implementa índice, LPE e anexos (Seção 13)"
+135.29,SGSO - requisitos e integração,PTO Seção 2.13 / 6.6,MGO Seção 12 (Emergências) e 2.7,MGM Seção 7.1,SOP Seção 1.3,"PTO integra SGSO; MGO e MGM referenciam monitoramento e políticas de SGSO"
+135.61,Geral - regras operacionais (Subparte B),PTO Seção 2 / 6,MGO Seção 3 (Controle Operacional),MGM Seção 1.7,SOP Seções 6 e 11,"PTO e MGO cobrem regras operacionais; MGM interface manutenção/operacional"
+135.63,Conservação de registros e prazos,PTO Seção 1.7.2 / 1.7.4,MGO Seção 1.6 e 3.7,MGM Seção 4.3,SOP Seção 6.3,"PTO define retenção (36 meses / itens RBAC 5 anos); MGO/MGM tratam guarda de registros; SOP indica arquivamento de formulários"
+135.64,Guarda de contratos e emendas (op. não regulares),PTO Seção 1.7 / 1.4,MGO Seção 1.4 e 2.2,MGM Seção 4.4,SOP Seção 1.6.1,"PTO exige retenção de contratos; MGO/MGM definem guardas contratuais e supervisão"
+135.65,Livro(s) de registros da tripulação e da aeronave,PTO Apêndice 3 / Seção 4.9,MGO Seção 10 (Diário de Bordo),MGM Seção 4.3,SOP Seção 6.3.1,"PTO inclui modelo de record of training; MGO detalha Diário de Bordo; MGM trata registros técnicos"
+135.71,Verificação de aeronavegabilidade antes do voo,PTO Seção 1.3.2 / 6.4,MGO Seção 3.2 e 11.1,MGM Seção 1.7,SOP Seção 6.4,"MGO/SOP descrevem aceitação técnica; PTO referencia MGO/MGM para aeronavegabilidade"
+135.73,Inspeções e exames da ANAC - disponibilidade de documentos,PTO Seção 7.3,MGO Seção 1.2 e 13.4,MGM Seção 4.4,SOP Seção 1.4,"Todos os manuais declaram disponibilidade para fiscalização e inspeção da ANAC"
+135.77,Responsabilidade pelo controle operacional,PTO Seção 1.5,MGO Seção 2.2 e 3.1,MGM Seção 2.3,SOP Seção 2.1,"PTO identifica Gestor/DOPS; MGO detalha responsabilidades e delegações"
+135.79,Informação sobre localização de voo e prontidão SAR,PTO Seção 6.1 / 6.9,MGO Seção 3.4 / 3.1,MGM Seção 6.3,SOP Seção 6.5,"SOP e MGO explicitam fontes SAR e procedimentos; PTO referencia obrigação"
+135.80,Informação sobre equipamentos de emergência e treinamento,PTO Seção 3.2 / 6.4,MGO Seção 12.5,MGM Seção 8.4,SOP Seção 6.3,"MGM trata manutenção de equipamentos; SOP e PTO tratam treinamento e briefing de passageiros"
+135.81–135.83,Informações operacionais e suas alterações - disponibilidade ao pessoal,PTO Seção 1.7.3 / 6.9,MGO Seção 1.6 / 13.4,MGM Seção 6.3,SOP Seção 1.6.1,"PTO/MGO/SOP descrevem controle de versões, distribuição e comunicação de mudanças"
+135.85,Transporte de pessoas sem atender provisões - exceções,PTO Seção 7.5,MGO Seção 6.8,MGM Seção 7.1,SOP Seção 6.3.1,"PTO e MGO documentam exceções e procedimentos de autorização; SOP aponta restrições"
+135.87,Transporte de carga, incluindo bagagem de mão,PTO Seção 7.1 / 8.3,MGO Seção 7.1 / 8.3,MGM Seção 8.9,SOP Seção 6.3,"Manifesto de carga e W&B tratados em MGO/SOP; MGM suporta ficha de pesagem e retenção"
+135.89–135.91,Requisitos para uso de oxigênio — aplicabilidade condicional,PTO Seção 2.3 (condicional),MGO Seção 3.1.1 (condicional),MGM Seção 8.4,SOP Seção 3.4,"Não aplicável ao perfil VFR diurno atual; referências condicionais indicadas no PTO/SOP"
+135.95,Limitações de utilização de tripulação e pessoal de solo (jornada/aptidão),PTO Seção 1.7.1 / 2.8,MGO Seção 5 (Jornada / Fadiga),MGM Seção 5.7,SOP Seção 2.3,"MGO Seção 5 detalha gestão de fadiga; PTO define meses de referência; MGM aborda pessoal de manutenção"
+135.97,Aeronaves e instalações para experiência recente/familiarização,PTO Seção 3.7,MGO Seção 3.1 / 3.3,MGM Seção 1.9,SOP Seção 6.3.2,"PTO e MGO obrigam treinamento de familiarização; SOP indica procedimentos de aceitação técnica"
+135.99–135.115,Composição de tripulação e deveres (várias cláusulas),PTO Seção 2.3 / 3.3,MGO Seção 11.1,MGM Seção 2.3,SOP Seções 2 e 6,"PTO e SOP cobrem composição de tripulação e obrigações do PIC; MGM foca interface com manutenção"
+135.117,Instruções verbais aos passageiros antes da decolagem,PTO Seção 1.8 / 6.5,MGO Seção 6.5,SOP Seção 5.3,"SOP fornece texto‑base do briefing; PTO e MGO referenciam o cartão de instruções"
+135.121–135.128,Proibições (armas, álcool),PTO Seção 2.3 / 6.1,MGO Seção 6.5,SOP Seção 5.3,"SOP e MGO definem proibições e procedimentos de negação de embarque; PTO referencia e exige registro"
+135.131,Simulação em voo de situações anormais/emergência,PTO Seção 3.2 / 4.4,MGO Seção 12.8,MGM Seção 5.3,SOP Seção 10.3,"PTO exige simulações; SOP/ MGO detalham treinamentos e exercícios práticos"
+Subparte C (equip.),135.143/149 etc.,Requisitos gerais de equipamento (condicional a perfil),PTO Seção 3.2,MGO Seção 3.1 / 11.1,MGM Seção 8.9,SOP Seção 3.1.1,"SOP/MGO/MGM detalham equipamento aplicável; PTO exclui operações noturnas/IFR salvo adendo"
+Subparte D (VFR/IFR),,PTO Seção 2.3 / 6.1,MGO Seção 3.2 / 11.4,MGM Seção 6.1,SOP Seções 6.3 / 6.5,"SOP/MGO tratam meteorologia, planejamento VFR e limites operacionais (ver SOP 6.3.1 e 6.5)"
+Subparte E (tripulantes),135.241–135.247,Qualificações para tripulantes e PIC,PTO Seção 3.7 / 2.5,MGO Seção 4.2,MGM Seção 5.1,SOP Seção 1.2,"PTO e MGO definem requisitos de habilitação; MGM trata treinamento técnico de manutenção relacionado"
+Subparte F (jornada),135.261/263,Limites de tempo de voo e descanso,PTO Seção 1.7.1 / 2.8,MGO Seção 5 (Jornada e Fadiga),MGM Seção 5.5,SOP Seção 5.1,"MGO Seção 5 define políticas de fadiga; PTO implementa controle e registro"
+Subparte G (exames),135.291–135.303,Requisitos de exame e credenciamento de examinadores,PTO Seção 4.3–4.7,MGO Seção 4.5,MGM Seção 5.3,SOP Seção 1.6.1,"PTO define exames, FAPs e credenciamento; MGO complementa com controles documentais"
+Subparte H (treinamento),135.321–135.351,Programa de treinamento - currículos e aprovações,PTO Seções 3,4 e Apêndices,MGO Seção 4.1,MGM Seção 5.3,SOP Seção 1.5,"PTO é o documento principal do Programa de Treinamento; MGO coordena implementação; MGM referencia treinamento de manutenção"
+135.323/324/325,Regras especiais de treinamento e aprovação,PTO Seção 1.3.1 / 2.5,MGO Seção 4.1,MGM Seção 3.1,SOP Seção 4.3,"PTO implementa aceitação de provedores conforme IS 119‑004; MGO aborda monitoramento"
+135.335/337–340,FSTD/examinadores/instrutores (qualificações),PTO Seção 4.7 / Apêndice 5,MGO Seção 4.5,MGM Seção 5.3,SOP Seção 4.3,"PTO/MGO mencionam uso de provedores/CTAC; qualificações tratadas em Apêndices e contratos"
+Subparte J (manutenção),135.411–135.443,Manutenção, programas e registros,Mencionado por referência no PTO,MGO Seções 1.7 / 4.2,MGM Seções 1–4,Mencionado no SOP Seção 11,"MGM é documento primário; MGO/SOP integram fluxos operacionais; PTO referencia necessidades de treinamento"
+Subparte K (artigos perigosos),135.501–135.507,Artigos perigosos - operadores sem autorização,Anexo A (PTAP conciso) - PTO Seção A,MGO Seção 7.2,MGM Seção 7.1,SOP Seção 1.2,"PTO inclui PTAP conciso; MGO/SOP definem rejeição e procedimentos de notificação"
+Subparte M (SGSO),135.701–135.711,SGSO - estrutura, política e papéis,PTO Seção 2.13 / 6.6,MGO Seção 12 / 2.7,MGM Seção 7.1,SOP Seção 1.3,"PTO integra SGSO; MGO/MGM detalham garantia e promoção da segurança operacional"
+
+135.21,Requirements of the company manual (MGO) - prepare and submit,PARTIAL,COMPLIANT,PARTIAL,PARTIAL,PTO references MGO; MGO is full manual; SOP/MGM reference distribution and control
+135.23,Content of MGO (required items incl. names, procedures),PARTIAL,COMPLIANT,PARTIAL,COMPLIANT,PTO references required content; MGO implements policies and indexes
+135.29,Safety Management System (SGSO) requirements,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO integrates SGSO; MGM references SGSO interfaces; MGM notes operator limited SGSO
+135.61,General operational rules (Subpart B),COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO & MGO cover operational rules; MGM limited to maintenance responsibilities
+135.63,Records retention requirements,COMPLIANT,COMPLIANT,COMPLIANT,PARTIAL,PTO sets retention rules incl. RBAC 135.63 mapping; MGM/MGO reference retention for maintenance/operational records; SOP references availability
+135.64,Retention of contracts and amendments (non‑regular ops),COMPLIANT,COMPLIANT,COMPLIANT,PARTIAL,PTO requires contract retention; MGO/MGM specify contractual file control; SOP references external docs
+135.65,Crew and aircraft records books,COMPLIANT,COMPLIANT,COMPLIANT,PARTIAL,PTO and MGO define `record of training` and diaries; MGM covers maintenance records; SOP references on‑board copies
+135.71,Airworthiness verification before flight,PARTIAL,COMPLIANT,COMPLIANT,COMPLIANT,PTO cross‑refs MGO/MGM; MGO/SOP/MGM contain detailed procedures
+135.73,ANAC inspections and examinations availability,COMPLIANT,COMPLIANT,COMPLIANT,COMPLIANT,PTO/MGO/MGM/SOP state availability of records for ANAC and inspection cooperation
+135.77,Responsibility for operational control,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO assigns Gestor/DOPS; MGO details responsibilities; MGM covers coordination with maintenance
+135.79,Flight location information and SAR readiness,PARTIAL,COMPLIANT,PARTIAL,COMPLIANT,SOP explicitly implements SAR references; MGO includes location records; PTO references responsibility
+135.80,Emergency and survival equipment information/training,PARTIAL,PARTIAL,COMPLIANT,PARTIAL,PTO/SOP/MGO include emergency equipment briefings; MGM covers equipment maintenance
+135.81,Operational information and updates (availability to crew),COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO/MGO/SOP describe info distribution; MGM provides maintenance input
+135.83,Operational info required to crew (e.g., SAR, manuals),COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,SOP details publications and SAR; MGO references documents; MGM supply maintenance info
+135.85,Transport of persons outside regular provisions (exceptions),PARTIAL,COMPLIANT,PARTIAL,PARTIAL,PTO and MGO cover exceptions; SOP references denial conditions
+135.87,Transport of cargo incl. carry‑on baggage and procedures,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,MGO/SOP/PTO address cargo/manifest procedures; MGM supports weight & balance
+135.89,Requirements for pilot: use of oxygen (when applicable),MISSING,PARTIAL,PARTIAL,MISSING,PTO notes conditional applicability; SOP/MGO do not mandate oxygen for VFR diurnal profile
+135.91,Portable oxygen concentrators for passengers (medicinal),MISSING,PARTIAL,PARTIAL,MISSING,PTO notes conditional allowance; SOP mentions extraordinary acceptance with medical prescription
+135.95,Crew and ground personnel limitations of use (duty/fitness),COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO/MGO/SOP address duty, fatigue, and controls; MGM covers maintenance staff fatigue policies
+135.97,Aeroplanes and facilities for recent experience/familiarization,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO requires recurrent/familiarisation; MGO/SOP include procedures; MGM limited relevance
+135.99‑135.115,Composition and obligations of crew (several clauses),COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO and SOP cover single‑pilot composition and responsibilities; MGM limited to maintenance‑crew interface
+135.117,Pre‑departure passenger verbal instructions,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,SOP contains full briefing text; PTO references; MGO includes passenger procedures
+135.121‑135.128,Prohibitions (weapons/alcohol),COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,SOP and MGO include passenger restrictions; PTO references prohibitions
+135.131,Simulation in flight of abnormal/emergency situations,COMPLIANT,PARTIAL,PARTIAL,COMPLIANT,PTO requires simulation; SOP details emergencies; MGM addresses maintenance‑related simulations
+Subpart C (equipment) general,135.143/149 etc.,Equipment requirements (VFR/IFR/night conditional),PARTIAL,COMPLIANT,COMPLIANT,COMPLIANT,SOP/MGO/MGM detail equipment applicability; PTO excludes night/IFR operations
+135.159‑135.165,VFR night/IFR equipment specific,NOT_APPLICABLE,NOT_APPLICABLE,NOT_APPLICABLE,NOT_APPLICABLE,Operator profile VFR diurnal — sections not applicable unless scope changes
+Subpart D (VFR/IFR minima),select items apply for VFR ops,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,SOP/MGO include meteorology, VFR limits and planning (see SOP 6.3/6.5)
+Subpart E (crew qualifications) 135.241‑135.247,Qualifications for flight crew (PIC, experience),COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO & MGO define qualification requirements; MGM supports maintenance qualifications
+Subpart F (flight & duty times) 135.261/263,Flight time limitations and rest requirements,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,MGO/PTO/SOP implement fatigue and hours limits; MGM addresses maintenance staff hours where applicable
+Subpart G (examinations) 135.291–135.303,Examination requirements and examiner cred.,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO and SOP define exams, FAPs and examiner procedures; MGM not primary owner
+Subpart H (training) 135.321–135.351,Training program, curriculums, approvals,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO is primary document; MGO supports implementation; MGM references maintenance training
+135.323/324/325 (training rules, special rules, approval),COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO implements operator‑simple acceptance of third‑party curricula as per IS 119‑004
+135.335/337–340 (FSTD/FSTD examiners/instructors),PARTIAL,PARTIAL,PARTIAL,PARTIAL,PTO/MGO mention use of providers/CTAC; operator relies on external providers; MGM not applicable
+Subpart J (maintenance) 135.411–135.443,Maintenance organization, records, programs,COMPLIANT,COMPLIANT,COMPLIANT,PARTIAL,MGM is primary for maintenance compliance; MGO/SOP interface; PTO references maintenance training needs
+Subpart K (dangerous goods) 135.501–135.507,Transport of dangerous goods — operators without authorization,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO includes Anexo A PTAP conciso; MGO/SOP/MGM reference rejection and reporting
+Subpart M (SGSO) 135.701–135.711,SGSO structure, policy and roles,COMPLIANT,COMPLIANT,PARTIAL,COMPLIANT,PTO integrates SGSO elements; MGO/MGM include related processes; MGM notes limited SGSO scope
+

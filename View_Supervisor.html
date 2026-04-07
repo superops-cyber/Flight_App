@@ -1,0 +1,834 @@
+<style>
+   /* 1. CONTAINER WRAPPER */
+   #supervisor-container {
+       display: flex;
+       height: 100%;
+       width: 100%;
+       overflow: hidden;
+       font-family: 'Segoe UI', Roboto, sans-serif;
+       background: #e0e0e0;
+   }
+  
+   /* 2. SIDEBAR (Dark Theme) */
+   #supervisor-container .sidebar {
+       width: 300px;
+       background: #263238; /* Dark Blue-Grey */
+       color: #eceff1;      /* Light Text */
+       overflow-y: auto;
+       display: flex;
+       flex-direction: column;
+   }
+  
+   #supervisor-container .sb-header { 
+       padding: 20px; 
+       background: #1b2428; /* Darker Header */
+       border-bottom: 1px solid #37474f; 
+       color: white;
+   }
+  
+   /* --- THE FIX IS HERE --- */
+   #supervisor-container .mission-item { 
+       padding: 15px; 
+       border-bottom: 1px solid #37474f; /* Dark border */
+       cursor: pointer; 
+       transition: 0.2s;
+       
+       /* FORCE DARK BACKGROUND & LIGHT TEXT */
+       background-color: #263238; 
+       color: #eceff1;
+   }
+   
+   /* HOVER STATE (Lighter Grey) */
+   #supervisor-container .mission-item:hover { 
+       background-color: #37474f; 
+   }
+   
+   /* ACTIVE/CLICKED STATE (Blue) */
+   #supervisor-container .mission-item.active { 
+       background-color: #0b5394; 
+       border-left: 5px solid #4fc3f7; 
+       color: white;
+   }
+  
+   /* Status Tags */
+   #supervisor-container .m-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; float: right; font-weight: bold; }
+   .st-pending { background: #ff9800; color: #3e2723; }
+   .st-approved { background: #4caf50; color: white; }
+  
+   /* 3. MAIN CONTENT */
+   #supervisor-container .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+   #supervisor-container .top-bar { padding: 10px 20px; background: white; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
+   #supervisor-container .content-area { flex: 1; display: flex; overflow: hidden; }
+  
+   #supervisor-container .details-panel { flex: 2; padding: 20px; overflow-y: auto; background: #f5f5f5; }
+   #supervisor-container .timeline-panel { flex: 1; background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; max-width: 350px; }
+  
+   /* CARDS */
+   #supervisor-container .leg-card { background: white; margin-bottom: 20px; padding: 15px; border-radius: 4px; border-left: 10px solid #0b5394; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  
+   /* Pax & Tags */
+   .pax-line { font-size: 0.85rem; padding: 6px; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center; }
+   .pax-tag { font-size: 0.7rem; padding: 1px 5px; border-radius: 3px; margin-left: 5px; text-transform: uppercase; font-weight: bold; }
+   .tag-m { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+   .tag-f { background: #fce4ec; color: #c2185b; border: 1px solid #f8bbd0; }
+   .tag-age { background: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
+  
+   /* Limit Tags */
+   .limit-tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; }
+   .bg-struct { background: #546e7a; }
+   .bg-perf { background: #f57c00; }
+
+   /* TIMELINE STYLES */
+   .timeline-event { padding-left: 15px; border-left: 2px solid #ccc; position: relative; padding-bottom: 20px; }
+   .timeline-event::before { content: ''; position: absolute; left: -6px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
+   .te-log { border-left-color: #0b5394; } .te-log::before { background: #0b5394; }
+   .te-sch { border-left-color: #ff9800; } .te-sch::before { background: #ff9800; }
+   .te-focus { border-left-color: #d32f2f; } .te-focus::before { background: #d32f2f; width: 14px; height: 14px; left: -8px; }
+  
+   /* Highlight & Badges */
+   .te-current { background-color: #e3f2fd; border-radius: 4px; padding: 10px; border: 1px solid #2196f3; margin-left: -5px; }
+   .te-current .timeline-event { border-left: none; padding-left: 0; padding-bottom: 0; }
+   .te-current .timeline-event::before { display: none; }
+
+   .badge-lg { font-size: 0.85rem !important; padding: 4px 8px !important; height: auto !important; line-height: 1.2 !important; border-radius: 4px !important; }
+   .badge-warn { background-color: #d32f2f !important; color: white !important; font-weight: bold; }
+
+   /* Link Button */
+   .dispatch-link {
+      display: block; text-align: center; background: #eceff1; color: #546e7a; padding: 10px;
+      border-radius: 4px; border: 1px dashed #cfd8dc; font-size: 0.8rem; margin-top: 10px; text-decoration: none;
+      transition: 0.2s; cursor: pointer;
+   }
+   .dispatch-link:hover { background: #cfd8dc; color: #37474f; }
+</style>
+
+<div id="supervisor-container">
+
+  <div class="sidebar" id="sbList">
+    <div class="sb-header">
+      <h6 style="margin:0">DISPATCH SUPERVISOR</h6>
+      <small id="userDisplay">Connecting...</small>
+    </div>
+    <div style="padding:20px; text-align:center; opacity:0.5;">Loading...</div>
+  </div>
+
+  <div class="main">
+    <div class="top-bar">
+      <div><h5 id="mTitle" style="margin:0; font-weight:300;">Select a Mission</h5></div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button id="btnSurveyReview" class="btn blue darken-2" onclick="openRunwaySurveyReview()">RUNWAY SURVEY REVIEWS</button>
+        <button id="btnApprove" class="btn green" onclick="approveCurrent()" disabled>APPROVE MISSION</button>
+      </div>
+    </div>
+    
+    <div class="content-area">
+      <div class="details-panel" id="detailPanel">
+        <p style="text-align:center; margin-top:50px; color:#999;">Select a mission from the left.</p>
+      </div>
+      
+      <div class="timeline-panel">
+        <h6 style="font-size:0.8rem; font-weight:bold; color:#777; text-transform:uppercase;">15-Day Duty View</h6>
+        <div id="timelineContainer"></div>
+      </div>
+    </div>
+  </div>
+
+</div> 
+
+<div id="runway-survey-review-modal" class="modal" style="max-width:900px; width:95%;">
+  <div class="modal-content">
+    <h5 style="margin-top:0; color:#0b5394; font-weight:700;">Pending Runway Surveys</h5>
+    <div id="runway-survey-review-list" style="max-height:520px; overflow:auto; border:1px solid #e0e0e0; border-radius:8px; padding:10px; background:#fafafa;">
+      <div style="padding:12px; color:#888;">Loading pending runway surveys…</div>
+    </div>
+  </div>
+  <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+    <button class="btn-flat" onclick="refreshRunwaySurveyReviewList()">Refresh</button>
+    <button class="btn-flat modal-close">Close</button>
+  </div>
+</div>
+
+<div id="runway-survey-preview-modal" onclick="if(event.target===this)closeSupervisorRunwayPreview()" style="display:none; position:fixed; inset:0; z-index:10290; background:rgba(0,0,0,0.68); align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#fff; border-radius:12px; width:min(760px, 100%); max-height:92vh; overflow:auto; box-shadow:0 12px 36px rgba(0,0,0,0.35);">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#0b5394; color:#fff;">
+      <div>
+        <div id="runway-survey-preview-title" style="font-size:1rem; font-weight:900;">RUNWAY PREVIEW</div>
+        <div id="runway-survey-preview-sub" style="font-size:0.78rem; opacity:0.9;">--</div>
+      </div>
+      <button onclick="closeSupervisorRunwayPreview()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>
+    </div>
+    <div id="runway-survey-preview-body" style="padding:14px; display:grid; gap:10px;"></div>
+  </div>
+</div>
+
+<div id="supervisor-password-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10320; align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this)closeSupervisorPasswordPrompt_(false)">
+  <div style="background:#fff; border-radius:12px; width:min(420px, 96vw); box-shadow:0 12px 36px rgba(0,0,0,0.35); overflow:hidden;">
+    <div style="padding:14px 16px; background:#0b5394; color:#fff;">
+      <div style="font-size:1rem; font-weight:800;">Supervisor Approval</div>
+      <div id="supervisor-password-sub" style="font-size:0.8rem; opacity:0.92; margin-top:2px;">Enter supervisor password to continue.</div>
+    </div>
+    <div style="padding:16px;">
+      <label for="supervisor-password-input" style="display:block; margin-bottom:6px; font-size:0.78rem; color:#0b5394; font-weight:700; text-transform:uppercase;">Password</label>
+      <input id="supervisor-password-input" type="password" autocomplete="current-password" style="width:100%; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; height:40px; padding:0 10px; font-size:0.95rem;">
+      <div id="supervisor-password-error" style="display:none; margin-top:8px; color:#c62828; font-size:0.82rem; font-weight:700;"></div>
+    </div>
+    <div style="display:flex; gap:8px; padding:0 16px 16px 16px;">
+      <button type="button" onclick="closeSupervisorPasswordPrompt_(false)" style="flex:1; border:none; border-radius:8px; height:40px; background:#546e7a; color:#fff; font-weight:800; cursor:pointer;">Cancel</button>
+      <button type="button" onclick="submitSupervisorPasswordPrompt_()" style="flex:1; border:none; border-radius:8px; height:40px; background:#2e7d32; color:#fff; font-weight:800; cursor:pointer;">Continue</button>
+    </div>
+  </div>
+</div>
+
+<script>
+    // --- STATE ---
+    let supMissionId = null;
+    let supPilot = null;
+    let lastLoadedData = null; // Store data to allow re-rendering without server call
+    let supervisorRefreshTimer = null;
+    let supervisorTabActive = false;
+    let supervisorPasswordPromptState = { resolve: null };
+
+    function supFormatDateMonDayYear_(value, fallback) {
+      const d = new Date(value || '');
+      if (isNaN(d.getTime())) return fallback || '';
+      const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May.', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+
+    function openSupervisorPasswordPrompt_(subtitle) {
+      return new Promise(function(resolve) {
+        supervisorPasswordPromptState.resolve = resolve;
+        const overlay = document.getElementById('supervisor-password-overlay');
+        const input = document.getElementById('supervisor-password-input');
+        const sub = document.getElementById('supervisor-password-sub');
+        const err = document.getElementById('supervisor-password-error');
+        if (sub) sub.textContent = subtitle || 'Enter supervisor password to continue.';
+        if (input) input.value = '';
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        if (overlay) overlay.style.display = 'flex';
+        setTimeout(function() { if (input) input.focus(); }, 20);
+      });
+    }
+
+    function closeSupervisorPasswordPrompt_(confirmed) {
+      const overlay = document.getElementById('supervisor-password-overlay');
+      const input = document.getElementById('supervisor-password-input');
+      if (overlay) overlay.style.display = 'none';
+      const resolver = supervisorPasswordPromptState.resolve;
+      supervisorPasswordPromptState.resolve = null;
+      if (resolver) resolver(confirmed ? String(input && input.value || '') : '');
+    }
+
+    function submitSupervisorPasswordPrompt_() {
+      const input = document.getElementById('supervisor-password-input');
+      const err = document.getElementById('supervisor-password-error');
+      const value = String(input && input.value || '');
+      if (!value) {
+        if (err) { err.textContent = 'Password required.'; err.style.display = 'block'; }
+        if (input) input.focus();
+        return;
+      }
+      closeSupervisorPasswordPrompt_(true);
+    }
+
+    async function supervisorRequirePassword_(subtitle) {
+      const password = await openSupervisorPasswordPrompt_(subtitle);
+      return String(password || '');
+    }
+
+    document.addEventListener('keydown', function(evt) {
+      const overlay = document.getElementById('supervisor-password-overlay');
+      if (!overlay || overlay.style.display !== 'flex') return;
+      if (evt.key === 'Escape') {
+        evt.preventDefault();
+        closeSupervisorPasswordPrompt_(false);
+        return;
+      }
+      if (evt.key === 'Enter') {
+        evt.preventDefault();
+        submitSupervisorPasswordPrompt_();
+      }
+    });
+
+    function onSupervisorTabShown() {
+      supervisorTabActive = true;
+      refreshSupervisorDashboard(false);
+      if (supervisorRefreshTimer) clearInterval(supervisorRefreshTimer);
+      supervisorRefreshTimer = setInterval(function() {
+        refreshSupervisorDashboard(true);
+      }, 12000);
+    }
+
+    function onSupervisorTabHidden() {
+      supervisorTabActive = false;
+      if (supervisorRefreshTimer) {
+        clearInterval(supervisorRefreshTimer);
+        supervisorRefreshTimer = null;
+      }
+    }
+
+    function refreshSupervisorDashboard(isSilent) {
+      if (!(google.script.run && google.script.run.getSupervisorDashboard)) return;
+      google.script.run
+        .withSuccessHandler(function(data) {
+          initSidebar(data);
+          if (supMissionId && supervisorTabActive) {
+            google.script.run
+              .withSuccessHandler(function(details) {
+                if (details && details.mission && details.mission.id === supMissionId) {
+                  lastLoadedData = details;
+                  renderDetails(details);
+                }
+              })
+              .getMissionDetailsForSupervisor(supMissionId);
+          }
+        })
+        .withFailureHandler(function(err) {
+          if (!isSilent) showSupervisorError(err);
+        })
+        .getSupervisorDashboard();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Ensure we have a server function for this, or use dummy data for now
+      if(google.script.run && google.script.run.getSupervisorDashboard) {
+          refreshSupervisorDashboard(false);
+      }
+
+      window.addEventListener('mission-saved', function() {
+        refreshSupervisorDashboard(true);
+      });
+
+      window.addEventListener('storage', function(evt) {
+        if (!evt || evt.key !== 'mba_mission_saved_at') return;
+        refreshSupervisorDashboard(true);
+      });
+    });
+
+    function showSupervisorError(err) { M.toast({html: 'Error: ' + err.message}); }
+    
+    // --- SIDEBAR ---
+    function initSidebar(data) {
+      if(!data) return;
+      document.getElementById('userDisplay').innerText = data.user || 'Admin';
+      const sb = document.getElementById('sbList');
+      sb.innerHTML = `<div class="sb-header"><h6 style="margin:0">DISPATCH SUPERVISOR</h6><small>${data.user || 'Admin'}</small></div>`;
+      
+      if(!data.missions) return;
+
+      data.missions.forEach(m => {
+        const routeSummary = m.legs.map(leg => leg.split('(')[0].trim()).join(' ➝ ');
+        const div = document.createElement('div');
+        div.className = 'mission-item';
+        div.setAttribute('data-mission-id', String(m.id || ''));
+        div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <div style="font-weight:bold; font-size:1.1rem;">${m.id}</div>
+            <span class="m-status ${m.status === 'APPROVED' ? 'st-approved' : 'st-pending'}">${m.status}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size:0.9rem;">
+             <div style="font-weight:bold; color:#4fc3f7;">${m.acft}</div> 
+             <div style="opacity:0.7;">${supFormatDateMonDayYear_(m.date, '--')}</div>
+          </div>
+          <div style="font-size:0.85rem; line-height:1.4em; opacity:0.9;">
+            <div style="margin-bottom:2px;">${m.pilot}</div>
+            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#bbb;">
+               <span style="font-size:0.8em">✈</span> ${routeSummary}
+            </div>
+          </div>
+          ${m.warnings ? `<div style="margin-top:6px; color:#ff5252; font-size:0.75rem; font-weight:bold; background:rgba(255,0,0,0.1); padding:4px; border-radius:4px;">⚠ ${m.warnings}</div>` : ''}
+        `;
+        if (supMissionId && m.id === supMissionId) div.classList.add('active');
+        div.onclick = () => loadSupervisorMission(m.id, div);
+        sb.appendChild(div);
+      });
+
+      if (supMissionId && !data.missions.some(function(m) { return m.id === supMissionId; })) {
+        supMissionId = null;
+        document.getElementById('mTitle').innerText = 'Select a Mission';
+        document.getElementById('detailPanel').innerHTML = '<p style="text-align:center; margin-top:50px; color:#999;">Select a mission from the left.</p>';
+        document.getElementById('timelineContainer').innerHTML = '';
+      }
+    }
+
+    function loadSupervisorMission(id, el) {
+      document.querySelectorAll('.mission-item').forEach(d => d.classList.remove('active'));
+      if (el && el.classList) el.classList.add('active');
+      supMissionId = id;
+      document.getElementById('mTitle').innerText = "Loading " + id + "...";
+      google.script.run.withSuccessHandler(data => {
+        lastLoadedData = data; 
+        renderDetails(data);
+      }).withFailureHandler(showSupervisorError).getMissionDetailsForSupervisor(id);
+    }
+    // --- DETAILS RENDERER ---
+    function renderDetails(data) {
+      const m = data.mission;
+      const t = data.timeline;
+      supPilot = m.meta.pilot;
+      
+      document.getElementById('mTitle').innerText = `${m.id}: ${m.meta.pilot} (${m.meta.acft})`;
+      document.getElementById('btnApprove').disabled = false;
+      
+      // 1. CALCULATE TOTALS
+      let totalFlight = 0, totalFuel = 0, totalGround = 0;
+      m.legs.forEach(leg => {
+        totalFlight += parseFloat(leg.time) || 0;
+        totalFuel += parseFloat(leg.fuel) || 0;
+        totalGround += parseFloat(leg.groundTime) || 0.5;
+      });
+      const PREFLIGHT_DUTY = 1.0;
+      const POSTFLIGHT_DUTY = 0.75;
+      const totalDuty = totalFlight + totalGround + PREFLIGHT_DUTY + POSTFLIGHT_DUTY;
+
+      // Smart Checks 
+      let warnings = [];
+      if (totalFlight > 8.0) warnings.push("Flight Time > 8h");
+      if (totalDuty > 14.0) warnings.push("Duty Time > 14h");
+      
+      const authRaw = data.authorizedAirports || "";
+      const authList = authRaw.split(',').map(s => s.trim()); 
+      let unauthorizedLegs = false;
+      m.legs.forEach(leg => {
+        const isAuth = authList.some(a => a.trim().toUpperCase() === leg.to.trim().toUpperCase());
+        if (!isAuth) unauthorizedLegs = true;
+      });
+      
+      if (unauthorizedLegs && !m.meta.copilot) warnings.push("Dest Check Needed");
+      if (m.meta.notes) warnings.push(m.meta.notes);
+
+      const isOk = warnings.length === 0;
+      const statusColor = isOk ? '#4caf50' : '#d32f2f';
+      const statusTitle = isOk ? "OK" : "WARN";
+      const statusDesc = isOk ? "Ready for Release" : warnings.join("<br>");
+
+      // 2. RENDER TOP SUMMARY
+      const container = document.getElementById('detailPanel');
+      container.innerHTML = `
+        <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+          <div class="card center" style="flex:1; padding:15px; margin:0; min-width:100px;">
+            <h5 style="margin:0; color:#0b5394;">${totalDuty.toFixed(1)}</h5>
+            <small style="color:#777; font-weight:bold;">Est. Duty</small>
+          </div>
+          <div class="card center" style="flex:1; padding:15px; margin:0; min-width:100px;">
+            <h5 style="margin:0; color:#0b5394;">${totalFlight.toFixed(1)}</h5>
+            <small style="color:#777; font-weight:bold;">Flight Time</small>
+          </div>
+          <div class="card center" style="flex:1; padding:15px; margin:0; min-width:100px;">
+            <h5 style="margin:0; color:#0b5394;">${Math.round(totalFuel)} L</h5>
+            <small style="color:#777; font-weight:bold;">Total Fuel</small>
+          </div>
+          <div class="card center" style="flex:1; padding:15px; margin:0; min-width:120px; border-bottom: 3px solid ${statusColor}">
+            <h5 style="margin:0; color:${statusColor};">${statusTitle}</h5>
+            <small style="color:${isOk ? '#777' : '#d32f2f'}; font-weight:bold; font-size:0.75rem; line-height:1.1em; display:block; margin-top:4px;">${statusDesc}</small>
+          </div>
+        </div>
+        <h6 style="margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:5px;">Mission Profile</h6>
+      `;
+
+      // 3. LEG CARDS
+      m.legs.forEach((leg, idx) => {
+        const isAuthorized = authList.some(auth => auth.trim().toUpperCase() === leg.to.trim().toUpperCase());
+        const authHtml = isAuthorized 
+          ? `<span class="new badge green" data-badge-caption="Checked Out ✅">Pilot</span>` 
+          : `<button class="btn-small red lighten-2 z-depth-0" style="font-size:0.7rem; font-weight:bold;" onclick="waiveCheck('${leg.to}')">WAIVE CHECK</button>`;
+        
+        const routingHtml = leg.waypoints ? `
+        <div style="margin: 8px 0; padding: 6px 10px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 0 4px 4px 0;">
+          <div style="font-size: 0.65rem; font-weight: bold; color: #1565c0; text-transform: uppercase; letter-spacing: 0.5px;">Planned Routing (VIA)</div>
+          <div style="font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85rem; color: #0d47a1; font-weight: bold;">
+            ${leg.waypoints.replace(/,/g, ' ➔ ')}
+          </div>
+        </div>
+      ` : '';
+
+        // Manifest
+        const manifestHtml = leg.pax.length > 0 ? leg.pax.map(p => {
+            const isMale = p.gender === 'M';
+            const genderTag = p.gender ? `<span class="pax-tag ${isMale ? 'tag-m' : 'tag-f'}">${p.gender}</span>` : '';
+            const ageTag = p.category ? `<span class="pax-tag tag-age">${p.category}</span>` : '';
+            const moneyStr = (p.chargedAmount || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
+            return `
+              <div class="pax-line">
+                <span>
+                  <b>${p.name}</b> <small style="color:#777">(${p.fund || '-'})</small> ${genderTag} ${ageTag}
+                  <div style="font-size:0.75rem; color:#0b5394; margin-top:2px;">Rate: ${p.chargeRate || '?'} (R$ ${moneyStr})</div>
+                  ${p.description ? `<div style="font-size:0.75rem; color:#666; font-style:italic;">↳ ${p.description}</div>` : ''}
+                </span>
+                <span style="font-size:0.8rem; text-align:right;">
+                  <div>Cargo: <b>${p.cargo}kg</b></div>
+                  <div style="color:#888;">+ ${p.weight}kg</div>
+                </span>
+              </div>
+            `;
+        }).join('') : '<div style="padding:10px; color:#ccc; font-style:italic;">No passengers loaded.</div>';
+
+        const limitDisp = leg.limit ? Math.round(leg.limit) : '---';
+        const remPayload = leg.availPayload ? Math.round(leg.availPayload - leg.payload) : '---';
+        const limitTypeClass = leg.limitType && leg.limitType.includes('Airport') ? 'bg-perf' : 'bg-struct';
+
+        container.innerHTML += `
+          <div class="leg-card" style="${leg.isOver ? 'border-left-color: #d32f2f; background: #ffebee;' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <div>
+                <span style="font-weight:bold; font-size:1.1rem; color:#333;">LEG ${idx+1}: ${leg.from} ➜ ${leg.to}</span> 
+                <br><small style="color:#777;">ID: ${m.id}-${idx+1}</small>
+              </div>
+              <div>${authHtml}</div>
+            </div>
+            
+            ${routingHtml}
+
+            <div style="font-size: 0.85rem; color: #333; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 6px; line-height: 1.5;">
+              <b>Dist:</b> ${Math.round(leg.dist || 0)} nm | 
+              <b>Time:</b> ${leg.time.toFixed(1)} hr | 
+              <b>Ground:</b> ${leg.groundTime.toFixed(1)} hr
+              <br>
+              <span style="color: #0b5394;">
+                <b>Takeoff:</b> ${Math.round(leg.takeoffFuel || 0)}L | 
+                <b>Enroute:</b> −${Math.round(leg.fuel || 0)}L | 
+                <b>Landing:</b> ${Math.round(leg.landingFuel || 0)}L
+              </span>
+            </div>
+            
+            <div style="font-size:0.75rem; margin-bottom:10px;">
+              <span class="limit-tag ${limitTypeClass}">${leg.limitType || 'Limit'}: ${limitDisp}kg</span>
+              <span style="margin-left:10px">Payload Rem: <b>${remPayload}kg</b></span>
+            </div>
+            
+            <div style="background:#f9f9f9; border-radius:4px; border:1px solid #eee;">
+              ${manifestHtml}
+            </div>
+
+            <div class="dispatch-link" onclick="jumpToDispatch('${m.id}')">
+              EDIT MISSION IN DISPATCH TERMINAL
+              <div style="font-size:0.7rem; color:#90a4ae;">(Alter Fuel, Ground Time, or Assign Instructor)</div>
+            </div>
+
+          </div>
+        `;
+      });
+
+      // 4. TIMELINE (optional: can keep HH:MM or decimal)
+      const tl = document.getElementById('timelineContainer');
+      tl.innerHTML = "";
+      t.forEach(ev => {
+        const isMissionDay = new Date(ev.date).toDateString() === new Date(m.meta.date).toDateString();
+        const isCurrent = ev.title.includes(m.id);
+        const highlightClass = isCurrent ? 'te-current' : '';
+        const dotClass = ev.type === 'LOGGED' ? 'te-log' : 'te-sch';
+        const hasTimes = (ev.flightHrs > 0 || ev.dutyHrs > 0);
+        const fltWarn = ev.flightHrs > 8.0;
+        const dtyWarn = ev.dutyHrs > 14.0;
+        
+        tl.innerHTML += `
+          <div class="${highlightClass}">
+            <div class="timeline-event ${!isCurrent ? dotClass : ''} ${isMissionDay && !isCurrent ? 'te-focus' : ''}">
+              <div style="font-size:0.75rem; color:#888;">${supFormatDateMonDayYear_(ev.date, '--')}</div>
+              <div style="font-weight:bold; font-size:0.9rem;">${ev.title}</div>
+              <div style="font-size:0.8rem;">${ev.desc}</div>
+              
+              ${hasTimes ? `
+                <div style="margin-top:5px;">
+                  <span class="new badge badge-lg ${fltWarn ? 'badge-warn' : 'blue'}" data-badge-caption="Flt" style="margin-left:0; float:none;">${ev.flightHrs.toFixed(1)}</span>
+                  <span class="new badge badge-lg ${dtyWarn ? 'badge-warn' : 'grey darken-1'}" data-badge-caption="Dty" style="margin-left:5px; float:none;">${ev.dutyHrs.toFixed(1)}</span>
+                </div>
+              ` : ''}
+
+            </div>
+          </div>
+        `;
+      });
+    } 
+
+
+    async function waiveCheck(icao) {
+      if(confirm(`Authorize ${icao} for ${supPilot}?`)) {
+         const approvalPassword = await supervisorRequirePassword_('Enter supervisor password to authorize ' + icao + '.');
+         if (!approvalPassword) return;
+         const currentList = lastLoadedData.authorizedAirports ? lastLoadedData.authorizedAirports.split(',').map(s=>s.trim()) : [];
+         currentList.push(icao);
+         lastLoadedData.authorizedAirports = currentList.join(', ');
+         renderDetails(lastLoadedData);
+         google.script.run
+           .withSuccessHandler(msg => M.toast({html: 'Saved to Database'}))
+           .withFailureHandler(err => M.toast({html: 'Authorization failed: ' + (err && err.message ? err.message : String(err)), classes:'red'}))
+           .waiveDestinationCheck(supPilot, icao, supMissionId, approvalPassword);
+      }
+    }
+    async function approveCurrent() {
+      if(!confirm("Approve and Release Mission " + supMissionId + "?")) return;
+      const approvingMissionId = String(supMissionId || '');
+      const approvalPassword = await supervisorRequirePassword_('Enter supervisor password to approve mission ' + supMissionId + '.');
+      if (!approvalPassword) return;
+      
+      // Disable the button immediately to prevent double-clicks
+      document.getElementById('btnApprove').disabled = true;
+
+      google.script.run.withSuccessHandler(() => { 
+        // Optimistic local status update so sidebar reflects approval immediately.
+        const approvedItem = document.querySelector('.mission-item[data-mission-id="' + approvingMissionId + '"]');
+        if (approvedItem) {
+          const badge = approvedItem.querySelector('.m-status');
+          if (badge) {
+            badge.classList.remove('st-pending');
+            badge.classList.add('st-approved');
+            badge.textContent = 'APPROVED';
+          }
+        }
+
+        M.toast({html: 'Mission ' + supMissionId + ' Approved!'});
+
+        // Notify portal views (same tab + other tabs) that mission status changed.
+        try {
+          if (typeof window.notifyMissionSaved === 'function') window.notifyMissionSaved();
+          window.dispatchEvent(new CustomEvent('mission-saved', { detail: { when: Date.now(), source: 'supervisor-approve' } }));
+          localStorage.setItem('mba_mission_saved_at', String(Date.now()));
+        } catch (e) {}
+        
+        // 1. Reset the UI details to "Select a Mission" state
+        document.getElementById('mTitle').innerText = "Select a Mission";
+        document.getElementById('detailPanel').innerHTML = '<p style="text-align:center; margin-top:50px; color:#999;">Select a mission from the left.</p>';
+        document.getElementById('timelineContainer').innerHTML = "";
+        
+        // 2. Refresh ONLY the sidebar list (No white screen reload!)
+        google.script.run.withSuccessHandler(initSidebar).getSupervisorDashboard();
+        
+        // 3. Clear our local tracker
+        supMissionId = null;
+
+      }).withFailureHandler(err => {
+        M.toast({html: 'Mission approval failed: ' + (err && err.message ? err.message : String(err)), classes:'red'});
+        document.getElementById('btnApprove').disabled = false;
+      }).approveMission(supMissionId, approvalPassword);
+    }
+
+    function openRunwaySurveyReview() {
+      const el = document.getElementById('runway-survey-review-modal');
+      if (!el || !window.M || !M.Modal) {
+        if (window.M) M.toast({ html: 'Modal not available', classes: 'red' });
+        return;
+      }
+      const modal = M.Modal.getInstance(el) || M.Modal.init(el);
+      modal.open();
+      refreshRunwaySurveyReviewList();
+    }
+
+    function refreshRunwaySurveyReviewList() {
+      const list = document.getElementById('runway-survey-review-list');
+      if (!list) return;
+      list.innerHTML = '<div style="padding:12px; color:#888;">Loading pending runway surveys…</div>';
+
+      google.script.run
+        .withSuccessHandler(function(resp) {
+          const items = resp && resp.success && Array.isArray(resp.items) ? resp.items : [];
+          if (!items.length) {
+            list.innerHTML = '<div style="padding:12px; color:#2e7d32; font-weight:700;">No pending runway surveys.</div>';
+            return;
+          }
+
+          list.innerHTML = items.map(function(item) {
+            const survey = item.survey || {};
+            const official = item.official || {};
+            const summary = item.captureSummary || {};
+            const isApproval = String(item.entryKind || '') === 'RUNWAY_APPROVAL';
+            const previewPayload = encodeURIComponent(JSON.stringify({
+              icao: item.icao,
+              rwyIdent: item.rwyIdent,
+              survey: survey,
+              official: official
+            }));
+            const traceCount = Array.isArray(survey.perimeterTrace) ? survey.perimeterTrace.length : 0;
+            const obsAngles = Array.isArray(survey.obstacleAngles50m) ? survey.obstacleAngles50m.length : 0;
+            const featCount = Array.isArray(survey.features) ? survey.features.length : 0;
+            const markerCount = Array.isArray(survey.markers) ? survey.markers.length : 0;
+            const slopeCount = Array.isArray(survey.slopeSegments) ? survey.slopeSegments.length : 0;
+            const runwaySnapshot = survey.runwaySnapshot || {};
+            const riskDetail = survey.riskDetail || {};
+            return `
+              <div data-survey-staging="${item.stagingId}" data-preview-payload="${previewPayload}" style="background:#fff; border:1px solid #d9e2ef; border-radius:8px; padding:10px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                  <div>
+                    <div style="font-weight:800; color:#0b5394;">${item.icao} RWY ${item.rwyIdent} ${isApproval ? '· RUNWAY APPROVAL' : '· GPS SURVEY'}</div>
+                    <div style="font-size:0.8rem; color:#666;">Pilot: ${item.pilotName || 'Unknown'} · ${item.walkDate || ''}</div>
+                    ${isApproval ? `
+                      <div style="font-size:0.8rem; color:#37474f; margin-top:4px;"><b>Runway</b> ${Number(runwaySnapshot.runwayLengthM || 0) || 0}m x ${Number(runwaySnapshot.runwayWidthM || 0) || 0}m · ${runwaySnapshot.surface || '-'} · ${String(runwaySnapshot.surfaceCondition || 'DRY').toUpperCase()}</div>
+                      <div style="font-size:0.8rem; color:#37474f;"><b>Cutdown</b> ${runwaySnapshot.cutdownAreaLabel || 'Unknown'} · <b>Slope</b> ${runwaySnapshot.slopePct || '-'}% · <b>Heading</b> ${runwaySnapshot.heading || '---'}°</div>
+                      <div style="font-size:0.8rem; color:#37474f;"><b>Wind</b> ${runwaySnapshot.windDir || 0}°/${runwaySnapshot.windSpd || 0}kt · H/T ${runwaySnapshot.headTailKts || 0}kt · XW ${runwaySnapshot.crosswindKts || 0}kt</div>
+                      <div style="font-size:0.8rem; color:#37474f;"><b>Abort</b> ${runwaySnapshot.abortPointM || 0}m · <b>TO</b> ${runwaySnapshot.takeoffRollM || 0}m · <b>TO+LDG</b> ${runwaySnapshot.rollStopM || 0}m</div>
+                      <div style="font-size:0.78rem; color:#777; margin-top:2px;">Risk total: ${survey.riskTotal || 0} · Pilot ${riskDetail.Pilot || '-'} · Aircraft ${riskDetail.Aircraft || '-'} · Runway ${riskDetail.Runway || '-'} · Weather ${riskDetail.Weather || '-'} · Mission ${riskDetail.Mission || '-'}</div>
+                    ` : `
+                      <div style="font-size:0.8rem; color:#666; margin-top:4px;">Trace pts: ${traceCount} · Features: ${featCount} · Markers: ${markerCount} · 50m obstacle angles: ${obsAngles} · Slope segs: ${slopeCount}</div>
+                      <div style="font-size:0.8rem; color:#37474f; margin-top:4px;"><b>Observed</b> ${Number(survey.lengthM || 0) || 0}m x ${Number(survey.widthM || 0) || 0}m (${survey.surface || '-'})</div>
+                      <div style="font-size:0.8rem; color:#37474f;"><b>Official</b> ${Number(official.lengthM || 0) || 0}m x ${Number(official.widthM || 0) || 0}m (${official.surface || '-'})</div>
+                      <div style="font-size:0.78rem; color:#777; margin-top:2px;">Avg GPS acc: ${Math.round(Number(summary.avgAccuracyM || 0)) || 0}m · Best: ${Math.round(Number(summary.bestAccuracyM || 0)) || 0}m</div>
+                    `}
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:6px; min-width:200px;">
+                    <textarea id="survey-note-${item.stagingId}" placeholder="Supervisor notes" style="width:100%; min-height:58px; border:1px solid #ccc; border-radius:6px; padding:6px; font-size:0.82rem;"></textarea>
+                    <div style="display:flex; gap:6px; justify-content:flex-end;">
+                      <button class="btn-small teal darken-2" onclick="openSupervisorRunwayPreview('${item.stagingId}')">Preview</button>
+                      <button class="btn-small red lighten-1" onclick="rejectRunwaySurveyItem('${item.stagingId}')">Reject</button>
+                      <button class="btn-small green" onclick="approveRunwaySurveyItem('${item.stagingId}')">Approve</button>
+                    </div>
+                  </div>
+                </div>
+                ${item.notes ? `<div style="margin-top:8px; font-size:0.82rem; color:#444; background:#f7f9fc; border-left:3px solid #90caf9; padding:6px 8px;">${item.notes}</div>` : ''}
+              </div>
+            `;
+          }).join('');
+        })
+        .withFailureHandler(function(err) {
+          list.innerHTML = `<div style="padding:12px; color:#d32f2f;">Failed loading runway surveys: ${err && err.message ? err.message : String(err)}</div>`;
+        })
+        .getPendingRunwaySurveyReviews(120);
+    }
+
+    function _getPendingSurveyCardData_() {
+      const list = document.getElementById('runway-survey-review-list');
+      if (!list) return [];
+      return Array.from(list.querySelectorAll('[data-survey-staging]'));
+    }
+
+    window.openSupervisorRunwayPreview = function(stagingId) {
+      const list = document.getElementById('runway-survey-review-list');
+      if (!list || !stagingId) return;
+      const card = list.querySelector('[data-survey-staging="' + String(stagingId) + '"]');
+      const payload = card ? decodeURIComponent(card.dataset.previewPayload || '') : '';
+      if (!payload) {
+        if (window.M) M.toast({ html: 'Preview data unavailable', classes: 'orange' });
+        return;
+      }
+      let item = null;
+      try { item = JSON.parse(payload); } catch (e) { item = null; }
+      if (!item) {
+        if (window.M) M.toast({ html: 'Failed to parse preview data', classes: 'red' });
+        return;
+      }
+      renderSupervisorRunwayPreview(item);
+    };
+
+    function renderSupervisorRunwayPreview(item) {
+      const modal = document.getElementById('runway-survey-preview-modal');
+      const title = document.getElementById('runway-survey-preview-title');
+      const sub = document.getElementById('runway-survey-preview-sub');
+      const body = document.getElementById('runway-survey-preview-body');
+      if (!modal || !title || !sub || !body) return;
+
+      const survey = item && item.survey ? item.survey : {};
+      const official = item && item.official ? item.official : {};
+      const lengthM = Math.max(1, Math.round(Number(survey.lengthM || official.lengthM || 0)));
+      const widthM = Math.max(0, Math.round(Number(survey.widthM || official.widthM || 0)));
+      const surface = String(survey.surface || official.surface || '-');
+      const features = Array.isArray(survey.features) ? survey.features : [];
+      const obstacles = Array.isArray(survey.obstacleAngles50m) ? survey.obstacleAngles50m : [];
+      const slopes = Array.isArray(survey.slopeSegments) ? survey.slopeSegments : [];
+
+      title.textContent = 'RUNWAY PREVIEW';
+      sub.textContent = String(item.icao || '--') + ' · RWY ' + String(item.rwyIdent || '--');
+
+      const topSummary = ''
+        + '<div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;">'
+        + '<div style="border:1px solid #dbe7f3; border-radius:8px; padding:8px; background:#f7fbff; font-size:0.84rem;"><b style="color:#0b5394;">Surveyed</b><br>' + lengthM + 'm × ' + widthM + 'm • ' + surface + '</div>'
+        + '<div style="border:1px solid #e0e0e0; border-radius:8px; padding:8px; background:#fafafa; font-size:0.84rem;"><b style="color:#555;">Official</b><br>' + Math.round(Number(official.lengthM || 0)) + 'm × ' + Math.round(Number(official.widthM || 0)) + 'm • ' + String(official.surface || '-') + '</div>'
+        + '</div>';
+
+      const runwayPx = 540;
+      const scale = runwayPx / lengthM;
+      const topX = 48;
+      const topY = 52;
+      const topH = 72;
+      const viewW = 640;
+      const viewH = 340;
+      const endX = topX + runwayPx;
+
+      const topFeatureDots = features.slice(0, 40).map(function(f) {
+        const d = Math.max(0, Math.min(lengthM, Number(f && f.distance || 0)));
+        const x = topX + (d * scale);
+        const side = String(f && f.side || 'right').toLowerCase() === 'left' ? 'left' : 'right';
+        const y = side === 'left' ? topY - 10 : topY + topH + 14;
+        return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3" fill="#fb8c00"></circle>';
+      }).join('');
+
+      const obstacleRows = obstacles.slice(0, 8).map(function(o) {
+        const dist = Math.round(Number(o && o.checkpointDistanceM || 0));
+        const angle = Number(o && (o.angleDeg != null ? o.angleDeg : o.fromThrA50mDeg) || 0).toFixed(1);
+        const type = String(o && o.type || 'obstacle');
+        return '<div style="font-size:0.8rem; color:#37474f;">• ' + type + ' @ ' + dist + 'm (' + angle + '°)</div>';
+      }).join('') || '<div style="font-size:0.8rem; color:#999;">No obstacle angles captured.</div>';
+
+      const slopeRows = slopes.slice(0, 8).map(function(s) {
+        return '<div style="font-size:0.8rem; color:#37474f;">• +' + Math.round(Number(s && s.startDistanceM || 0)) + 'm for ' + Math.round(Number(s && s.distanceM || 0)) + 'm at ' + Number(s && s.slope || 0).toFixed(1) + '%</div>';
+      }).join('') || '<div style="font-size:0.8rem; color:#999;">No slope segments captured.</div>';
+
+      body.innerHTML = ''
+        + topSummary
+        + '<svg width="100%" height="340" viewBox="0 0 ' + viewW + ' ' + viewH + '" style="border:1px solid #d7dde3; border-radius:10px; background:#f9fbfd;">'
+        + '<text x="48" y="24" font-size="12" fill="#234" font-weight="700">TOP VIEW</text>'
+        + '<rect x="' + topX + '" y="' + topY + '" width="' + runwayPx + '" height="' + topH + '" fill="#616161" stroke="#263238" stroke-width="2" rx="4" ry="4"></rect>'
+        + '<line x1="' + topX + '" y1="' + (topY + topH / 2) + '" x2="' + endX + '" y2="' + (topY + topH / 2) + '" stroke="#f3f3f3" stroke-width="3" stroke-dasharray="18,10"></line>'
+        + '<text x="' + (topX + 10) + '" y="' + (topY + topH - 10) + '" font-size="17" fill="#fff" font-weight="800">' + String(item.rwyIdent || 'RWY') + '</text>'
+        + '<text x="' + (endX - 10) + '" y="' + (topY + topH - 10) + '" font-size="17" fill="#fff" font-weight="800" text-anchor="end">' + String(survey.reciprocalIdent || '') + '</text>'
+        + topFeatureDots
+        + '</svg>'
+        + '<div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;">'
+        + '<div style="background:#f9fbfc; border:1px solid #e0e6eb; padding:8px 10px; border-radius:6px;"><div style="font-size:0.8rem; font-weight:800; color:#0b5394; margin-bottom:4px;">Obstacle Angles</div>' + obstacleRows + '</div>'
+        + '<div style="background:#f9fbfc; border:1px solid #e0e6eb; padding:8px 10px; border-radius:6px;"><div style="font-size:0.8rem; font-weight:800; color:#0b5394; margin-bottom:4px;">Slope Segments</div>' + slopeRows + '</div>'
+        + '</div>'
+        + '<div style="background:#eef6ff; border-left:4px solid #1976d2; padding:8px 10px; border-radius:6px; font-size:0.82rem; color:#37474f;">Features: ' + features.length + ' • Obstacles: ' + obstacles.length + ' • Slope segments: ' + slopes.length + '</div>';
+
+      modal.style.display = 'flex';
+    }
+
+    function closeSupervisorRunwayPreview() {
+      const modal = document.getElementById('runway-survey-preview-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function _supervisorNameForSurvey_() {
+      const raw = document.getElementById('userDisplay') ? document.getElementById('userDisplay').innerText : 'Supervisor';
+      return String(raw || '').trim() || 'Supervisor';
+    }
+
+    async function approveRunwaySurveyItem(stagingId) {
+      if (!stagingId) return;
+      if (!confirm('Approve runway survey ' + stagingId + '?')) return;
+      const approvalPassword = await supervisorRequirePassword_('Enter supervisor password to approve runway survey ' + stagingId + '.');
+      if (!approvalPassword) return;
+      const notes = (document.getElementById('survey-note-' + stagingId) || {}).value || '';
+      google.script.run
+        .withSuccessHandler(function(resp) {
+          if (resp && resp.success) {
+            if (window.M) M.toast({ html: 'Runway survey approved', classes: 'green' });
+            refreshRunwaySurveyReviewList();
+          } else if (window.M) {
+            M.toast({ html: (resp && resp.error) ? resp.error : 'Approve failed', classes: 'red' });
+          }
+        })
+        .withFailureHandler(function(err) {
+          if (window.M) M.toast({ html: 'Approve failed: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+        })
+        .approveRunwaySurveyReview(stagingId, _supervisorNameForSurvey_(), notes, approvalPassword);
+    }
+
+    async function rejectRunwaySurveyItem(stagingId) {
+      if (!stagingId) return;
+      if (!confirm('Reject runway survey ' + stagingId + '?')) return;
+      const approvalPassword = await supervisorRequirePassword_('Enter supervisor password to reject runway survey ' + stagingId + '.');
+      if (!approvalPassword) return;
+      const notes = (document.getElementById('survey-note-' + stagingId) || {}).value || '';
+      google.script.run
+        .withSuccessHandler(function(resp) {
+          if (resp && resp.success) {
+            if (window.M) M.toast({ html: 'Runway survey rejected', classes: 'orange' });
+            refreshRunwaySurveyReviewList();
+          } else if (window.M) {
+            M.toast({ html: (resp && resp.error) ? resp.error : 'Reject failed', classes: 'red' });
+          }
+        })
+        .withFailureHandler(function(err) {
+          if (window.M) M.toast({ html: 'Reject failed: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+        })
+        .rejectRunwaySurveyReview(stagingId, _supervisorNameForSurvey_(), notes, approvalPassword);
+    }
+</script>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+  
+  <style>
+    /* GLOBAL LAYOUT */
+    body { background: #f1f3f4; display: flex; flex-direction: column; height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
+    
+    /* NAV BAR */
+    nav { background-color: #0d47a1; z-index: 999; }
+    .nav-wrapper { padding: 0 20px; }
+    .brand-logo { font-size: 1.2rem; font-weight: bold; }
+    #nav-mobile { display: flex; gap: 2px; overflow-x: auto; white-space: nowrap; }
+    #nav-mobile li a { padding: 0 10px; font-size: 0.82rem; }
+    .nav-link-wrap { display: inline-flex; align-items: center; gap: 3px; }
+    .nav-open-new {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      color: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.12);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .nav-open-new:hover { background: rgba(255,255,255,0.28); }
+    .nav-open-new i { font-size: 14px; line-height: 1; }
+    .portal-time-trio {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 10px;
+      color: rgba(255,255,255,0.95);
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+    .portal-time-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 3px 8px;
+      line-height: 1;
+    }
+    .portal-time-pill b {
+      font-size: 0.72rem;
+      color: #fff;
+    }
+
+    @media (max-width: 1024px) {
+      .nav-wrapper { padding: 0 10px; }
+      .brand-logo { font-size: 1rem; }
+      .nav-arrow { padding: 0 6px; }
+      #nav-mobile li a { padding: 0 8px; font-size: 0.74rem; }
+      .portal-time-trio { display: none; }
+    }
+
+    @media (max-width: 760px) {
+      #nav-mobile li a { padding: 0 7px; font-size: 0.7rem; }
+    }
+    
+    /* NAV BUTTONS */
+    .nav-btn-group { display: flex; align-items: center; margin-right: 15px; }
+    .nav-arrow {
+      background: rgba(255,255,255,0.1); border: none; color: white; cursor: pointer;
+      padding: 0 10px; height: 64px; transition: 0.2s;
+    }
+    .nav-arrow:hover { background: rgba(255,255,255,0.3); }
+    
+    /* APP CONTENT AREA */
+    #app-content { flex: 1; overflow: hidden; position: relative; }
+    .view-section { display: none; height: 100%; width: 100%; overflow-y: auto; }
+    .view-active { display: block; }
+
+    /* CALENDAR SPECIFIC */
+    #view-home { padding: 20px; }
+    #calendar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 100%; }
+    .fc-daygrid-day { cursor: pointer; transition: background 0.2s; }
+    .fc-daygrid-day:hover { background: #f5f5f5; }
+
+    /* --- EVENT STYLING FIXES --- */
+    .fc-event-time { display: none !important; } /* Hide default time */
+    .fc-event-main { padding: 1px 2px; line-height: 1.5; }
+    
+    .evt-one-line { 
+      font-size: 0.85em; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      color: white;
+      display: flex;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-wrapper" style="display:flex; justify-content:space-between;">
+    <div style="display:flex; align-items:center;">
+      <div class="nav-btn-group">
+        <button class="nav-arrow" onclick="goBack()"><i class="material-icons">arrow_back</i></button>
+        <button class="nav-arrow" onclick="goForward()"><i class="material-icons">arrow_forward</i></button>
+      </div>
+      <a href="javascript:void(0)" onclick="switchTab('view-home')" class="brand-logo" style="position:relative; left:0; transform:none;">
+        <i class="material-icons" style="margin-right:10px;">flight_takeoff</i>FLIGHT OPS
+      </a>
+    </div>
+    <div style="display:flex; align-items:center;">
+      <div id="portal-time-trio" class="portal-time-trio" aria-label="Dispatch clocks">
+        <span class="portal-time-pill">Z <b id="portal-time-z">--:--</b></span>
+        <span class="portal-time-pill">MAO <b id="portal-time-mao">--:--</b></span>
+        <span class="portal-time-pill">BSB <b id="portal-time-bsb">--:--</b></span>
+      </div>
+      <ul id="nav-mobile" class="right">
+        <li class="active" id="nav-home"><a href="javascript:void(0)" onclick="switchTab('view-home')">CALENDAR</a></li>
+        <li id="nav-dispatch"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-dispatch')">DISPATCH</a><a href="javascript:void(0)" class="nav-open-new" title="Open Dispatch in new tab" onclick="openViewInNewTab('view-dispatch'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-supervisor"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-supervisor')">SUPERVISOR</a><a href="javascript:void(0)" class="nav-open-new" title="Open Supervisor in new tab" onclick="openViewInNewTab('view-supervisor'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-tools"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-tools')">TOOLS</a><a href="javascript:void(0)" class="nav-open-new" title="Open Tools in new tab" onclick="openViewInNewTab('view-tools'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-maintenance"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-maintenance')">MAINTENANCE</a><a href="javascript:void(0)" class="nav-open-new" title="Open Maintenance in new tab" onclick="openViewInNewTab('view-maintenance'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-pilot"><a href="javascript:void(0)" onclick="openPilotAppFromPortal()">PILOT APP</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div id="quickViewModal" class="modal" style="max-width: 500px;">
+  <div class="modal-content">
+    <h4 style="color:#0b5394; margin-top:0; border-bottom:1px solid #ddd; padding-bottom:10px;">
+      Mission <span id="qvId"></span>
+    </h4>
+    <div class="row" style="margin-bottom:0;">
+      <div class="col s6"><p><strong>Aircraft:</strong> <span id="qvAcft"></span></p></div>
+      <div class="col s6"><p><strong>Pilot:</strong> <span id="qvPilot"></span></p></div>
+      <div class="col s6"><p><strong>Takeoff:</strong> <span id="qvTakeoff"></span></p></div>
+      <div class="col s6"><p><strong>Route:</strong> <span id="qvRoute"></span></p></div>
+      <div class="col s12"><hr style="border-top:1px dashed #ccc;"></div>
+      <div class="col s6"><p><strong>Flight Time:</strong> <span id="qvFlt" style="font-weight:bold; color:#0b5394;"></span></p></div>
+      <div class="col s6"><p><strong>Duty Time:</strong> <span id="qvDuty" style="font-weight:bold; color:#0b5394;"></span></p></div>
+    </div>
+  </div>
+  <div class="modal-footer" style="display:flex; justify-content:space-between; padding: 10px 24px;">
+    <a href="javascript:void(0)" class="modal-close waves-effect waves-grey btn-flat">Close</a>
+    <div style="display:flex; gap:8px;">
+      <button id="qvSupervisorBtn" class="waves-effect waves-light btn amber darken-3">OPEN IN SUPERVISOR</button>
+      <button id="qvEditBtn" class="waves-effect waves-light btn blue darken-3">OPEN IN DISPATCH</button>
+    </div>
+  </div>
+</div>
+
+  <div id="app-content">
+    <div id="view-home" class="view-section view-active"><div id="calendar"></div></div>
+    <div id="view-dispatch" class="view-section"><?!= include('View_Dispatch'); ?></div>
+    <div id="view-supervisor" class="view-section"><?!= include('View_Supervisor'); ?></div>
+    <div id="view-tools" class="view-section"><?!= include('View_Tools'); ?></div>
+    <div id="view-maintenance" class="view-section"><?!= include('View_Maintenance'); ?></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+
+  <script>
+    const WEB_APP_URL = <?!= JSON.stringify(typeof webAppUrl === 'string' ? webAppUrl : '') ?>;
+    let _portalClockTimer = null;
+
+    function _dispatchClockText_(timeZone) {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: timeZone,
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date());
+    }
+
+    function _formatBsbTimeText_(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '--:-- BSB';
+      if (/\b(Z|UTC|BSB|MAO)\b/i.test(raw)) return raw;
+      return raw + ' BSB';
+    }
+
+    function _renderPortalClocks_() {
+      const z = document.getElementById('portal-time-z');
+      const mao = document.getElementById('portal-time-mao');
+      const bsb = document.getElementById('portal-time-bsb');
+      if (!z || !mao || !bsb) return;
+      z.textContent = _dispatchClockText_('UTC');
+      mao.textContent = _dispatchClockText_('America/Manaus');
+      bsb.textContent = _dispatchClockText_('America/Sao_Paulo');
+    }
+
+    function initPortalDispatchClocks_() {
+      _renderPortalClocks_();
+      if (_portalClockTimer) clearInterval(_portalClockTimer);
+      _portalClockTimer = setInterval(_renderPortalClocks_, 15000);
+    }
+
+    function _normalizeScriptUrl_(raw) {
+      try {
+        const u = new URL(String(raw || ''));
+        if (!/script\.google\.com$/i.test(u.hostname)) return '';
+        if (!/\/s\//i.test(u.pathname)) return '';
+        if (/\/dev\/?$/i.test(u.pathname)) {
+          u.pathname = u.pathname.replace(/\/dev\/?$/i, '/exec');
+        }
+        if (!/\/(exec|dev)\/?$/i.test(u.pathname)) return '';
+        u.search = '';
+        u.hash = '';
+        return u.toString();
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function _portalBaseUrl_() {
+      var current = _normalizeScriptUrl_(window.location.href);
+      if (current) return current;
+
+      var referrer = _normalizeScriptUrl_(document.referrer);
+      if (referrer) return referrer;
+
+      var backendUrl = _normalizeScriptUrl_(WEB_APP_URL);
+      if (backendUrl) return backendUrl;
+
+      try {
+        const fallback = new URL(window.location.href);
+        fallback.hash = '';
+        fallback.search = '';
+        return fallback.toString();
+      } catch (e) {
+        return String(window.location.pathname || '');
+      }
+    }
+
+    function jumpToDispatch(missionId) {
+      switchTab('view-dispatch');
+      setTimeout(() => {
+        if(typeof loadDispatchMission === 'function') {
+           loadDispatchMission(missionId); 
+           M.toast({html: 'Opening Mission ' + missionId});
+        }
+      }, 100);
+    }
+
+    function jumpToSupervisor(missionId) {
+      switchTab('view-supervisor');
+      setTimeout(() => {
+        if (typeof loadSupervisorMission !== 'function') return;
+        const sidebar = document.getElementById('sbList');
+        let selectedItem = null;
+        if (sidebar) {
+          selectedItem = Array.from(sidebar.querySelectorAll('.mission-item')).find(function(node) {
+            return String(node.textContent || '').indexOf(String(missionId || '')) >= 0;
+          }) || null;
+        }
+        loadSupervisorMission(missionId, selectedItem);
+        if (window.M) M.toast({ html: 'Opening Mission ' + missionId + ' in Supervisor' });
+      }, 140);
+    }
+
+    let navHistory = ['view-home'];
+    let histIndex = 0;
+    let isNavigating = false;
+
+    function switchTab(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('view-active'));
+      document.getElementById(viewId).classList.add('view-active');
+      document.querySelectorAll('nav li').forEach(li => li.classList.remove('active'));
+      const navId = viewId.replace('view-', 'nav-');
+      const navEl = document.getElementById(navId);
+      if (navEl) navEl.classList.add('active');
+
+      if (!isNavigating) {
+        if (histIndex < navHistory.length - 1) { navHistory = navHistory.slice(0, histIndex + 1); }
+        if (navHistory[histIndex] !== viewId) { navHistory.push(viewId); histIndex++; }
+      }
+      if(viewId === 'view-home') renderCalendar();
+      if (viewId === 'view-tools' && typeof window.initToolsPage === 'function') window.initToolsPage();
+      if (viewId === 'view-supervisor' && typeof window.onSupervisorTabShown === 'function') window.onSupervisorTabShown();
+      if (viewId !== 'view-supervisor' && typeof window.onSupervisorTabHidden === 'function') window.onSupervisorTabHidden();
+    }
+
+    function openPilotAppFromPortal() {
+      try {
+        const base = _portalBaseUrl_();
+        const url = new URL(base);
+        url.searchParams.set('view', 'pilot');
+        url.searchParams.set('src', 'portal-nav');
+        url.hash = '';
+        window.location.href = url.toString();
+      } catch (e) {
+        window.location.href = String(_portalBaseUrl_() || window.location.pathname || '') + '?view=pilot';
+      }
+    }
+
+    function openViewInNewTab(viewId) {
+      try {
+        const url = new URL(_portalBaseUrl_());
+        url.hash = '#' + String(viewId || 'view-home');
+        url.searchParams.set('view', 'portal');
+        window.open(url.toString(), '_blank', 'noopener');
+      } catch (e) {
+        window.open(String(_portalBaseUrl_() || window.location.pathname || '') + '?view=portal#' + String(viewId || 'view-home'), '_blank', 'noopener');
+      }
+    }
+
+    function goBack() { if (histIndex > 0) { histIndex--; isNavigating = true; switchTab(navHistory[histIndex]); isNavigating = false; } }
+    function goForward() { if (histIndex < navHistory.length - 1) { histIndex++; isNavigating = true; switchTab(navHistory[histIndex]); isNavigating = false; } }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      M.Modal.init(document.querySelectorAll('.modal'));
+      renderCalendar();
+      initPortalDispatchClocks_();
+
+      window.addEventListener('mission-saved', function() {
+        refreshPortalAfterMissionSave_();
+      });
+
+      window.addEventListener('storage', function(evt) {
+        if (!evt || evt.key !== 'mba_mission_saved_at') return;
+        refreshPortalAfterMissionSave_();
+      });
+
+      if (window.location.hash === '#view-dispatch') {
+        switchTab('view-dispatch');
+      } else if (window.location.hash === '#view-supervisor') {
+        switchTab('view-supervisor');
+      } else if (window.location.hash === '#view-tools') {
+        switchTab('view-tools');
+      } else if (window.location.hash === '#view-maintenance') {
+        switchTab('view-maintenance');
+      }
+    });
+
+    window.addEventListener('beforeunload', function() {
+      if (_portalClockTimer) clearInterval(_portalClockTimer);
+      _portalClockTimer = null;
+    });
+
+    let calendarInstance = null;
+
+    function refreshPortalAfterMissionSave_() {
+      try {
+        if (calendarInstance && typeof calendarInstance.refetchEvents === 'function') {
+          calendarInstance.refetchEvents();
+        }
+      } catch (e) {}
+
+      try {
+        if (typeof refreshSupervisorDashboard === 'function') {
+          refreshSupervisorDashboard(true);
+        }
+      } catch (e) {}
+    }
+
+    window.notifyMissionSaved = function() {
+      refreshPortalAfterMissionSave_();
+    };
+
+    function renderCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      if (calendarInstance) { calendarInstance.updateSize(); return; }
+
+      calendarInstance = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+        height: '100%',
+        dayMaxEvents: true,
+        
+        events: function(info, successCallback, failureCallback) {
+          google.script.run.withSuccessHandler(successCallback).getCalendarEvents();
+        },
+
+        // --- NEW FORMATTING HERE ---
+        eventContent: function(arg) {
+          let p = arg.event.extendedProps;
+          if (p.type === 'mission') {
+            let time = _formatBsbTimeText_(p.takeoff || '--:--');
+            // STYLE: [08:00] PT-KPS | Route | Pilot
+            let html = `
+              <div class="evt-one-line">
+                <span style="font-weight:900; background:rgba(0,0,0,0.25); padding:0 4px; border-radius:3px; margin-right:5px;">${time}</span>
+                <span style="font-weight:bold;">${p.acft}</span>
+                <span style="opacity:0.7; margin:0 4px;">|</span>
+                <span>${p.route}</span>
+                <span style="opacity:0.7; margin:0 4px;">|</span>
+                <span>${p.pilot || 'PILOT TBD'}</span>
+              </div>
+            `;
+            return { html: html };
+          }
+        },
+
+        eventClick: function(info) {
+          let p = info.event.extendedProps;
+          if (p.type === 'mission') {
+            const fmt = (num) => (parseFloat(num) || 0).toFixed(1);
+            document.getElementById('qvId').innerText = p.id;
+            document.getElementById('qvAcft').innerText = p.acft;
+            document.getElementById('qvPilot').innerText = p.fullPilot || p.pilot || 'PILOT TBD';
+            document.getElementById('qvTakeoff').innerText = _formatBsbTimeText_(p.takeoff || '--:--');
+            document.getElementById('qvFlt').innerText = fmt(p.fltTime) + " hr";
+            document.getElementById('qvDuty').innerText = fmt(p.dutyTime) + " hr";
+            document.getElementById('qvRoute').innerText = p.route;
+
+            document.getElementById('qvEditBtn').onclick = function() {
+              M.Modal.getInstance(document.getElementById('quickViewModal')).close();
+              jumpToDispatch(p.id);
+            };
+            document.getElementById('qvSupervisorBtn').onclick = function() {
+              M.Modal.getInstance(document.getElementById('quickViewModal')).close();
+              jumpToSupervisor(p.id);
+            };
+            M.Modal.getInstance(document.getElementById('quickViewModal')).open();
+          } else if (p.type === 'maintenance') {
+            switchTab('view-maintenance');
+          }
+        },
+
+        dateClick: function(info) {
+           switchTab('view-dispatch');
+           const dInput = document.getElementById('fDate');
+           if(dInput) dInput.value = info.dateStr;
+        }
+      });
+      calendarInstance.render();
+    }
+  </script>
+</body>
+</html>

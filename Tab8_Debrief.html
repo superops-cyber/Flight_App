@@ -1,0 +1,883 @@
+<style>
+  #debrief-container { max-width: 860px; margin: 0 auto; }
+  #debrief-content {
+    background-color: #f1f3f4;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 8px 8px 120px 8px;
+  }
+
+  .debrief-panel {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+    padding: 10px;
+  }
+
+  .debrief-title {
+    font-size: 1.08rem;
+    font-weight: 900;
+    color: #0b5394;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+  }
+
+  .debrief-card {
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 8px;
+    padding: 8px;
+  }
+
+  .debrief-card h4 {
+    margin-top: 0;
+    color: #0b5394;
+    border-bottom: 2px solid #0b5394;
+    padding-bottom: 6px;
+    font-size: 1.05rem;
+  }
+
+  .meter-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  @media (max-width: 700px) {
+    .meter-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .meter-field {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .meter-field label {
+    font-size: 0.7rem;
+    color: #0b5394;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    line-height: 1.1;
+    word-break: break-word;
+  }
+
+  .meter-field input[type="number"],
+  .meter-field input[type="text"] {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.95rem;
+    height: 40px;
+  }
+
+  .meter-field input:disabled {
+    background-color: #f5f5f5;
+    color: #666;
+  }
+
+  .meter-value {
+    padding: 6px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #333;
+    font-family: monospace;
+    font-size: 0.95rem;
+    height: 40px;
+    display: flex;
+    align-items: center;
+  }
+
+  .meter-field.meter-fuel-used .meter-value {
+    width: 75%;
+  }
+
+  .debr8-keypad-input {
+    cursor: pointer;
+    background: #f5faff;
+    border: 2px solid #1976d2 !important;
+  }
+
+  .event-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .event-box {
+    padding: 6px;
+    background-color: #f0f4f8;
+    border-radius: 4px;
+    border-left: 3px solid #0b5394;
+  }
+
+  .event-box label {
+    font-size: 0.72rem;
+    color: #0b5394;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .event-time-display {
+    font-size: 0.92rem;
+    font-weight: bold;
+    color: #333;
+    font-family: monospace;
+    margin-bottom: 4px;
+  }
+
+  .event-time-input {
+    padding: 4px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+    height: 36px;
+  }
+
+  .event-box.readonly {
+    background-color: #e8f5e9;
+    border-left-color: #2e7d32;
+  }
+
+  .event-box.readonly .event-time-display {
+    color: #2e7d32;
+  }
+
+  .event-box.auto-only {
+    background: #eef6ff;
+    border-left-color: #1565c0;
+  }
+
+  .event-box.auto-only .event-time-display {
+    color: #1565c0;
+  }
+
+  .debr8-verify-row {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .debr8-check-btn {
+    height: 36px;
+    border: 1px solid #b0bec5;
+    border-radius: 6px;
+    background: #eceff1;
+    color: #546e7a;
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .debr8-check-btn.checked {
+    background: #e8f5e9;
+    border-color: #2e7d32;
+    color: #1b5e20;
+  }
+
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .summary-card {
+    background: white;
+    padding: 6px;
+    border-radius: 6px;
+    text-align: center;
+    border-top: 3px solid #0b5394;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .summary-val {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #0b5394;
+    display: block;
+    margin: 3px 0;
+  }
+
+  .summary-label {
+    font-size: 0.72rem;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+
+  .debrief-required {
+    border: 2px solid #1976d2 !important;
+    background: #f5faff;
+  }
+
+  .debrief-note {
+    font-size: 0.78rem;
+    color: #607d8b;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+  }
+
+  .debrief-textarea {
+    width: 100%;
+    min-height: 96px;
+    resize: vertical;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-family: 'Segoe UI', sans-serif;
+    box-sizing: border-box;
+  }
+
+  .debr8-squawk-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .debr8-squawk-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .debr8-squawk-input {
+    width: 100%;
+    height: 36px;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+  }
+
+  .debr8-squawk-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .debr8-squawk-btn {
+    height: 34px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .debr8-squawk-btn.add {
+    background: #2e7d32;
+  }
+
+  .debr8-squawk-btn.remove {
+    background: #c62828;
+    min-width: 34px;
+    padding: 0 8px;
+  }
+</style>
+
+<div id="debrief-container"></div>
+
+<script>
+window.debrief8 = {
+  mission: null,
+  activeLeg: null,
+  flightLegId: null,
+  startTach: '',
+  fuelStart: 0,
+  traccarData: null,
+  logData: null
+};
+
+function _debr8FindActiveLeg_(mission) {
+  const legs = Array.isArray(mission && mission.legs) ? mission.legs : [];
+  if (!legs.length) return null;
+  const activeId = String(window.activeLegFlightId || '').trim();
+  if (activeId) {
+    const found = legs.find(function(l) { return String(l && l.flightLegId || '').trim() === activeId; });
+    if (found) return found;
+  }
+  const pending = legs.find(function(l) { return String(l && l.logStatus || 'PENDING') !== 'COMPLETE'; });
+  return pending || legs[legs.length - 1] || legs[0];
+}
+
+function _debr8NormTime_(v) {
+  const raw = String(v || '').trim();
+  if (!raw) return '';
+  const m = raw.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (m) {
+    const hh = String(Math.max(0, Math.min(23, Number(m[1] || 0)))).padStart(2, '0');
+    const mm = String(Math.max(0, Math.min(59, Number(m[2] || 0)))).padStart(2, '0');
+    const ss = String(Math.max(0, Math.min(59, Number(m[3] || 0)))).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+  }
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) {
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+  }
+  return raw;
+}
+
+function _debr8ResolveStartTach_(mission, leg, logData) {
+  const fromLog = String((logData && logData.startTach) || '').trim();
+  if (fromLog) return fromLog;
+
+  const fromLeg = String((leg && leg.startTach) || '').trim();
+  if (fromLeg) return fromLeg;
+
+  const fromMission = String((mission && mission.startTach) || '').trim();
+  if (fromMission) return fromMission;
+
+  const fromTab2Input = String(document.getElementById('brief_startTach')?.value || '').trim();
+  if (fromTab2Input) return fromTab2Input;
+
+  try {
+    const missionId = String((mission && mission.id) || '').trim();
+    if (missionId) {
+      const cached = JSON.parse(localStorage.getItem('mission_' + missionId) || 'null');
+      const cachedLegs = Array.isArray(cached && cached.legs) ? cached.legs : [];
+      const flightLegId = String((leg && leg.flightLegId) || '').trim();
+      const cachedLeg = cachedLegs.find(function(l) { return String(l && l.flightLegId || '').trim() === flightLegId; });
+      const fromCache = String((cachedLeg && cachedLeg.startTach) || '').trim();
+      if (fromCache) return fromCache;
+    }
+  } catch (e) {}
+
+  return '';
+}
+
+function _debr8ResolveFuelStart_(mission, leg, logData) {
+  const fromTab2Tanks = (function() {
+    try {
+      const tankInputs = Array.from(document.querySelectorAll('.brief-tank-input'));
+      if (!tankInputs.length) return NaN;
+      const total = tankInputs.reduce(function(sum, el) {
+        return sum + (parseFloat(el && el.value) || 0);
+      }, 0);
+      return total > 0 ? total : NaN;
+    } catch (e) {
+      return NaN;
+    }
+  })();
+
+  if (isFinite(fromTab2Tanks)) return Math.round(fromTab2Tanks);
+
+  const fromActualLoad = (function() {
+    const raw = (logData && logData.actualLoadJSON) || (leg && leg.actualLoadJSON) || '';
+    if (!raw) return NaN;
+    try {
+      const parsed = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+      const v = Number(parsed && parsed.fuelTotal);
+      return isFinite(v) && v > 0 ? v : NaN;
+    } catch (e) {
+      return NaN;
+    }
+  })();
+
+  if (isFinite(fromActualLoad)) return Math.round(fromActualLoad);
+
+  const fromLog = Number(logData && logData.fuelStart);
+  if (isFinite(fromLog) && fromLog > 0) return Math.round(fromLog);
+
+  const fromLeg = Number(leg && leg.takeoffFuel);
+  if (isFinite(fromLeg) && fromLeg > 0) return Math.round(fromLeg);
+
+  return 0;
+}
+
+function _debr8Esc_(v) {
+  return String(v || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function _debr8SquawkList_(raw) {
+  const items = String(raw || '')
+    .split(/[\n,;]+/)
+    .map(function(s) { return String(s || '').trim(); })
+    .filter(Boolean);
+  return items.length ? items : [''];
+}
+
+function _debr8RenderSquawkRows_(items) {
+  const container = document.getElementById('debr8-squawk-list');
+  if (!container) return;
+  const rows = (Array.isArray(items) && items.length ? items : ['']).map(function(item, idx) {
+    return `
+      <div class="debr8-squawk-row">
+        <input class="debr8-squawk-input" type="text" value="${_debr8Esc_(item)}" placeholder="Describe discrepancy ${idx + 1}">
+        <button class="debr8-squawk-btn remove" type="button" title="Remove" onclick="window.debr8RemoveSquawkRow(this)">−</button>
+      </div>
+    `;
+  });
+  container.innerHTML = rows.join('');
+}
+
+window.debr8AddSquawkRow = function() {
+  const container = document.getElementById('debr8-squawk-list');
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'debr8-squawk-row';
+  row.innerHTML = `
+    <input class="debr8-squawk-input" type="text" value="" placeholder="Describe discrepancy">
+    <button class="debr8-squawk-btn remove" type="button" title="Remove" onclick="window.debr8RemoveSquawkRow(this)">−</button>
+  `;
+  container.appendChild(row);
+  const input = row.querySelector('.debr8-squawk-input');
+  if (input) input.focus();
+};
+
+window.debr8RemoveSquawkRow = function(btn) {
+  const row = btn && btn.closest ? btn.closest('.debr8-squawk-row') : null;
+  if (!row) return;
+  const container = document.getElementById('debr8-squawk-list');
+  if (!container) return;
+  const allRows = container.querySelectorAll('.debr8-squawk-row');
+  if (allRows.length <= 1) {
+    const input = row.querySelector('.debr8-squawk-input');
+    if (input) input.value = '';
+    return;
+  }
+  row.remove();
+}
+
+function _debr8SquawksToTextarea_(raw) {
+  return String(raw || '')
+    .split(/[\n,;]+/)
+    .map(function(s) { return String(s || '').trim(); })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function _debr8Render_(mission, leg, logData) {
+  window.debrief8.mission = mission;
+  window.debrief8.activeLeg = leg;
+  window.debrief8.flightLegId = String(leg && leg.flightLegId || mission.id || '');
+  window.debrief8.startTach = _debr8ResolveStartTach_(mission, leg, logData);
+  window.debrief8.fuelStart = _debr8ResolveFuelStart_(mission, leg, logData);
+  window.debrief8.logData = logData || null;
+
+  window.debrief8.traccarData = {
+    brakesRelease: _debr8NormTime_((logData && logData.brakesRelease) || leg?.bracesRelease || leg?.brakesReleaseTime || ''),
+    airborne: _debr8NormTime_((logData && logData.airborne) || leg?.airborne || leg?.airborneTime || ''),
+    landed: _debr8NormTime_((logData && logData.landed) || leg?.landed || leg?.onBlocks || leg?.landedTime || ''),
+    onBlocks: _debr8NormTime_((logData && logData.onBlocks) || (logData && logData.brakesApplied) || leg?.onBlocks || leg?.brakesAppliedTime || ''),
+    numLdgs: Number((logData && logData.numLdgs) || leg?.numLdgs || 1) || 1,
+    numTouchAndGos: Number((logData && logData.numTouchAndGos) || leg?.numTouchAndGos || 0) || 0
+  };
+  const squawkItems = _debr8SquawkList_(logData && logData.squawks);
+
+  const container = document.getElementById('debrief-container');
+  container.innerHTML = `
+  <div id="debrief-content">
+
+    <div class="debrief-panel">
+      <div class="debrief-title">Tab 8: Daily Log & Debrief</div>
+
+    <div class="debrief-card">
+      <h4>Engine & Meter Readings</h4>
+      <div class="meter-grid">
+        <div class="meter-field">
+          <label>Start Tach (for reference)</label>
+          <div class="meter-value">${window.debrief8.startTach}</div>
+        </div>
+        <div class="meter-field">
+          <label>End Tach (pilot input) *</label>
+          <input type="text" id="debr8_endTach" inputmode="decimal" readonly onclick="window.debr8OpenNumeric_('debr8_endTach','END TACH',{ decimal:true, maxLen:6 })" placeholder="Tap for keypad" class="debrief-required debr8-keypad-input" value="${String((logData && logData.endTach) || '')}" />
+        </div>
+        <div class="meter-field">
+          <label>Fuel Start (L)</label>
+          <div class="meter-value">${window.debrief8.fuelStart} L</div>
+        </div>
+        <div class="meter-field">
+          <label>Fuel End (L) *</label>
+          <input type="text" id="debr8_fuelEnd" inputmode="decimal" readonly onclick="window.debr8OpenNumeric_('debr8_fuelEnd','FUEL END L',{ decimal:true, maxLen:6, onApply:window.calculateFuelUsed })" placeholder="Tap for keypad" class="debrief-required debr8-keypad-input" value="${String((logData && logData.fuelEnd) || '')}" />
+        </div>
+        <div class="meter-field meter-fuel-used">
+          <label>Fuel Used (L)</label>
+          <div class="meter-value" id="debr8_fuelUsed">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="debrief-card">
+      <h4>Flight Event Timeline</h4>
+      <p class="debrief-note">Brakes Release and On Blocks are automated. Airborne and Landed remain pilot-verifiable if auto data is unavailable.</p>
+      <div class="event-grid">
+        <div class="event-box auto-only">
+          <label>Brakes Release (from button)</label>
+          <div class="event-time-display" id="debr8_brakesRelease">
+            ${window.debrief8.traccarData.brakesRelease || '—'}
+          </div>
+        </div>
+
+        <div class="event-box ${window.debrief8.traccarData.airborne ? 'readonly' : ''}">
+          <label>Airborne (pilot verify) *</label>
+          <div class="event-time-display" id="debr8_airborneDisplay">
+            ${window.debrief8.traccarData.airborne || '—'}
+          </div>
+          <input type="text" id="debr8_airborne" class="event-time-input" placeholder="HH:MM:SS" value="${window.debrief8.traccarData.airborne || ''}" />
+        </div>
+
+        <div class="event-box ${window.debrief8.traccarData.landed ? 'readonly' : ''}">
+          <label>Landed (pilot verify) *</label>
+          <div class="event-time-display" id="debr8_landedDisplay">
+            ${window.debrief8.traccarData.landed || '—'}
+          </div>
+          <input type="text" id="debr8_landed" class="event-time-input" placeholder="HH:MM:SS" value="${window.debrief8.traccarData.landed || ''}" />
+        </div>
+
+        <div class="event-box auto-only">
+          <label>On Blocks (automated)</label>
+          <div class="event-time-display" id="debr8_onBlocksDisplay">${window.debrief8.traccarData.onBlocks || '—'}</div>
+        </div>
+
+        <div class="event-box">
+          <label>Total Ldgs</label>
+          <div class="event-time-display" id="debr8_numLdgsDisplay">
+            ${window.debrief8.traccarData.numLdgs || 1}
+          </div>
+          <input type="text" id="debr8_numLdgs" class="event-time-input debr8-keypad-input" inputmode="numeric" readonly onclick="window.debr8OpenNumeric_('debr8_numLdgs','TOTAL LANDINGS',{ decimal:false, maxLen:3 })" value="${window.debrief8.traccarData.numLdgs || 1}" />
+        </div>
+
+        <div class="event-box">
+          <label>Night Ldgs</label>
+          <div class="event-time-display" id="debr8_nightLdgsDisplay">0</div>
+          <input type="text" id="debr8_nightLdgs" class="event-time-input debr8-keypad-input" inputmode="numeric" readonly onclick="window.debr8OpenNumeric_('debr8_nightLdgs','NIGHT LANDINGS',{ decimal:false, maxLen:3 })" value="0" />
+        </div>
+
+        <div class="event-box">
+          <label>T&G Count</label>
+          <div class="event-time-display">${window.debrief8.traccarData.numTouchAndGos || 0}</div>
+          <input type="text" id="debr8_numTg" class="event-time-input debr8-keypad-input" inputmode="numeric" readonly onclick="window.debr8OpenNumeric_('debr8_numTg','TOUCH AND GO COUNT',{ decimal:false, maxLen:3 })" value="${window.debrief8.traccarData.numTouchAndGos || 0}" />
+        </div>
+
+        <div class="event-box">
+          <label>Night Hrs</label>
+          <div class="event-time-display" id="debr8_nightHrsDisplay">0.0</div>
+          <input type="text" id="debr8_nightHrs" class="event-time-input debr8-keypad-input" inputmode="decimal" readonly onclick="window.debr8OpenNumeric_('debr8_nightHrs','NIGHT HOURS',{ decimal:true, maxLen:4 })" value="0" />
+        </div>
+
+        <div class="event-box">
+          <label>IFR Hrs</label>
+          <div class="event-time-display" id="debr8_ifrHrsDisplay">0.0</div>
+          <input type="text" id="debr8_ifrHrs" class="event-time-input debr8-keypad-input" inputmode="decimal" readonly onclick="window.debr8OpenNumeric_('debr8_ifrHrs','IFR HOURS',{ decimal:true, maxLen:4 })" value="0" />
+        </div>
+      </div>
+      <div class="debr8-verify-row">
+        <button type="button" class="debr8-check-btn" data-check="brakes" onclick="window.debr8ToggleCheck_(this)">☐ Verify Brakes Release</button>
+        <button type="button" class="debr8-check-btn" data-check="airborne" onclick="window.debr8ToggleCheck_(this)">☐ Verify Airborne</button>
+        <button type="button" class="debr8-check-btn" data-check="landed" onclick="window.debr8ToggleCheck_(this)">☐ Verify Landed</button>
+        <button type="button" class="debr8-check-btn" data-check="onblocks" onclick="window.debr8ToggleCheck_(this)">☐ Verify On Blocks</button>
+      </div>
+    </div>
+
+    <div class="debrief-card">
+      <h4>Flight Summary</h4>
+      <div class="summary-row">
+        <div class="summary-card">
+          <span class="summary-label">Aircraft</span>
+          <span class="summary-val">${mission.acft || 'N/A'}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">From → To</span>
+          <span class="summary-val">${leg?.from || '—'} → ${leg?.to || '—'}</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Distance</span>
+          <span class="summary-val">${Math.round(leg?.distance || 0)} NM</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Pilot</span>
+          <span class="summary-val">${mission.pilot || 'N/A'}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="debrief-card">
+      <h4>Discrepancies / Squawks</h4>
+      <p class="debrief-note">Add one row per discrepancy. This saves to LOG_Flights → Squawks for MX review.</p>
+      <div id="debr8-squawk-list" class="debr8-squawk-list"></div>
+      <div class="debr8-squawk-actions">
+        <button class="debr8-squawk-btn add" type="button" onclick="window.debr8AddSquawkRow()">+ Add Squawk</button>
+      </div>
+    </div>
+
+    </div>
+
+  </div>
+  `;
+
+  _debr8RenderSquawkRows_(squawkItems);
+  window.calculateFuelUsed();
+}
+
+window.setupDebriefTab = function(mission) {
+  if (!mission || !mission.legs || mission.legs.length === 0) {
+    document.getElementById('debrief-container').innerHTML = "<p style='padding:20px; color:red;'>No mission data found.</p>";
+    return;
+  }
+
+  const leg = _debr8FindActiveLeg_(mission);
+  if (!leg) {
+    document.getElementById('debrief-container').innerHTML = "<p style='padding:20px; color:red;'>No active leg found.</p>";
+    return;
+  }
+
+  const flightLegId = String(leg.flightLegId || mission.id || '');
+  if (window.google && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(function(logData) {
+        _debr8Render_(mission, leg, logData || null);
+      })
+      .withFailureHandler(function() {
+        _debr8Render_(mission, leg, null);
+      })
+      .getFlightLogData(flightLegId);
+    return;
+  }
+
+  _debr8Render_(mission, leg, null);
+};
+
+window.calculateFuelUsed = function() {
+  const fuelEndEl = document.getElementById('debr8_fuelEnd');
+  const fuelEndVal = fuelEndEl?.value?.trim();
+  if (!fuelEndVal) {
+    document.getElementById('debr8_fuelUsed').innerText = '—';
+    return;
+  }
+  const fuelEnd = parseFloat(fuelEndVal) || 0;
+  const fuelStart = window.debrief8.fuelStart || 0;
+  const fuelUsed = Math.max(0, fuelStart - fuelEnd);
+  document.getElementById('debr8_fuelUsed').innerText = `${Math.round(fuelUsed)} L`;
+};
+
+window.debr8OpenNumeric_ = function(inputId, label, opts) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const o = opts || {};
+
+  if (typeof window.briefOpenKeypad_ === 'function' && document.getElementById('brief-keypad-modal')) {
+    window.briefOpenKeypad_(input, label || 'Entry', {
+      decimal: !!o.decimal,
+      maxLen: Number(o.maxLen || 8),
+      onApply: function() {
+        if (typeof o.onApply === 'function') o.onApply();
+      }
+    });
+    return;
+  }
+
+  if (typeof window.flightDeckOpenNumericKeypad === 'function' && document.getElementById('perf-popup-backdrop')) {
+    window.flightDeckOpenNumericKeypad(inputId, {
+      title: label || 'Numeric Input',
+      allowSign: false,
+      clearOnOpen: false,
+      onCommit: function() {
+        if (typeof o.onApply === 'function') o.onApply();
+      }
+    });
+    return;
+  }
+
+  input.readOnly = false;
+  input.focus();
+};
+
+window.debr8ToggleCheck_ = function(btn) {
+  if (!btn) return;
+  btn.classList.toggle('checked');
+  btn.textContent = (btn.classList.contains('checked') ? '☑ ' : '☐ ') + btn.textContent.replace(/^☐\s|^☑\s/, '');
+};
+
+function _debr8AllChecksValid_() {
+  const checks = Array.from(document.querySelectorAll('.debr8-check-btn'));
+  return checks.length > 0 && checks.every(function(btn) { return btn.classList.contains('checked'); });
+}
+
+window.submitDebriefLog = function() {
+  try {
+    const isTimeLike = function(v) {
+      const t = String(v || '').trim();
+      if (!t) return false;
+      return /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.test(t);
+    };
+    const normalizeTime = function(v) {
+      const t = String(v || '').trim();
+      const m = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      if (!m) return t;
+      const hh = String(Math.max(0, Math.min(23, Number(m[1] || 0)))).padStart(2, '0');
+      const mm = String(Math.max(0, Math.min(59, Number(m[2] || 0)))).padStart(2, '0');
+      const ss = String(Math.max(0, Math.min(59, Number(m[3] || 0)))).padStart(2, '0');
+      return `${hh}:${mm}:${ss}`;
+    };
+
+    const endTach = String(document.getElementById('debr8_endTach')?.value || '').trim();
+    const fuelEndRaw = String(document.getElementById('debr8_fuelEnd')?.value || '').trim();
+    const fuelEnd = fuelEndRaw === '' ? NaN : parseFloat(fuelEndRaw);
+    const airborneRaw = document.getElementById('debr8_airborne')?.value || '';
+    const landedRaw = document.getElementById('debr8_landed')?.value || window.debrief8.traccarData.landed || window.debrief8.traccarData.onBlocks || '';
+    const brakesAppliedRaw = window.debrief8.traccarData.onBlocks || '';
+    const numLdgs = Math.max(1, parseInt(document.getElementById('debr8_numLdgs')?.value, 10) || 1);
+    const nightLdgs = Math.max(0, parseInt(document.getElementById('debr8_nightLdgs')?.value, 10) || 0);
+    const nightHrs = Math.max(0, parseFloat(document.getElementById('debr8_nightHrs')?.value) || 0);
+    const ifrHrs = Math.max(0, parseFloat(document.getElementById('debr8_ifrHrs')?.value) || 0);
+    const numTouchAndGos = Math.max(0, parseInt(document.getElementById('debr8_numTg')?.value, 10) || 0);
+    const squawks = Array.from(document.querySelectorAll('#debr8-squawk-list .debr8-squawk-input'))
+      .map(function(el) { return String(el && el.value || '').trim(); })
+      .map(function(s) { return String(s || '').trim(); })
+      .filter(Boolean)
+      .join(', ');
+
+    const airborne = normalizeTime(airborneRaw);
+    const landed = normalizeTime(landedRaw);
+    const brakesApplied = normalizeTime(brakesAppliedRaw);
+
+    const fuelUsed = Math.max(0, (window.debrief8.fuelStart || 0) - (isNaN(fuelEnd) ? 0 : fuelEnd));
+
+    if (!endTach) {
+      if (window.M) M.toast({ html: 'Please enter End Tach reading', classes: 'orange' });
+      return;
+    }
+
+    if (fuelEndRaw === '' || isNaN(fuelEnd)) {
+      if (window.M) M.toast({ html: 'Please enter Fuel End reading', classes: 'orange' });
+      return;
+    }
+
+    if (!isTimeLike(airborne) || !isTimeLike(landed)) {
+      if (window.M) M.toast({ html: 'Airborne and Landed must be HH:MM or HH:MM:SS', classes: 'orange' });
+      return;
+    }
+
+    if (!_debr8AllChecksValid_()) {
+      if (window.M) M.toast({ html: 'Verify all auto values before submitting', classes: 'orange' });
+      return;
+    }
+
+    const totalTime = (function() {
+      const parseSec = function(t) {
+        const m = String(t || '').match(/^(\d{2}):(\d{2}):(\d{2})$/);
+        if (!m) return null;
+        return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+      };
+      const a = parseSec(airborne);
+      const l = parseSec(landed);
+      if (a == null || l == null) return '';
+      let d = l - a;
+      if (d < 0) d += 24 * 3600;
+      const hh = String(Math.floor(d / 3600)).padStart(2, '0');
+      const mm = String(Math.floor((d % 3600) / 60)).padStart(2, '0');
+      const ss = String(d % 60).padStart(2, '0');
+      return `${hh}:${mm}:${ss}`;
+    })();
+
+    const payload = {
+      flightLegId: window.debrief8.flightLegId,
+      endTach: endTach,
+      fuelEnd: fuelEnd,
+      fuelUsed: fuelUsed,
+      airborne: airborne,
+      landed: landed,
+      brakesApplied: brakesApplied,
+      numLdgs: numLdgs,
+      nightLdgs: nightLdgs,
+      nightHrs: nightHrs,
+      ifrHrs: ifrHrs,
+      numTouchAndGos: numTouchAndGos,
+      squawks: squawks,
+      totalTime: totalTime,
+      debriefAt: new Date().toISOString()
+    };
+
+    const onDebriefDone = function() {
+      if (window.M) M.toast({ html: 'Mission debrief complete', classes: 'green' });
+      switchTab(1);
+    };
+
+    if (typeof window.runOrQueueServerAction === 'function') {
+      window.runOrQueueServerAction({
+        method: 'recordDebriefLog',
+        args: [payload],
+        label: 'Debrief log'
+      }, {
+        onSuccess: function(resp) {
+          console.log('Debrief saved successfully', resp);
+          onDebriefDone();
+        },
+        onQueued: function() {
+          if (window.M) M.toast({ html: 'Offline: debrief queued for sync', classes: 'orange' });
+          onDebriefDone();
+        },
+        onFailure: function(err) {
+          console.error('Debrief save failed', err);
+          if (window.M) M.toast({ html: 'Save failed — check console for details', classes: 'red' });
+        }
+      });
+    } else if (window.google && google.script && google.script.run) {
+      const likelyNetworkErr = function(err) {
+        const msg = err && err.message ? String(err.message) : String(err || '');
+        return /HTTP 0|NetworkError|Connection failure|Failed to fetch|ScriptError/i.test(msg);
+      };
+
+      const submitDirect = function(retryAttempted) {
+        google.script.run
+          .withSuccessHandler(function(resp) {
+            console.log('Debrief saved successfully', resp);
+            onDebriefDone();
+          })
+          .withFailureHandler(function(err) {
+            if (!retryAttempted && likelyNetworkErr(err)) {
+              setTimeout(function() { submitDirect(true); }, 350);
+              return;
+            }
+
+            if (likelyNetworkErr(err)) {
+              console.warn('Debrief network failure; logging local payload fallback', err, payload);
+              if (window.M) M.toast({ html: 'Offline: debrief save deferred (local fallback)', classes: 'orange' });
+              onDebriefDone();
+              return;
+            }
+
+            console.error('Debrief save failed', err);
+            if (window.M) M.toast({ html: 'Save failed — check console for details', classes: 'red' });
+          })
+          .recordDebriefLog(payload);
+      };
+
+      submitDirect(false);
+    } else {
+      console.log('submitDebriefLog payload (no Apps Script):', payload);
+      if (window.M) M.toast({ html: 'Local mode: debrief payload logged to console', classes: 'blue darken-2' });
+    }
+  } catch (err) {
+    console.error('submitDebriefLog error', err);
+    if (window.M) M.toast({ html: 'Unexpected error saving debrief', classes: 'red' });
+  }
+};
+
+</script>

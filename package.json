@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "test:deploy": "./scripts/test-deploy-loop.sh"
+  },
+  "devDependencies": {
+    "@types/google-apps-script": "^2.0.8"
+  }
+}

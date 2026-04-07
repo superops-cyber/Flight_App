@@ -1,0 +1,450 @@
+<style>
+/* NAVIGATION STEPPER (Top) */
+.tab-stepper {
+  display: flex;
+  overflow-x: auto;
+  background: #0b5394;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.step {
+  padding: 15px 20px;
+  white-space: nowrap;
+  opacity: 0.5;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 1.0rem;
+  transition: 0.3s;
+  cursor: pointer;
+}
+.step.active { 
+  opacity: 1; 
+  border-bottom: 5px solid #fff; 
+  background: rgba(255,255,255,0.1);
+}
+
+/* APP LAYOUT */
+body { background: #f4f7f9; margin: 0; padding: 0; }
+.app-tab { display: none; padding: 20px; padding-bottom: 120px; }
+.app-tab.active { display: block; animation: fadeIn 0.4s ease; }
+/* Tab 4 fills full width — its inner container handles padding */
+#tab4 { padding: 0 0 120px 0; }
+
+/* Tab 4 and Tab 7 fill full width — their inner containers handle padding */
+#tab4, #tab7 { padding: 0 0 120px 0; }
+
+/* STATUS CARDS (For Pilot/Aircraft) */
+.status-card {
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  background: white;
+  border-left: 10px solid #ddd;
+  transition: 0.3s;
+}
+.status-green { border-left-color: #43a047 !important; background: #e8f5e9; }
+.status-red { border-left-color: #e53935 !important; background: #ffebee; }
+
+/* FOOTER NAVIGATION (Bottom) */
+.footer-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 25px;
+  border-top: 1px solid #ddd;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+  z-index: 1000;
+}
+
+.btn-big {
+  height: 68px;
+  line-height: 68px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 0 30px;
+}
+/* Sleek Mission Rows */
+.mission-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 6px;
+  border-left: 5px solid #ddd;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.mission-row:hover { background: #f0f7ff; }
+
+.mission-row.selected {
+  border-left-color: #0b5394;
+  background: #e3f2fd;
+}
+
+/* THE FIX: Controlled widths to prevent wrapping */
+.m-date { 
+  min-width: 105px; 
+  font-weight: 800; 
+  color: #444; 
+}
+
+.m-id { 
+  min-width: 100px; 
+  color: #0b5394; 
+  font-weight: bold;
+  padding: 0 5px;
+}
+
+.m-acft { 
+  min-width: 65px; 
+  font-weight: 800; 
+  color: #222;
+}
+
+.m-route { 
+  flex-grow: 1; /* Takes up all remaining middle space */
+  color: #000; 
+  text-align: left; 
+  padding-left: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.m-status { 
+  min-width: 90px; 
+  font-weight: 800; 
+  text-transform: uppercase; 
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+.m-pilot { 
+  min-width: 70px; 
+  text-align: right; 
+  color: #777; 
+  font-style: italic;
+}
+.text-approved { color: #2e7d32; } /* Forest Green */
+.text-pending  { color: #ef6c00; } /* Aviation Orange */
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.action-btn {
+  width: 75px;
+  height: 75px;
+  background: white;
+  border: 1px solid #0b5394;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #0b5394;
+  transition: 0.2s;
+}
+.action-btn i { font-size: 24px; margin-bottom: 4px; }
+.action-btn span { font-size: 0.7rem; font-weight: bold; text-align: center; line-height: 1; }
+.action-btn:active { background: #0b5394; color: white; }
+
+.cache-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+}
+/* STATS BOXES - The horizontal dashboard row */
+.stats-row { 
+  display: grid; 
+  grid-template-columns: repeat(5, 1fr); 
+  gap: 12px; 
+  margin-bottom: 20px; 
+}
+
+.stat-card { 
+  background: white; 
+  padding: 12px 5px; 
+  border-radius: 8px; 
+  text-align: center; 
+  border-top: 4px solid #0b5394; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 72px;
+}
+
+.stat-val { 
+  font-size: 1.3rem; 
+  font-weight: 800; 
+  color: #0b5394; 
+  display: block; 
+  line-height: 1.1;
+}
+
+.stat-val small {
+  font-size: 0.7rem;
+  color: #777;
+  margin-left: 2px;
+}
+
+.stat-label { 
+  font-size: 0.75rem; 
+  color: #777; 
+  text-transform: uppercase; 
+  font-weight: bold; 
+  margin-top: 4px;
+}
+
+/* Responsive adjustment for small screens */
+@media (max-width: 600px) {
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr); /* 3 boxes on first row, 2 on second */
+  }
+}
+.mission-info-bar {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 15px;
+  background: #fff8e1; /* Soft aviation yellow */
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 6px solid #f57c00;
+  margin-bottom: 20px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+}
+
+.info-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #e65100;
+  margin-bottom: 2px;
+}
+
+.info-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.crew-stack {
+  display: flex;
+  gap: 20px;
+}
+
+/* =========================================
+   LEG CARDS (Aircraft / Dispatch View)
+========================================= */
+
+.leg-card {
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: 0.2s ease;
+}
+
+.leg-card:hover {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.leg-card b {
+  font-weight: 800;
+}
+
+.leg-card small {
+  font-size: 0.7rem;
+  color: #666;
+}
+
+
+/* =========================================
+   PASSENGER TABLE
+========================================= */
+
+.pax-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.pax-row td {
+  padding: 6px 4px;
+  vertical-align: top;
+  border-bottom: 1px solid #eee;
+}
+
+.pax-row:last-child td {
+  border-bottom: none;
+}
+
+.pax-name {
+  font-weight: 600;
+}
+
+.right-align {
+  text-align: right;
+  white-space: nowrap;
+}
+
+
+/* Passenger Tags */
+
+.pax-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 8px;
+  margin-left: 4px;
+  color: white;
+}
+
+.tag-m { background: #1565c0; }
+.tag-f { background: #c2185b; }
+.tag-age { background: #616161; }
+
+
+/* =========================================
+   INPUT FIELDS (Plan ID + UTC)
+========================================= */
+
+.leg-card input {
+  font-size: 0.95rem;
+  min-height: 40px;
+  border-radius: 6px !important;
+  transition: 0.2s ease;
+}
+
+.leg-card input:focus {
+  border-color: #0b5394 !important;
+  box-shadow: 0 0 0 2px rgba(11,83,148,0.15);
+}
+
+
+/* =========================================
+   FUEL TANK VISUAL
+========================================= */
+
+.tank-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tank-container {
+  width: 60px;
+  height: 140px;
+  border: 2px solid #0b5394;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  background: #f0f7ff;
+}
+
+.tank-fill {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(to top, #1565c0, #42a5f5);
+  transition: height 0.6s ease;
+}
+
+.tank-label {
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: #0b5394;
+}
+
+.tank-percent {
+  font-size: 0.75rem;
+  color: #555;
+}
+
+
+/* =========================================
+   OVERWEIGHT WARNING STATE
+========================================= */
+
+.leg-overweight {
+  border-left: 6px solid #d32f2f !important;
+  background: #ffebee !important;
+}
+
+.payload-negative {
+  color: #d32f2f;
+  font-weight: 800;
+}
+
+.payload-positive {
+  color: #2e7d32;
+  font-weight: 800;
+}
+
+
+/* =========================================
+   FUEL CACHE STATUS BOX
+========================================= */
+
+.fuel-status {
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.fuel-status.ok {
+  background: #e8f5e9;
+  border: 1px solid #2e7d32;
+  color: #1b5e20;
+}
+
+.fuel-status.warn {
+  background: #fff3e0;
+  border: 1px solid #ef6c00;
+  color: #e65100;
+}
+
+.fuel-badge {
+  float: right;
+  padding: 2px 6px;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.6rem;
+  font-weight: bold;
+}
+
+.badge-verified { background: #2e7d32; }
+.badge-pending  { background: #ef6c00; }
+
+
+/* =========================================
+   SMOOTH FADE
+========================================= */
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+</style>

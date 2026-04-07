@@ -1,0 +1,251 @@
+<div class="container" style="margin-top:20px;">
+  <style>
+    .mx-card { background:#fff; border:1px solid #dbe4ee; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:12px; }
+    .mx-card .mx-head { padding:12px 14px; border-bottom:1px solid #edf2f7; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+    .mx-card .mx-head h5 { margin:0; color:#b71c1c; font-size:1rem; font-weight:800; }
+    .mx-card .mx-body { padding:12px 14px; }
+    .mx-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; }
+    .mx-field label { display:block; font-size:0.72rem; color:#607d8b; text-transform:uppercase; font-weight:800; margin-bottom:3px; }
+    .mx-field input, .mx-field select { width:100%; box-sizing:border-box; height:36px; border:1px solid #cfd8dc; border-radius:6px; padding:0 8px; background:#fff; font-size:0.88rem; }
+    .mx-pill { display:inline-block; border-radius:999px; padding:3px 8px; font-size:0.72rem; font-weight:800; }
+    .mx-pill.red { background:#ffebee; color:#b71c1c; }
+    .mx-pill.orange { background:#fff3e0; color:#ef6c00; }
+    .mx-pill.green { background:#e8f5e9; color:#1b5e20; }
+    .mx-discrepancy { border:1px solid #dbe4ee; border-radius:8px; padding:10px; margin-bottom:8px; background:#fff; }
+    .mx-discrepancy-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+    .mx-id { color:#0b5394; font-size:0.75rem; font-weight:800; }
+    .mx-desc { color:#263238; font-size:0.88rem; margin-bottom:6px; white-space:pre-wrap; }
+    .mx-meta { color:#607d8b; font-size:0.75rem; font-weight:700; margin-bottom:8px; }
+    .mx-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .mx-actions select { min-width:180px; height:32px; border:1px solid #cfd8dc; border-radius:6px; }
+    .mx-btn { height:32px; border:none; border-radius:6px; padding:0 10px; font-size:0.75rem; font-weight:800; cursor:pointer; }
+    .mx-btn.primary { background:#1565c0; color:#fff; }
+    .mx-btn.ghost { background:#eceff1; color:#455a64; }
+    .mx-empty { color:#90a4ae; font-size:0.86rem; padding:8px 0; }
+    .mx-stat { background:#f7fbff; border:1px solid #d0e3f7; border-radius:8px; padding:10px; }
+    .mx-stat-label { font-size:0.72rem; color:#607d8b; text-transform:uppercase; font-weight:800; margin-bottom:2px; }
+    .mx-stat-val { color:#0b5394; font-size:1.15rem; font-weight:800; }
+  </style>
+
+  <div class="mx-card" style="border-left:5px solid #d32f2f;">
+    <div class="mx-head" style="border-bottom:none;">
+      <h5>Maintenance Discrepancy Console</h5>
+      <div id="mx-actor" style="font-size:0.78rem;color:#546e7a;font-weight:700;">User: --</div>
+    </div>
+    <div class="mx-body" style="padding-top:0;">
+      <div style="font-size:0.82rem;color:#546e7a;">Source of truth: DB_Aircraft OPEN_SQUAWKS. Includes manual reports and debrief-ingested discrepancies.</div>
+    </div>
+  </div>
+
+  <div class="mx-card">
+    <div class="mx-body">
+      <div class="mx-grid" style="margin-bottom:10px;">
+        <div class="mx-stat"><div class="mx-stat-label">Aircraft With Open</div><div class="mx-stat-val" id="mx-stat-aircraft">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Open Items</div><div class="mx-stat-val" id="mx-stat-open">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Deferred Items</div><div class="mx-stat-val" id="mx-stat-deferred">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Closed/Canceled</div><div class="mx-stat-val" id="mx-stat-closed">0</div></div>
+      </div>
+      <div class="mx-grid">
+        <div class="mx-field">
+          <label for="mx-aircraft-filter">Aircraft</label>
+          <select id="mx-aircraft-filter" onchange="mxRenderDiscrepancies_()"></select>
+        </div>
+        <div class="mx-field">
+          <label for="mx-status-filter">Status</label>
+          <select id="mx-status-filter" onchange="mxRenderDiscrepancies_()">
+            <option value="ALL">All</option>
+            <option value="OPEN_ONLY">Open + Deferred</option>
+            <option value="OPEN">Open</option>
+            <option value="DEFERRED_50_HOUR">Deferred 50 Hour</option>
+            <option value="DEFERRED_100_HOUR">Deferred 100 Hour</option>
+            <option value="DEFERRED_TO_DATE">Deferred To Date</option>
+            <option value="CLOSED">Closed</option>
+            <option value="CANCELED">Canceled</option>
+          </select>
+        </div>
+        <div class="mx-field" style="align-self:end;">
+          <button class="mx-btn ghost" type="button" onclick="mxReload_()" style="width:100%;">REFRESH</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mx-card">
+    <div class="mx-head">
+      <h5 style="color:#0b5394;">Discrepancy Queue</h5>
+      <div id="mx-meta" style="font-size:0.76rem;color:#607d8b;font-weight:700;">Loading...</div>
+    </div>
+    <div class="mx-body">
+      <div id="mx-discrepancy-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function mxStatusLabel_(status){
+    var key=String(status||'').trim().toUpperCase();
+    if(key==='OPEN')return 'Open';
+    if(key==='DEFERRED_50_HOUR')return 'Deferred 50 Hour';
+    if(key==='DEFERRED_100_HOUR')return 'Deferred 100 Hour';
+    if(key==='DEFERRED_TO_DATE')return 'Deferred To Date';
+    if(key==='CLOSED')return 'Closed';
+    if(key==='CANCELED')return 'Canceled';
+    return key||'Open';
+  }
+
+  function mxIsOpenStatus_(status){
+    var s=String(status||'').trim().toUpperCase();
+    return s==='OPEN'||s==='DEFERRED_50_HOUR'||s==='DEFERRED_100_HOUR'||s==='DEFERRED_TO_DATE';
+  }
+
+  function mxIsDeferredStatus_(status){
+    var s=String(status||'').trim().toUpperCase();
+    return s==='DEFERRED_50_HOUR'||s==='DEFERRED_100_HOUR'||s==='DEFERRED_TO_DATE';
+  }
+
+  function mxParseOpenSquawks_(raw){
+    var text=String(raw==null?'':raw).trim();
+    if(!text)return[];
+    try{var parsed=JSON.parse(text);return Array.isArray(parsed)?parsed:[];}catch(e){return[];}
+  }
+
+  function mxReadData_(){
+    var live=(window.appData&&typeof window.appData==='object')?window.appData:{};
+    var list=Array.isArray(live.aircraft)?live.aircraft:[];
+    return list.map(function(a){
+      return {
+        reg:String(a.reg||'').trim().toUpperCase(),
+        techStatus:String(a.techStatus||'SERVICEABLE').trim().toUpperCase(),
+        openSquawks:mxParseOpenSquawks_(a.openSquawks)
+      };
+    }).filter(function(a){return !!a.reg;});
+  }
+
+  function mxRenderFilters_(fleet){
+    var sel=document.getElementById('mx-aircraft-filter');
+    if(!sel)return;
+    var current=String(sel.value||'').trim();
+    var options=(fleet||[]).map(function(a){return a.reg;}).sort();
+    sel.innerHTML='<option value="ALL">All Aircraft</option>'+options.map(function(reg){return '<option value="'+reg+'">'+reg+'</option>';}).join('');
+    if(current&&options.indexOf(current)>=0)sel.value=current; else sel.value='ALL';
+  }
+
+  function mxStatusPillClass_(status){
+    var s=String(status||'').trim().toUpperCase();
+    if(s==='OPEN')return 'red';
+    if(mxIsDeferredStatus_(s))return 'orange';
+    return 'green';
+  }
+
+  function mxAllDiscrepancies_(fleet){
+    var rows=[];
+    (fleet||[]).forEach(function(a){
+      (a.openSquawks||[]).forEach(function(item){
+        rows.push({
+          aircraftReg:a.reg,
+          techStatus:a.techStatus,
+          id:String((item&&item.id)||'').trim(),
+          description:String((item&&item.description)||'').trim(),
+          status:String((item&&item.status)||'OPEN').trim().toUpperCase(),
+          reportDate:String((item&&(item.reportDate||item.date))||'').trim(),
+          tachAtReport:(item&&item.tachAtReport!=null)?item.tachAtReport:'',
+          reportedBy:String((item&&item.reportedBy)||'').trim(),
+          deferredUntilTach:(item&&item.deferredUntilTach!=null)?item.deferredUntilTach:'',
+          deferredUntilDate:String((item&&item.deferredUntilDate)||'').trim(),
+          createdAt:String((item&&item.createdAt)||'').trim()
+        });
+      });
+    });
+    rows.sort(function(a,b){return String(b.createdAt||b.reportDate||'').localeCompare(String(a.createdAt||a.reportDate||''));});
+    return rows;
+  }
+
+  function mxRenderStats_(rows){
+    var aircraftOpen={};
+    var open=0,deferred=0,closed=0;
+    (rows||[]).forEach(function(r){
+      if(mxIsOpenStatus_(r.status)){open++;aircraftOpen[r.aircraftReg]=true;}
+      if(mxIsDeferredStatus_(r.status))deferred++;
+      if(r.status==='CLOSED'||r.status==='CANCELED')closed++;
+    });
+    var a=document.getElementById('mx-stat-aircraft');if(a)a.textContent=String(Object.keys(aircraftOpen).length);
+    var b=document.getElementById('mx-stat-open');if(b)b.textContent=String(open);
+    var c=document.getElementById('mx-stat-deferred');if(c)c.textContent=String(deferred);
+    var d=document.getElementById('mx-stat-closed');if(d)d.textContent=String(closed);
+  }
+
+  function mxRenderDiscrepancies_(){
+    var fleet=mxReadData_();
+    mxRenderFilters_(fleet);
+    var rows=mxAllDiscrepancies_(fleet);
+    mxRenderStats_(rows);
+
+    var aircraftFilter=String((document.getElementById('mx-aircraft-filter')||{}).value||'ALL').trim();
+    var statusFilter=String((document.getElementById('mx-status-filter')||{}).value||'ALL').trim().toUpperCase();
+    var filtered=rows.filter(function(r){
+      if(aircraftFilter!=='ALL'&&r.aircraftReg!==aircraftFilter)return false;
+      if(statusFilter==='ALL')return true;
+      if(statusFilter==='OPEN_ONLY')return mxIsOpenStatus_(r.status);
+      return r.status===statusFilter;
+    });
+
+    var meta=document.getElementById('mx-meta');
+    if(meta)meta.textContent='Showing '+filtered.length+' of '+rows.length+' discrepancies';
+
+    var container=document.getElementById('mx-discrepancy-list');
+    if(!container)return;
+    if(!filtered.length){container.innerHTML='<div class="mx-empty">No discrepancies match current filters.</div>';return;}
+
+    container.innerHTML=filtered.map(function(r,idx){
+      var defBits=[];
+      if(r.deferredUntilTach!==''&&r.deferredUntilTach!=null)defBits.push('Until Tach '+r.deferredUntilTach);
+      if(r.deferredUntilDate)defBits.push('Until '+r.deferredUntilDate);
+      var options=['OPEN','DEFERRED_50_HOUR','DEFERRED_100_HOUR','DEFERRED_TO_DATE','CLOSED','CANCELED']
+        .map(function(v){return '<option value="'+v+'"'+(v===r.status?' selected':'')+'>'+mxStatusLabel_(v)+'</option>';}).join('');
+      return '<div class="mx-discrepancy">'
+        + '<div class="mx-discrepancy-head"><span class="mx-id">'+(r.id||'NO-ID')+' • '+r.aircraftReg+'</span><span class="mx-pill '+mxStatusPillClass_(r.status)+'">'+mxStatusLabel_(r.status)+'</span></div>'
+        + '<div class="mx-desc">'+(r.description||'')+'</div>'
+        + '<div class="mx-meta">Date: '+(r.reportDate||'---')+' | Tach: '+(r.tachAtReport!==''?r.tachAtReport:'---')+' | Reporter: '+(r.reportedBy||'---')+(defBits.length?' | '+defBits.join(' | '):'')+'</div>'
+        + '<div class="mx-actions">'
+          + '<select id="mx-status-'+idx+'">'+options+'</select>'
+          + '<button class="mx-btn primary" type="button" onclick="mxApplyStatus_(\''+String(r.aircraftReg||'').replace(/'/g,"\\'")+'\',\''+String(r.id||'').replace(/'/g,"\\'")+'\','+idx+')">APPLY STATUS</button>'
+        + '</div>'
+      + '</div>';
+    }).join('');
+  }
+
+  function mxApplyStatus_(aircraftReg, discrepancyId, idx){
+    var sel=document.getElementById('mx-status-'+idx);
+    var status=String((sel&&sel.value)||'').trim().toUpperCase();
+    if(!status)return;
+    var rawUser=(document.getElementById('userDisplay')&&document.getElementById('userDisplay').innerText)?document.getElementById('userDisplay').innerText:'Maintenance';
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.success){
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Could not update discrepancy',classes:'red'});
+          return;
+        }
+        if(window.M&&M.toast)M.toast({html:'Updated '+discrepancyId+' to '+mxStatusLabel_(status),classes:'green'});
+        mxReload_();
+      })
+      .withFailureHandler(function(err){
+        if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});
+      })
+      .updateAircraftDiscrepancyStatus({aircraftReg:aircraftReg,discrepancyId:discrepancyId,status:status,updatedBy:String(rawUser||'').trim()||'Maintenance'});
+  }
+
+  function mxReload_(){
+    var actor=document.getElementById('mx-actor');
+    var rawUser=(document.getElementById('userDisplay')&&document.getElementById('userDisplay').innerText)?document.getElementById('userDisplay').innerText:'Unknown';
+    if(actor)actor.textContent='User: '+String(rawUser||'Unknown').trim();
+    google.script.run
+      .withSuccessHandler(function(dd){
+        if(dd&&!dd.error){window.appData=Object.assign(window.appData||{},dd);} 
+        mxRenderDiscrepancies_();
+      })
+      .withFailureHandler(function(){mxRenderDiscrepancies_();})
+      .getDropdownData();
+  }
+
+  (function(){ setTimeout(mxReload_, 200); })();
+</script>

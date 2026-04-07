@@ -1,0 +1,424 @@
+
+
+
+
+PROGRAMA DE TREINAMENTO OPERACIONAL
+(Página Intencionalmente Deixada em Branco)
+  Sumário Sumário 2 Seção 1 | Prefácio 6 1.1 Declaração de Conformidade e Comprometimento 6 1.2 Controle de Revisões 7 1.3 Lista de Páginas Efetivas 8 1.4 Sinopse de Modificações 10 1.5 Distribuição 10 1.6 Abreviaturas e Acrônimos 11 1.7 Definição de termos 12 Seção 2 | Generalidades 16 2.1 VOE 16 2.1.1 Visão Geral 16 2.1.2 Política 18 2.1.3 Tipo de Operação 18 2.1.4 Deveres e Responsabilidades 18 2.2 Registros 19 2.3 Exames 19 2.3.1 Exame de Competência (135.293) 20 2.3.2 Exame de Proficiência em voos IFR (135.297) 20 2.3.3 Exame em Rota (135.299) 21 2.3.4 Reprovação em Exames 21 2.4 Designação para Função 22 2.5 Validade dos Treinamentos 23 2.6 Infraestrutura 23 2.7 Contratação de Treinamentos 24 2.8 Qualificação de Instrutores 25 2.9 Qualificação de Examinador 26 Seção 3 | Tipos de Treinamentos 28 3.1 Aplicabilidade 28 3.2 Treinamento Inicial 28 3.3 Treinamento Periódico 29 3.4 Treinamento de Requalificação 29 3.5 Treinamento de Elevação de Nível 30 3.6 Treinamento de Instrutores 30 3.7 Treinamento de Examinadores 31 Seção 4 | Segmentos de Treinamento 34 4.1 Segmento de Doutrinamento Básico 34 4.2 Segmento de SGSO 35 4.3 Segmento de CRM 36 4.4 Segmento de AVSEC 37 4.5 Segmento de Conhecimentos Gerais de Aeronaves 38 4.6 Segmento de Operações Especiais 39 4.7 Segmento de Emergências Gerais 40 4.8 Segmento de Transporte de Artigos Perigosos 41 4.9 Segmento de Currículo Solo para Cessna 208B Grand Caravan 42 4.10 Segmento de Currículo Voo para Cessna 208B Grand Caravan 44 4.11 Segmento de Currículo Solo de Instrução para Cessna 208B Grand Caravan 46 4.12 Segmento de Currículo Voo de Instrução para Cessna 208B Grand Caravan 47 Seção 6 | Apêndices 49 Apêndice 1 - Lista de Presença 49 Apêndice 2 - Certificado de Conclusão de Treinamento 50 Apêndice 3 - Registro Individual de Tripulante 51 Apêndice 4 - FAP 02 - Licença de Piloto Comercial 52 Apêndice 5 - FAP 04 - Habilitação de Classe - MNTE 55 Apêndice 6 - FAP 06 - Habilitação de Voo por Instrumentos - Todas as Categorias 58 Apêndice 7 - FAP 14 - Exame em Rota para Operadores Certificados 61 Apêndice 8 - Categoria de funcionários 64 Apêndice 9 - Manobras 65 A9.1 Decolagem e subida 65 A9.2 Falha no motor imediatamente após a decolagem 66 A9.3 Pouso impedido 67 A9.4 Padrão de pouso 68 A9.5 Aproximação de Precisão por Instrumentos 69 A9.6 Aproximação de Não Precisão por Instrumentos 70 A9.7 Procedimentos para descida de emergência 71 A9.8 Aproximação de Estol - Configuração Limpa 72 A9.9 Aproximação de Estol - Configuração de Pouso 73 A9.10 Aproximação de Estol - Configuração de Decolagem 74 A9.11 Curvas Acentuadas 75
+(Página Intencionalmente Deixada em Branco)
+  Seção 1 | Prefácio 1.1 Declaração de Conformidade e Comprometimento
+Este Programa de Treinamento Operacional (PTO), em sua Revisão Original, está em conformidade com a legislação em vigor, a IS 135-003, revisão D, de 5 de junho de 2020. O PTO visa atender ao preconizado pelo RBAC 135, nas subpartes E, G, e H, além de cumprir com as condições do COA e da EO da VOE.
+--------------------------------------------------------------------------------
+XXXXX Diretor de Operações da VOE
+  1.2 Controle de Revisões
+Responsável
+nº Data Original 17/09/2021 XXXXX
+  1.3 Lista de Páginas Efetivas Seção 1 | Prefácio Seção Página Revisão Data Seção Página Revisão Data 1 6 Original 17/09/2021 1 11 Original 17/09/2021 1 7 Original 17/09/2021 1 12 Original 17/09/2021 1 8 Original 17/09/2021 1 13 Original 17/09/2021 1 9 Original 17/09/2021 1 14 Original 17/09/2021 1 10 Original 17/09/2021 1 15 Original 17/09/2021
+Seção 2 | Generalidades Seção Página Revisão Data Seção Página Revisão Data 2 16 Original 17/09/2021 2 23 Original 17/09/2021 2 17 Original 17/09/2021 2 24 Original 17/09/2021 2 18 Original 17/09/2021 2 25 Original 17/09/2021 2 19 Original 17/09/2021 2 26 Original 17/09/2021 2 20 Original 17/09/2021 2 27 Original 17/09/2021 2 21 Original 17/09/2021 2 22 Original 17/09/2021
+Seção 3 | Tipos de Treinamento Seção Página Revisão Data Seção Página Revisão Data 3 28 Original 17/09/2021 3 31 Original 17/09/2021 3 29 Original 17/09/2021 3 32 Original 17/09/2021 3 30 Original 17/09/2021 3 33 Original 17/09/2021
+Seção 4 | Segmentos de Treinamento Seção Página Revisão Data Seção Página Revisão Data 4 34 Original 17/09/2021 4 42 Original 17/09/2021 4 35 Original 17/09/2021 4 43 Original 17/09/2021 4 36 Original 17/09/2021 4 44 Original 17/09/2021 4 37 Original 17/09/2021 4 45 Original 17/09/2021 4 38 Original 17/09/2021 4 46 Original 17/09/2021 4 39 Original 17/09/2021 4 47 Original 17/09/2021 4 40 Original 17/09/2021 4 48 Original 17/09/2021 4 41 Original 17/09/2021
+Seção 6 | Apêndice Seção Página Revisão Data Seção Página Revisão Data 6 56 Original 17/09/2021 6 72 Original 17/09/2021 6 57 Original 17/09/2021 6 73 Original 17/09/2021 6 58 Original 17/09/2021 6 74 Original 17/09/2021 6 59 Original 17/09/2021 6 75 Original 17/09/2021 6 60 Original 17/09/2021 6 76 Original 17/09/2021 6 61 Original 17/09/2021 6 77 Original 17/09/2021 6 62 Original 17/09/2021 6 78 Original 17/09/2021 6 63 Original 17/09/2021 6 79 Original 17/09/2021 6 64 Original 17/09/2021 6 80 Original 17/09/2021 6 65 Original 17/09/2021 6 81 Original 17/09/2021 6 66 Original 17/09/2021 6 82 Original 17/09/2021 6 67 Original 17/09/2021 6 83 Original 17/09/2021 6 68 Original 17/09/2021 6 69 Original 17/09/2021 6 70 Original 17/09/2021 6 71 Original 17/09/2021
+  1.4 Sinopse de Modificações Revisão Data Modificação
+1.5 Distribuição O PTO é distribuído entre todos os colaboradores da VOE, no entanto, é responsabilidade de cada um utilizar a versão mais atualizada. Para isso, o Diretor de Operações notificará todos os colaboradores via e-mail assim que liberada a versão mais recente. Assim, têm posse deste:
+	1	ANAC;
+	2	
+	3	Gestora Responsável;
+	4	
+	5	Diretora de Segurança Operacional;
+	6	
+	7	Diretor de Operações;
+	8	
+	9	Diretor de Manutenção;
+	10	
+	11	Piloto Chefe;
+	12	
+	13	Sede Administrativa;
+	14	
+	15	Base Principal de Manutenção;
+	16	
+	17	Base Principal de Operações;
+	18	
+	19	Acervo Virtual da Biblioteca Técnica da VOE. 1.6 Abreviaturas e Acrônimos
+	20	
+AFM -Manual de Voo Aprovado (Aircraft Flight Manual) ANAC - Agência Nacional de Aviação Civil ARSO - Atividade de Risco à Segurança Operacional na Aviação Civil CANAC – Código ANAC CBA - Código Brasileiro de Aeronáutica COMAT - Material do Detentor de Certificado (Company Material) CRM - Gerenciamento de Recursos de Equipe (Corporate Resource Management) CST - Certificação Suplementar de Tipo CTAC - Centro de Treinamento de Aviação Civil EDTO - Extended Diversion Time Operations EO - Especificações Operativas ETOPS - Extended Operations FSTD - Simulador de Voo para Treinamento (Flight Simulator Training Devices) INVA - Instrutor de Voo IS - Instrução Suplementar MDA - Metilenodioxianfetamina MDMA - Metilenodioximetanfetamina MEC - Ministério da Educação MGO - Manual Geral de Operação MGSO - Manual de Gerenciamento da Segurança Operacional PCRM - Programa de Treinamento de Gerenciamento de Recursos de Equipes (Corporate Resource Management) PPSP - Programa de Prevenção ao uso de Substâncias Psicoativas PTO - Programa de Treinamento Operacional RAB - Registro Aeronáutico Brasileiro RBAC - Regulamentos Brasileiros de Aviação Civil RD - Representante Designada(o) SOP - Standard Operating Procedures THCA - delta-9-tetrahidrocanabinol-9-ácido carboxílico 1.7 Definição de termos Carga horária: tempo necessário para se ministrar um segmento de currículo ou módulo de treinamento. Uma hora de treinamento pode incluir intervalos de até 10 minutos, mas não incluem intervalos para refeições, por exemplo. (Fonte: IS 135-003D)
+Currículo: agenda completa específica para um determinado tipo de treinamento, tipo de aeronave e função de um tripulante. Cada currículo é composto por diversos segmentos de currículo. (Fonte: IS 135-003D)
+Elemento: um tópico do módulo de treinamento ou de verificação, vinculado a um assunto específico. (Fonte: IS 135-003D)
+Material didático: material instrutivo desenvolvido para cada tipo de currículo, compreendendo planos de aula, guias dos instrutores, manuais de treinamento, programas de computador (software), recursos audiovisuais, livros, apostilas e manuais das aeronaves. O material didático deve refletir, exatamente, o requerido nos currículos de treinamento e estar de acordo com os métodos de instrução adotados. (Fonte: IS 135-003D)
+Mês de referência:mês civil em que o tripulante deve completar um treinamento ou um exame. (Fonte: IS 135-003D)
+Métodos de instrução: metodologia de ensino empregada para transmitir informações aos tripulantes mediante aulas, conferências, demonstrações, apresentações multimídia e estudos dirigidos. Podem ser utilizados na instrução, entre outros equipamentos, computadores, dispositivos de treinamento, simuladores de voo e aeronaves. (Fonte: IS 135-003D)
+Missões de voo: detalhamento das manobras, procedimentos e respectivas cargas horárias de cada missão de treinamento de voo em aeronave. (Fonte: IS 135-003D)
+Módulo de treinamento: subparte de um segmento de currículo que contém elementos ou eventos relacionados diretamente com um assunto específico. Um módulo de treinamento inclui conteúdo programático, carga horária, material didático, método de instrução, instrutores e normalmente é ministrado numa simples sessão de treinamento. O conteúdo programático de um módulo deve conter somente a relação dos principais assuntos a serem tratados, não sendo aplicável um detalhamento maior, que deve constar nos manuais da empresa e planos de aula. Por exemplo: o segmento de currículo de solo de uma aeronave pode ser subdividido em módulos para cada sistema (hidráulico, pneumático e elétrico), entre outros; um segmento de currículo de voo pode ser separado em missões de voo, ou sessões de simulador, cada uma constituindo um módulo. (Fonte: IS 135-003D)
+Módulo de verificação: parte do treinamento composta pelos exames e verificações requeridos pelo regulamento. (Fonte: IS 135-003D)
+Relatório de avaliação operacional: relatório de avaliação de um tipo de aeronave que contém requisitos mínimos de treinamento para a aeronave e, se aplicável, relação com outros tipos de aeronave similares. (Fonte: IS 135-003D)
+Período de elegibilidade: de acordo com os parágrafos 135.301(a), 135.323(b), 135.337(g), 135.338(g), 135.339(b), 135.340(b) e 135.505(d) do RBAC nº 135, é o período composto por 3 meses (o mês anterior ao mês de referência, o próprio mês de referência e o mês posterior ao mês de referência) onde, caso o empregado complete o treinamento ou o exame neste período de elegibilidade, independentemente do mês, deverá ser considerado que o treinamento ou o exame foi completado no mês de referência. (Fonte: IS 135-003D)
+Segmento de currículo: maior subdivisão de um currículo. Contém assuntos e atividades relacionadas a um determinado treinamento. Segmentos de currículo podem ser avaliados e aprovados individualmente. Cada segmento de currículo compreende um ou mais módulos de treinamento. (Fonte: IS 135-003D)
+Sessões de simulador ou em dispositivos de treinamento: detalhamento das manobras, procedimentos e respectivas cargas horárias de cada sessão de treinamento em simulador de voo ou dispositivo de treinamento. (Fonte: IS 135-003D)
+Tipos de treinamento: classificação de treinamentos de acordo com o requisito regulamentar que atende. Cada tipo de treinamento é composto por diversos currículos. Exemplos de tipos de treinamento: inicial, transição, elevação de nível, periódico e requalificação conforme disposto na seção 135.321 do RBAC nº 135. (Fonte: IS 135-003D)
+Treinamento modular: metodologia utilizada na elaboração do PTO, na qual subdivisões lógicas são desenvolvidas, elaboradas, revisadas e aprovadas como se fossem unidades individuais, de forma que segmentos de currículos e módulos de treinamentos possam ser utilizados em vários currículos, facilitando a elaboração e as revisões do programa de treinamento. (Fonte: IS 135-003D.)
+(Página Intencionalmente Deixada em Branco)
+  Seção 2 | Generalidades 2.1 VOE 2.1.1 Visão Geral A VOE é uma empresa de táxi aéreo fundada em 2021, cujo principal objetivo é integrar o povo brasileiro. Sediada na cidade de XXXXX (XX), a VOE se encontra em uma localização estratégica pela proximidade com os principais centros econômicos do País e pela facilidade de manutenção, sendo também um elo entre o interior paulista e a região metropolitana.
+Razão Social VOE Táxi Aéreo Ltda. CNPJ 00.000.000/0000-00 Base Principal de Manutenção Base Principal de Operações Aeroporto Estadual de XXXXXX- XXXXXX, XX XXXXX, CEP: 00000-000 Sede Administrativa XXXXXXX, XX XXXXX, CEP: 00000-000
+A Missão: ● Oferecer Táxi Aéreo excelente, seguro, acessível, eficiente e autossustentável.
+Os Valores: ● Excelência, segurança e eficiência; ● Transparência; ● Compromisso com o Cliente; e ● Responsabilidade Social.
+A Visão:
+● Ser referência nacional em táxi aéreo, de atuação consolidada e competitiva, através de um ambiente colaborativo que propicie o crescimento e influencie positivamente a economia da nação.
+A empresa atualmente trabalha com o transporte de passageiros por demanda, com tendência de expandir sua área de atuação para o transporte de passageiros e de cargas via operação regular.
+A VOE dispõe de uma aeronave Cessna 208B Grand Caravan como equipamento principal de suas operações. Além disso, conta com um quadro de funcionários enxuto, mas altamente qualificado para atender o mercado de táxi aéreo.
+2.1.2 Política A VOE compreende que os treinamentos são de suma importância para o seu funcionamento, para a satisfação tanto de seus colaboradores quanto de seus clientes e para a segurança do setor aeronáutico. O treinamento tem como objetivo nivelar os colaboradores ao padrão de excelência da empresa e sobretudo aos padrões exigidos pela ANAC. A VOE veda a simulação de procedimentos anormais ou de emergência em uma operação transportando passageiros, em conformidade com o parágrafo 91.102(f) do RBAC 91.
+2.1.3 Tipo de Operação A VOE opera estritamente conforme suas Especificações Operativas, que compreende o transporte de passageiros e cargas por demanda, além de operações IFR. A VOE, sob hipótese nenhuma, opera fora do que está previsto na EO.
+2.1.4 Deveres e Responsabilidades É de responsabilidade dos tripulantes o estudo e a dedicação para melhor aproveitarem todo o Programa de Treinamento, com o intuito de atingir o nível de proficiência para a função a qual foi designado e se adequar aos padrões de excelência da VOE. Para tanto, a VOE se compromete a oferecer o que há de melhor em infraestrutura, material didático e instrução aos participantes do Programa de Treino Operacional. 2.2 Registros Todos os registros referentes à execução, desempenho e conclusão do treinamento oferecido pela VOE são gerenciados pelo Diretor de Operações. Os documentos ficam arquivados na Base Principal de Operações com cópia na Sede Administrativa. São considerados registros: ● Lista de Presença (Apêndice 1); ● Para cada segmento de currículo, forma a ser utilizada por cada instrutor responsável por um particular assunto de treinamento de solo, segmento de treinamento em voo ou curso de treinamento para certificar a proficiência e o conhecimento de cada tripulante ao término do treinamento; ● Provas escritas, quando aplicável, corrigidas; ● Fichas de Instrução de Voo; ● Ficha de Instrução em Simulador; ● Record of Training; ● Certificado de Conclusão (Apêndice 3); e ● FAP, conforme a IS 00-002. 2.3 Exames A condução dos exames e treinamentos corretivos serão feitas com base no manual da aeronave e na IS 00-002. Para a realidade do PTO da VOE - dos participantes dos treinamentos de Comandante e de Copiloto - são considerados os critérios das seguintes fichas: ● FAP 02 - Licença Piloto Comercial (Apêndice 4); ● FAP 04 - Habilitação de Classe MNTE (Apêndice 5); ● FAP 06 - Habilitação de Voo por Instrumentos (Apêndice 6); ● FAP 14 - Exame em Rota de Operadores Certificados (Apêndice 7). A VOE manterá arquivada a FAP Original e emitirá uma via para o candidato. O RBAC 135, define três tipos de exames por meios das seções 135.293, 135.297 e 135.299: Exame de Competência, Exame de Proficiência em voos IFR e Exame em Rota. Os exames são realizados por servidor designado pela ANAC. Somente será permitido operar uma aeronave da VOE em voo por instrumentos simulado se ● o piloto de segurança tiver adequada visibilidade para a frente e para cada lado da aeronave ou ● se um observador competente, dentro da aeronave e com comunicação com o piloto de segurança, suplementar a visibilidade do piloto de segurança. A VOE possui apenas uma aeronave, um Cessna 208B, que possui duplos controles em total funcionamento.
+2.3.1 Exame de Competência (135.293) O exame de competência é requerido para todos os pilotos, sejam pilotos em comando ou segundos em comando. O exame é composto por duas partes: teste oral ou escrito (cf. 135.293(a)) e o exame de competência em voo (cf. 135.293(b)). Conforme preconiza a IS 135-003, no subtópico 5.2.6.2.2, em razão das características técnicas da aeronave operada pela VOE (monomotora com motor turboélice), o exame de competência será substituído por um exame na classe da aeronave.
+2.3.2 Exame de Proficiência em voos IFR (135.297) Por estar autorizada a operar IFR, todos os pilotos da VOE precisam realizar um exame de proficiência em voo por instrumentos nos 6 meses calendários precedentes à operação, conforme o item 135.297(a) do RBAC 135. O exame de proficiência consiste em um exame oral ou escrito sobre o equipamento em uso e um exame em voo em condições IFR reais ou simuladas. Assim, no exame de proficiência em voo por instrumentos, devem ser realizados todos os procedimentos que o tripulante é autorizado a utilizar em operações pela VOE. Caso algum procedimento não seja realizado no exame de proficiência em voo por instrumentos, o tripulante fica impedido de realizá-lo nas operações da VOE. Os procedimentos ou manobras devem ser executados pela pessoa a ser utilizada como piloto de forma a demonstrar que a pessoa obviamente domine a aeronave, sem restar dúvidas quanto à execução bem sucedida de qualquer fase do voo. Como na VOE os pilotos são designados para voar em apenas um tipo de aeronave, o exame de proficiência deve ser conduzido nesse tipo de aeronave.
+2.3.3 Exame em Rota (135.299) O exame em rota é requerido de todos os tripulantes que pretendem atuar/atuam como piloto em comando. É requerido, em um treinamento inicial ou de transição, ao final do período de aquisição de experiência operacional, como verificação final antes da designação do tripulante como piloto em comando da aeronave pela VOE. Após o tripulante estar qualificado, o exame em rota deve ser repetido a cada 12 meses. O exame em rota é realizado no mesmo tipo de aeronave em que os tripulantes são designados a voar.
+2.3.4 Reprovação em Exames Com base no Art. 163 da Lei nº 7.565 (Código Brasileiro de Aeronáutica – CBA) e no RBAC 61, todas as habilitações relativas ao exame que levou à reprovação serão automaticamente suspensas e, enquanto perdurarem as suspensões, o piloto não poderá exercer as prerrogativas correspondentes àquelas habilitações. As suspensões somente serão revogadas após o candidato ser aprovado em novo exame. Salvo informação adicional, não há impedimentos para o exercício das prerrogativas das demais habilitações que permanecerem válidas. O candidato reprovado deve, antes de se submeter a novo exame, realizar treinamento corretivo relativo às deficiências que provocaram a sua reprovação. Este treinamento poderá consistir em estudo teórico, treinamento prático, ou ambos, conforme aplicável à falha que motivou sua reprovação. O candidato será considerado Reprovado quando: ● não atingir o mínimo de 80% de acertos nas questões do exame oral ou não souber responder corretamente a qualquer questão cujo desconhecimento, a critério do examinador, comprometa diretamente a segurança operacional; ● falhar em identificar se o voo pode ou não ser realizado de acordo com os regulamentos vigentes, considerando a meteorologia presente, as condições da aeronave, da pista, dos pilotos a bordo, etc.; ● falhar em demonstrar competência em qualquer dos itens da FAP aplicável; ● realizar qualquer manobra extrapolando a tolerância máxima prevista no Apêndice C da IS 00-02; ● expuser a aeronave a uma condição de risco que requeira intervenção do examinador ou outro tripulante para evitar um desfecho negativo; ou ● comportar-se de maneira inadequada ou desrespeitosa durante o exame.
+Um piloto reprovado em exame deve notificar a VOE sobre seu desempenho insatisfatório e deixar imediatamente de compor tripulação.
+2.4 Designação para Função Uma vez que o tripulante tenha proficiência para atuar em uma determinada função, o Diretor de Operações fará a atualização do Registro Individual de Tripulante (Apêndice 2). Imediatamente após a atualização do Registro, o tripulante já será automaticamente designado para a função a qual foi treinado. 2.5 Validade dos Treinamentos A VOE estabelece nesta subseção o método de controle da validade dos treinamentos realizados pelos tripulantes. O controle garante que nenhuma pessoa trabalhe como tripulante sem ter completado as apropriadas fases deste Programa de Treinamento, estabelecido para a aeronave e para a função que a pessoa exercerá a bordo, conforme a seção 135.343 do RBAC 135. A validade dos treinamentos é definida na Seção 4 deste Programa. Destaca-se ainda os treinamentos cuja validade e/ou periodicidade é estabelecido em regulamento específico. A validade dos treinamentos de transporte aéreo de artigos perigosos segue o definido na IS 175-007, não se aplicando o período de elegibilidade. 2.6 Infraestrutura A VOE provê instalações adequadas que propiciem ambiente favorável à instrução e à aprendizagem, independentemente se próprias ou de terceiros, considerando o tipo de treinamento a ser ministrado. Deve ser disponibilizado: salas de aulas devidamente climatizadas, isoladas de sons altos, iluminadas e limpas, adequadas ao número de alunos, mesas, cadeiras, quadro, computador, projetor, equipamentos de áudio, materiais de estudo e qualquer outro equipamento/instalação que corrobore positivamente à instrução. O local de realização da instrução deve ser apresentado no momento da notificação de realização de treinamento. Em caso de contratação de CTAC, deve-se verificar a homologação conforme RBAC 142 e o cumprimento aos requisitos da seção 135.335 do RBAC 135, acerca da disponibilização de FSTD e outros dispositivos de treinamento. 2.7 Contratação de Treinamentos Quando houver necessidade, a VOE deve contratar mediante contrato ou acordo de prestação de serviço, outros detentores de certificado que operem sob o RBAC 135 ou um CTAC homologado segundo o RBAC 142. O CTAC contratado deve prover treinamento e exames requeridos pelo RBAC 135 se: ● possuir especificações de treinamento aplicáveis emitidas segundo o RBAC 142; ● tiver instalações, equipamento de treinamento e material didático para o curso atendendo aos requisitos aplicáveis do RBAC 142; ● obter aprovação de FSTD e outros dispositivos de treinamento nos moldes da seção 135.335 do RBAC 135; ● tiver currículos, segmentos de currículo e porções de segmentos de currículo aprovados e aplicáveis ao uso em cursos de treinamento requeridos pela Subparte H do RBAC 135; e ● tiver instrutores suficientes e examinadores qualificados segundo os requisitos aplicáveis das seções 135.337 a 135.340 do RBAC 135 para prover treinamento e exames para as pessoas sujeitas aos requisitos da Subparte H do referido RBAC. Da mesma forma, admitem-se outros casos em que as entidades sejam expressamente autorizadas pela ANAC para ministrar determinada instrução, como ocorre com os facilitadores de CRM e com os cursos de AVSEC. A utilização de examinadores credenciados de outros detentores de certificados que operem sob o RBAC 135 é sujeita à aprovação prévia da ANAC, devendo ser comunicada e formalizada entre as partes mediante contrato de prestação de serviços de instrução e exame. Em caso de contratação de organização externa à empresa, a VOE deve garantir que o treinamento executado seja aquele constante em seu PTO aprovado pela ANAC. 2.8 Qualificação de Instrutores Os instrutores de solo devem ser adequadamente qualificados para os treinamentos que serão ministrados. Os instrutores de voo devem atender aos requisitos das seções 135.338 e 135.340 do RBAC 135, que incluem a realização de treinamentos e exames específicos para o exercício dessa função numa determinada aeronave. De forma geral, não há requisitos equivalentes para instrutores teóricos – com exceção, por exemplo, aos treinamentos de artigos perigosos regidos pelo RBAC 175, aos treinamentos em CRM, regidos pela IS 00-010 e AVSEC conforme disposto no RBAC 110 e IS 110-001. Para o treinamento de doutrinamento básico de solo, não há exigência de o instrutor ser um tripulante, podendo ser outro funcionário da VOE. Já para o treinamento de assuntos específicos da aeronave (ground school), é necessário que o instrutor detenha, reconhecidamente, conhecimento acerca do conteúdo que ministrará a instrução. Um mecânico de manutenção, pode ministrar instrução sobre sistemas das aeronaves em que possui curso. O CTAC contratado pela VOE utilizará uma pessoa como instrutor de voo em aeronave, segundo a Subparte H do RBAC 135, se essa pessoa: ● possuir a licença e as habilitações, requeridos para atuar como piloto em comando sob o RBAC 135; ● tiver completado satisfatoriamente as fases de treinamento para a aeronave que são requeridas para atuar como piloto em comando em operações segundo o RBAC 135; ● tiver completado satisfatoriamente os exames de proficiência que são requeridos para atuar como piloto em comando em operações segundo o RBAC 135; ● tiver completado satisfatoriamente os requisitos de treinamento aplicáveis da seção 135.340 do RBAC 135; e ● possuir um CMA válido e adequado para trabalhar como piloto em comando em operações segundo este Regulamento. 2.9 Qualificação de Examinador O CTAC contratado pela VOE utilizará uma pessoa como examinador de voo em aeronave, segundo a Subparte H do RBAC 135, se essa pessoa: ● possuir uma licença de piloto e as habilitações requeridas para um piloto em comando em operações segundo o RBAC 135; ● tiver completado satisfatoriamente as fases do treinamento para a aeronave que são requeridas para atuar como piloto em comando em operações segundo o RBAC 135; ● tiver completado satisfatoriamente os adequados exames de proficiência requeridos para trabalhar como piloto em comando em operações segundo o RBAC 135; ● tiver completado satisfatoriamente os aplicáveis requisitos de treinamento requeridos pela seção 135.339 do RBAC 135; ● possuir um CMA válido e adequado para trabalhar como piloto em comando em operações segundo o RBAC 135; ● tiver atendido aos requisitos de experiência recente da seção 135.247 deste Regulamento; e ● tiver sido aprovado pela ANAC como examinador em aeronave.
+(Página Intencionalmente Deixada em Branco)
+  Seção 3 | Tipos de Treinamentos 3.1 Aplicabilidade Cada Segmento do Programa de Treinamento Operacional da VOE possui uma seção dedicada, em que é detalhado o tipo de treinamento, a aplicabilidade, o público alvo, a carga horária e outros aspectos técnicos pertinentes. Basicamente, os treinamentos operacionais oferecidos pela VOE são aplicáveis a comandantes e a copilotos. 3.2 Treinamento Inicial O Treinamento Inicial deve ser aplicado para a função de Comandante ou Segundo Piloto em Comando, para o tripulante de voo recém-contratado que não apresenta qualificação na função, equipamento ou que este seja o primeiro contato com uma empresa aérea. Portanto, o conteúdo deve ser o mais abrangente e completo para que o tripulante se familiarize com os procedimentos de funcionamento da Empresa. TREINAMENTO INICIAL Currículos Carga Horária Doutrinamento Básico de Solo 12h Segmento de SGSO 2h Segmento de CRM* 24h para pilotos, 21h para não pilotos Segmento de AVSEC** 8h Segmento de Conhecimentos Gerais de Aeronaves 4h Segmento de Operações Especiais 4h Segmento de Emergências Gerais 4h Segmento de Transporte de Artigos Perigosos*** 8h Segmento de Currículo Solo para Cessna 208B Grand Caravan 8h Segmento de Currículo Voo para Cessna 208B Grand Caravan 4h *OBS 1.: Treinamento feito com base no PCRM da VOE. **OBS 2.: O treinamento em AVSEC deve ser realizado conforme estabelecido no RBAC 135 e na IS 110-001, sua periodicidade é a cada 24 meses.
+3.3 Treinamento Periódico O Treinamento Periódico é destinado a todos os tripulantes da VOE, com o intuito de manter a qualificação técnica do tripulante no equipamento e função a bordo, sendo realizado com intervalo específico de cada currículo. O treinamento inclui uma avaliação oral ou escrita para determinar o conhecimento do tripulante sobre a aeronave e sobre a função a bordo desenvolvida; e as instruções necessárias sobre os assuntos requeridos para o treinamento inicial de solo, explicitados nos segmentos de treinamento. TREINAMENTO PERIÓDICO Currículos Carga Horária Segmento de SGSO 2h Segmento de CRM* 8h/ano Segmento de AVSEC** 4h Segmento de Conhecimentos Gerais de Aeronaves 4h Segmento de Operações Especiais 2h Segmento de Emergências Gerais 4h Segmento de Transporte de Artigos Perigosos*** 4h Segmento de Currículo Solo para Cessna 208B Grand Caravan 4h Segmento de Currículo Voo para Cessna 208B Grand Caravan 3h *OBS.: Treinamento feito com base no PCRM da VOE. **OBS 2.: O treinamento em AVSEC deve ser realizado conforme estabelecido no RBAC 135 e na IS 110-001, sua periodicidade é a cada 24 meses.
+3.4 Treinamento de Requalificação Este treinamento é requisitado a todos tripulantes previamente treinados e qualificados como comandantes e copilotos a bordo de uma aeronave, mas que tenham perdido a qualificação por não terem cumprido quaisquer dos requisitos estabelecidos pelo RBAC 135, como os exames citados na seção anterior. Este treinamento também é solicitado aos participantes que não atingiram desempenho satisfatório nos exames. Em caso de perda da qualificação, qualquer tripulante deverá realizar o treinamento inicial completo. 3.5 Treinamento de Elevação de Nível É o treinamento requerido para um tripulante que foi qualificado e trabalhou como Piloto Segundo em Comando em uma determinada aeronave, antes de começar a trabalhar como Piloto em Comando na mesma aeronave. Consiste dos seguintes currículos: TREINAMENTO DE ELEVAÇÃO DE NÍVEL Currículos Carga Horária Segmento de SGSO 2h Segmento de CRM 4h Segmento de AVSEC 8h Segmento de Conhecimentos Gerais de Aeronaves 4h Segmento de Operações Especiais 2h Segmento de Emergências Gerais 4h Segmento de Transporte de Artigos Perigosos 8h Segmento de Currículo Solo para Cessna 208B Grand Caravan 4h Segmento de Currículo Voo para Cessna 208B Grand Caravan 4h 3.6 Treinamento de Instrutores Treinamento destinado a pilotos qualificados que desejam ter a atribuição de instrutor de voo. Este treinamento é dividido em inicial e periódico, sendo específico para cada aeronave. TREINAMENTO INICIAL PARA INSTRUTOR DE VOO Currículos Carga Horária Instrutor de Voo - Solo 2h para INVA Instrutor de Voo - Solo 8h para quem não tem INVA Instrutor de Voo - Voo 3 voos de 1 hora cada sendo: 1 hora de SOP normal; 1 hora de SOP anormal/emergência; e 1 hora atuando na função.
+TREINAMENTO DE TRANSIÇÃO PARA INSTRUTOR DE VOO Currículos Carga Horária Instrutor de Voo - Solo 2h Instrutor de Voo - Voo 3 voos de 1 hora cada sendo: 1 hora de SOP normal; 1 hora de SOP anormal/emergência; e 1 hora atuando na função.
+Após a realização satisfatória do treinamento para instrutor e do exame de observação por servidor designado da ANAC, a designação do instrutor é completada pela VOE. Uma vez que tenha se certificado de que o instrutor cumpre os requisitos, conforme parágrafo anterior, o Diretor de Operações da VOE atualizará o Registro Individual do Tripulante (Apêndice 3) com a data de sua designação para a função de instrutor em determinado equipamento e o designará para a função treinada. As prerrogativas do tripulante como instrutor de voo apenas são válidas enquanto o tripulante atender aos requisitos estabelecidos para a função, ainda que o treinamento e o exame para a função de instrutor de voo estejam válidos. Caso, por exemplo, o tripulante deixe de realizar um treinamento ou exame periódico para piloto em comando no período de elegibilidade ou deixe de cumprir com os requisitos de experiência recente, o tripulante não poderá mais ser utilizado como instrutor, até que volte a atender aos requisitos. 3.7 Treinamento de Examinadores TREINAMENTO PARA EXAMINADOR CREDENCIADO Currículos Carga Horária Examinador Credenciado - Solo 8h Examinador Credenciado - Voo 4 voos de 1 hora cada sendo: 1 hora de SOP normal; 2 horas de SOP anormal/emergência; e 1 hora atuando na função
+TREINAMENTO DE TRANSIÇÃO PARA EXAMINADOR CREDENCIADO Currículos Carga Horária Transição - Solo 2h Transição - Voo 3 voos de 1 hora cada sendo: 1 hora de SOP normal; 1 hora de SOP anormal/emergência; e 1 hora atuando na função.
+ 
+(Página Intencionalmente Deixada em Branco)
+  Seção 4 | Segmentos de Treinamento 4.1 Segmento de Doutrinamento Básico O segmento de Doutrinamento Básico engloba a seção 135.329(a)(1), do RBAC 135. Doutrinamento Básico Descrição: O Doutrinamento Básico é o primeiro Segmento de Currículo do Treinamento Inicial a ser aplicado ao tripulante de voo recém-contratado, representando a sua primeira exposição aos requisitos operacionais que regulam o transporte aéreo comercial. Objetivo: ● Garantir que o tripulante possua os conhecimentos básicos da empresa, do regulamento que a rege, além de outras informações pertinentes ao setor aeronáutico. Metodologia: ● Aulas presenciais, apresentações multimídia e estudos dirigidos. ● Computadores, sala de aula equipada com sistema de multimídia, quadro branco, internet, manuais de voo, de operações e a biblioteca técnica com os manuais requeridos a empresas certificadas pelo RBAC 119 e 135. Avaliação: ● Prova Escrita ● Prova de múltipla escolha composta de 20 (vinte) questões Requisito Ementa Carga Horária Seção 135.329(a) (1), RBAC 135 - Atribuições e responsabilidades do tripulante de Voo;
+	•	Apropriadas provisões da legislação: Lei nº 13475, que regula a profissão do aeronauta, Lei nº 7565, de 19/12/86, que dispõe sobre o Código Brasileiro de Aeronáutica, e RBAC 135;
+	•	
+	•	Conteúdo do Certificado de Operador Aéreo (COA) e Especificações Operativas (EO);
+	•	
+	•	MGO da Empresa;
+	•	
+	•	Segurança do transporte de artigos perigosos por via aérea;
+	•	
+	•	Sistema de gerenciamento de segurança operacional (SGSO);
+	•	
+	•	Segurança da aviação civil (AVSEC); e
+	•	
+	•	Fatores humanos e CRM. Conforme seção 3 deste Programa
+	•	
+  4.2 Segmento de SGSO Segmento de SGSO Descrição: O treinamento do sistema de gerenciamento de segurança operacional introduz os conceitos básicos de segurança operacional aos tripulantes da empresa. Objetivo: ● Capacitar o tripulante no que diz respeito à Segurança Operacional como todo e ao Sistema de Gerenciamento da Segurança Operacional no contexto da VOE. Metodologia: ● Aulas presenciais, apresentações multimídia e estudos dirigidos; e ● Computadores, sala de aula equipada com sistema de multimídia, quadro branco, internet, manuais de voo, de operações e a biblioteca técnica. Avaliação: ● Prova Escrita ● Prova de múltipla escolha composta de 20 (vinte) questões Requisito Ementa Carga Horária Frequência RBAC 135, Subparte M
+IS 119-002 - Princípios básicos de gerenciamento da segurança operacional;
+	•	Filosofia, políticas e normas de segurança operacional;
+	•	
+	•	Observação da política de segurança operacional e procedimentos que compõem SGSO;
+	•	
+	•	Funções e responsabilidades do pessoal em relação à segurança operacional;
+	•	
+	•	Antecedentes da segurança operacional, incluindo as debilidades sistemáticas;
+	•	
+	•	Metas e objetivos de segurança operacional;
+	•	
+	•	Processos de identificação de perigos;
+	•	
+	•	Processos de avaliação e mitigação de riscos;
+	•	
+	•	Monitoramento e medição do desempenho de segurança operacional;
+	•	
+	•	Gerenciamento da mudança;
+	•	
+	•	Melhoria contínua do gerenciamento da segurança operacional;
+	•	
+	•	Programas de gerenciamento da segurança operacional;
+	•	
+	•	Requisito de avaliação interna contínua do desempenho da segurança operacional;
+	•	
+	•	Notificação de acidentes, incidentes e perigos;
+	•	
+	•	Retorno da informação e métodos de comunicação para a difusão da informação de segurança operacional;
+	•	
+	•	Auditorias de segurança operacional;
+	•	
+	•	Plano de resposta a emergências; e
+	•	
+	•	Análise de perigo para a segurança operacional dadas as estações e procedimentos operacionais (operações de inverno, etc.). Conforme seção 3 deste Programa 24 meses 4.3 Segmento de CRM Segmento de CRM Descrição: Neste treinamento, os conceitos de CRM são desenvolvidos, definidos e relacionados à segurança da atividade aérea. Objetivo: ● Capacitar os tripulantes sobre os conceitos e práticas de CRM, com base no PCRM da VOE. Metodologia: ● Aulas presenciais, apresentações multimídia e estudos dirigidos; ● Computadores, sala de aula equipada com sistema de multimídia, quadro branco, internet, manuais de voo, de operações e a biblioteca técnica; e ● PCRM da VOE. Avaliação: ● Conforme IAC 060-1002 item 9.2.16 não haverá avaliação formal. Requisito Ementa Carga Horária/Frequência Seção 135.329(a) (1)(ix) do RBAC 135, IS 00-010 - Processo de comunicação e tomada de decisão;
+	•	
+	•	Briefings;
+	•	
+	•	Questionamento/ assertividade;
+	•	
+	•	Uso da crítica/ debriefings;
+	•	
+	•	Resolução de conflito;
+	•	
+	•	Busca de informação e tomada de decisão;
+	•	
+	•	Formação e manutenção da equipe;
+	•	
+	•	Liderança, cooperação e comprometimento com a tarefa;
+	•	
+	•	Relacionamento interpessoal e clima do grupo;
+	•	
+	•	Gerenciamento da carga de trabalho e consciência situacional ;
+	•	
+	•	Fatores individuais, estresse e seus efeitos no desempenho;
+	•	
+	•	Automação;
+	•	
+	•	Conceito do erro;
+	•	
+	•	Proficiência técnica;
+	•	
+	•	Estudo de acidentes/incidentes (relatórios, filmes etc.). 8 horas-aula ao ano (Periódico)
+	•	
+  4.4 Segmento de AVSEC Segmento de AVSEC Descrição: Treinamento para tripulantes técnicos para identificar, tratar e utilizar medidas de segurança e verificações nas aeronaves contra atos ilícitos. Objetivo: ● Capacitar os tripulantes sobre a segurança na aviação civil. Metodologia: ● Aulas presenciais, apresentações multimídia e estudos dirigidos. ● Computadores, sala de aula equipada com sistema de multimídia, quadro branco, internet, manuais de voo, de operações e a biblioteca técnica. Avaliação: ● Prova Escrita ● Prova de múltipla escolha composta de 20 (vinte) questões Requisito Ementa Carga Horária Frequência Seção 135.329(a) (1)(viii) do RBAC 135, Resolução 361/15, RBAC 110 - Introdução à Segurança da Aviação Civil contra atos de interferência ilícita;
+	•	Segurança da Cabine de Comando;
+	•	
+	•	Ameaça de bomba, e reconhecimento de armas químicas e armas biológicas;
+	•	
+	•	Medidas de segurança de aeronaves em solo;
+	•	
+	•	Verificação de aeronaves;
+	•	
+	•	Passageiros Indisciplinados em Voo;
+	•	
+	•	Comunicação, coordenação e resposta a atos ilícitos; Conforme seção 3 deste Programa 24 meses
+	•	
+  4.5 Segmento de Conhecimentos Gerais de Aeronaves Segmento de Conhecimentos Gerais de Aeronaves Descrição: Este treinamento deverá ser aplicado a todos os tripulantes da VOE para que seja mantido um elevado nível de conhecimentos gerais de aeronave, elevando o grau de segurança. Objetivo: ● Capacitar os tripulantes com conhecimentos gerais de Aeronaves. Metodologia: ● Aula expositiva com auxílio de projetor, material didático em mídia e demais auxílios. Avaliação: ● Prova objetiva de múltipla escolha com 20 questões. Requisito Ementa Carga Horária Frequência Seção 135.345(a), (b)(6) a (b)(9) do RBAC 135. - Liberação e localização de Voos;
+	•	Princípios e métodos para determinar peso e balanceamento e limitações de pista para decolagem e pouso;
+	•	
+	•	Conhecimentos de meteorologia de modo a assegurar conhecimento prático dos fenômenos atmosféricos, incluindo princípios de sistemas frontais, gelo, nevoeiro, trovoadas, tesouras de vento e, se apropriado, meteorologia de grande altitude;
+	•	
+	•	Sistemas de controle de tráfego aéreo, procedimentos e fraseologia;
+	•	
+	•	Navegação e uso de facilidades de auxílio à navegação, incluindo procedimentos de aproximação por instrumentos;
+	•	
+	•	Procedimentos de comunicações normais e de emergência;
+	•	
+	•	Familiarização com referências visuais antes e durante a descida abaixo da altitude de decisão ou da altitude mínima de descida em aproximação por instrumento;
+	•	
+	•	Outras informações necessárias para garantir a segurança operacional; e outras instruções necessárias para assegurar a competência do piloto;
+	•	
+	•	Reconhecer e evitar condições atmosféricas severas;
+	•	
+	•	Livrar-se de condições atmosféricas severas, no caso das mesmas serem encontradas inadvertidamente, incluindo tesouras de vento em baixa altitude;
+	•	
+	•	Operar dentro ou perto de tempestades (incluindo melhor altitude de penetração), ar turbulento (inclusive turbulência de céu claro), gelo, granizo e outras condições meteorológicas;
+	•	
+	•	Limitações operacionais;
+	•	
+	•	Controle de cruzeiro e de consumo de combustível; e
+	•	
+	•	Planejamento de Voo;
+	•	
+	•	SOP da VOE Conforme seção 3 deste Programa 12 meses 4.6 Segmento de Operações Especiais Segmento de Operações Especiais Descrição: Os treinamentos de operações especiais são os treinamentos requeridos para um tripulante qualificar-se para realizar determinados tipos de operações as quais a empresa está autorizada por meio de suas especificações operativas. Objetivo: ● Capacitar os tripulantes a respeito das operações especiais previstas nas Especificações Operativas da VOE. Metodologia: ● Aula expositiva com auxílio de projetor, material didático em mídia e demais auxílios. Avaliação: ● Prova objetiva de múltipla escolha com 20 questões. Requisito Ementa Carga Horária Frequência Seção 135.329(e) do RBAC 135. - Treinamento de Eletronic Flight Bag (EFB); Conforme seção 3 deste Programa 12 meses   4.7 Segmento de Emergências Gerais O segmento de Emergências Gerais engloba a seção 135.331, do RBAC 135. Emergências Gerais Descrição: Treinamento de emergências para aeronave Cessna C208B Grand Caravan, operando segundo EO da VOE. Objetivo: ● Por em prática os procedimentos operacionais de emergência previstos nos manuais da VOE e no manual de voo do Cessna C208B Grand Caravan. Pré-requisitos: ● Licença mínima de Piloto Comercial; e ● Aprovação no Segmento de Doutrinamento Básico. Metodologia: ● Aula Expositiva; e ● Aula Prática. Avaliação: ● Prova Escrita ● Desempenho da tripulação nas seguintes demonstrações: ○ pouso na água, se aplicável; ○ evacuação em emergência; ○ extinção de fogo e controle de fumaça; ○ operação e uso das saídas de emergência; ○ uso do oxigênio para tripulantes e passageiros; ○ remoção e enchimento dos botes salva-vidas da aeronave, uso de cordas de salvamento; e ○ colocação e inflagem dos coletes salva-vidas e uso de outros equipamentos de flutuação, se aplicável. Requisito Ementa Carga Horária Frequência Seção 135.331, RBAC 135 - Instruções sobre procedimentos e atribuições em emergências, incluindo coordenação da tripulação;
+	•	
+	•	Instrução individual sobre localização, funcionamento e operação dos equipamentos de emergência, incluindo:
+	•	
+	•	equipamentos utilizados em pousos na água e em evacuação de emergência;
+	•	
+	•	equipamentos de primeiros socorros e sua apropriada utilização; e
+	•	
+	•	extintores de incêndio portáteis, com ênfase no tipo de agente extintor a ser utilizado nas diferentes classes de fogo;
+	•	
+	•	Instruções sobre procedimentos em situação de emergência, incluindo:
+	•	
+	•	descompressão rápida;
+	•	
+	•	fogo a bordo em voo e no solo e procedimentos de controle de fumaça, com ênfase no equipamento elétrico e correspondentes disjuntores localizados no interior da aeronave;
+	•	
+	•	pouso na água e evacuação;
+	•	
+	•	enfermidades, contusões ou outras situações anormais envolvendo passageiros ou tripulantes; e
+	•	
+	•	interferência ilícita e outras situações não usuais.
+	•	
+	•	Revisão e estudo de acidentes e incidentes previamente ocorridos com o detentor de certificado, envolvendo situações reais de emergência; e
+	•	
+	•	() Sobrevivência na selva. Conforme seção 3 deste Programa 12 meses() 24 meses
+	•	
+  4.9 Segmento de Currículo Solo para Cessna 208B Grand Caravan Currículo Solo para Cessna 208B Grand Caravan Descrição: Treinamento de solo para aeronave Cessna Grand Caravan C208B, operando segundo os manuais da VOE. Objetivo: ● Garantir que os tripulantes executem corretamente os procedimentos ensinados, referentes ao Segmento de Currículo Solo para a aeronave Cessna 208B Grand Caravan, de forma que estejam nos padrões operacionais da VOE. Pré-requisitos: ● Aprovação no Segmento de Doutrinamento Básico; ● Aprovação no Segmento de Conhecimentos Gerais de Aeronaves. Metodologia: ● Aulas Expositiva; ● Análise e estudo do AFM da aeronave, em conformidade com as manobras ilustradas no Apêndice 9 deste PTO; e ● Aula Demonstrativa. Avaliação: ● Prova escrita abordando os temas da ementa. Requisito Ementa Carga Horária Frequência Parágrafos 135.345(b)(1) a (b)(5), (b)(10) e (b)(11). - Conhecimentos técnicos da aeronave:
+	•	características gerais e limitações dos sistemas da aeronave;
+	•	
+	•	princípios de funcionamento, operação e limitações operacionais dos motores da aeronave; influência das condições atmosféricas no desempenho dos motores; informações operacionais constantes do manual de voo;
+	•	
+	•	procedimentos operacionais normais, anormais e de emergência, conforme padrões estabelecidos no SOP;
+	•	
+	•	limitações da aeronave; influência das condições atmosféricas no desempenho da aeronave de acordo com as informações do manual de voo;
+	•	
+	•	operação dos instrumentos da aeronave e procedimentos em caso de mau funcionamento;
+	•	
+	•	prevenção de colisões em voo;
+	•	
+	•	prevenção de CFIT e uso do TAWS;
+	•	
+	•	uso do piloto automático e outros sistemas de automação; e
+	•	
+	•	procedimentos para a manutenção da aeronavegabilidade da aeronave, tais como verificações pré-voo, inspeções periódicas, verificação dos registros de manutenção, boletins de serviço e diretrizes de aeronavegabilidade em vigor;
+	•	
+	•	Desempenho; planejamento de voo e carregamento:
+	•	
+	•	influência do peso e sua distribuição no carregamento da aeronave; desempenho e características de voo para as diversas condições de peso e balanceamento; realização dos cálculos de peso e balanceamento
+	•	
+	•	uso e aplicação prática dos dados, gráficos e tabelas de desempenho de decolagem, de pouso e de voo em rota;
+	•	
+	•	procedimentos para embarque e fixação da carga nos diversos compartimentos de carga da aeronave;
+	•	
+	•	Navegação:
+	•	
+	•	planejamento da navegação aérea, utilizando os dados de desempenho do manual de voo da aeronave;
+	•	
+	•	princípios e características dos sistemas de navegação da aeronave; operação dos equipamentos de bordo; e
+	•	
+	•	utilização, precisão e confiabilidade dos sistemas de navegação empregados;
+	•	
+	•	Teoria de voo: princípios de voo relativos à aeronave para a qual é solicitada a habilitação; voo em altas velocidades e recuperação de atitudes anormais; e
+	•	
+	•	Radiocomunicações: procedimentos para operação dos sistemas de comunicação e transponder da aeronave; procedimentos em caso de falha de comunicações. Conforme seção 3 deste Programa 12 meses
+	•	
+  4.10 Segmento de Currículo Voo para Cessna 208B Grand Caravan Currículo Voo para Cessna 208B Grand Caravan Descrição: Treinamento em Voo para aeronave Cessna Grand Caravan C208B, operando segundo os manuais da VOE. Objetivo: ● Garantir que os tripulantes executem corretamente os procedimentos ensinados durante o treinamento, de forma que esteja nos padrões operacionais da VOE. Pré-requisitos: ● Aprovação em todos os Segmentos de Treinamento, exceto no Segmento de Emergências Gerais. Metodologia: ● Aula Prática; ● Análise e estudo do AFM da aeronave, em conformidade com as manobras ilustradas no Apêndice 9 deste PTO; e ● Elaboração de Plano de Voo. Avaliação: ● Prova Prática incluindo voo, aplicação de procedimentos operacionais e manobras; ● IS 00-002 em vigor; ● FAP 02 (Apêndice 4) , FAP 04 (Apêndice 5), FAP 06 (Apêndice 6 e FAP 14 (Apêndice 7 ). Requisito Ementa Carga Horária Frequência Seção 135.347 Parágrafo 135.341(e), RBAC 135. - Procedimentos anteriores ao voo, incluindo planejamento do voo, cálculo de combustível, abastecimento, cálculo de peso e balanceamento, inspeções e verificação da aeronavegabilidade da aeronave;
+	•	Decolagens normais e de alto desempenho;
+	•	
+	•	Operações em aeródromos e em circuitos de tráfego; precauções e procedimentos de prevenção de colisões em voo e CFIT;
+	•	
+	•	Uso de TAWS;
+	•	
+	•	Utilização de listas de verificação e do SOP durante todas as fases do voo;
+	•	
+	•	Controle do avião usando referências externas e referências por instrumentos;
+	•	
+	•	Voo em baixas velocidades, reconhecimento e recuperação de pré-estol e estol;
+	•	
+	•	Procedimentos anormais e de emergência em falhas simuladas de equipamentos, motores, sistemas e estrutura;
+	•	
+	•	Prevenção e recuperação de altitudes anormais;
+	•	
+	•	Procedimentos sob incapacitação de um tripulante de voo e coordenação da tripulação, alocação de tarefas de pilotagem e cooperação da tripulação, conforme aplicável;
+	•	
+	•	Procedimentos de subida, nivelamento, e gerenciamento da aeronave durante o voo de cruzeiro;
+	•	
+	•	Configuração e uso dos sistemas de navegação, comunicação, sistema elétrico;
+	•	
+	•	SOP da VOE;
+	•	
+	•	Procedimentos de aproximação e pouso em condições visuais;
+	•	
+	•	Conforme aplicável, procedimentos de voo por instrumentos, incluindo procedimentos de aproximações por instrumentos, aproximações perdidas e pousos; e
+	•	
+	•	Procedimentos anormais e de emergência. Treinamento Inicial : 8 horas
+	•	
+Treinamento Periódico: 4 Horas 12 meses
+  4.11 Segmento de Currículo Solo de Instrução para Cessna 208B Grand Caravan Currículo Solo de Instrução para Cessna 208B Grand Caravan Descrição: Currículo de Treinamento em Solo, voltado à formação de Instrutores, para aeronave Cessna Grand Caravan C208B, operando segundo os manuais da VOE. Objetivo: ● Garantir que os colaboradores que anseiam a atribuição de instrutor tenham capacitação adequada para a função que vão desempenhar, no que tange ao Currículo Solo para a aeronave Cessna 208B Grand Caravan. Pré-requisitos: ● Aprovação em todos os Segmentos do Treinamento Inicial e Periódico, com aproveitamento superior a 90%. Metodologia: ● Aulas expositivas. Avaliação: ● Prova escrita. Requisito Ementa Carga Horária Frequências Seção 135.340 (c)(1) a (7) - Atividades, funções e responsabilidades do instrutor de voo;
+	•	Os regulamentos e normas aplicáveis e as políticas e procedimentos do detentor do certificado;
+	•	
+	•	Os métodos, procedimentos e técnicas aplicáveis na condução da instrução de voo;
+	•	
+	•	Avaliação apropriada do desempenho do aluno, incluindo a avaliação de:
+	•	
+	•	treinamento impróprio e insuficiente; e
+	•	
+	•	características pessoais de um candidato que possam afetar adversamente a segurança.
+	•	
+	•	As ações corretivas no caso de progresso insatisfatório do treinamento;
+	•	
+	•	Os métodos, procedimentos e limitações aprovados para desempenhar os procedimentos normais, anormais e de emergência requeridos na aeronave; e
+	•	
+	•	Exceto para detentores de licença de instrutor de voo:
+	•	
+	•	os princípios fundamentais do processo de ensino-aprendizado;
+	•	
+	•	métodos e procedimentos de ensino;
+	•	
+	•	o relacionamento instrutor-aluno. 2 horas (para quem já tem INVA)
+	•	
+8 horas (para quem não tem INVA) 12 meses Este módulo deve abranger instruções referentes à elaboração e leitura das Fichas de avaliação, procedimentos normais, anormais e de emergência e demais documentos da aeronave relativos às técnicas de voo, tal como Flight Crew Training Manual (FCTM).
+4.12 Segmento de Currículo Voo de Instrução para Cessna 208B Grand Caravan Currículo Voo de Instrução para Cessna 208B Grand Caravan Descrição: Currículo de Treinamento em Voo, voltado à formação de Instrutores, para aeronave Cessna Grand Caravan C208B, operando segundo os manuais da VOE. Objetivo: ● Garantir que os colaboradores que anseiam a atribuição de instrutor tenham capacitação adequada para a função que vão desempenhar, no que tange ao Currículo Voo para a aeronave Cessna 208B Grand Caravan. Pré-requisitos: ● Aprovação em todos os Segmentos do Treinamento Inicial e Periódico, com aproveitamento acima de 90%. Metodologia: ● Aulas Práticas. Avaliação: ● Prova Prática Requisito Ementa Carga Horária Frequência 135.340 (e) (1) a (4) - As medidas de segurança para situações de emergências que possam desenvolver-se durante a instrução;
+	•	Os resultados potenciais de medidas de segurança impróprias ou inoportunas tomadas durante a instrução;
+	•	
+	•	Treinamento e prática, a partir dos assentos de pilotagem esquerdo e direito, das manobras normais, anormais e de emergência requeridas, visando assegurar competência na condução da instrução em voo requerida por este regulamento; e
+	•	
+	•	As medidas de segurança a serem tomadas, de qualquer dos dois assentos para piloto, para situações de emergência que possam se desenvolver durante a instrução. 1 sessão de simulador na direita;
+	•	
+OU
+1 sessão de simulador na esquerda + 1 voo de adaptação na direita(**);
+OU
+Carga de voo de adaptação na direita() 12 meses() Carga de voo de adaptação na direita:
+	•	para aeronaves classe: 2 horas de voo de repasse na direita, contemplando as seguintes manobras:
+	•	
+	•	aproximação perdida;
+	•	
+	•	estol;
+	•	
+	•	emergências; e
+	•	
+	•	toque/arremetida. (**) Em se utilizando 1 sessão de simulador na esquerda, a carga de voo de adaptação na direita pode ser reduzida à metade. Neste módulo o instrutor-aluno deve realizar 1 hora de procedimentos normais e 2 horas de procedimentos não normais e de emergência. O instrutor-aluno deve ser avaliado pelo instrutor na realização dos briefings e debriefings e no preenchimento das fichas.
+	•	
+(Página Intencionalmente Deixada em Branco)
+ 
+Seção 6 | Apêndices Apêndice 1 - Lista de Presença
+LISTA DE PRESENÇA
+Programa de Treinamento Operacional NOME DO ALUNO CANAC (se aplicável) TREINAMENTO EQUIPAMENTO CARGA HORÁRIA Função
+Período de Treinamento 1º Período Intervalo 2º Período DATA DATA DATA DATA DATA DATA HORÁRIO HORÁRIO HORÁRIO HORÁRIO HORÁRIO HORÁRIO ASSINATURA ASSINATURA ASSINATURA ASSINATURA ASSINATURA ASSINATURA
+Instrutor NOME CANAC (se aplicável) ASSINATURA ASSINATURA ASSINATURA ASSINATURA ASSINATURA ASSINATURA
+Comentários
+LOCAL(CIDADE/UF)
+DATA
+--------------------------------------------------------------------------------
+Diretor de Operações
+Apêndice 2 - Certificado de Conclusão de Treinamento
+CERTIFICADO DE CONCLUSÃO DE TREINAMENTO
+Certifico que o aluno _______________________________________ cumpriu com êxito o treinamento _______________ para a função de ______________________, no dia ___ de __________ de _______. Assim, declaro que o aluno está apto a designar a função pretendida.
+--------------------------------------------------------------------------------
+Diretor de Operações
+Apêndice 3 - Registro Individual de Tripulante
+REGISTRO INDIVIDUAL DE TRIPULANTE
+NOME DO PILOTO CANAC TIPO DA LICENÇA Nº DA LICENÇA
+FUNÇÃO ATUAL EQUIPAMENTO
+CMA	DATA EMISSÃO
+DATA DESIGNAÇÃO CLASSE
+EXPERIÊNCIA AERONÁUTICA EQUIPAMENTO Nº HORAS DE VOO PERÍODO
+DISPENSA ( ) DESQUALIFICAÇÃO FÍSICA ( ) DESQUALIFICAÇÃO PROFISSIONAL ( ) OUTRO MOTIVO:
+OBSERVAÇÕES
+ANEXAR: FICHAS DE AVALIAÇÃO, FREQUÊNCIA DE TREINAMENTOS, CERTIFICADOS DE CONCLUSÃO   Apêndice 4 - FAP 02 - Licença de Piloto Comercial
+FICHA DE AVALIAÇÃO DE PILOTO (FAP 02) LICENÇA DE PILOTO COMERCIAL
+Dados do Candidato NOME VALIDADE CMA:
+Dados do Voo DE PARA SOBREVOOS OU TGL HORA DE INÍCIO HORA DE TÉRMINO
+Dados da aeronave/FSTD MATRÍCULA MODELO CATEGORIA ( ) Avião ( ) Helicóptero ( ) Dirigível PROPRIETÁRIO OU OPERADOR
+S Satisfatório I Insatisfatório N Não realizado
+Nº- Ref Cód. do Elemento Elemento de competência Resultado Exame oral Conhecimentos Gerais 1 FAP 04 Conteúdos constantes da FAP de habilitação de classe ou tipo aplicável Conhecimentos específicos 2 - Prerrogativas e limitações do Piloto Comercial 3 - Requisitos gerais para a operação em empresas de transporte aéreo certificadas (RBAC 121 e 135) 4 - Classificação das operações aéreas (conforme previsto no CBA e nos RBAC 91, 121 e 135) 5 - Regulamentação da profissão de aeronauta (Lei 7.183/84) 6 - Regulamentação referente ao uso de álcool e drogas 7 - Requisitos referentes às áreas de pouso/aeródromos 8 - Uso de GNSS para navegação visual Exame de voo Procedimentos Gerais 9 FAP 04 Conteúdos constantes da FAP de habilitação de classe ou tipo aplicável Manobras normais 10 FAP 04 Conteúdos constantes da FAP de habilitação de classe ou tipo aplicável Manobras de emergência 11 FAP 04 Conteúdos constantes da FAP de habilitação de classe ou tipo aplicável Voo de Navegação 12 NAV.1 Preparar os documentos e o plano de voo 13 NAV.2 Conhecer e cumprir as regras de cada tipo de espaço aéreo 14 NAV.4 Navegar a aeronave em rota 15 NAV.6 Realizar procedimentos para se reorientar em rota 16 NAV.7 Realizar procedimento de alternativa 17 NAV.8 Usar os instrumentos de navegação disponíveis 18 NAV.9 Realizar procedimentos de chegada 19 RNE.1 Operar e monitorar sistemas de radionavegação 20 RNE.2 Navegar a aeronave utilizando sistemas de radionavegação Operação em áreas controladas 21 CTR.2 Taxiar a aeronave em aeródromo controlado 22 CTR.3 Realizar procedimento de saída em aeródromo controlado 23 CTA.1 Voar a aeronave em espaço aéreo controlado 24 CTR.4 Realizar procedimento de aproximação e pouso em aeródromo controlado Manobras com referências no painel de instrumentos 25 IFF.1 Testar e monitorar a integridade dos instrumentos e suas fontes de energia 26 IFF.2 Realizar manobras utilizando o painel de instrumentos completo 27 IFF.3 Recuperar a aeronave de atitudes anormais com referências no painel de instrumentos completo 28 IFL.1 Reconhecer falhas dos instrumentos do painel 29 IFL.2 Realizar manobras com o painel de instrumentos limitado 30 IFL.3 Recuperar a aeronave de atitudes anormais com referências no painel de instrumentos limitado 31 IFL.4 Restabelecer o voo visual com painel de instrumentos limitado Outros 31 OUT 32 OUT 33 OUT
+Comentários
+ORDEM DE SERVIÇO (somente para examinadores escalados pela ANAC):
+Conceito final: ( ) APROVADO ( ) REPROVADO DATA NOME DO EXAMINADOR
+ASSINATURA DO EXAMINADOR CANAC ASSINATURA DO CANDIDATO CANAC   Apêndice 5 - FAP 04 - Habilitação de Classe - MNTE
+FICHA DE AVALIAÇÃO DE PILOTO (FAP 04) HABILITAÇÃO DE CLASSE - MNTE
+Dados do Candidato NOME VALIDADE CMA:
+Dados do Voo DE PARA SOBREVOOS OU TGL HORA DE INÍCIO HORA DE TÉRMINO
+Dados da aeronave/FSTD MATRÍCULA MODELO PROPRIETÁRIO OU OPERADOR
+S Satisfatório I Insatisfatório N Não realizado
+Nº- Ref Cód. do Elemento Elemento de competência Resultado Exame oral Conhecimentos Gerais 1 - Instrumentos e equipamentos requeridos para a realização do voo 2 - Documentos requeridos para a realização do voo 3 - Conhecimentos técnicos da aeronave 4 - Procedimentos normais, anormais e de emergência da aeronave 5 - Cálculo de peso e balanceamento da aeronave 6 - Cálculos de desempenho de pouso e decolagem da aeronave 7 - Boletins ou notificações de segurança referentes à operação da aeronave, emitidos pelo fabricante, pela autoridade aeronáutica do país de origem ou pela ANAC 8 - Leitura e interpretação de mensagens e cartas meteorológicas 9 - Leitura e interpretação de publicações aeronáuticas (ROTAER, AIP, NOTAM, etc.) 10 - Planejamento de voo Exame de voo Procedimentos Gerais 11 C1.1 Comunicação operacional utilizando um rádio aeronáutico 12 C3.1 Operar o equipamento de rádio 13 C3.2 Gerenciar panes do equipamento de rádio 14 C3.3 Operar o transponder 15 C4.1 Planejar o combustível requerido 16 C4.2 Gerenciar o sistema de combustível 17 C4.3 Reabastecer a aeronave 18 C5.1 Gerenciar passageiros 19 C5.2 Gerenciar carga e/ou bagagem 20 NST1.1 Manter uma vigilância efetiva 21 NST1.2 Manter consciência situacional 22 NST1.3 Avaliar situações e tomar decisões 23 NST1.4 Definir prioridades e gerenciar tarefas 24 NST1.5 Manter comunicações e relações interpessoais efetivas 25 NST2.1 Reconhecer e gerenciar ameaças 26 NST2.2 Reconhecer e gerenciar erros Manobras normais 27 C2.1 Realizar procedimentos pré-voo 28 C2.2 Realizar inspeção pré-voo 29 A1.1 Partida e corte do motor 30 A1.2 Taxiar o avião 31 A2.1 Realizar os procedimentos antes da decolagem 32 A2.2 Decolar o avião 33 A2.3 Decolar com vento de través 34 A2.4 Realizar os procedimentos após a decolagem 35 A2.5 Realizar uma decolagem curta 36 A3.1 Manter voo em subida 37 A3.2 Manter voo reto e nivelado 38 A3.3 Manter voo em descida 39 A3.4 Realizar curvas 40 A5.1 Recuperar-se de um estol 41 A5.3 Realizar curva de grande inclinação 42 A5.4 Glissar a aeronave 43 A3.5 Controlar a aeronave em voo lento 44 A3.6 Realizar circuitos de tráfego e aproximações 45 A4.1 Pousar o avião 46 A4.2 Pousar o avião com vento de través 47 A4.3 Realizar uma aproximação perdida 48 A4.4 Realizar uma arremetida após o toque (TGL) 49 A4.5 Realizar um pouso curto 50 C2.3 Realizar procedimentos pós-voo Manobras de Emergência 51 A6.1 Gerenciar falha de motor na decolagem 52 A6.2 Gerenciar falha de motor na área do circuito 53 A6.3 Realizar um pouso forçado 54 A6.4 Realizar um pouso de precaução fora de aeródromo 55 A6.5 Gerenciar outras situações anormais 56 A6.6 Recuperar a aeronave de atitudes anormais com referências visuais Outros 57 OUT 58 OUT 59 OUT
+Comentários
+ORDEM DE SERVIÇO (somente para examinadores escalados pela ANAC):
+Conceito final: ( ) APROVADO ( ) REPROVADO DATA NOME DO EXAMINADOR
+ASSINATURA DO EXAMINADOR CANAC ASSINATURA DO CANDIDATO CANAC   Apêndice 6 - FAP 06 - Habilitação de Voo por Instrumentos - Todas as Categorias
+FICHA DE AVALIAÇÃO DE PILOTO(FAP 06) HABILITAÇÃO DE VOO POR INSTRUMENTOS – TODAS AS CATEGORIAS
+Dados do Candidato NOME VALIDADE CMA:
+Dados do Voo DE PARA SOBREVOOS OU TGL HORA DE INÍCIO HORA DE TÉRMINO
+Dados da aeronave/FSTD MATRÍCULA MODELO CATEGORIA ( ) Avião ( ) Helicóptero ( ) Dirigível PROPRIETÁRIO OU OPERADOR
+S Satisfatório I Insatisfatório N Não realizado
+Nº- Ref Cód. do Elemento Elemento de competência Resultado Exame oral Conhecimentos Gerais 1 - Instrumentos e equipamentos requeridos para a realização do voo 2 - Documentos requeridos para a realização do voo 3 - Conhecimentos técnicos da aeronave 4 - Procedimentos normais, anormais e de emergência da aeronave 5 - Cálculo de peso e balanceamento da aeronave 6 - Cálculos de desempenho de pouso e decolagem da aeronave 7 - Boletins ou notificações de segurança referentes à operação da aeronave, emitidos pelo fabricante, pela autoridade aeronáutica do país de origem ou pela ANAC 8 - Leitura e interpretação de mensagens e cartas meteorológicas 9 - Leitura e interpretação de publicações aeronáuticas (ROTAER, AIP, NOTAM, etc.) 10 - Planejamento de voo Conhecimentos específicos 11 - Mínimos meteorológicos para a operação IFR nos aeródromos de partida, destino e alternativa 12 - Autonomia mínima e aeródromos de alternativa requeridos para o voo IFR 13 - Conhecer e cumprir as regras Leitura e interpretação de cartas IFR 14 - Procedimentos GNSS Exame de Voo Manobras com referências no painel de instrumentos 15 IFF.1 Testar e monitorar a integridade dos instrumentos e suas fontes de energia 16 IFF.2 Realizar manobras utilizando o painel de instrumentos completo 17 IFF.3 Recuperar a aeronave de atitudes anormais com referências no painel de instrumentos completo 18 IFL.1 Reconhecer falhas dos instrumentos do painel 19 IFL.2 Realizar manobras com o painel de instrumentos limitado 20 IFL.3 Recuperar a aeronave de atitudes anormais com referências no painel de instrumentos limitado 21 IFL.4 Restabelecer o voo visual com painel de instrumentos limitado Voo por instrumentos 22 CIR.1 Planejar um voo IFR 23 CIR.2 Realizar uma decolagem IFR 24 CIR.3 Realizar um procedimento de saída IFR 25 CIR.4 Realizar um procedimento de saída IFR com falha de motor 26 CIR.5 Realizar manobras utilizando o painel de instrumentos completo 27 CIR.6 Realizar um procedimento de descida e chegada sob IFR 28 CIR.7 Realizar um procedimento de espera IFR 29 CIR.8 Realizar uma aproximação por instrumentos com falha de motor (somente aeronaves multimotoras) 30 CIR.9 Realizar uma aproximação para circular Procedimento de não precisão 31 OUT Preparar a aeronave para o procedimento 32 OUT Realizar o procedimento 33 OUT Realizar uma aproximação perdida Procedimento de não precisão 34 IAP3.1 Preparar a aeronave para o procedimento 35 IAP3.2 Realizar o procedimento 36 IAP3.3 Realizar uma aproximação perdida Outros 37 OUT 38 OUT 39 OUT
+Comentários
+ORDEM DE SERVIÇO(somente para examinadores escalados pela ANAC):
+Conceito final: ( ) APROVADO ( ) REPROVADO DATA NOME DO EXAMINADOR
+ASSINATURA DO EXAMINADOR CANAC ASSINATURA DO CANDIDATO CANAC   Apêndice 7 - FAP 14 - Exame em Rota para Operadores Certificados
+FICHA DE AVALIAÇÃO DE PILOTO(FAP 14) EXAME EM ROTA PARA OPERADORES CERTIFICADOS
+Dados do Candidato NOME VALIDADE CMA:
+Dados do Voo DE PARA SOBREVOOS OU TGL HORA DE INÍCIO HORA DE TÉRMINO
+Dados da aeronave/FSTD MATRÍCULA MODELO CATEGORIA ( ) Avião ( ) Helicóptero ( ) Dirigível PROPRIETÁRIO OU OPERADOR
+S Satisfatório I Insatisfatório N Não realizado
+Nº- Ref Cód. do Elemento Elemento de competência Resultado Exame oral Conhecimentos Gerais 1 - Instrumentos e equipamentos requeridos para a realização do voo 2 - Documentos requeridos para a realização do voo 3 - Conhecimentos técnicos da aeronave 4 - Procedimentos normais, anormais e de emergência da aeronave 5 - Cálculo de peso e balanceamento da aeronave 6 - Cálculos de desempenho de pouso e decolagem da aeronave 7 - Boletins ou notificações de segurança referentes à operação da aeronave, emitidos pelo fabricante, pela autoridade aeronáutica do país de origem ou pela ANAC 8 - Leitura e interpretação de mensagens e cartas meteorológicas 9 - Leitura e interpretação de publicações aeronáuticas (ROTAER, AIP, NOTAM, etc.) 10 - Planejamento de voo Conhecimentos específicos 11 - Prerrogativas e limitações para a operação em empresa de transporte aéreo certificada pela ANAC 12 - Classificação das operações aéreas (conforme previsto no CBA e nos RBAC 91, 121 e 135) 13 - Regulamentação da profissão de aeronauta (Lei 7.183/84) 14 - Regulamentação referente ao uso de álcool e drogas 15 - Conhecimento sobre aceitação e rejeição de Artigos Perigosos 16 - Familiarização com o Manual de Operações do operador 17 - Familiarização com o SOP do operador 18 - Familiarização com as Especificações Operativas do operador 19 - Procedimentos do operador para assegurar as limitações de Peso e Balanceamento 20 - Procedimentos do operador para despachar a aeronave para o voo (incluindo uso de MEL e CDL, quando aplicável) 21 - Procedimentos do operador para realizar o acompanhamento do voo Exame de Voo Procedimentos Gerais 22 C2.1 Realizar procedimentos pré-voo 23 C4.3 Reabastecer a aeronave 24 C5.1 Gerenciar passageiros 25 C5.2 Gerenciar carga e/ou bagagem 26 NTS1.3 Avaliar situações e tomar decisões 27 NTS1.4 Definir prioridades e gerenciar tarefas 28 NTS1.5 Manter comunicações e relações interpessoais efetivas 29 NTS2.1 Reconhecer e gerenciar ameaças 30 NTS2.2 Reconhecer e gerenciar erros 31 C2.3 Realizar procedimentos pós-voo 32 - Observar o MGO, o SOP e os checklists da empresa durante todas as operações Operação da aeronave - avião 33 A1.1 Partida e corte do motor 34 A1.2 Taxiar o avião 35 A2.1 Realizar os procedimentos antes da decolagem 36 A2.2 Decolar o avião 37 A2.4 Realizar os procedimentos após a decolagem 38 A3.1 Manter voo em subida 39 A3.2 Manter voo reto e nivelado 40 A3.3 Manter voo em descida 41 A4.1 Pousar o avião Navegação 42 NAV.2 Conhecer e cumprir as regras de cada tipo de espaço aéreo. 43 NAV.3 Realizar procedimentos de saída 44 NAV.4 Navegar a aeronave em rota 45 NAV.8 Usar os instrumentos de navegação disponíveis 46 NAV.9 Realizar os procedimentos de chegada Voo por Instrumentos 47 CIRC.5 Navegar a aeronave sob IFR Outros 48 OUT 49 OUT 50 OUT 51 OUT
+Comentários
+ORDEM DE SERVIÇO(somente para examinadores escalados pela ANAC): Conceito final: ( ) APROVADO ( ) REPROVADO DATA NOME DO EXAMINADOR
+ASSINATURA DO EXAMINADOR CANAC ASSINATURA DO CANDIDATO CANAC
+  Apêndice 8 - Categoria de funcionários Categoria de funcionários no contexto do programa de treinamento em artigos perigosos, conforme a IS 175-002. Categoria Descrição 1 Expedidores e pessoas que assumem as responsabilidades dos expedidores, incluindo os funcionários dos operadores aéreos que atuam como expedidor de COMAT classificado como artigo perigoso. 2 Pessoas responsáveis pelo preparo da embalagem com artigo perigoso - embalador 3 Funcionários das agências de carga aérea envolvidos no processamento de artigos perigosos. 4 Funcionários das agências de carga aérea envolvidos no processamento da carga e mala postal (exceto artigos perigosos). 5 Funcionários das agências de carga aérea envolvidos no manuseio, armazenagem e capatazia da carga ou mala postal. 6 Funcionários dos operadores aéreos e agentes de manuseio em solo que realizam procedimento de aceitação de artigos perigosos. 7 Funcionários dos operadores aéreos e agentes de manuseio em solo que realizam procedimento de aceitação de carga ou mala postal (exceto de artigos perigosos). 8 Funcionários dos operadores aéreos e agentes de manuseio em solo, envolvidos no manuseio, na armazenagem e na capatazia de carga ou mala postal e bagagem. 9 Funcionários de atendimento aos passageiros. 10 Membros da tripulação de voo (pilotos, mecânicos de voo e navegadores), supervisores de carregamento, planejadores de carregamento e encarregados de operações de voo/despachantes de voo. 11 Membros da tripulação de cabine (comissários). 12 Funcionários de segurança da aviação civil contra atos de interferência ilícita encarregados da inspeção dos passageiros e tripulantes, incluindo suas bagagens, e da carga ou mala postal. 13 Funcionários dos operadores aéreos e agentes de manuseio em solo que realizam procedimento de aceitação de carga ou mala postal (exceto de artigos perigosos). 14 Funcionários dos operadores aéreos e agentes de manuseio em solo envolvidos no manuseio, armazenagem e capatazia de carga ou mala postal e bagagem. 15 Funcionários de atendimento aos passageiros. 16 Membros da tripulação de voo (pilotos, mecânicos de voo e navegadores), supervisores de carregamento, planejadores de carregamento e encarregados de operações de voo/despachantes de voo. 17 Membros da tripulação de cabine (comissários).   Apêndice 9 - Manobras A9.1 Decolagem e subida
+  A9.2 Falha no motor imediatamente após a decolagem
+A9.3 Pouso impedido
+  A9.4 Padrão de pouso
+  A9.5 Aproximação de Precisão por Instrumentos
+  A9.6 Aproximação de Não Precisão por Instrumentos
+  A9.7 Procedimentos para descida de emergência
+  A9.8 Aproximação de Estol - Configuração Limpa
+  A9.9 Aproximação de Estol - Configuração de Pouso
+  A9.10 Aproximação de Estol - Configuração de Decolagem
+  A9.11 Curvas Acentuadas
+ 
+(Página Intencionalmente Deixada em Branco)

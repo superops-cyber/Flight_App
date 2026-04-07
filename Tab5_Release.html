@@ -1,0 +1,789 @@
+<style>
+  #release5-container {
+    background: #f1f3f4;
+    min-height: 100vh;
+    padding: 10px;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+
+  .release5-panel {
+    width: 100%;
+    max-width: 760px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+    padding: 10px;
+  }
+
+  .release5-title {
+    font-size: 1.08rem;
+    font-weight: 900;
+    color: #0b5394;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+  }
+
+  .release5-card {
+    border: 1px solid #ececec;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: #fafafa;
+  }
+
+  .release5-subtitle {
+    font-size: 0.82rem;
+    font-weight: 900;
+    color: #0b5394;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .release5-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .release5-chip {
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    background: #fff;
+    padding: 6px;
+    font-size: 0.9rem;
+  }
+
+  .release5-chip b {
+    color: #0b5394;
+  }
+
+  .release5-emphasis {
+    border: 2px solid #d32f2f;
+    background: #ffebee;
+  }
+
+  .release5-link {
+    font-size: 0.9rem;
+    color: #1565c0;
+    text-decoration: underline;
+    word-break: break-all;
+  }
+
+  .risk-matrix-head,
+  .risk-matrix-row {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .risk-label {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #444;
+    text-transform: uppercase;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    background: #fafafa;
+  }
+
+  .risk-choice-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid #d6dde6;
+    border-radius: 10px;
+    background: #fff;
+    min-height: 48px;
+  }
+
+  .risk-btn {
+    width: 36px;
+    height: 36px;
+    border: 2px solid #d7dee7;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .risk-btn.level-1 { background:#43a047; color:#fff; border-color:#2e7d32; }
+  .risk-btn.level-2 { background:#ffc107; color:#fff; border-color:#f9a825; }
+  .risk-btn.level-3 { background:#e53935; color:#fff; border-color:#c62828; }
+
+  .risk-btn.active {
+    border: 2px solid #0b5394;
+    box-shadow: inset 0 0 0 1px #0b5394;
+  }
+
+  .risk-total {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.92rem;
+    font-weight: 900;
+    color: #fff;
+  }
+
+  .risk-total.green { background: #2e7d32; }
+  .risk-total.yellow { background: #f9a825; }
+  .risk-total.red { background: #d32f2f; }
+
+  .preview-bubble {
+    background: #e3f2fd;
+    border-left: 5px solid #1565c0;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.88rem;
+    line-height: 1.35;
+    white-space: pre-wrap;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .brakes-btn {
+    width: 100%;
+    height: 62px;
+    border: none;
+    border-radius: 8px;
+    background: #1565c0;
+    color: #fff;
+    font-size: 1.08rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .brakes-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .brakes-btn.released {
+    background: #2e7d32;
+    cursor: default;
+  }
+
+  .dispatch-action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .dispatch-action-row button {
+    flex: 1;
+    height: 40px;
+    border: 2px solid #1565c0;
+    border-radius: 6px;
+    background: #fff;
+    color: #1565c0;
+    font-weight: 800;
+    font-size: 0.86rem;
+    cursor: pointer;
+  }
+
+  .dispatch-action-row button:hover { background: #e3f2fd; }
+
+  .dispatch-action-row button.dispatch-copy {
+    border-color: #2e7d32;
+    color: #2e7d32;
+  }
+
+  .dispatch-action-row button.dispatch-copy:hover { background: #e8f5e9; }
+
+  .dispatch-email-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 6px;
+  }
+
+  .dispatch-email-row input {
+    flex: 1;
+    height: 38px;
+    border: 1.5px solid #1976d2;
+    border-radius: 6px;
+    padding: 0 8px;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 700px) {
+    .release5-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .risk-matrix-head,
+    .risk-matrix-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<div id="release5-container">
+  <div class="release5-panel" id="release5-panel">
+    <div class="release5-title">Tab 5: Pre-Flight Risk & Dispatch Release</div>
+    <div id="release5-body" class="release5-card" style="text-align:center; color:#666;">Load mission and performance data to continue.</div>
+  </div>
+</div>
+
+<script>
+  window.releaseTab5State = {
+    missionId: '',
+    flightLegId: '',
+    selected: {},
+    total: 0,
+    messagePreview: '',
+    sending: false
+  };
+
+  function _releaseScoreColor(total) {
+    if (total >= 11) return 'red';
+    if (total >= 9) return 'yellow';
+    return 'green';
+  }
+
+  function _releaseScoreLabel(total) {
+    if (total >= 11) return 'High Risk / No-Go';
+    if (total >= 9) return 'Caution';
+    return 'Standard Ops';
+  }
+
+  function _releaseFlightRoute(leg) {
+    const from = String((leg && leg.from) || '?').trim().toUpperCase();
+    const to   = String((leg && leg.to)   || '?').trim().toUpperCase();
+    return from + ' → ' + to;
+  }
+
+  function _releaseGetWbSnapshot() {
+    try {
+      if (typeof window.calculateWB !== 'function') return { weightKg: 0, cgIn: 0 };
+      const wb = window.calculateWB();
+      return {
+        weightKg: Math.round(Number(wb && wb.totalWeight || 0)),
+        cgIn: Number(Number(wb && wb.cg || 0).toFixed(1))
+      };
+    } catch (e) {
+      return { weightKg: 0, cgIn: 0 };
+    }
+  }
+
+  function _releaseGetRunwayContext(mission) {
+    const perf = window.performanceTab4 || {};
+    const selected = perf.selectedRunway || (Array.isArray(perf.runways) ? perf.runways[Number(document.getElementById('perf-runway')?.value || 0)] : null) || null;
+    const result = perf.lastPerformanceResult || {};
+
+    const runwayLengthM = Math.round(Number(selected && selected.length || 0));
+    const runwayWidthM = Math.round(Number(selected && selected.width || 0));
+    const surface = String(selected && selected.surface || '').trim() || 'N/A';
+    const elevationFt = Math.round(Number(selected && selected.elevation || 0));
+    const slopePct = Number(selected && selected.slope || 0).toFixed(1);
+    const heading = String(Math.round(Number(selected && selected.headingDeg || 0))).padStart(3, '0');
+    const cutdownFromDataRaw = Number(selected && (selected.cutdownAreaM || selected.cutdownArea || selected.clearway || selected.cutdown || 0) || 0);
+    const cutdownFromData = cutdownFromDataRaw > 0 ? Math.round(cutdownFromDataRaw) : null;
+    const cutdownInputRaw = String(document.getElementById('release5-cutdown')?.value || '').trim();
+    const cutdownInputNum = cutdownInputRaw === '' ? NaN : Number(cutdownInputRaw);
+    const cutdownAreaM = isFinite(cutdownInputNum) && cutdownInputNum >= 0
+      ? Math.round(cutdownInputNum)
+      : cutdownFromData;
+    const cutdownAreaLabel = (cutdownAreaM == null || !isFinite(cutdownAreaM)) ? 'Unknown' : (String(cutdownAreaM) + ' m');
+
+    const takeoffRollM = Math.round(Number(result.takeoffRollM || 0));
+    const rollStopM = Math.round(Number(result.combinedRollM || 0));
+    const headTailKts = Number(Number(result.headTailComponentKts || 0).toFixed(1));
+    const crosswindKts = Number(Number(result.crosswindComponentKts || 0).toFixed(1));
+
+    let abortPointM = takeoffRollM;
+    if (runwayLengthM > 0 && rollStopM > runwayLengthM) {
+      abortPointM = Math.round(takeoffRollM * 0.5);
+    }
+    if (runwayLengthM > 0) abortPointM = Math.min(abortPointM, runwayLengthM);
+
+    const windDir = Math.round(Number(document.getElementById('perf-wind-direction')?.value || 0));
+    const windSpd = Math.round(Number(document.getElementById('perf-wind-speed')?.value || 0));
+    const surfaceCondition = String(document.getElementById('perf-surface-condition')?.value || 'DRY');
+
+    const firstLeg = mission && mission.legs && mission.legs[0] ? mission.legs[0] : {};
+    const fromIcao = String(firstLeg.from || '').trim().toUpperCase();
+    const acftReg = String(mission && mission.acft || '').trim().toUpperCase();
+
+    const acftObj = (window.appData && Array.isArray(window.appData.aircraft))
+      ? window.appData.aircraft.find(a => String(a.reg || '').trim().toUpperCase() === acftReg)
+      : null;
+
+    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const aptObj = airports.find(a => String(a.icao || '').trim().toUpperCase() === fromIcao) || null;
+
+    const acftTypeRef = String((acftObj && (acftObj.typeForPerformance || acftObj.aircraftType)) || '').toUpperCase();
+    const use550 = acftTypeRef.indexOf('550') >= 0;
+    const mtow520 = Math.round(Number(aptObj && aptObj.mtow520 || 0));
+    const mtow550 = Math.round(Number(aptObj && aptObj.mtow550 || 0));
+    const maxTakeoffWeight = use550 ? mtow550 : mtow520;
+
+    const pilotNotes = String((selected && selected.pilotNotes) || (aptObj && aptObj.pilotNotes) || '').trim();
+    const airstripPhoto = String((selected && selected.airstripPhoto) || (aptObj && aptObj.airstripPhoto) || '').trim();
+
+    return {
+      runwayIdent: String(selected && selected.rwyIdent || 'N/A'),
+      runwayLengthM: runwayLengthM,
+      runwayWidthM: runwayWidthM,
+      surface: surface,
+      surfaceCondition: surfaceCondition,
+      elevationFt: elevationFt,
+      slopePct: slopePct,
+      cutdownAreaM: cutdownAreaM,
+      cutdownAreaLabel: cutdownAreaLabel,
+      heading: heading,
+      windDir: windDir,
+      windSpd: windSpd,
+      headTailKts: headTailKts,
+      crosswindKts: crosswindKts,
+      takeoffRollM: takeoffRollM,
+      rollStopM: rollStopM,
+      abortPointM: abortPointM,
+      maxTakeoffWeight: maxTakeoffWeight,
+      mtow520: mtow520,
+      mtow550: mtow550,
+      pilotNotes: pilotNotes,
+      airstripPhoto: airstripPhoto
+    };
+  }
+
+  function _releaseResolveFlightPlan_(mission, leg) {
+    const flightLegId = String(leg && leg.flightLegId || '').trim();
+    let row = null;
+
+    if (typeof window.briefGetLegInput_ === 'function' && flightLegId) {
+      row = window.briefGetLegInput_(flightLegId);
+    }
+
+    if (!row && leg) {
+      row = {
+        planId: String(leg.planId || leg.planDI || '').trim().toUpperCase(),
+        takeoffUTC: String(leg.takeoffUTC || leg.takeoffZulu || '').trim(),
+        noPlan: !!(leg.noPlan || leg.noFlightPlan)
+      };
+    }
+
+    const noPlan = !!(row && row.noPlan);
+    const planId = String(row && row.planId || '').trim().toUpperCase();
+    const takeoffUTC = String(row && row.takeoffUTC || '').trim().replace(/[^0-9]/g, '').slice(0, 4);
+
+    if (noPlan || (!planId && !takeoffUTC)) {
+      return {
+        full: 'NO FLIGHT PLAN FILED',
+        compact: 'NO_PLAN'
+      };
+    }
+
+    return {
+      full: 'DI ' + (planId || 'N/A') + ' @ ' + (takeoffUTC || '----') + 'Z',
+      compact: (planId || 'NA') + '@' + (takeoffUTC || '----') + 'Z'
+    };
+  }
+
+  function _releaseBuildMessage(mission, riskTotal, riskDetail) {
+    const firstLeg = mission && mission.legs && mission.legs[0] ? mission.legs[0] : {};
+    const flightId = firstLeg.flightLegId || mission.id || 'N/A';
+    const route = _releaseFlightRoute(firstLeg);
+    const flightPlan = _releaseResolveFlightPlan_(mission, firstLeg);
+    const pax = Array.isArray(firstLeg.pax)
+      ? firstLeg.pax.filter(p => String(p.name || '').toUpperCase() !== 'FREIGHT')
+      : [];
+    const pob = 1 + (mission && mission.meta && mission.meta.copilot ? 1 : 0) + pax.length;
+    const manifestLines = pax.length
+      ? pax.map((p, idx) => `${idx + 1}. ${p.name || 'Unknown'} • ${p.phone || 'No phone'}`).join('\n')
+      : 'No passengers listed';
+
+    const riskCategories = ['Pilot', 'Aircraft', 'Runway', 'Weather', 'Mission'];
+    const riskBreakdown = riskCategories.map(c =>
+      `${c}: ${riskDetail && riskDetail[c] != null ? riskDetail[c] : '-'}`).join(' | ');
+    const scoreLabel = riskTotal >= 11 ? 'HIGH RISK / NO-GO' : riskTotal >= 9 ? 'CAUTION' : 'Standard Ops';
+
+    const full = [
+      '🛫 DISPATCH RELEASE',
+      `Flight ID: ${flightId}`,
+      `Aircraft: ${mission && mission.acft || 'N/A'}`,
+      `PIC: ${mission && mission.pilot || 'N/A'}`,
+      `Route: ${route}`,
+      `Flight Plan: ${flightPlan.full}`,
+      `POB: ${pob}`,
+      '',
+      'Manifest:',
+      manifestLines,
+      '',
+      `Risk Score: ${riskTotal} – ${scoreLabel}`,
+      `Matrix: ${riskBreakdown}`
+    ].join('\n');
+
+    // Compact version for inReach (no emoji, condensed for satellite bandwidth)
+    const compact = [
+      `DISPATCH FLT:${flightId}`,
+      `AC:${mission && mission.acft || '?'} PIC:${mission && mission.pilot || '?'}`,
+      `ROUTE:${route} POB:${pob}`,
+      `FP:${flightPlan.compact}`,
+      pax.length ? pax.map((p, i) => `${i + 1}.${(p.name || '?').split(' ')[0]}`).join(' ') : 'NO PAX',
+      `RISK:${riskTotal}-${scoreLabel.toUpperCase().replace(/ /g,'_')}`
+    ].join('\n');
+
+    return { full, compact, flightId, pob, manifestLines };
+  }
+
+  function _releaseRiskTotal() {
+    const selected = window.releaseTab5State.selected || {};
+    const keys = Object.keys(selected);
+    const total = keys.reduce((sum, k) => sum + Number(selected[k] || 0), 0);
+    return { total: total, complete: keys.length === 5 };
+  }
+
+  function _releaseDispatchOnline_() {
+    return Boolean(window.google && google.script && google.script.run && navigator.onLine);
+  }
+
+  function _releaseLikelyNetworkErr_(err) {
+    const msg = err && err.message ? String(err.message) : String(err || '');
+    return /HTTP 0|NetworkError|Connection failure|Failed to fetch|ScriptError/i.test(msg);
+  }
+
+  function _releaseCopyCompactMessage_() {
+    const msg = window.releaseTab5State.currentMsg;
+    if (!msg || !msg.compact) {
+      if (window.M) M.toast({ html: 'No Earthmate message ready', classes: 'orange' });
+      return;
+    }
+
+    const done = function(ok) {
+      if (window.M) {
+        M.toast({
+          html: ok ? 'Copied Earthmate message' : 'Copy failed — long press and copy manually',
+          classes: ok ? 'green' : 'orange',
+          displayLength: 4000
+        });
+      }
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(msg.compact).then(function() { done(true); }).catch(function() { done(false); });
+      return;
+    }
+
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = msg.compact;
+      ta.setAttribute('readonly', 'readonly');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      done(Boolean(ok));
+    } catch (e) {
+      done(false);
+    }
+  }
+
+  function _releaseRefreshDispatchUI_() {
+    const actionBtn = document.getElementById('release5-dispatch-btn');
+    if (!actionBtn) return;
+    const online = _releaseDispatchOnline_();
+    actionBtn.innerHTML = online ? '&#9993; Send Dispatch' : '&#128203; Copy Earthmate';
+    actionBtn.classList.toggle('dispatch-copy', !online);
+  }
+
+  window.setupReleaseTab = function(mission) {
+    const body = document.getElementById('release5-body');
+    if (!body) return;
+
+    if (!mission || !mission.legs || !mission.legs.length) {
+      body.innerHTML = '<span style="color:#d32f2f;">No mission data found.</span>';
+      return;
+    }
+
+    const firstLeg = mission.legs[0] || {};
+    const preview = _releaseBuildMessage(mission, 0, {});
+    const brief = _releaseGetRunwayContext(mission);
+
+    window.releaseTab5State = {
+      missionId: mission.id || '',
+      flightId: preview.flightId,
+      flightLegId: firstLeg.flightLegId || '',
+      selected: {},
+      total: 0,
+      mission: mission,
+      sending: false,
+      currentMsg: preview
+    };
+
+    body.innerHTML = `
+      <div class="release5-card">
+        <div class="release5-subtitle">Runway Briefing</div>
+        <div class="release5-grid">
+          <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • ${brief.runwayLengthM || 0}m × ${brief.runwayWidthM || 0}m</div>
+          <div class="release5-chip"><b>Cutdown Area:</b> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" style="height:30px; width:110px; margin-left:6px;"></div>
+          <div class="release5-chip"><b>Surface:</b> ${brief.surface || 'N/A'} • ${String(brief.surfaceCondition || 'DRY').toUpperCase()}</div>
+          <div class="release5-chip"><b>Wind:</b> ${brief.windDir || 0}° / ${brief.windSpd || 0}kt • H/T ${brief.headTailKts || 0}kt • XW ${brief.crosswindKts || 0}kt</div>
+          <div class="release5-chip"><b>Abort:</b> ${brief.abortPointM || 0}m • TO ${brief.takeoffRollM || 0}m • TO+LDG ${brief.rollStopM || 0}m</div>
+        </div>
+      </div>
+
+      <div class="release5-card">
+        <div class="release5-subtitle">Safety Risk Matrix</div>
+        <div class="risk-matrix-head">
+          ${['Pilot','Aircraft','Runway','Weather','Mission'].map(cat => `<div class="risk-label">${cat}</div>`).join('')}
+        </div>
+        <div class="risk-matrix-row">
+          ${['Pilot','Aircraft','Runway','Weather','Mission'].map(cat => `
+            <div class="risk-choice-group">
+              <button class="risk-btn level-1" data-category="${cat}" data-level="1" onclick="selectRiskLevel('${cat}', 1)">1</button>
+              <button class="risk-btn level-2" data-category="${cat}" data-level="2" onclick="selectRiskLevel('${cat}', 2)">2</button>
+              <button class="risk-btn level-3" data-category="${cat}" data-level="3" onclick="selectRiskLevel('${cat}', 3)">3</button>
+            </div>
+          `).join('')}
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+          <span id="release5-total-badge" class="risk-total green">Total: 0</span>
+          <span id="release5-total-status" style="font-size:0.8rem; font-weight:700; color:#333;">Complete all categories</span>
+        </div>
+      </div>
+
+      <div class="release5-card">
+        <div class="release5-subtitle">Dispatch</div>
+        <div class="preview-bubble" id="release5-preview">${preview.full.replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
+        <div class="dispatch-action-row" style="margin-top:8px;">
+          <button id="release5-dispatch-btn" onclick="tab5SendEmail()">&#9993; Send Dispatch</button>
+        </div>
+      </div>
+    `;
+
+    _releaseRefreshDispatchUI_();
+
+    const footerBtn = document.getElementById('btnNext');
+    if (footerBtn) footerBtn.disabled = true;
+  };
+
+  window.selectRiskLevel = function(category, level) {
+    window.releaseTab5State.selected[category] = Number(level);
+
+    const group = document.querySelectorAll(`.risk-btn[data-category="${category}"]`);
+    group.forEach(btn => {
+      btn.classList.toggle('active', Number(btn.dataset.level) === Number(level));
+    });
+
+    const info = _releaseRiskTotal();
+    window.releaseTab5State.total = info.total;
+
+    const badge = document.getElementById('release5-total-badge');
+    const status = document.getElementById('release5-total-status');
+    if (badge) {
+      badge.className = `risk-total ${_releaseScoreColor(info.total)}`;
+      badge.textContent = `Total: ${info.total}`;
+    }
+    if (status) {
+      status.textContent = info.complete ? _releaseScoreLabel(info.total) : 'Complete all categories';
+    }
+
+    // Rebuild preview with live risk score
+    const mission = window.releaseTab5State.mission;
+    if (mission) {
+      const prev = _releaseBuildMessage(mission, info.total, window.releaseTab5State.selected);
+      window.releaseTab5State.currentMsg = prev;
+      const previewEl = document.getElementById('release5-preview');
+      if (previewEl) previewEl.innerHTML = prev.full.replace(/</g, '&lt;').replace(/\n/g, '<br>');
+    }
+
+    const btn = document.getElementById('btnNext');
+    if (btn) btn.disabled = !info.complete || window.releaseTab5State.sending;
+  };
+
+  window.tab5SendEmail = function(opts) {
+    opts = opts || {};
+    const msg = window.releaseTab5State.currentMsg;
+    if (!msg) { if (window.M) M.toast({ html: 'No dispatch message to send', classes: 'orange' }); return; }
+
+    if (!_releaseDispatchOnline_()) {
+      _releaseCopyCompactMessage_();
+      return;
+    }
+
+    const subject = 'Dispatch Release – Flight ' + (window.releaseTab5State.flightId || '');
+    const recipients = ['acompanhamento@asasdesocorro.org.br', 'supervisor.voo@asasdesocorro.org.br'];
+    const payload = { emails: recipients, subject: subject, message: msg.full };
+
+    google.script.run
+      .withSuccessHandler(function() {
+        if (window.M) M.toast({ html: '&#9993; Dispatch sent to operations', classes: 'green', displayLength: 5000 });
+      })
+      .withFailureHandler(function(err) {
+        if (!opts.retryAttempted && _releaseLikelyNetworkErr_(err)) {
+          setTimeout(function() {
+            window.tab5SendEmail({ retryAttempted: true });
+          }, 350);
+          return;
+        }
+
+        if (_releaseLikelyNetworkErr_(err)) {
+          _releaseCopyCompactMessage_();
+          if (window.M) {
+            M.toast({ html: 'Network issue: copied Earthmate dispatch message', classes: 'orange', displayLength: 6000 });
+          }
+          return;
+        }
+
+        if (window.M) M.toast({ html: 'Email failed: ' + (err && err.message || err), classes: 'red', displayLength: 6000 });
+      })
+      .sendDispatchEmail(payload);
+  };
+
+  window.tab5BrakesReleaseThenAdvance = function() {
+    if (window.releaseTab5State.sending) return;
+
+    const score = _releaseRiskTotal();
+    if (!score.complete) {
+      if (window.M) M.toast({ html: 'Select risk level for all 5 categories', classes: 'orange' });
+      return;
+    }
+
+    const mission = window.releaseTab5State.mission || window.currentBriefingMission || null;
+    const firstLeg = mission && mission.legs && mission.legs[0] ? mission.legs[0] : {};
+    const wbCtx = _releaseGetWbSnapshot();
+    const runwayCtx = _releaseGetRunwayContext(mission || {});
+    const msgObj = window.releaseTab5State.currentMsg || {};
+
+    const payload = {
+      missionId: window.releaseTab5State.missionId,
+      flightId: window.releaseTab5State.flightId,
+      flightLegId: window.releaseTab5State.flightLegId || firstLeg.flightLegId || '',
+      riskTotal: score.total,
+      riskDetail: window.releaseTab5State.selected,
+      chatMessage: msgObj.full || '',
+      wbSnapshot: wbCtx,
+      runwaySnapshot: runwayCtx
+    };
+
+    const runwayApprovalPayload = {
+      missionId: window.releaseTab5State.missionId,
+      flightId: window.releaseTab5State.flightId,
+      flightLegId: payload.flightLegId,
+      icao: String(firstLeg.from || '').trim().toUpperCase(),
+      rwyIdent: String(runwayCtx.runwayIdent || '').trim().toUpperCase(),
+      pilotName: String(mission && mission.pilot || '').trim(),
+      pilotEmail: String(mission && mission.meta && mission.meta.pilotEmail || '').trim(),
+      notes: 'Dispatch release runway approval request',
+      survey: {
+        missionId: payload.missionId,
+        flightId: payload.flightId,
+        flightLegId: payload.flightLegId,
+        riskTotal: score.total,
+        riskDetail: window.releaseTab5State.selected,
+        runwaySnapshot: runwayCtx,
+        wbSnapshot: wbCtx,
+        sentAt: new Date().toISOString()
+      },
+      official: {
+        lengthM: Number(runwayCtx.runwayLengthM || 0),
+        widthM: Number(runwayCtx.runwayWidthM || 0),
+        surface: String(runwayCtx.surface || '').trim(),
+        headingDeg: Number(runwayCtx.heading || 0)
+      }
+    };
+
+    const btn = document.getElementById('btnNext');
+    if (btn) { btn.disabled = true; btn.textContent = 'RELEASING...'; }
+    window.releaseTab5State.sending = true;
+
+    const onReleaseDone = function() {
+      window.releaseTab5State.sending = false;
+      // Update cached mission leg status → DEPARTED (persists offline)
+      (function() {
+        try {
+          var mid = String(window.releaseTab5State.missionId || '');
+          if (!mid) return;
+          var key = 'mission_' + mid;
+          var cached = null;
+          try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+          if (!cached || !Array.isArray(cached.legs)) return;
+          var fid = String(payload.flightLegId || '');
+          var leg = cached.legs.find(function(l) { return String(l.flightLegId || '') === fid; });
+          if (!leg) return;
+          var now = new Date().toISOString();
+          leg.logStatus = 'DEPARTED';
+          leg.bracesRelease = now;
+          localStorage.setItem(key, JSON.stringify(cached));
+          if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
+            var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l.flightLegId || '') === fid; });
+            if (ml) { ml.logStatus = 'DEPARTED'; ml.bracesRelease = now; }
+          }
+        } catch (e) { console.warn('leg cache update (DEPARTED) failed', e); }
+      })();
+      if (btn) {
+        btn.textContent = '✓ RELEASED – BRAKES FREE';
+        btn.disabled = true;
+        btn.classList.add('released');
+      }
+      if (window.M) M.toast({ html: 'Brakes released. Flight is now In-Flight.', classes: 'green', displayLength: 6000 });
+      switchTab(6);
+    };
+
+    if (typeof window.runOrQueueServerAction === 'function') {
+      try {
+        window.runOrQueueServerAction({
+          method: 'submitRunwayApprovalRequest',
+          args: [runwayApprovalPayload],
+          label: 'Runway approval request'
+        }, {
+          onSuccess: function() {},
+          onQueued: function() {},
+          onFailure: function(err) { console.warn('submitRunwayApprovalRequest failed', err); }
+        });
+      } catch (e) { console.warn('submitRunwayApprovalRequest enqueue failed', e); }
+      window.runOrQueueServerAction({
+        method: 'releaseBrakes',
+        args: [payload],
+        label: 'Brakes release'
+      }, {
+        onSuccess: onReleaseDone,
+        onQueued: function() {
+          if (window.M) M.toast({ html: 'Offline: brakes release queued — will sync when connected', classes: 'orange', displayLength: 6000 });
+          onReleaseDone();
+        },
+        onFailure: function(err) {
+          window.releaseTab5State.sending = false;
+          if (btn) { btn.textContent = 'BRAKES RELEASE'; btn.disabled = false; }
+          console.error('releaseBrakes failed', err);
+          if (window.M) M.toast({ html: 'Release failed: ' + (err && err.message ? err.message : err), classes: 'red' });
+        }
+      });
+      return;
+    }
+
+    if (!window.google || !google.script || !google.script.run) {
+      console.log('BRAKES RELEASE payload (local mode):', payload);
+      onReleaseDone();
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function() { onReleaseDone(); })
+      .withFailureHandler(function(err) {
+        window.releaseTab5State.sending = false;
+        if (btn) { btn.textContent = 'BRAKES RELEASE'; btn.disabled = false; }
+        if (window.M) M.toast({ html: 'Release failed: ' + (err && err.message ? err.message : err), classes: 'red' });
+      })
+      .releaseBrakes(payload);
+  };
+
+  if (!window.__releaseDispatchUiBound) {
+    window.__releaseDispatchUiBound = true;
+    window.addEventListener('online', _releaseRefreshDispatchUI_);
+    window.addEventListener('offline', _releaseRefreshDispatchUI_);
+  }
+</script>
+

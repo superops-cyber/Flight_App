@@ -1,0 +1,2379 @@
+<style>
+  #perf-container {
+    background: #f1f3f4;
+    min-height: 100vh;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+    display: block;
+  }
+
+  .perf-panel {
+    width: 100%;
+    max-width: 100%;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  .perf-title {
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+    font-weight: 900;
+    color: #0b5394;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+  }
+
+  .perf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  @media (min-width: 500px) {
+    .perf-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 640px) {
+    .perf-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .perf-entry-banner {
+    grid-column: 1 / -1;
+    border: 2px solid #90caf9;
+    background: #eef6ff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 2px;
+  }
+
+  .perf-entry-banner b {
+    display: block;
+    font-size: clamp(0.82rem, 1.8vw, 1rem);
+    font-weight: 900;
+    color: #0b5394;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .perf-entry-banner span {
+    display: block;
+    font-size: clamp(0.82rem, 1.7vw, 1rem);
+    color: #4b6584;
+    line-height: 1.3;
+  }
+
+  .perf-field label {
+    display: block;
+    font-size: clamp(0.78rem, 1.7vw, 0.98rem);
+    font-weight: 800;
+    color: #666;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    line-height: 1.1;
+  }
+
+  .perf-field input,
+  .perf-field select {
+    width: 100%;
+    height: clamp(42px, 6vw, 54px);
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 0 8px;
+    font-size: clamp(0.95rem, 2.1vw, 1.15rem);
+    box-sizing: border-box;
+    background: #fff;
+  }
+
+  .perf-field input[readonly], .perf-field select[disabled] {
+    background: #e9ecef;
+    color: #888;
+    border: 1.5px solid #b0b0b0;
+    font-style: italic;
+  }
+
+  .perf-field input:not([readonly]), .perf-field select:not([disabled]) {
+    background: #fff;
+    color: #222;
+    border: 2px solid #1976d2;
+    font-weight: 600;
+    box-shadow: 0 1px 2px #e3eafc;
+  }
+
+  .perf-field.perf-pilot-entry {
+    background: #f8fbff;
+    border: 2px dashed #bbdefb;
+    border-radius: 8px;
+    padding: 7px;
+  }
+
+  .perf-field.perf-pilot-entry label {
+    color: #0b5394;
+  }
+
+  .perf-subtitle {
+    margin: 10px 0 5px 0;
+    font-size: clamp(0.88rem, 1.9vw, 1.08rem);
+    font-weight: 800;
+    color: #0b5394;
+    border-top: 1px solid #ececec;
+    padding-top: 7px;
+    text-transform: uppercase;
+  }
+
+  .perf-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .perf-chip {
+    border: 1px solid #ececec;
+    background: #fafafa;
+    border-radius: 6px;
+    padding: clamp(5px, 1.2vw, 10px);
+    text-align: center;
+  }
+
+  .perf-chip small {
+    display: block;
+    font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+    color: #777;
+    text-transform: uppercase;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .perf-chip b {
+    font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+    color: #0b5394;
+    line-height: 1.1;
+  }
+
+  .perf-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  .perf-factor-list {
+    margin-top: 6px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3px 8px;
+    font-size: 1rem;
+    border: 1px solid #ededed;
+    border-radius: 6px;
+    padding: 6px;
+    background: #fbfbfb;
+  }
+
+  .perf-warnings {
+    margin-top: 6px;
+    border-radius: 6px;
+    padding: 6px;
+    font-size: 1rem;
+    background: #fff8e1;
+    border-left: 4px solid #f57c00;
+  }
+
+  .perf-warnings.danger {
+    background: #ffebee;
+    border-left-color: #d32f2f;
+  }
+
+  .perf-actions {
+    margin-top: 6px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .perf-actions button {
+    height: 38px;
+    font-size: 0.86rem;
+    font-weight: 800;
+    border-radius: 6px;
+    padding: 0 10px;
+  }
+
+  .perf-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 10080;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .perf-popup-card {
+    width: min(560px, 100%);
+    max-height: 88vh;
+    overflow: auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.28);
+    padding: 12px;
+  }
+
+  .perf-popup-title {
+    font-size: 1rem;
+    font-weight: 900;
+    color: #0b5394;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .perf-popup-display {
+    height: 56px;
+    border: 2px solid #90caf9;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 14px;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #0b5394;
+    background: #eef6ff;
+    margin-bottom: 10px;
+  }
+
+  .perf-qnh-list {
+    border: 1px solid #dbe7f3;
+    border-radius: 10px;
+    max-height: 58vh;
+    overflow-y: auto;
+    background: #fbfdff;
+    padding: 6px;
+    scroll-snap-type: y proximity;
+  }
+
+  .perf-qnh-item {
+    height: 52px;
+    border: 2px solid #d6e4f5;
+    border-radius: 8px;
+    background: #fff;
+    color: #1565c0;
+    font-size: 1.25rem;
+    font-weight: 900;
+    width: 100%;
+    margin-bottom: 6px;
+    scroll-snap-align: center;
+  }
+
+  .perf-qnh-item.recommended {
+    border-color: #1976d2;
+    background: #e8f2ff;
+  }
+
+  .perf-keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .perf-heading-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .perf-heading-grid button {
+    height: 48px;
+    border: 2px solid #cfe1f7;
+    border-radius: 8px;
+    background: #fff;
+    color: #1565c0;
+    font-size: 1.02rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .perf-heading-grid button.recommended {
+    border-color: #1976d2;
+    background: #e8f2ff;
+  }
+
+  @media (max-width: 560px) {
+    .perf-heading-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .perf-keypad-grid button {
+    height: 60px;
+    border: 2px solid #d6e4f5;
+    border-radius: 8px;
+    background: #fff;
+    color: #1565c0;
+    font-size: 1.35rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .perf-keypad-grid button.clear-key {
+    border-color: #ffcdd2;
+    background: #fff5f5;
+    color: #c62828;
+    font-size: 1.1rem;
+  }
+
+  .perf-popup-actions button {
+    height: 52px;
+    border-radius: 8px;
+    border: 2px solid #d6e4f5;
+    background: #fff;
+    color: #546e7a;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .perf-popup-actions button.ok {
+    border-color: #1565c0;
+    background: #1976d2;
+    color: #fff;
+  }
+
+  .perf-popup-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .perf-picker-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .perf-picker-row input[readonly] {
+    flex: 1;
+    background: #fff;
+    color: #222;
+    border: 2px solid #1976d2;
+    font-weight: 700;
+    box-shadow: 0 1px 2px #e3eafc;
+    font-style: normal;
+  }
+
+  .perf-picker-btn {
+    height: clamp(42px, 6vw, 54px);
+    border: 2px solid #1976d2;
+    border-radius: 6px;
+    background: #fff;
+    color: #1565c0;
+    font-weight: 800;
+    font-size: clamp(0.88rem, 1.8vw, 1.05rem);
+    padding: 0 12px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .perf-compact-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .perf-compact-row > .perf-picker-btn {
+    flex: 1 1 auto;
+  }
+
+  .perf-compact-row > .perf-mini-btn {
+    flex: 0 0 auto;
+    margin-left: 8px;
+  }
+
+  .perf-compact-row > * {
+    min-width: 0;
+  }
+
+  .perf-compact-row .perf-picker-btn {
+    height: 40px;
+    font-size: 0.78rem;
+    padding: 0 8px;
+  }
+
+  .perf-mini-num {
+    width: 86px !important;
+    height: 40px;
+    flex: 0 0 86px;
+  }
+
+  .perf-mini-btn {
+    height: 40px;
+    border: 2px solid #1976d2;
+    border-radius: 6px;
+    background: #fff;
+    color: #1565c0;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+    padding: 0 8px;
+  }
+
+  .perf-humidity-group {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+    flex-wrap: wrap;
+  }
+
+  .perf-humidity-btn {
+    flex: 0 0 calc(50% - 2px);
+    min-width: 0;
+    height: 38px;
+    font-size: 0.75rem;
+    padding: 0 6px;
+  }
+
+  .perf-calm-btn {
+    flex: 0 0 20%;
+    min-width: 74px;
+    max-width: 90px;
+  }
+
+  .perf-lock {
+    display: inline-block;
+    cursor: pointer;
+    font-size: 0.82rem;
+    margin-left: 4px;
+    vertical-align: middle;
+    line-height: 1;
+    user-select: none;
+    transition: opacity 0.15s;
+  }
+  .perf-lock:hover { opacity: 0.7; }
+
+  .perf-field-locked input,
+  .perf-field-locked select {
+    background: #e9ecef !important;
+    color: #666 !important;
+    border: 1.5px solid #adb5bd !important;
+    box-shadow: none !important;
+    font-weight: 400 !important;
+    font-style: italic !important;
+    pointer-events: none;
+  }
+
+  .perf-field-unlocked-override input,
+  .perf-field-unlocked-override select {
+    background: #fff3cd !important;
+    border: 2px solid #f0a500 !important;
+    box-shadow: 0 0 0 2px #ffe08266 !important;
+    pointer-events: auto;
+  }
+
+  @media (max-width: 380px) {
+    .perf-grid,
+    .perf-metrics,
+    .perf-strip,
+    .perf-factor-list {
+      grid-template-columns: 1fr;
+    }
+
+    .perf-humidity-btn {
+      flex: 1 1 calc(50% - 3px);
+      min-width: 0;
+    }
+
+    .perf-calm-btn {
+      flex: 0 0 28%;
+      min-width: 62px;
+    }
+  }
+</style>
+
+<div id="perf-container">
+  <div class="perf-panel">
+    <div class="perf-title">Tab 4: Performance & Departure</div>
+
+    <div class="perf-grid">
+      <div class="perf-entry-banner">
+        <b>Pilot entry required</b>
+        <span>All blue boxed fields below must be actively selected or entered, including runway.</span>
+      </div>
+
+      <div class="perf-field">
+        <label>Airport</label>
+        <input id="perf-airport" type="text" readonly>
+      </div>
+      <div class="perf-field perf-pilot-entry">
+        <label>Runway</label>
+        <select id="perf-runway" class="browser-default" required><option value="" selected>Select runway...</option></select>
+      </div>
+      <div class="perf-field">
+        <label>Weight kg</label>
+        <input id="perf-weight" type="number" inputmode="numeric" readonly>
+      </div>
+
+
+      <div class="perf-field" id="perf-field-length">
+        <label>Length m <span id="perf-length-lock" class="perf-lock" style="display:none" title="Tap to unlock">🔒</span></label>
+        <input id="perf-runway-length" type="number" inputmode="numeric" readonly>
+      </div>
+      <div class="perf-field">
+        <label>Elevation ft</label>
+        <input id="perf-elevation" type="number" inputmode="numeric" readonly>
+      </div>
+      <div class="perf-field" id="perf-field-slope">
+        <label>Slope % <span id="perf-slope-lock" class="perf-lock" style="display:none" title="Tap to unlock">🔒</span></label>
+        <input id="perf-slope" type="number" inputmode="decimal" min="-12" max="12" step="1" placeholder="Required" required>
+      </div>
+
+      <div class="perf-field perf-pilot-entry" id="perf-field-surface">
+        <label>Surface <span id="perf-surface-lock" class="perf-lock" style="display:none" title="Tap to unlock">🔒</span></label>
+        <select id="perf-surface" class="browser-default" required><option value="">Select...</option></select>
+      </div>
+      <div class="perf-field perf-pilot-entry">
+        <label>Flaps</label>
+        <select id="perf-flaps" class="browser-default" required><option value="">Select...</option></select>
+      </div>
+
+      <div class="perf-field perf-pilot-entry">
+        <label>QNH hPa</label>
+        <div class="perf-picker-row">
+          <input id="perf-qnh" type="number" inputmode="decimal" placeholder="Required" required step="1" readonly>
+          <button type="button" class="perf-picker-btn" onclick="window.flightDeckOpenQnhPicker('perf-qnh', { title: 'QNH HPA' })">QNH</button>
+        </div>
+      </div>
+      <div class="perf-field perf-pilot-entry">
+        <label>Temp °C</label>
+        <div class="perf-picker-row">
+          <input id="perf-temp" type="number" inputmode="decimal" placeholder="Required" required step="1" readonly>
+          <button type="button" class="perf-picker-btn" onclick="window.flightDeckOpenNumericKeypad('perf-temp', { title: 'TEMP °C', allowSign: true, clearOnOpen: true })">TEMP</button>
+        </div>
+      </div>
+
+      <div class="perf-field perf-pilot-entry">
+        <label>Humidity %</label>
+        <div class="perf-humidity-group">
+          <button type="button" id="perf-humidity-low" class="perf-mini-btn perf-humidity-btn" onclick="_selectHumidity('low')">&lt; 80%</button>
+          <button type="button" id="perf-humidity-high" class="perf-mini-btn perf-humidity-btn" onclick="_selectHumidity('high')">&ge; 80%</button>
+        </div>
+        <input type="hidden" id="perf-humidity" required value="">
+      </div>
+      <div class="perf-field perf-pilot-entry">
+        <label>Condition</label>
+        <select id="perf-surface-condition" class="browser-default" required><option value="">Select...</option><option value="DRY">Dry</option><option value="WET">Wet</option></select>
+      </div>
+
+      <div class="perf-field perf-pilot-entry"><label>Wind Dir °</label><div class="perf-compact-row"><input id="perf-wind-direction" class="perf-mini-num" type="number" inputmode="numeric" min="0" max="360" step="10" value="0" readonly><button type="button" class="perf-picker-btn" onclick="window.perfOpenWindDirKeypad()">HDG</button></div></div>
+      <div class="perf-field perf-pilot-entry"><label>Wind Speed kts</label><div class="perf-compact-row"><input id="perf-wind-speed" class="perf-mini-num" type="number" inputmode="numeric" min="0" max="60" step="1" value="0" readonly><button type="button" class="perf-picker-btn" onclick="window.perfOpenWindSpdKeypad()">SPD</button><button type="button" id="perf-calm-wind-btn" class="perf-mini-btn perf-calm-btn" onclick="_perfSetCalmWind()">CALM</button></div></div>
+    </div>
+
+    <div class="perf-strip">
+      <div class="perf-chip"><small>Runway HDG</small><b id="perf-rwy-hdg">000°</b></div>
+      <div class="perf-chip"><small>Head/Tail</small><b id="perf-head-tail">0 kt</b></div>
+      <div class="perf-chip"><small>Crosswind</small><b id="perf-crosswind">0 kt</b></div>
+    </div>
+
+    <div class="perf-subtitle">Live Results</div>
+
+    <div class="perf-metrics" id="perf-results" style="display:none;">
+      <div class="perf-chip"><small>TO Roll</small><b id="perf-to-roll">0 m</b></div>
+      <div class="perf-chip"><small>Stop Roll</small><b id="perf-ldg-roll">0 m</b></div>
+      <div class="perf-chip"><small>50% TO</small><b id="perf-half-to">0 m</b></div>
+      <div class="perf-chip"><small>TO+LDG</small><b id="perf-total-roll">0 m</b></div>
+      <div class="perf-chip"><small>75% RWY</small><b id="perf-75">0 m</b></div>
+      <div class="perf-chip"><small>Density Alt</small><b id="perf-da">0 ft</b></div>
+    </div>
+
+    <div id="perf-results-empty" style="font-size:1rem; color:#777; margin-top:6px;">
+      Live calculation starts as inputs are entered.
+    </div>
+
+    <div class="perf-factor-list" id="perf-factors" style="display:none;"></div>
+
+    <div id="perf-warnings" class="perf-warnings" style="display:none;"></div>
+
+    <div class="perf-subtitle">Runway Diagram</div>
+    <svg id="perf-runway-diagram" width="100%" height="380" viewBox="0 0 520 380" style="border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; display: none; margin-bottom: 12px;">
+      <!-- Runway diagram SVG will be drawn here -->
+    </svg>
+    <div id="perf-diagram-empty" style="font-size:1rem; color:#999; text-align:center; padding:20px 0;">
+      Select runway to view diagram
+    </div>
+
+
+  </div>
+</div>
+
+<div id="perf-popup-backdrop" class="perf-popup-backdrop">
+  <div class="perf-popup-card">
+    <div id="perf-popup-title" class="perf-popup-title">Input</div>
+    <div id="perf-popup-display" class="perf-popup-display">0</div>
+    <div id="perf-popup-body"></div>
+    <div id="perf-popup-actions" class="perf-popup-actions"></div>
+  </div>
+</div>
+
+<script>
+  window.performanceTab4 = {
+    missionId: '',
+    flightId: '',
+    aircraftReg: '',
+    aircraftType: '',
+    fromIcao: '',
+    weightKg: 0,
+    runways: [],
+    calcReference: null,
+    flapOptions: [],
+    surfaceOptions: [],
+    manualSurfaceOptions: ['Firm Turf', 'Short Grass', 'Grass to 6"', 'Long Grass', 'Rough', 'Mud', 'Sand', 'Asphalt'],
+    slopeOverridden: false,
+    windConfirmed: false,
+    diagramZoomMode: 'focus',
+    lastPerformanceResult: null,
+    calcTimer: null
+  };
+
+  window.flightDeckPopupState = window.flightDeckPopupState || {
+    targetInputId: '',
+    mode: '',
+    value: '',
+    title: '',
+    allowSign: false,
+    onCommit: null
+  };
+
+  function _flightDeckOpenPopup_(title) {
+    const back = document.getElementById('perf-popup-backdrop');
+    const titleEl = document.getElementById('perf-popup-title');
+    if (!back || !titleEl) return;
+    titleEl.textContent = title || 'Input';
+    back.style.display = 'flex';
+  }
+
+  function _flightDeckClosePopup_() {
+    const back = document.getElementById('perf-popup-backdrop');
+    if (back) back.style.display = 'none';
+  }
+
+  function _flightDeckSetPopupDisplay_(value) {
+    const display = document.getElementById('perf-popup-display');
+    if (display) display.textContent = String(value == null || value === '' ? '0' : value);
+  }
+
+  function _flightDeckCommitPopupValue_() {
+    const state = window.flightDeckPopupState || {};
+    const input = document.getElementById(state.targetInputId || '');
+    if (input) {
+      input.value = String(state.value || '');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (typeof state.onCommit === 'function') state.onCommit(state.value || '');
+    _flightDeckClosePopup_();
+  }
+
+  window.flightDeckOpenQnhPicker = function(targetInputId, opts) {
+    const input = document.getElementById(targetInputId || '');
+    const current = Number(input && input.value || 1013) || 1013;
+    const start = 1013 - 20;
+    const end = 1013 + 20;
+    const body = document.getElementById('perf-popup-body');
+    const actions = document.getElementById('perf-popup-actions');
+    window.flightDeckPopupState = {
+      targetInputId: targetInputId,
+      mode: 'qnh',
+      value: String(current),
+      title: opts && opts.title ? opts.title : 'QNH HPA',
+      allowSign: false,
+      onCommit: opts && opts.onCommit
+    };
+    _flightDeckOpenPopup_(window.flightDeckPopupState.title);
+    _flightDeckSetPopupDisplay_(current);
+    if (body) {
+      body.innerHTML = '<div id="perf-qnh-list" class="perf-qnh-list">'
+        + Array.from({ length: end - start + 1 }, function(_, idx) {
+            const val = start + idx;
+            const cls = val === 1013 ? 'perf-qnh-item recommended' : 'perf-qnh-item';
+            const inHg = (val * 0.0295299830714).toFixed(2);
+            return '<button type="button" class="' + cls + '" data-qnh-value="' + val + '" onclick="window.flightDeckChooseQnh(' + val + ', true)">' + val + ' / ' + inHg + ' inHg</button>';
+          }).join('')
+        + '</div>';
+    }
+    if (actions) {
+      actions.innerHTML = '<button type="button" onclick="window.flightDeckChooseQnh(1013, true)">STD 1013 / 29.92</button>'
+        + '<button type="button" onclick="window.flightDeckClosePopup()" style="background:#6b7280;">CLOSE</button>';
+    }
+    setTimeout(function() {
+      const list = document.getElementById('perf-qnh-list');
+      const active = list && list.querySelector('[data-qnh-value="' + current + '"]');
+      if (list && active) active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 50);
+  };
+
+  window.flightDeckChooseQnh = function(val, autoCommit) {
+    window.flightDeckPopupState.value = String(val);
+    _flightDeckSetPopupDisplay_(val);
+    if (autoCommit) _flightDeckCommitPopupValue_();
+  };
+
+  window.flightDeckOpenNumericKeypad = function(targetInputId, opts) {
+    const input = document.getElementById(targetInputId || '');
+    const body = document.getElementById('perf-popup-body');
+    const actions = document.getElementById('perf-popup-actions');
+    const initialValue = String(input && input.value || '');
+    const clearOnOpen = !!(opts && opts.clearOnOpen);
+    const shouldClear = clearOnOpen;
+    window.flightDeckPopupState = {
+      targetInputId: targetInputId,
+      mode: 'numeric',
+      value: shouldClear ? '' : initialValue,
+      title: opts && opts.title ? opts.title : 'Numeric Input',
+      allowSign: !!(opts && opts.allowSign),
+      onCommit: opts && opts.onCommit
+    };
+    _flightDeckOpenPopup_(window.flightDeckPopupState.title);
+    _flightDeckSetPopupDisplay_(window.flightDeckPopupState.value || '0');
+    if (body) {
+      const keys = window.flightDeckPopupState.allowSign
+        ? ['7','8','9','4','5','6','1','2','3','+/-','0','⌫']
+        : ['7','8','9','4','5','6','1','2','3','C','0','⌫'];
+      body.innerHTML = '<div class="perf-keypad-grid">'
+        + keys.map(function(key) {
+            const extraCls = key === 'C' ? ' class="clear-key"' : '';
+            return '<button type="button"' + extraCls + ' onclick="window.flightDeckKeypadPress(\'' + key + '\')">' + key + '</button>';
+          }).join('')
+        + '</div>';
+    }
+    if (actions) {
+      actions.innerHTML = '<button type="button" onclick="window.flightDeckClosePopup()">Cancel</button>'
+        + '<button type="button" class="ok" onclick="window.flightDeckCommitPopup()">OK</button>';
+    }
+  };
+
+  window.flightDeckKeypadPress = function(key) {
+    const state = window.flightDeckPopupState || {};
+    let value = String(state.value || '');
+    if (key === 'C') value = '';
+    else if (key === '⌫') value = value.slice(0, -1);
+    else if (key === '+/-' && state.allowSign) value = value.indexOf('-') === 0 ? value.slice(1) : ('-' + value);
+    else value += key;
+    window.flightDeckPopupState.value = value;
+    _flightDeckSetPopupDisplay_(value || '0');
+  };
+
+  window.flightDeckCommitPopup = function() { _flightDeckCommitPopupValue_(); };
+  window.flightDeckClosePopup = function() { _flightDeckClosePopup_(); };
+
+  window.flightDeckOpenHeadingPicker = function(targetInputId, opts) {
+    const input = document.getElementById(targetInputId || '');
+    const current = _roundWind10(Number(input && input.value || 0));
+    const body = document.getElementById('perf-popup-body');
+    const actions = document.getElementById('perf-popup-actions');
+    window.flightDeckPopupState = {
+      targetInputId: targetInputId,
+      mode: 'heading',
+      value: String(current || ''),
+      title: opts && opts.title ? opts.title : 'WIND DIRECTION °',
+      allowSign: false,
+      onCommit: opts && opts.onCommit
+    };
+
+    _flightDeckOpenPopup_(window.flightDeckPopupState.title);
+    _flightDeckSetPopupDisplay_(current ? String(current).padStart(3, '0') : '---');
+
+    if (body) {
+      body.innerHTML = '<div class="perf-heading-grid">'
+        + Array.from({ length: 36 }, function(_, idx) {
+            const val = (idx + 1) * 10;
+            const cls = val === current ? 'recommended' : '';
+            const label = String(val).padStart(3, '0') + '°';
+            return '<button type="button" class="' + cls + '" onclick="window.flightDeckChooseHeading(' + val + ', true)">' + label + '</button>';
+          }).join('')
+        + '</div>';
+    }
+
+    if (actions) {
+      actions.innerHTML = '<button type="button" onclick="window.flightDeckChooseHeading(0, true)">CALM 000</button>'
+        + '<button type="button" onclick="window.flightDeckClosePopup()" style="background:#6b7280;">CLOSE</button>';
+    }
+  };
+
+  window.flightDeckChooseHeading = function(val, autoCommit) {
+    const heading = _roundWind10(val);
+    window.flightDeckPopupState.value = String(heading);
+    _flightDeckSetPopupDisplay_(heading ? String(heading).padStart(3, '0') : '000');
+    if (autoCommit) _flightDeckCommitPopupValue_();
+  };
+
+  function _perfNorm(v) {
+    return String(v || '').trim().toUpperCase();
+  }
+
+  function _perfCalcKeyNorm(v) {
+    return String(v || '').toUpperCase().trim().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+
+  function _perfFieldValue_(obj, keys, fallback) {
+    const src = obj || {};
+    const normalized = {};
+    Object.keys(src).forEach(function(k) {
+      normalized[_perfCalcKeyNorm(k)] = src[k];
+    });
+    for (let i = 0; i < (keys || []).length; i++) {
+      const direct = keys[i];
+      if (Object.prototype.hasOwnProperty.call(src, direct) && src[direct] != null && src[direct] !== '') {
+        return src[direct];
+      }
+      const norm = _perfCalcKeyNorm(direct);
+      if (Object.prototype.hasOwnProperty.call(normalized, norm) && normalized[norm] != null && normalized[norm] !== '') {
+        return normalized[norm];
+      }
+    }
+    return fallback;
+  }
+
+  function _perfSurfaceNorm(v) {
+    return String(v || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, ' ')
+      .trim();
+  }
+
+  function _perfResolveSurfaceValue_(rawSurface, translator, options) {
+    const rawNorm = _perfSurfaceNorm(rawSurface);
+    if (!rawNorm) return '';
+
+    const dict = Object.assign({}, translator || {});
+    dict['ASFALTO'] = dict['ASFALTO'] || 'Asphalt';
+    dict['ASPHALTO'] = dict['ASPHALTO'] || 'Asphalt';
+    dict['CONCRETO'] = dict['CONCRETO'] || 'Asphalt';
+    dict['ASFALTO CONCRETO'] = dict['ASFALTO CONCRETO'] || 'Asphalt';
+    dict['CIMENTO'] = dict['CIMENTO'] || 'Asphalt';
+    dict['GRAMA'] = dict['GRAMA'] || 'Grass to 6"';
+    dict['GRAMA CURTA'] = dict['GRAMA CURTA'] || 'Short Grass';
+    dict['GRAMA LONGA'] = dict['GRAMA LONGA'] || 'Long Grass';
+    dict['TERRA'] = dict['TERRA'] || 'Rough';
+    dict['CASCALHO'] = dict['CASCALHO'] || 'Rough';
+    dict['AREIA'] = dict['AREIA'] || 'Sand';
+    dict['LAMA'] = dict['LAMA'] || 'Mud';
+    dict['TURF'] = dict['TURF'] || 'Firm Turf';
+    dict['TURF FIRME'] = dict['TURF FIRME'] || 'Firm Turf';
+
+    const normalizedMap = {};
+    Object.keys(dict).forEach(k => {
+      normalizedMap[_perfSurfaceNorm(k)] = String(dict[k] || '').trim();
+    });
+
+    let translated = normalizedMap[rawNorm] || '';
+
+    if (!translated) {
+      const mapKeys = Object.keys(normalizedMap);
+      const containingKey = mapKeys.find(k => rawNorm.indexOf(k) >= 0 || k.indexOf(rawNorm) >= 0);
+      if (containingKey) translated = normalizedMap[containingKey];
+    }
+
+    const targetNorm = _perfSurfaceNorm(translated || rawSurface);
+    if (!targetNorm) return '';
+
+    const exact = (options || []).find(o => _perfSurfaceNorm(o.value) === targetNorm || _perfSurfaceNorm(o.textContent) === targetNorm);
+    if (exact) return exact.value;
+
+    const fuzzy = (options || []).find(o => {
+      const ov = _perfSurfaceNorm(o.value);
+      const ot = _perfSurfaceNorm(o.textContent);
+      return ov.indexOf(targetNorm) >= 0 || targetNorm.indexOf(ov) >= 0 || ot.indexOf(targetNorm) >= 0 || targetNorm.indexOf(ot) >= 0;
+    });
+    return fuzzy ? fuzzy.value : '';
+  }
+
+  function _perfCalcNum(v, d) {
+    const n = parseFloat(v);
+    return isNaN(n) ? (d || 0) : n;
+  }
+
+  function _perfToMeters_(v) {
+    if (v == null || v === '') return 0;
+    const txt = String(v).trim().toUpperCase();
+    const n = parseFloat(txt.replace(',', '.'));
+    if (isNaN(n)) return 0;
+    if (txt.indexOf('FT') >= 0 || txt.indexOf('FEET') >= 0) return n * 0.3048;
+    return n;
+  }
+
+  function _perfHeadingFromIdent_(ident) {
+    const raw = String(ident || '').trim().toUpperCase();
+    const m = raw.match(/(\d{1,2})/);
+    if (!m) return 0;
+    const n = parseInt(m[1], 10);
+    if (isNaN(n) || n < 1 || n > 36) return 0;
+    return n * 10;
+  }
+
+  function _perfParseJsonSafe_(raw, fallback) {
+    try {
+      const txt = String(raw == null ? '' : raw).trim();
+      if (!txt) return fallback;
+      return JSON.parse(txt);
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function buildLocalPerformanceSetup_(icao) {
+    const airportCode = String(icao || '').trim().toUpperCase();
+    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const runwayRows = airports.filter(function(r) {
+      return String(r && r.icao || '').trim().toUpperCase() === airportCode;
+    });
+    if (!runwayRows.length) return null;
+
+    const runways = runwayRows.map(function(r) {
+      const ident = String(r.runwayIdent || 'RWY').trim();
+      const headingFromField = _perfCalcNum(r.runwayHeading, 0);
+      const headingDeg = headingFromField > 0 ? headingFromField : _perfHeadingFromIdent_(ident);
+      const lengthM = _perfToMeters_(r.runwayLength);
+      const widthM = _perfToMeters_(r.runwayWidth);
+      const slope = _perfCalcNum(r.runwaySlopePercent, 0);
+      let slopeProfile = _perfParseJsonSafe_(r.runwaySlopeProfile, []);
+      if (!Array.isArray(slopeProfile) || !slopeProfile.length) {
+        slopeProfile = [{ distance: Math.max(lengthM, 1), slope: slope }];
+      }
+
+      const knownRaw = _perfParseJsonSafe_(r.knownFeatures, []);
+      const knownObj = Array.isArray(knownRaw) ? { features: knownRaw } : (knownRaw || {});
+      const knownFeatures = Array.isArray(knownObj.features) ? knownObj.features : [];
+      const verifiedOp = (knownObj && knownObj.verifiedOperational) ? knownObj.verifiedOperational : {};
+      const officialRef = (knownObj && knownObj.officialReference) ? knownObj.officialReference : {};
+      const drawLengthM = _perfCalcNum(verifiedOp.lengthM, lengthM) || lengthM;
+      const drawWidthM = _perfCalcNum(verifiedOp.widthM, widthM) || widthM;
+      const drawSurface = String(
+        verifiedOp.surface
+        || _perfFieldValue_(r, ['runwaySurfaceActual', 'surface', 'SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'SURFACE'], '')
+        || ''
+      ).trim();
+      const markerFeatures = Array.isArray(verifiedOp.features) ? verifiedOp.features : knownFeatures;
+
+      return {
+        icao: airportCode,
+        rwyIdent: ident,
+        headingDeg: headingDeg,
+        length: drawLengthM,
+        width: drawWidthM,
+        slope: slope,
+        elevation: _perfCalcNum(r.elevationFt, 0),
+        surface: drawSurface,
+        surfaceCondition: String(r.runwaySurfaceCondition || '').trim(),
+        pilotNotes: String(r.pilotNotes || '').trim(),
+        chartUrl: String(r.chartUrl || '').trim(),
+        airstripPhoto: String(r.airstripPhoto || '').trim(),
+        knownFeatures: markerFeatures,
+        officialReference: {
+          lengthM: _perfCalcNum(officialRef.lengthM, lengthM) || lengthM,
+          widthM: _perfCalcNum(officialRef.widthM, widthM) || widthM,
+          surface: String(officialRef.surface || _perfFieldValue_(r, ['runwaySurfaceActual', 'surface', 'SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'SURFACE'], '') || '').trim()
+        },
+        slopeProfile: slopeProfile
+      };
+    }).sort(function(a, b) {
+      const ha = _perfCalcNum(a.headingDeg, 0);
+      const hb = _perfCalcNum(b.headingDeg, 0);
+      if (ha !== hb) return ha - hb;
+      return String(a.rwyIdent || '').localeCompare(String(b.rwyIdent || ''));
+    });
+
+    const fallbackRef = readGlobalPerformanceReference_() || { baseRows: [], perfRows: [] };
+    const activeRef = window.performanceTab4.calcReference || fallbackRef;
+
+    return {
+      runways: runways,
+      flapOptions: [0, 10, 20],
+      humidityOptions: [60, 90],
+      surfaceOptions: (window.performanceTab4.manualSurfaceOptions || []).slice(),
+      surfaceTranslator: {
+        'ASFALTO': 'Asphalt',
+        'ASPHALTO': 'Asphalt',
+        'CONCRETO': 'Asphalt',
+        'GRAMA': 'Grass to 6"',
+        'GRAMA CURTA': 'Short Grass',
+        'GRAMA LONGA': 'Long Grass',
+        'TERRA': 'Rough',
+        'AREIA': 'Sand',
+        'CASCALHO': 'Rough',
+        'LAMA': 'Mud',
+        'TURF': 'Firm Turf',
+        'TURF FIRME': 'Firm Turf'
+      },
+      calcReference: activeRef
+    };
+  }
+
+  function _perfCalcValue(obj, keys, fallback) {
+    for (let i = 0; i < keys.length; i++) {
+      const k = _perfCalcKeyNorm(keys[i]);
+      if (Object.prototype.hasOwnProperty.call(obj || {}, k) && obj[k] !== '' && obj[k] != null) {
+        return obj[k];
+      }
+    }
+    return fallback;
+  }
+
+  function _roundWind10(v) {
+    const n = Number(v || 0);
+    if (!isFinite(n)) return 0;
+    const clamped = Math.max(0, Math.min(360, n));
+    return Math.round(clamped / 10) * 10;
+  }
+
+  function _factorText(v) {
+    const n = Number(v || 0);
+    const pct = ((n - 1) * 100);
+    const sign = pct > 0 ? '+' : '';
+    return `${n.toFixed(3)} (${sign}${pct.toFixed(0)}%)`;
+  }
+
+  function perfSetupCacheKey_(icao) {
+    return 'mba_cache_perfsetup_' + String(icao || '').trim().toUpperCase();
+  }
+
+  function cachePerformanceSetup_(icao, data) {
+    try {
+      const key = perfSetupCacheKey_(icao);
+      if (!key || !icao || !data) return;
+      localStorage.setItem(key, JSON.stringify({
+        icao: String(icao || '').trim().toUpperCase(),
+        cachedAt: new Date().toISOString(),
+        payload: data
+      }));
+    } catch (e) {
+      console.warn('Performance setup cache write failed', e);
+    }
+  }
+
+  function readCachedPerformanceSetup_(icao) {
+    try {
+      const raw = localStorage.getItem(perfSetupCacheKey_(icao));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.payload ? parsed.payload : null;
+    } catch (e) {
+      console.warn('Performance setup cache read failed', e);
+      return null;
+    }
+  }
+
+  window.cachePerformanceSetup_ = cachePerformanceSetup_;
+  window.readCachedPerformanceSetup_ = readCachedPerformanceSetup_;
+
+  function cacheGlobalPerformanceReference_(calcReference) {
+    try {
+      const baseRows = (calcReference && calcReference.baseRows) || [];
+      const perfRows = (calcReference && calcReference.perfRows) || [];
+      if (!Array.isArray(baseRows) || !baseRows.length || !Array.isArray(perfRows) || !perfRows.length) return;
+      localStorage.setItem('mba_cache_perfcalc_ref_global', JSON.stringify({
+        cachedAt: new Date().toISOString(),
+        calcReference: {
+          baseRows: baseRows,
+          perfRows: perfRows
+        }
+      }));
+    } catch (e) {
+      console.warn('Global performance reference cache write failed', e);
+    }
+  }
+
+  function readGlobalPerformanceReference_() {
+    try {
+      const raw = localStorage.getItem('mba_cache_perfcalc_ref_global');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const ref = parsed && parsed.calcReference ? parsed.calcReference : null;
+      if (!ref) return null;
+      if (!Array.isArray(ref.baseRows) || !ref.baseRows.length) return null;
+      if (!Array.isArray(ref.perfRows) || !ref.perfRows.length) return null;
+      return ref;
+    } catch (e) {
+      console.warn('Global performance reference cache read failed', e);
+      return null;
+    }
+  }
+
+  function perfResultCacheKey_(payload) {
+    const keyObj = {
+      aircraftType: String(payload && payload.aircraftType || '').trim().toUpperCase(),
+      runwayLengthM: Number(payload && payload.runwayLengthM || 0),
+      slopePercent: Number(payload && payload.slopePercent || 0),
+      elevationFt: Number(payload && payload.elevationFt || 0),
+      surface: String(payload && payload.surface || '').trim().toUpperCase(),
+      surfaceCondition: String(payload && payload.surfaceCondition || '').trim().toUpperCase(),
+      qnhHpa: Number(payload && payload.qnhHpa || 0),
+      tempC: Number(payload && payload.tempC || 0),
+      humidityPct: Number(payload && payload.humidityPct || 0),
+      windDirectionDeg: Number(payload && payload.windDirectionDeg || 0),
+      windSpeedKts: Number(payload && payload.windSpeedKts || 0),
+      runwayHeadingDeg: Number(payload && payload.runwayHeadingDeg || 0),
+      flapSetting: Number(payload && payload.flapSetting || 0),
+      weightKg: Number(payload && payload.weightKg || 0)
+    };
+    return 'mba_cache_perfcalc_' + encodeURIComponent(JSON.stringify(keyObj));
+  }
+
+  function cachePerformanceResult_(payload, result) {
+    try {
+      if (!payload || !result) return;
+      localStorage.setItem(perfResultCacheKey_(payload), JSON.stringify({
+        cachedAt: new Date().toISOString(),
+        payload: payload,
+        result: result
+      }));
+    } catch (e) {
+      console.warn('Performance result cache write failed', e);
+    }
+  }
+
+  function readCachedPerformanceResult_(payload) {
+    try {
+      const raw = localStorage.getItem(perfResultCacheKey_(payload));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.result ? parsed.result : null;
+    } catch (e) {
+      console.warn('Performance result cache read failed', e);
+      return null;
+    }
+  }
+
+  function applyPerformanceResult_(result) {
+    document.getElementById('perf-results-empty').style.display = 'none';
+    document.getElementById('perf-results').style.display = 'grid';
+
+    document.getElementById('perf-da').textContent = `${Math.round(result.densityAltitudeFt || 0)} ft`;
+    document.getElementById('perf-to-roll').textContent = `${Math.round(result.takeoffRollM || 0)} m`;
+    document.getElementById('perf-ldg-roll').textContent = `${Math.round(result.landingRollM || 0)} m`;
+    document.getElementById('perf-total-roll').textContent = `${Math.round(result.combinedRollM || 0)} m`;
+    document.getElementById('perf-half-to').textContent = `${Math.round(result.halfTakeoffRollM || 0)} m`;
+    document.getElementById('perf-75').textContent = `${Math.round(result.takeoff75PctThresholdM || 0)} m`;
+
+    const headTail = Number(result.headTailComponentKts || 0);
+    const headTailTag = headTail >= 0 ? 'H' : 'T';
+    document.getElementById('perf-head-tail').textContent = `${Math.abs(headTail).toFixed(1)} ${headTailTag}`;
+    document.getElementById('perf-crosswind').textContent = `${Number(result.crosswindComponentKts || 0).toFixed(1)} X`;
+
+    const f = result.factors || {};
+    document.getElementById('perf-factors').style.display = 'grid';
+    document.getElementById('perf-factors').innerHTML = [
+      ['Base TO', result.baseTakeoffM],
+      ['Base LDG', result.baseLandingM],
+      ['DA TO', _factorText(f.daTakeoff)],
+      ['DA LDG', _factorText(f.daLanding)],
+      ['Surface TO', _factorText(f.surfaceTakeoff)],
+      ['Surface LDG', _factorText(f.surfaceLanding)],
+      ['Slope TO', _factorText(f.slopeTakeoff)],
+      ['Slope LDG', _factorText(f.slopeLanding)],
+      ['Wind TO', _factorText(f.windTakeoff)],
+      ['Wind LDG', _factorText(f.windLanding)],
+      ['Humidity', _factorText(f.humidity)],
+      ['Flap', _factorText(f.flap)]
+    ].map(([k, v]) => `<div><b>${k}:</b> ${v}</div>`).join('');
+
+    const warnEl = document.getElementById('perf-warnings');
+    const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+    if (warnings.length) {
+      warnEl.style.display = 'block';
+      warnEl.className = result.blocking ? 'perf-warnings danger' : 'perf-warnings';
+      warnEl.innerHTML = warnings.map(w => `⚠ ${w}`).join('<br>');
+    } else {
+      warnEl.style.display = 'none';
+      warnEl.innerHTML = '';
+    }
+
+    window.performanceTab4.lastPerformanceResult = result;
+    const runway = window.performanceTab4.selectedRunway;
+    window.drawRunwayDiagram(runway, result);
+  }
+
+  function applyPerformanceSetupData_(data) {
+    window.performanceTab4.runways = (data && data.runways) ? data.runways : [];
+    const incomingRef = (data && data.calcReference) ? data.calcReference : null;
+    cacheGlobalPerformanceReference_(incomingRef);
+    window.performanceTab4.calcReference = incomingRef || readGlobalPerformanceReference_() || { baseRows: [], perfRows: [] };
+    window.performanceTab4.flapOptions = (data && data.flapOptions) ? data.flapOptions : [];
+    window.performanceTab4.humidityOptions = (data && data.humidityOptions) ? data.humidityOptions : [];
+    window.performanceTab4.surfaceOptions = (data && data.surfaceOptions) ? data.surfaceOptions : [];
+    window.performanceTab4.surfaceTranslator = (data && data.surfaceTranslator) ? data.surfaceTranslator : {};
+
+    const runwaySel = document.getElementById('perf-runway');
+    if (runwaySel) {
+      const rwys = window.performanceTab4.runways;
+      runwaySel.innerHTML = rwys.length
+        ? '<option value="">Select runway...</option>' + rwys.map((r, idx) => {
+            const ident = r.rwyIdent || 'RWY';
+            return `<option value="${idx}">RWY ${ident}</option>`;
+          }).join('')
+        : '<option value="">No runway data</option>';
+      runwaySel.value = '';
+    }
+
+    const flapSel = document.getElementById('perf-flaps');
+    if (flapSel) {
+      const flaps = window.performanceTab4.flapOptions;
+      flapSel.innerHTML = '<option value="">Select...</option>' + (flaps.length
+        ? flaps.map(v => `<option value="${v}">${v}</option>`).join('')
+        : '<option value="0">0</option><option value="10">10</option><option value="20">20</option>');
+      flapSel.value = '';
+    }
+
+    const surfaceSel = document.getElementById('perf-surface');
+    if (surfaceSel) {
+      const fromSetup = Array.isArray(window.performanceTab4.surfaceOptions) ? window.performanceTab4.surfaceOptions : [];
+      const manual = window.performanceTab4.manualSurfaceOptions || [];
+      const merged = [];
+      const seen = {};
+      fromSetup.concat(manual).forEach(function(v) {
+        const txt = String(v || '').trim();
+        if (!txt) return;
+        const key = _perfSurfaceNorm(txt);
+        if (seen[key]) return;
+        seen[key] = true;
+        merged.push(txt);
+      });
+
+      surfaceSel.innerHTML = '<option value="">Select...</option>' + merged
+        .map(v => `<option value="${String(v).replace(/"/g, '&quot;')}">${v}</option>`)
+        .join('');
+      surfaceSel.value = '';
+    }
+
+    // Humidity is now a two-button toggle; just reset its hidden input on runway change
+    _selectHumidity(null);
+
+    if (window.M && window.M.FormSelect) {
+      const selects = document.querySelectorAll('#perf-runway, #perf-flaps, #perf-surface, #perf-surface-condition');
+      M.FormSelect.init(selects);
+    }
+
+    window.onPerfRunwayChange();
+    window.schedulePerformanceRecalc();
+  }
+
+  function _perfInterpBaseRoll_(baseRows, weightKg) {
+    if (!baseRows || !baseRows.length) return { to: 0, ldg: 0 };
+    const sorted = baseRows.slice().sort((a, b) => a.w - b.w);
+    if (weightKg <= sorted[0].w) return { to: sorted[0].to, ldg: sorted[0].ldg };
+    if (weightKg >= sorted[sorted.length - 1].w) {
+      const last = sorted[sorted.length - 1];
+      return { to: last.to, ldg: last.ldg };
+    }
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      if (weightKg >= a.w && weightKg <= b.w) {
+        const ratio = (weightKg - a.w) / ((b.w - a.w) || 1);
+        return {
+          to: a.to + ratio * (b.to - a.to),
+          ldg: a.ldg + ratio * (b.ldg - a.ldg)
+        };
+      }
+    }
+    return { to: sorted[0].to, ldg: sorted[0].ldg };
+  }
+
+  // Interpolates multiplier if exact match not found
+  function _perfNearestMultiplier_(rows, keyNames, target, valueNames, fallback) {
+    const points = [];
+    (rows || []).forEach(r => {
+      const keyRaw = _perfCalcValue(r, keyNames, '');
+      const valRaw = _perfCalcValue(r, valueNames, '');
+      const k = parseFloat(keyRaw);
+      const v = parseFloat(valRaw);
+      if (!isNaN(k) && !isNaN(v)) points.push({ k, v });
+    });
+    if (!points.length) return fallback || 1;
+    points.sort((a, b) => a.k - b.k);
+    // Exact match
+    for (let i = 0; i < points.length; i++) {
+      if (points[i].k === target) return points[i].v;
+    }
+    // Interpolate
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i], b = points[i + 1];
+      if (target > a.k && target < b.k) {
+        const ratio = (target - a.k) / (b.k - a.k);
+        return a.v + ratio * (b.v - a.v);
+      }
+    }
+    // Out of bounds: use nearest
+    if (target <= points[0].k) return points[0].v;
+    if (target >= points[points.length - 1].k) return points[points.length - 1].v;
+    return fallback || 1;
+  }
+
+  function _perfSurfaceMultiplier_(rows, surfaceText, valueNames, fallback) {
+    const key = _perfCalcKeyNorm(surfaceText || '');
+    if (!key) return fallback || 1;
+    for (let i = 0; i < (rows || []).length; i++) {
+      const rowSurface = _perfCalcKeyNorm(_perfCalcValue(rows[i], ['SURFACE'], ''));
+      if (!rowSurface) continue;
+      if (rowSurface === key || rowSurface.indexOf(key) >= 0 || key.indexOf(rowSurface) >= 0) {
+        const v = parseFloat(_perfCalcValue(rows[i], valueNames, ''));
+        if (!isNaN(v)) return v;
+      }
+    }
+    return fallback || 1;
+  }
+
+  function _perfDensityAltitudeFt_(elevationFt, qnhHpa, tempC) {
+    const elev = _perfCalcNum(elevationFt, 0);
+    const qnh = _perfCalcNum(qnhHpa, 1013.25);
+    const temp = _perfCalcNum(tempC, 15);
+    const pressureAltitude = elev + ((1013.25 - qnh) * 30);
+    const isaTemp = 15 - (2 * (elev / 1000));
+    return pressureAltitude + (120 * (temp - isaTemp));
+  }
+
+  function _perfNormalizeSlopeProfile_(profileRaw, runwayLengthM, fallbackSlope) {
+    const runwayLen = Math.max(_perfCalcNum(runwayLengthM, 0), 0);
+    const fb = _perfCalcNum(fallbackSlope, 0);
+    let profile = Array.isArray(profileRaw)
+      ? profileRaw.map(seg => ({
+          distance: _perfCalcNum(seg && (seg.distance ?? seg.length ?? seg.segmentM), 0),
+          slope: _perfCalcNum(seg && (seg.slope ?? seg.slopePercent ?? seg.grade), fb)
+        })).filter(seg => seg.distance > 0 && isFinite(seg.distance) && isFinite(seg.slope))
+      : [];
+    if (!profile.length) return [{ distance: runwayLen > 0 ? runwayLen : 1, slope: fb }];
+    const sumDist = profile.reduce((acc, seg) => acc + seg.distance, 0);
+    if (sumDist < runwayLen) {
+      profile.push({ distance: runwayLen - sumDist, slope: 0 });
+    } else if (sumDist > runwayLen && runwayLen > 0) {
+      let remaining = runwayLen;
+      const trimmed = [];
+      for (let i = 0; i < profile.length && remaining > 0; i++) {
+        const d = Math.min(profile[i].distance, remaining);
+        if (d > 0) trimmed.push({ distance: d, slope: profile[i].slope });
+        remaining -= d;
+      }
+      profile = trimmed.length ? trimmed : [{ distance: runwayLen, slope: fb }];
+    }
+    return profile;
+  }
+
+  function _perfEffectiveSlopeOverDistance_(profile, distanceM) {
+    const target = Math.max(_perfCalcNum(distanceM, 0), 0);
+    if (!target || !Array.isArray(profile) || !profile.length) return 0;
+    let remaining = target;
+    let weighted = 0;
+    let lastSlope = _perfCalcNum(profile[profile.length - 1].slope, 0);
+    for (let i = 0; i < profile.length && remaining > 0; i++) {
+      const seg = profile[i];
+      const segDist = Math.max(_perfCalcNum(seg.distance, 0), 0);
+      const segSlope = _perfCalcNum(seg.slope, 0);
+      const used = Math.min(segDist, remaining);
+      weighted += used * segSlope;
+      remaining -= used;
+      lastSlope = segSlope;
+    }
+    if (remaining > 0) weighted += remaining * lastSlope;
+    return weighted / target;
+  }
+
+  function calculatePerformanceLocally_(payload, calcReference) {
+    try {
+      const aircraftType = String(payload && payload.aircraftType || '').trim();
+      const weightKg = _perfCalcNum(payload && payload.weightKg, 0);
+      const runwayLengthM = _perfCalcNum(payload && payload.runwayLengthM, 0);
+      const slopePercent = _perfCalcNum(payload && payload.slopePercent, 0);
+      const slopeProfileRaw = payload && payload.slopeProfile;
+      const elevationFt = _perfCalcNum(payload && payload.elevationFt, 0);
+      const surface = String(payload && payload.surface || '').trim();
+      const surfaceCondition = String(payload && payload.surfaceCondition || 'DRY').toUpperCase();
+      const qnhHpa = _perfCalcNum(payload && payload.qnhHpa, 1013.25);
+      const tempC = _perfCalcNum(payload && payload.tempC, 15);
+      const humidityPct = _perfCalcNum(payload && payload.humidityPct, 50);
+      const windSpeedKts = _perfCalcNum(payload && payload.windSpeedKts, 0);
+      const windType = String(payload && payload.windType || 'HEAD').toUpperCase();
+      const windDirectionDeg = _perfCalcNum(payload && payload.windDirectionDeg, 0);
+      const runwayHeadingDeg = _perfCalcNum(payload && payload.runwayHeadingDeg, 0);
+      const flapSetting = _perfCalcNum(payload && payload.flapSetting, 0);
+
+      if (!aircraftType) return { success: false, error: 'Aircraft type is required.' };
+      if (weightKg <= 0) return { success: false, error: 'Weight must be greater than zero.' };
+      if (runwayLengthM <= 0) return { success: false, error: 'Runway length must be greater than zero.' };
+
+      const baseRows = ((calcReference && calcReference.baseRows) || [])
+        .filter(r => String(_perfCalcValue(r, ['AIRCRAFT_TYPE'], '')).trim().toUpperCase() === aircraftType.toUpperCase())
+        .map(r => ({
+          w: _perfCalcNum(_perfCalcValue(r, ['WEIGHT_KG', 'WEIGHT'], 0), 0),
+          to: _perfCalcNum(_perfCalcValue(r, ['TO_ROLL_M', 'TO_ROLL'], 0), 0),
+          ldg: _perfCalcNum(_perfCalcValue(r, ['LDG_ROLL_M', 'LDG_ROLL'], 0), 0)
+        }))
+        .filter(r => r.w > 0 && r.to > 0 && r.ldg > 0);
+
+      if (!baseRows.length) return { success: false, error: 'No base roll rows found for aircraft type: ' + aircraftType };
+
+      const perfRows = (calcReference && calcReference.perfRows) || [];
+      const base = _perfInterpBaseRoll_(baseRows, weightKg);
+      const densityAltitudeFt = _perfDensityAltitudeFt_(elevationFt, qnhHpa, tempC);
+      const daTo = _perfNearestMultiplier_(perfRows, ['DA_FT', 'DA'], densityAltitudeFt, ['TO_MULTIPLIER'], 1);
+      const daLdg = _perfNearestMultiplier_(perfRows, ['DA_FT', 'DA'], densityAltitudeFt, ['LDG_MULTIPLIER'], 1);
+      const isWet = surfaceCondition === 'WET';
+      const surfaceTo = _perfSurfaceMultiplier_(perfRows, surface, [isWet ? 'TAKEOFF_WET' : 'TAKEOFF_DRY'], 1);
+      const surfaceLdg = _perfSurfaceMultiplier_(perfRows, surface, [isWet ? 'LANDING_WET' : 'LANDING_DRY'], 1);
+      const slopeProfile = _perfNormalizeSlopeProfile_(slopeProfileRaw, runwayLengthM, slopePercent);
+
+      let headTailComponent = 0;
+      let crosswindComponent = 0;
+      let effectiveWindType = windType;
+      let effectiveWindKts = windSpeedKts;
+      if (runwayHeadingDeg > 0 && windDirectionDeg >= 0) {
+        const rawDelta = ((windDirectionDeg - runwayHeadingDeg) % 360 + 360) % 360;
+        const delta = rawDelta > 180 ? rawDelta - 360 : rawDelta;
+        const rad = delta * Math.PI / 180;
+        headTailComponent = windSpeedKts * Math.cos(rad);
+        crosswindComponent = Math.abs(windSpeedKts * Math.sin(rad));
+        effectiveWindType = headTailComponent >= 0 ? 'HEAD' : 'TAIL';
+        effectiveWindKts = Math.abs(headTailComponent);
+      }
+
+      const windColTo = effectiveWindType === 'TAIL' ? 'TAKEOFF_TAIL' : 'TAKEOFF_HEAD';
+      const windColLdg = effectiveWindType === 'TAIL' ? 'LANDING_TAIL' : 'LANDING_HEAD';
+      const windTo = _perfNearestMultiplier_(perfRows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColTo], 1);
+      const windLdg = _perfNearestMultiplier_(perfRows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColLdg], 1);
+      const humidity = _perfNearestMultiplier_(perfRows, ['HUMIDITY'], humidityPct, ['HUMIDITY_FACTOR'], 1);
+      const flap = _perfNearestMultiplier_(perfRows, ['FLAP_SETTING'], flapSetting, ['FLAP_FACTOR'], 1);
+
+      const toNoSlope = base.to * daTo * surfaceTo * flap * humidity * windTo;
+      let slopeTo = 1;
+      let effectiveSlopeTakeoff = slopePercent;
+      for (let i = 0; i < 3; i++) {
+        const estTakeoff = toNoSlope * slopeTo;
+        effectiveSlopeTakeoff = _perfEffectiveSlopeOverDistance_(slopeProfile, Math.min(estTakeoff, runwayLengthM));
+        const slopeAbsTo = Math.abs(effectiveSlopeTakeoff);
+        slopeTo = _perfNearestMultiplier_(perfRows, ['SLOPE'], slopeAbsTo, [effectiveSlopeTakeoff >= 0 ? 'TAKEOFF_UP' : 'TAKEOFF_DOWN'], 1);
+      }
+
+      const ldgNoSlope = base.ldg * daLdg * surfaceLdg * windLdg;
+      let slopeLdg = 1;
+      let effectiveSlopeLanding = slopePercent;
+      for (let i = 0; i < 3; i++) {
+        const estLanding = ldgNoSlope * slopeLdg;
+        effectiveSlopeLanding = _perfEffectiveSlopeOverDistance_(slopeProfile, Math.min(estLanding, runwayLengthM));
+        const slopeAbsLdg = Math.abs(effectiveSlopeLanding);
+        slopeLdg = _perfNearestMultiplier_(perfRows, ['SLOPE'], slopeAbsLdg, [effectiveSlopeLanding >= 0 ? 'LANDING_UP' : 'LANDING_DOWN'], 1);
+      }
+
+      const takeoffRollM = toNoSlope * slopeTo;
+      const landingRollM = ldgNoSlope * slopeLdg;
+      const combinedRollM = takeoffRollM + landingRollM;
+      const halfTakeoffRollM = takeoffRollM * 0.5;
+      const takeoff75PctThresholdM = runwayLengthM * 0.75;
+      const warnings = [];
+      let blocking = false;
+      if (takeoffRollM > takeoff75PctThresholdM) warnings.push('Takeoff roll exceeds 75% of runway length.');
+      if (landingRollM > runwayLengthM) warnings.push('Landing roll exceeds runway length.');
+      if (combinedRollM > runwayLengthM) {
+        warnings.push('Takeoff + landing roll is greater than runway length.');
+        blocking = true;
+      }
+
+      return {
+        success: true,
+        baseTakeoffM: Math.round(base.to),
+        baseLandingM: Math.round(base.ldg),
+        densityAltitudeFt: Math.round(densityAltitudeFt),
+        takeoffRollM: Math.round(takeoffRollM),
+        landingRollM: Math.round(landingRollM),
+        combinedRollM: Math.round(combinedRollM),
+        halfTakeoffRollM: Math.round(halfTakeoffRollM),
+        takeoff75PctThresholdM: Math.round(takeoff75PctThresholdM),
+        headTailComponentKts: Number(headTailComponent.toFixed(1)),
+        crosswindComponentKts: Number(crosswindComponent.toFixed(1)),
+        effectiveWindKts: Number(effectiveWindKts.toFixed(1)),
+        effectiveWindType: effectiveWindType,
+        warnings: warnings,
+        blocking: blocking,
+        factors: {
+          daTakeoff: daTo,
+          daLanding: daLdg,
+          surfaceTakeoff: surfaceTo,
+          surfaceLanding: surfaceLdg,
+          slopeTakeoff: slopeTo,
+          slopeLanding: slopeLdg,
+          effectiveSlopeTakeoff: Number(effectiveSlopeTakeoff.toFixed(2)),
+          effectiveSlopeLanding: Number(effectiveSlopeLanding.toFixed(2)),
+          flap: flap,
+          humidity: humidity,
+          windTakeoff: windTo,
+          windLanding: windLdg
+        }
+      };
+    } catch (e) {
+      return { success: false, error: e && e.message ? e.message : String(e) };
+    }
+  }
+
+  window._selectHumidity = function(level) {
+    const hiddenInput = document.getElementById('perf-humidity');
+    const lowBtn = document.getElementById('perf-humidity-low');
+    const highBtn = document.getElementById('perf-humidity-high');
+    const BTN_ACTIVE = 'background:#1976d2; color:#fff; border-color:#1976d2;';
+    const BTN_IDLE   = 'background:#fff; color:#222; border-color:#1976d2;';
+    if (!level) {
+      if (hiddenInput) hiddenInput.value = '';
+      if (lowBtn)  lowBtn.style.cssText  = lowBtn.style.cssText.replace(/background:[^;]+;|color:[^;]+;/g, '') + BTN_IDLE;
+      if (highBtn) highBtn.style.cssText = highBtn.style.cssText.replace(/background:[^;]+;|color:[^;]+;/g, '') + BTN_IDLE;
+      return;
+    }
+    if (hiddenInput) hiddenInput.value = level === 'low' ? '60' : '90';
+    if (lowBtn)  { lowBtn.setAttribute('style',  lowBtn.getAttribute('style').replace(/background:[^;]*;?/g,'').replace(/color:[^;]*;?/g,''));  lowBtn.style.cssText  += level === 'low'  ? BTN_ACTIVE : BTN_IDLE; }
+    if (highBtn) { highBtn.setAttribute('style', highBtn.getAttribute('style').replace(/background:[^;]*;?/g,'').replace(/color:[^;]*;?/g,'')); highBtn.style.cssText += level === 'high' ? BTN_ACTIVE : BTN_IDLE; }
+    window.schedulePerformanceRecalc();
+  };
+
+  function _bindPerfLiveHandlers() {
+    const ids = [
+      'perf-runway', 'perf-surface', 'perf-runway-length', 'perf-flaps', 'perf-qnh', 'perf-temp',
+      'perf-surface-condition', 'perf-wind-direction', 'perf-wind-speed', 'perf-slope'
+      // perf-humidity handled separately via _selectHumidity buttons
+    ];
+
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || el.dataset.liveBound === '1') return;
+      const evt = (el.tagName === 'SELECT') ? 'change' : 'input';
+      el.addEventListener(evt, function() {
+        if (id === 'perf-wind-direction') {
+          el.value = _roundWind10(el.value);
+          window.performanceTab4.windConfirmed = true;
+        }
+        if (id === 'perf-runway') {
+          window.onPerfRunwayChange();
+        }
+        if (id === 'perf-slope') {
+          // slope lock is handled by _perfToggleLock_ via padlock icon; free input here means already unlocked
+        }
+        if (id === 'perf-wind-speed') {
+          const speed = Math.max(0, Math.round(Number(el.value || 0)));
+          el.value = speed;
+          window.performanceTab4.windConfirmed = true;
+        }
+        window.schedulePerformanceRecalc();
+      });
+      el.dataset.liveBound = '1';
+    });
+  }
+
+  function _perfAllRequiredFilled_() {
+    // perf-humidity is a hidden input set by the toggle buttons
+    // windConfirmed must be explicitly set via sliders or Calm Wind button
+    if (!window.performanceTab4.windConfirmed) return false;
+    const ids = ['perf-runway', 'perf-surface', 'perf-runway-length', 'perf-slope',
+                  'perf-flaps', 'perf-qnh', 'perf-temp', 'perf-humidity', 'perf-surface-condition'];
+    return ids.every(id => {
+      const el = document.getElementById(id);
+      if (!el) return false;
+      const v = el.value;
+      return v !== '' && v != null;
+    });
+  }
+
+  window._perfSetCalmWind = function() {
+    const dir = document.getElementById('perf-wind-direction');
+    const spd = document.getElementById('perf-wind-speed');
+    if (dir) dir.value = 0;
+    if (spd) spd.value = 0;
+    window.performanceTab4.windConfirmed = true;
+    const btn = document.getElementById('perf-calm-wind-btn');
+    if (btn) { btn.style.background = '#1565c0'; btn.style.color = '#fff'; }
+    window.schedulePerformanceRecalc();
+  };
+
+  window.perfOpenWindDirKeypad = function() {
+    window.flightDeckOpenHeadingPicker('perf-wind-direction', {
+      title: 'WIND DIRECTION °',
+      onCommit: function(v) {
+        const dir = document.getElementById('perf-wind-direction');
+        if (dir) dir.value = String(_roundWind10(v));
+        window.performanceTab4.windConfirmed = true;
+        window.schedulePerformanceRecalc();
+      }
+    });
+  };
+
+  window.perfOpenWindSpdKeypad = function() {
+    window.flightDeckOpenNumericKeypad('perf-wind-speed', {
+      title: 'WIND SPEED KT',
+      allowSign: false,
+      clearOnOpen: true,
+      onCommit: function(v) {
+        const speed = Math.max(0, Math.min(60, Math.round(Number(v || 0))));
+        const spd = document.getElementById('perf-wind-speed');
+        if (spd) spd.value = String(speed);
+        window.performanceTab4.windConfirmed = true;
+        window.schedulePerformanceRecalc();
+      }
+    });
+  };
+
+  window.schedulePerformanceRecalc = function() {
+    if (!_perfAllRequiredFilled_()) {
+      // Show "waiting for inputs" hint, hide results
+      const emptyMsg = document.getElementById('perf-results-empty');
+      if (emptyMsg) emptyMsg.style.display = '';
+      const resultsEl = document.getElementById('perf-results');
+      if (resultsEl) resultsEl.style.display = 'none';
+      return;
+    }
+    if (window.performanceTab4.calcTimer) {
+      clearTimeout(window.performanceTab4.calcTimer);
+    }
+    window.performanceTab4.calcTimer = setTimeout(function() {
+      window.calculatePerformanceTab4(true);
+    }, 180);
+  };
+
+  window.setupPerformanceTab = function(ctx) {
+    if (!ctx) return;
+
+    window.performanceTab4 = {
+      ...window.performanceTab4,
+      ...ctx,
+      weightKg: Number(ctx.weightKg || 0)
+    };
+
+    const airportEl = document.getElementById('perf-airport');
+    const weightEl = document.getElementById('perf-weight');
+
+    if (airportEl) airportEl.value = window.performanceTab4.fromIcao || '';
+    if (weightEl) weightEl.value = Math.round(window.performanceTab4.weightKg || 0);
+
+    _bindPerfLiveHandlers();
+
+    const cachedSetup = readCachedPerformanceSetup_(window.performanceTab4.fromIcao || '');
+    const localSetup = buildLocalPerformanceSetup_(window.performanceTab4.fromIcao || '');
+
+    if (!window.google || !google.script || !google.script.run) {
+      if (cachedSetup) {
+        applyPerformanceSetupData_(cachedSetup);
+        return;
+      }
+      if (localSetup) {
+        cachePerformanceSetup_(window.performanceTab4.fromIcao || '', localSetup);
+        applyPerformanceSetupData_(localSetup);
+        if (window.M) M.toast({ html: 'Offline: built performance setup from cached airport data', classes: 'orange', displayLength: 5000 });
+      }
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        cachePerformanceSetup_(window.performanceTab4.fromIcao || '', data);
+        applyPerformanceSetupData_(data);
+      })
+      .withFailureHandler(function(err) {
+        console.error('setupPerformanceTab failed', err);
+        const msg = err && err.message ? err.message : String(err || 'unknown error');
+
+        if (cachedSetup) {
+          applyPerformanceSetupData_(cachedSetup);
+          if (window.M) M.toast({ html: 'Offline: loaded cached performance data', classes: 'orange', displayLength: 5000 });
+          return;
+        }
+
+        if (localSetup) {
+          cachePerformanceSetup_(window.performanceTab4.fromIcao || '', localSetup);
+          applyPerformanceSetupData_(localSetup);
+          if (window.M) M.toast({ html: 'Offline: built performance setup from airport cache', classes: 'orange', displayLength: 5000 });
+          return;
+        }
+
+        const runwaySel = document.getElementById('perf-runway');
+        if (runwaySel && !runwaySel.innerHTML.trim()) {
+          runwaySel.innerHTML = '<option value="">No runway data</option>';
+        }
+
+        const flapSel = document.getElementById('perf-flaps');
+        if (flapSel && !flapSel.innerHTML.trim()) {
+          flapSel.innerHTML = '<option value="0">0</option><option value="10">10</option><option value="20">20</option>';
+        }
+
+        const surfaceSel = document.getElementById('perf-surface');
+        if (surfaceSel && !surfaceSel.innerHTML.trim()) {
+          surfaceSel.innerHTML = '<option value="PAVED">PAVED</option>';
+        }
+
+        const humiditySel = document.getElementById('perf-humidity');
+        if (humiditySel && !humiditySel.innerHTML.trim()) {
+          humiditySel.innerHTML = '<option value="50">50%</option><option value="60">60%</option><option value="70">70%</option>';
+        }
+
+        if (window.M) {
+          M.toast({ html: 'Performance setup failed: ' + msg, classes: 'red', displayLength: 7000 });
+          if (window.M.FormSelect) {
+            const selects = document.querySelectorAll('#perf-runway, #perf-flaps, #perf-surface, #perf-surface-condition');
+            M.FormSelect.init(selects);
+          }
+        }
+      })
+      .getPerformanceSetup(window.performanceTab4.fromIcao || '');
+  };
+
+  // Helper to lock/unlock surface, length, slope fields from DB data
+  function _perfSetFieldLock_(fieldKey, locked) {
+    const fieldEl = document.getElementById('perf-field-' + fieldKey);
+    const lockIcon = document.getElementById('perf-' + fieldKey + '-lock');
+    if (!fieldEl) return;
+    if (locked) {
+      fieldEl.classList.add('perf-field-locked');
+      fieldEl.classList.remove('perf-field-unlocked-override');
+      if (lockIcon) { lockIcon.style.display = 'inline'; lockIcon.textContent = '🔒'; }
+      // Make inputs/selects in this field non-interactive
+      fieldEl.querySelectorAll('input, select').forEach(el => {
+        el.setAttribute('readonly', 'readonly');
+        el.setAttribute('disabled', 'disabled');
+      });
+    } else {
+      fieldEl.classList.remove('perf-field-locked');
+      if (lockIcon) lockIcon.style.display = 'none';
+      fieldEl.querySelectorAll('input, select').forEach(el => {
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+      });
+    }
+  }
+
+  window._perfToggleLock_ = function(fieldKey) {
+    const fieldEl = document.getElementById('perf-field-' + fieldKey);
+    if (!fieldEl || !fieldEl.classList.contains('perf-field-locked')) return;
+    const lockIcon = document.getElementById('perf-' + fieldKey + '-lock');
+    fieldEl.classList.remove('perf-field-locked');
+    fieldEl.classList.add('perf-field-unlocked-override');
+    if (lockIcon) { lockIcon.textContent = '🔓'; lockIcon.title = 'Overriding DB data'; }
+    fieldEl.querySelectorAll('input, select').forEach(el => {
+      el.removeAttribute('readonly');
+      el.removeAttribute('disabled');
+    });
+    if (fieldKey === 'slope') window.performanceTab4.slopeOverridden = true;
+    if (window.M) M.toast({ html: 'Field unlocked for pilot override', classes: 'blue darken-2', displayLength: 2200 });
+  };
+
+  window.onPerfRunwayChange = function() {
+    const runwayValue = String(document.getElementById('perf-runway')?.value || '').trim();
+    const runway = runwayValue === '' ? null : (window.performanceTab4.runways || [])[Number(runwayValue)] || null;
+
+    document.getElementById('perf-elevation').value = runway ? Math.round(Number(runway.elevation || 0)) : '';
+    document.getElementById('perf-rwy-hdg').textContent = `${String(Math.round(Number(runway?.headingDeg || 0))).padStart(3, '0')}°`;
+    window.performanceTab4.slopeOverridden = false;
+    window.performanceTab4.windConfirmed = false;
+    window.performanceTab4.diagramZoomMode = 'full';
+    const calmBtn = document.getElementById('perf-calm-wind-btn');
+    if (calmBtn) { calmBtn.style.background = '#fff'; calmBtn.style.color = '#1565c0'; }
+    window.performanceTab4.selectedRunway = runway;
+
+    // --- LENGTH ---
+    const rawLength = runway ? runway.length : null;
+    const hasLength = rawLength != null && rawLength !== '' && Number(rawLength) > 0;
+    const lengthEl = document.getElementById('perf-runway-length');
+    if (hasLength) {
+      if (lengthEl) lengthEl.value = Math.round(Number(rawLength));
+      _perfSetFieldLock_('length', true);
+      document.getElementById('perf-length-lock').onclick = function() { window._perfToggleLock_('length'); };
+    } else {
+      if (lengthEl) { lengthEl.value = ''; lengthEl.removeAttribute('readonly'); }
+      _perfSetFieldLock_('length', false);
+    }
+
+    // --- SLOPE ---
+    const rawSlope = runway ? runway.slope : null;
+    const hasSlope = rawSlope != null && rawSlope !== '';
+    const slopeEl = document.getElementById('perf-slope');
+    if (hasSlope) {
+      const slopeNum = Math.max(-12, Math.min(12, Math.round(Number(rawSlope))));
+      if (slopeEl) slopeEl.value = String(slopeNum);
+      window.performanceTab4.originalSlope = slopeNum;
+      _perfSetFieldLock_('slope', true);
+      document.getElementById('perf-slope-lock').onclick = function() { window._perfToggleLock_('slope'); };
+    } else {
+      if (slopeEl) { slopeEl.value = ''; slopeEl.removeAttribute('readonly'); }
+      window.performanceTab4.originalSlope = null;
+      _perfSetFieldLock_('slope', false);
+    }
+
+    // --- SURFACE ---
+    const surfaceSel = document.getElementById('perf-surface');
+    if (surfaceSel) {
+      const surfaceOptions = Array.from(surfaceSel.options || []);
+      const rawSurface = String(runway ? runway.surface : '').trim();
+      let resolvedSurface = _perfResolveSurfaceValue_(rawSurface, window.performanceTab4.surfaceTranslator || {}, surfaceOptions) || '';
+
+      // If DB has a surface but translator/options miss it, keep raw DB value and still lock.
+      if (runway && rawSurface && !resolvedSurface) {
+        const rawNorm = _perfSurfaceNorm(rawSurface);
+        const existing = Array.from(surfaceSel.options || []).find(function(o) {
+          return _perfSurfaceNorm(o.value) === rawNorm || _perfSurfaceNorm(o.textContent) === rawNorm;
+        });
+        if (existing) {
+          resolvedSurface = existing.value;
+        } else {
+          const opt = document.createElement('option');
+          opt.value = rawSurface;
+          opt.textContent = rawSurface;
+          surfaceSel.appendChild(opt);
+          resolvedSurface = rawSurface;
+        }
+      }
+
+      surfaceSel.value = resolvedSurface;
+      if (window.M && window.M.FormSelect) {
+        const currentInst = M.FormSelect.getInstance(surfaceSel);
+        if (currentInst) currentInst.destroy();
+        M.FormSelect.init(surfaceSel);
+      }
+      if (runway && rawSurface) {
+        _perfSetFieldLock_('surface', true);
+        const lock = document.getElementById('perf-surface-lock');
+        if (lock) lock.onclick = function() { window._perfToggleLock_('surface'); };
+      } else {
+        _perfSetFieldLock_('surface', false);
+      }
+    }
+
+    if (!runway) {
+      window.performanceTab4.selectedRunway = null;
+      document.getElementById('perf-runway-diagram').style.display = 'none';
+      document.getElementById('perf-diagram-empty').style.display = 'block';
+    }
+  };
+
+  window.drawRunwayDiagram = function(runway, result) {
+    if (!runway) {
+      document.getElementById('perf-runway-diagram').style.display = 'none';
+      document.getElementById('perf-diagram-empty').style.display = 'block';
+      return;
+    }
+
+    const svg = document.getElementById('perf-runway-diagram');
+    if (!svg) return;
+
+    const makeEl = function(tag, attrs, text) {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      Object.keys(attrs || {}).forEach(k => el.setAttribute(k, String(attrs[k])));
+      if (text != null) el.textContent = text;
+      return el;
+    };
+
+    const surfaceValue = String(document.getElementById('perf-surface')?.value || runway.surface || 'Paved');
+    const surfaceNorm = _perfNorm(surfaceValue);
+    const isAsphalt = /PAVED|ASPHALT|CONCRETE|ASFALTO|CONCRETO/.test(surfaceNorm);
+    const isGrass = /GRASS|TURF|GRAMA/.test(surfaceNorm);
+
+    const lengthM = Math.max(Number(runway.length || 0), 1);
+    const widthM = Math.max(Number(runway.width || 0), 0);
+    const editedSlope = parseFloat(document.getElementById('perf-slope')?.value || runway.slope || 0);
+
+    const toRollM = Math.max(Number(result?.takeoffRollM || 0), 0);
+    const rollStopM = Math.max(Number(result?.combinedRollM || 0), 0);
+    const abortPointMRaw = toRollM > 0 ? (rollStopM > lengthM ? toRollM * 0.5 : toRollM) : 0;
+    const abortPointM = Math.min(abortPointMRaw, lengthM);
+
+    const toPointM = Math.min(toRollM, lengthM);
+
+    const canvasW = 520;
+    const canvasH = 380;
+    const topX = 30;
+    const topY = 42;
+    const topHeight = 56;
+    const usableWidth = 460;
+    const scale = usableWidth / lengthM;
+    const runwayPx = lengthM * scale;
+
+    svg.innerHTML = '';
+
+    const defs = makeEl('defs', {});
+    const grassPattern = makeEl('pattern', { id: 'grassPattern', patternUnits: 'userSpaceOnUse', width: 12, height: 12 });
+    grassPattern.appendChild(makeEl('rect', { x: 0, y: 0, width: 12, height: 12, fill: '#6d9557' }));
+    grassPattern.appendChild(makeEl('path', { d: 'M0,12 L12,0 M-3,9 L3,3 M9,15 L15,9', stroke: '#7fab66', 'stroke-width': 1 }));
+    defs.appendChild(grassPattern);
+
+    const roughPattern = makeEl('pattern', { id: 'roughPattern', patternUnits: 'userSpaceOnUse', width: 8, height: 8 });
+    roughPattern.appendChild(makeEl('rect', { x: 0, y: 0, width: 8, height: 8, fill: '#8b6f47' }));
+    roughPattern.appendChild(makeEl('circle', { cx: 2, cy: 2, r: 1, fill: '#6f5837' }));
+    roughPattern.appendChild(makeEl('circle', { cx: 6, cy: 5, r: 1, fill: '#6f5837' }));
+    defs.appendChild(roughPattern);
+    svg.appendChild(defs);
+
+    const runwayFill = isAsphalt
+      ? '#5f5f5f'
+      : (isGrass ? 'url(#grassPattern)' : (/ROUGH|MUD|SAND/.test(surfaceNorm) ? 'url(#roughPattern)' : '#9a9a9a'));
+
+    const topGroup = makeEl('g', {});
+    topGroup.appendChild(makeEl('text', { x: topX, y: 24, 'font-size': 15, fill: '#333' }, 'TOP VIEW'));
+    topGroup.appendChild(makeEl('rect', {
+      x: topX,
+      y: topY,
+      width: runwayPx,
+      height: topHeight,
+      fill: runwayFill,
+      stroke: '#2a2a2a',
+      'stroke-width': 1.5,
+      rx: 2,
+      ry: 2
+    }));
+
+    if (isAsphalt) {
+      topGroup.appendChild(makeEl('line', {
+        x1: topX,
+        y1: topY + (topHeight / 2),
+        x2: topX + runwayPx,
+        y2: topY + (topHeight / 2),
+        stroke: '#f3f3f3',
+        'stroke-width': 2,
+        'stroke-dasharray': '12,8'
+      }));
+    }
+
+    const identNum = parseInt(String(runway.rwyIdent || '').replace(/\D+/g, ''), 10);
+    const thisRwy = (!isNaN(identNum) && identNum >= 1 && identNum <= 36) ? String(identNum).padStart(2, '0') : String(runway.rwyIdent || '??');
+    const reciprocalNum = (!isNaN(identNum) && identNum >= 1 && identNum <= 36)
+      ? String((((identNum + 18 - 1) % 36) + 1)).padStart(2, '0')
+      : '';
+
+    const leftRwyX = topX + 22;
+    const rightRwyX = topX + runwayPx - 22;
+    const leftBadge = makeEl('g', { transform: 'rotate(90 ' + leftRwyX + ' ' + (topY + topHeight / 2) + ')' });
+    leftBadge.appendChild(makeEl('rect', {
+      x: leftRwyX - 18,
+      y: (topY + topHeight / 2) - 13,
+      width: 36,
+      height: 26,
+      fill: 'rgba(0,0,0,0.45)',
+      rx: 3,
+      ry: 3
+    }));
+    leftBadge.appendChild(makeEl('text', {
+      x: leftRwyX,
+      y: (topY + topHeight / 2) + 6,
+      'font-size': 16,
+      fill: '#fff',
+      'font-weight': '900',
+      'text-anchor': 'middle'
+    }, thisRwy));
+    topGroup.appendChild(leftBadge);
+    if (reciprocalNum) {
+      const rightBadge = makeEl('g', { transform: 'rotate(-90 ' + rightRwyX + ' ' + (topY + topHeight / 2) + ')' });
+      rightBadge.appendChild(makeEl('rect', {
+        x: rightRwyX - 18,
+        y: (topY + topHeight / 2) - 13,
+        width: 36,
+        height: 26,
+        fill: 'rgba(0,0,0,0.45)',
+        rx: 3,
+        ry: 3
+      }));
+      rightBadge.appendChild(makeEl('text', {
+        x: rightRwyX,
+        y: (topY + topHeight / 2) + 6,
+        'font-size': 16,
+        fill: '#fff',
+        'font-weight': '900',
+        'text-anchor': 'middle'
+      }, reciprocalNum));
+      topGroup.appendChild(rightBadge);
+    }
+
+    const abortXPreview = abortPointM > 0 ? (topX + (abortPointM * scale)) : null;
+    if (toPointM > 0) {
+      const toX = topX + (toPointM * scale);
+      topGroup.appendChild(makeEl('line', {
+        x1: toX,
+        y1: topY - 4,
+        x2: toX,
+        y2: topY + topHeight + 4,
+        stroke: '#1e88e5',
+        'stroke-width': 2
+      }));
+    }
+
+    if (abortPointM > 0) {
+      const abortX = topX + (abortPointM * scale);
+      topGroup.appendChild(makeEl('line', {
+        x1: abortX,
+        y1: topY - 10,
+        x2: abortX,
+        y2: topY + topHeight + 10,
+        stroke: '#d32f2f',
+        'stroke-width': 4
+      }));
+    }
+
+    // Keep TO/ABORT numbers in a dedicated legend line to avoid crowding near markers
+    const markerLegendY = topY + topHeight + 92;
+    if (toPointM > 0) {
+      topGroup.appendChild(makeEl('text', {
+        x: topX,
+        y: markerLegendY,
+        'font-size': 13,
+        fill: '#1e88e5',
+        'font-weight': '700'
+      }, `TO: ${Math.round(toRollM)}m`));
+    }
+    if (abortPointM > 0) {
+      topGroup.appendChild(makeEl('text', {
+        x: topX + 88,
+        y: markerLegendY,
+        'font-size': 13,
+        fill: '#d32f2f',
+        'font-weight': '700'
+      }, `ABORT: ${Math.round(abortPointM)}m`));
+    }
+
+    const iconForFeature = function(icon, name) {
+      const s = _perfNorm(icon || name || '');
+      if (s.indexOf('TREE') >= 0 || s.indexOf('MANGO') >= 0) return '🌳';
+      if (s.indexOf('SCHOOL') >= 0) return '🏫';
+      if (s.indexOf('WINDSOCK') >= 0) return '🎏';
+      if (s.indexOf('POWER') >= 0 || s.indexOf('LINE') >= 0) return '⚡';
+      if (s.indexOf('HOUSE') >= 0 || s.indexOf('BUILD') >= 0) return '🏠';
+      if (s.indexOf('ROAD') >= 0) return '🛣️';
+      return '📍';
+    };
+
+    const features = Array.isArray(runway.knownFeatures) ? runway.knownFeatures : [];
+    let leftCount = 0;
+    let rightCount = 0;
+    let lastLeftLabelX = -9999;
+    let lastRightLabelX = -9999;
+    const leftSpacing = 46;
+    const rightSpacing = 46;
+    features
+      .slice()
+      .sort((a, b) => (Number(a && a.distance || 0) - Number(b && b.distance || 0)))
+      .forEach(function(feat) {
+      const name = String(feat && feat.name || 'Feature').trim();
+      const distM = Math.max(0, Number(feat && feat.distance || 0));
+      if (!(distM >= 0 && distM <= lengthM)) return;
+      const side = String(feat && feat.side || 'right').toLowerCase() === 'left' ? 'left' : 'right';
+      const icon = iconForFeature(feat && feat.icon, name);
+      const featureX = topX + (distM * scale);
+
+      const isLeftTooClose = side === 'left' && (featureX - lastLeftLabelX) < leftSpacing;
+      const isRightTooClose = side === 'right' && (featureX - lastRightLabelX) < rightSpacing;
+      const showTextLabel = !(isLeftTooClose || isRightTooClose);
+
+      const lane = side === 'left' ? leftCount++ : rightCount++;
+      const iconY = side === 'left'
+        ? (topY - 20 - (lane * 14))
+        : (topY + topHeight + 30 + (lane * 14));
+      const connectorY = side === 'left' ? (iconY + 6) : (iconY - 6);
+
+      topGroup.appendChild(makeEl('line', {
+        x1: featureX,
+        y1: side === 'left' ? topY : (topY + topHeight),
+        x2: featureX,
+        y2: connectorY,
+        stroke: '#ff9800',
+        'stroke-width': 1.5
+      }));
+      topGroup.appendChild(makeEl('text', {
+        x: featureX,
+        y: iconY,
+        'font-size': 16,
+        'text-anchor': 'middle'
+      }, icon));
+
+      if (showTextLabel) {
+        topGroup.appendChild(makeEl('text', {
+          x: featureX,
+          y: iconY + (side === 'left' ? -8 : 10),
+          'font-size': 12,
+          fill: '#5a5a5a',
+          'text-anchor': 'middle'
+        }, `${name} ${Math.round(distM)}m`));
+        if (side === 'left') lastLeftLabelX = featureX;
+        else lastRightLabelX = featureX;
+      }
+    });
+
+    topGroup.appendChild(makeEl('text', {
+      x: topX + (runwayPx / 2),
+      y: topY + topHeight + 22,
+      'font-size': 14,
+      fill: '#333',
+      'text-anchor': 'middle'
+    }, `${Math.round(lengthM)}m x ${Math.round(widthM || 0)}m • ${surfaceValue}`));
+
+    const officialRef = runway && runway.officialReference ? runway.officialReference : null;
+    if (officialRef) {
+      const offLen = Math.round(Number(officialRef.lengthM || 0));
+      const offWid = Math.round(Number(officialRef.widthM || 0));
+      const offSurf = String(officialRef.surface || '').trim();
+      topGroup.appendChild(makeEl('text', {
+        x: topX + (runwayPx / 2),
+        y: topY + topHeight + 34,
+        'font-size': 14,
+        fill: '#0b5394',
+        'font-weight': '700',
+        'text-anchor': 'middle'
+      }, `OFFICIAL ROTAER: ${offLen}m x ${offWid}m${offSurf ? ' • ' + offSurf : ''}`));
+    }
+
+    const profileRaw = Array.isArray(runway.slopeProfile) && runway.slopeProfile.length
+      ? runway.slopeProfile.slice()
+      : [{ distance: lengthM, slope: editedSlope }];
+
+    let profile = profileRaw.map(seg => ({
+      distance: Math.max(Number(seg.distance || 0), 0),
+      slope: Number(seg.slope || 0)
+    })).filter(seg => seg.distance > 0 && isFinite(seg.slope));
+
+    if (!profile.length) profile = [{ distance: lengthM, slope: editedSlope }];
+
+    if (profile.length === 1) profile[0].slope = editedSlope;
+
+    const sumDist = profile.reduce((acc, seg) => acc + seg.distance, 0);
+    if (sumDist < lengthM) {
+      profile.push({ distance: lengthM - sumDist, slope: 0 });
+    } else if (sumDist > lengthM) {
+      let remaining = lengthM;
+      const trimmed = [];
+      for (let i = 0; i < profile.length && remaining > 0; i++) {
+        const d = Math.min(profile[i].distance, remaining);
+        if (d > 0) trimmed.push({ distance: d, slope: profile[i].slope });
+        remaining -= d;
+      }
+      profile = trimmed;
+    }
+
+    const sideX = topX;
+    const sideY = 266;
+    const sideH = 72;
+    const elevations = [0];
+    let curElevation = 0;
+    profile.forEach(seg => {
+      curElevation += (seg.distance * seg.slope / 100);
+      elevations.push(curElevation);
+    });
+
+    const minEl = Math.min.apply(null, elevations);
+    const maxEl = Math.max.apply(null, elevations);
+    const spanEl = Math.max(0.5, maxEl - minEl);
+
+    // More realistic vertical scale: cap exaggeration so short sharp segments don't look like cliffs
+    const elScaleRaw = sideH / spanEl;
+    const elScale = Math.max(0.8, Math.min(elScaleRaw, 4));
+    const usedHeight = spanEl * elScale;
+    const yOffset = (sideH - usedHeight) / 2;
+
+    let xCursorM = 0;
+    const points = [`${sideX},${sideY + yOffset + usedHeight - ((elevations[0] - minEl) * elScale)}`];
+    profile.forEach((seg, idx) => {
+      xCursorM += seg.distance;
+      const px = sideX + (xCursorM * scale);
+      const py = sideY + yOffset + usedHeight - ((elevations[idx + 1] - minEl) * elScale);
+      points.push(`${px},${py}`);
+    });
+
+    const sideGroup = makeEl('g', {});
+    sideGroup.appendChild(makeEl('text', { x: sideX, y: sideY - 6, 'font-size': 14, fill: '#333' }, 'SIDE VIEW (SEGMENTED SLOPE)'));
+    sideGroup.appendChild(makeEl('rect', {
+      x: sideX,
+      y: sideY,
+      width: runwayPx,
+      height: sideH,
+      fill: '#f3f3f3',
+      stroke: '#ddd'
+    }));
+    sideGroup.appendChild(makeEl('polyline', {
+      points: points.join(' '),
+      fill: 'none',
+      stroke: '#2e7d32',
+      'stroke-width': 3
+    }));
+
+    let segStartM = 0;
+    let lastSegLabelX = -9999;
+    profile.forEach(seg => {
+      const segMidX = sideX + ((segStartM + (seg.distance / 2)) * scale);
+      const segWidthPx = seg.distance * scale;
+      const canShow = segWidthPx >= 32 && (segMidX - lastSegLabelX) >= 34;
+      if (canShow) {
+        sideGroup.appendChild(makeEl('text', {
+          x: segMidX,
+          y: sideY + sideH + 10,
+          'font-size': 12,
+          fill: '#4b4b4b',
+          'text-anchor': 'middle'
+        }, `${seg.slope >= 0 ? '+' : ''}${seg.slope.toFixed(1)}% / ${Math.round(seg.distance)}m`));
+        lastSegLabelX = segMidX;
+      }
+      segStartM += seg.distance;
+    });
+
+    const hint = makeEl('text', {
+      x: canvasW - 10,
+      y: 20,
+      'font-size': 13,
+      fill: '#777',
+      'text-anchor': 'end'
+    }, 'Tap diagram: zoom in/out');
+
+    const focusTargets = [];
+    if (toPointM > 0) focusTargets.push(toPointM);
+    if (abortPointM > 0) focusTargets.push(abortPointM);
+    features.forEach(feat => {
+      const d = Math.max(0, Number(feat && feat.distance || 0));
+      if (d >= 0 && d <= lengthM) focusTargets.push(d);
+    });
+
+    const applyViewBox = function(mode) {
+      if (mode === 'focus' && focusTargets.length) {
+        const minM = Math.min.apply(null, focusTargets);
+        const maxM = Math.max.apply(null, focusTargets);
+        const coreRange = Math.max(maxM - minM, 120);
+        const marginM = Math.max(80, coreRange * 0.35);
+        let startM = Math.max(0, minM - marginM);
+        let endM = Math.min(lengthM, maxM + marginM);
+        if ((endM - startM) < 220) {
+          const c = (startM + endM) / 2;
+          startM = Math.max(0, c - 110);
+          endM = Math.min(lengthM, c + 110);
+        }
+        const vx = Math.max(0, topX + (startM * scale) - 18);
+        const vRight = Math.min(canvasW, topX + (endM * scale) + 18);
+        const vw = Math.max(150, vRight - vx);
+        svg.setAttribute('viewBox', `${vx} 0 ${vw} ${canvasH}`);
+      } else {
+        svg.setAttribute('viewBox', `0 0 ${canvasW} ${canvasH}`);
+      }
+    };
+
+    if (!window.performanceTab4.diagramZoomMode) {
+      window.performanceTab4.diagramZoomMode = 'full';
+    }
+
+    if (!svg.dataset.zoomBound) {
+      svg.addEventListener('click', function() {
+        window.performanceTab4.diagramZoomMode = (window.performanceTab4.diagramZoomMode === 'focus') ? 'full' : 'focus';
+        window.drawRunwayDiagram(window.performanceTab4.selectedRunway, window.performanceTab4.lastPerformanceResult);
+      });
+      svg.dataset.zoomBound = '1';
+    }
+
+    applyViewBox(window.performanceTab4.diagramZoomMode);
+
+    svg.appendChild(topGroup);
+    svg.appendChild(sideGroup);
+    svg.appendChild(hint);
+    svg.style.display = 'block';
+    document.getElementById('perf-diagram-empty').style.display = 'none';
+  };
+
+  window.calculatePerformanceTab4 = function(silentMode, opts) {
+    opts = opts || {};
+    const idx = Number(document.getElementById('perf-runway')?.value || 0);
+    const runway = (window.performanceTab4.runways || [])[idx] || null;
+
+    const windDirection = _roundWind10(document.getElementById('perf-wind-direction')?.value || 0);
+    const windDirectionEl = document.getElementById('perf-wind-direction');
+    if (windDirectionEl) windDirectionEl.value = windDirection;
+
+    const payload = {
+      missionId: window.performanceTab4.missionId,
+      flightId: window.performanceTab4.flightId,
+      aircraftReg: window.performanceTab4.aircraftReg,
+      aircraftType: window.performanceTab4.aircraftType,
+      weightKg: Number(document.getElementById('perf-weight')?.value || 0),
+      runwayLengthM: Number(document.getElementById('perf-runway-length')?.value || runway?.length || 0),
+      slopePercent: Number(document.getElementById('perf-slope')?.value || runway?.slope || 0),
+      slopeProfile: window.performanceTab4.slopeOverridden ? [] : (runway?.slopeProfile || []),
+      elevationFt: Number(document.getElementById('perf-elevation')?.value || runway?.elevation || 0),
+      surface: String(document.getElementById('perf-surface')?.value || runway?.surface || '').trim(),
+      surfaceCondition: String(document.getElementById('perf-surface-condition')?.value || 'DRY'),
+      qnhHpa: Number(document.getElementById('perf-qnh')?.value || 1013),
+      tempC: Number(document.getElementById('perf-temp')?.value || 15),
+      humidityPct: Number(document.getElementById('perf-humidity')?.value || 50),
+      windDirectionDeg: windDirection,
+      windSpeedKts: Number(document.getElementById('perf-wind-speed')?.value || 0),
+      runwayHeadingDeg: Number(runway?.headingDeg || 0),
+      flapSetting: Number(document.getElementById('perf-flaps')?.value || 0)
+    };
+
+    if (!payload.aircraftType || !payload.weightKg || !payload.runwayLengthM) {
+      if (!silentMode && window.M) {
+        M.toast({ html: 'Missing aircraft type, weight, or runway', classes: 'orange' });
+      }
+      return;
+    }
+
+    const cachedResult = readCachedPerformanceResult_(payload);
+
+    let localCalcReference = window.performanceTab4.calcReference;
+    if (!localCalcReference || !Array.isArray(localCalcReference.baseRows) || !localCalcReference.baseRows.length || !Array.isArray(localCalcReference.perfRows) || !localCalcReference.perfRows.length) {
+      localCalcReference = readGlobalPerformanceReference_() || { baseRows: [], perfRows: [] };
+      window.performanceTab4.calcReference = localCalcReference;
+    }
+    if (localCalcReference && Array.isArray(localCalcReference.baseRows) && localCalcReference.baseRows.length && Array.isArray(localCalcReference.perfRows) && localCalcReference.perfRows.length) {
+      const localResult = calculatePerformanceLocally_(payload, localCalcReference);
+      if (!localResult || !localResult.success) {
+        if (!silentMode && window.M) {
+          M.toast({ html: (localResult && localResult.error) ? localResult.error : 'Performance calculation failed', classes: 'red', displayLength: 7000 });
+        }
+        return;
+      }
+      cachePerformanceResult_(payload, localResult);
+      applyPerformanceResult_(localResult);
+      return;
+    }
+
+    if (!window.google || !google.script || !google.script.run) {
+      if (cachedResult) {
+        applyPerformanceResult_(cachedResult);
+      }
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success) {
+          if (!silentMode && window.M) {
+            M.toast({ html: (result && result.error) ? result.error : 'Performance calculation failed', classes: 'red' });
+          }
+          return;
+        }
+        cachePerformanceResult_(payload, result);
+        applyPerformanceResult_(result);
+      })
+      .withFailureHandler(function(err) {
+        console.error('calculatePerformanceTab4 failed', err);
+        const msg = err && err.message ? err.message : String(err || 'unknown error');
+
+        if (!opts.retryAttempted && /HTTP 0|NetworkError|Connection failure/i.test(msg)) {
+          setTimeout(function() {
+            window.calculatePerformanceTab4(silentMode, { retryAttempted: true });
+          }, 350);
+          return;
+        }
+
+        if (cachedResult) {
+          applyPerformanceResult_(cachedResult);
+          if (!silentMode && window.M) {
+            M.toast({ html: 'Offline: loaded cached performance result', classes: 'orange', displayLength: 5000 });
+          }
+          return;
+        }
+
+        if (!silentMode && window.M) {
+          M.toast({ html: 'Error calculating performance: ' + msg, classes: 'red', displayLength: 7000 });
+        }
+      })
+      .calculatePerformanceRolls(payload);
+  };
+</script>

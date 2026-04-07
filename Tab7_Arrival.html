@@ -1,0 +1,1754 @@
+<style>
+  #arrival7-wrap { background:#f1f3f4; min-height:100vh; padding:8px 8px 120px 8px; font-family:'Segoe UI', sans-serif; }
+  .arrival7-panel { max-width:1220px; margin:0 auto; background:#fff; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.1); padding:10px; }
+  .arrival7-title { font-size:1.08rem; font-weight:900; color:#0b5394; text-transform:uppercase; margin:0 0 8px 0; }
+  .arrival7-sub { font-size:.82rem; font-weight:800; color:#0b5394; text-transform:uppercase; margin:8px 0 6px 0; border-top:1px solid #ececec; padding-top:7px; }
+
+  .risk-matrix-head,
+  .risk-matrix-row { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:6px; margin-bottom:6px; }
+  .risk-label { height:34px; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:900; color:#444; text-transform:uppercase; border:1px solid #d8d8d8; border-radius:8px; background:#fafafa; }
+  .risk-choice-group { display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid #d6dde6; border-radius:10px; background:#fff; min-height:52px; }
+  .risk-btn { width:40px; height:40px; border:2px solid #d7dee7; border-radius:999px; font-size:.9rem; font-weight:900; cursor:pointer; }
+  .risk-btn.level-1 { background:#43a047; color:#fff; border-color:#2e7d32; }
+  .risk-btn.level-2 { background:#ffc107; color:#fff; border-color:#f9a825; }
+  .risk-btn.level-3 { background:#e53935; color:#fff; border-color:#c62828; }
+  .risk-btn.active { outline:3px solid #0b5394; box-shadow:0 0 0 3px rgba(11,83,148,0.18); }
+  .risk-total { margin-top:6px; border-radius:8px; color:#fff; padding:10px 10px; font-weight:800; font-size:.9rem; text-align:center; }
+  .risk-total.pending { background:#eceff1; color:#455a64; }
+  .risk-total.green { background:#2e7d32; }
+  .risk-total.yellow { background:#f9a825; }
+  .risk-total.red { background:#d32f2f; }
+
+  .arrival7-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+  @media (min-width:480px){ .arrival7-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (min-width:620px){ .arrival7-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } }
+  .field.arr7-half { width: 50%; justify-self: start; }
+  @media (max-width:619px) { .field.arr7-half { width: 100%; } }
+  .arrival7-grid > .field,
+  .arrival7-grid > .arrival7-entry-banner { min-width:0; }
+  .field label { display:block; font-size:.86rem; font-weight:800; color:#666; text-transform:uppercase; margin-bottom:2px; }
+  .field input, .field select { width:100%; height:38px; border:1px solid #d9d9d9; border-radius:6px; padding:0 6px; font-size:.9rem; box-sizing:border-box; min-width:0; }
+  .field input[readonly] { background:#f7f7f7; color:#444; }
+  .arr7-pilot-entry { background:#f8fbff; border:2px dashed #bbdefb; border-radius:8px; padding:6px; }
+  .arr7-pilot-entry label { color:#0b5394; }
+  .arr7-pilot-entry input:not([readonly]),
+  .arr7-pilot-entry select:not([disabled]) { border:2px solid #1976d2; box-shadow:0 1px 2px #e3eafc; font-weight:600; }
+  .arrival7-entry-banner { grid-column: 1 / -1; background:#e8f2ff; border:2px dashed #1976d2; border-radius:8px; padding:8px 10px; color:#0b5394; font-size:.9rem; font-weight:800; line-height:1.35; }
+  .arr7-pilot-entry input,
+  .arr7-pilot-entry select { border:2px solid #1976d2; background:#f5faff; }
+  .arr7-field-locked input,
+  .arr7-field-locked select {
+    background:#e9ecef !important;
+    color:#666 !important;
+    border:1.5px solid #adb5bd !important;
+    box-shadow:none !important;
+    pointer-events:none;
+  }
+  .arr7-field-unlocked-override input,
+  .arr7-field-unlocked-override select {
+    background:#fff3cd !important;
+    border:2px solid #f9a825 !important;
+    color:#5d4037 !important;
+    pointer-events:auto;
+  }
+
+  .arrival7-banner { margin-top:8px; border-radius:8px; padding:10px; font-size:.95rem; font-weight:800; text-align:center; }
+  .arrival7-banner.go { background:#e8f5e9; color:#1b5e20; border:1px solid #c8e6c9; }
+  .arrival7-banner.nogo { background:#ffebee; color:#b71c1c; border:1px solid #ffcdd2; }
+
+  .wind-control { display:flex; align-items:center; gap:6px; width:100%; min-width:0; }
+  .wind-control > * { min-width:0; }
+  .wind-num { width:70px !important; min-width:70px; flex:0 0 70px; }
+  .arr7-lock { font-size:1rem; margin-left:4px; }
+
+  .arr7-key-btn {
+    border:2px solid #1976d2;
+    background:#fff;
+    color:#1565c0;
+    border-radius:6px;
+    height:38px;
+    min-width:64px;
+    padding:0 8px;
+    font-size:.76rem;
+    font-weight:800;
+    cursor:pointer;
+    white-space:nowrap;
+    flex:0 0 auto;
+  }
+
+  .arr7-keypad-backdrop {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.4);
+    z-index:2000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:10px;
+  }
+  .arr7-keypad {
+    width:min(760px, 100%);
+    max-height:90vh;
+    overflow:auto;
+    background:#fff;
+    border-radius:10px;
+    padding:10px;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  .arr7-keypad-title { font-size:1rem; font-weight:900; color:#0b5394; margin-bottom:8px; text-transform:uppercase; }
+  .arr7-keypad-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; }
+  .arr7-keypad-grid button, .arr7-keypad-actions button {
+    height:42px; border:none; border-radius:6px; background:#1565c0; color:#fff; font-weight:800; cursor:pointer;
+  }
+  .arr7-keypad-actions { margin-top:8px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+  .arr7-qnh-list {
+    border: 1px solid #dbe7f3;
+    border-radius: 10px;
+    max-height: 58vh;
+    overflow-y: auto;
+    background: #fbfdff;
+    padding: 6px;
+    scroll-snap-type: y proximity;
+  }
+  .arr7-qnh-item {
+    height: 52px;
+    border: 2px solid #d6e4f5;
+    border-radius: 8px;
+    background: #fff;
+    color: #1565c0;
+    font-size: 1.05rem;
+    font-weight: 900;
+    width: 100%;
+    margin-bottom: 6px;
+    scroll-snap-align: center;
+  }
+  .arr7-qnh-item.recommended {
+    border-color: #1976d2;
+    background: #e8f2ff;
+  }
+  .arr7-inline-calm {
+    min-width: 54px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+  }
+
+  .arrival7-buttons { margin-top:8px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .arrival7-buttons button { height:40px; border:none; border-radius:7px; font-size:.82rem; font-weight:900; color:#fff; cursor:pointer; }
+  .btn-photo { background:#1565c0; }
+  .btn-chart { background:#6a1b9a; }
+
+  .arrival7-briefstrip { margin-top:10px; }
+  .arr7-mission-card {
+    border:1px solid #dbe7f3;
+    background:#f8fbff;
+    border-radius:8px;
+    padding:8px;
+    display:grid;
+    gap:6px;
+  }
+  .arr7-inline-grid {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:6px;
+  }
+  .arr7-inline-item {
+    border:1px solid #d5e3f3;
+    background:#fff;
+    border-radius:6px;
+    padding:6px 7px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    min-width:0;
+  }
+  .arr7-inline-item .k {
+    font-size:.9rem;
+    color:#607d8b;
+    text-transform:uppercase;
+    font-weight:900;
+    white-space:nowrap;
+  }
+  .arr7-inline-item .v {
+    font-size:.95rem;
+    color:#0b5394;
+    font-weight:900;
+    white-space:nowrap;
+  }
+  .arr7-badge-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .arr7-badge {
+    display:inline-block;
+    border-radius:999px;
+    padding:5px 10px;
+    font-size:.9rem;
+    font-weight:900;
+    color:#fff;
+    text-transform:uppercase;
+  }
+  .arr7-badge.red { background:#d32f2f; }
+  .arr7-badge.green { background:#2e7d32; }
+  .arr7-strip-sub { border:1px solid #ececec; background:#fafafa; border-radius:8px; padding:7px 9px; font-size:.95rem; color:#455a64; font-weight:800; text-align:left; }
+
+  @media (max-width:600px){ .arrival7-grid,.arrival7-buttons{ grid-template-columns:1fr; } .arr7-inline-grid{ grid-template-columns:1fr; } .risk-matrix-head,.risk-matrix-row{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+</style>
+
+<div id="arrival7-wrap">
+  <div class="arrival7-panel">
+    <div class="arrival7-title">Tab 7: Landing Performance & Arrival Risk</div>
+
+    <div class="arrival7-sub">Arrival FRAT</div>
+    <div id="arrival7-risk-rows"></div>
+    <div id="arrival7-risk-total" class="risk-total green">Risk 5/15 - Low</div>
+
+    <div class="arrival7-sub">Arrival Performance Inputs</div>
+    <div class="arrival7-grid">
+      <div class="arrival7-entry-banner">Pilot entry required: select runway/surface/condition and enter slope, QNH, temperature, and wind. Grey fields are auto-filled reference values.</div>
+
+      <div class="field arr7-half"><label>Airport</label><input id="arr7-airport" readonly></div>
+      <div class="field arr7-pilot-entry"><label>Runway</label><select id="arr7-runway" class="browser-default"></select></div>
+      <div class="field"><label>Landing Weight kg</label><input id="arr7-weight" type="number" inputmode="numeric" readonly></div>
+      <div class="field"><label>Runway Length m</label><input id="arr7-length" type="number" inputmode="numeric" readonly></div>
+      <div class="field"><label>Runway Width m</label><input id="arr7-width" type="number" inputmode="numeric" readonly></div>
+      <div class="field arr7-half"><label>Elevation ft</label><input id="arr7-elev" type="number" inputmode="numeric" readonly></div>
+      <div class="field arr7-pilot-entry" id="arr7-field-surface"><label>Surface <span id="arr7-surface-lock" class="arr7-lock" style="display:none;" title="From runway data">🔒</span></label><select id="arr7-surface" class="browser-default"></select></div>
+      <div class="field arr7-half arr7-pilot-entry" id="arr7-field-slope"><label>Slope % <span id="arr7-slope-lock" class="arr7-lock" style="display:none;" title="From runway data">🔒</span></label><input id="arr7-slope" type="number" inputmode="decimal" step="0.1"></div>
+      <div class="field arr7-pilot-entry"><label>Surface Condition</label><select id="arr7-cond" class="browser-default"><option value="">Select condition...</option><option value="DRY">Dry</option><option value="WET">Wet</option></select></div>
+
+      <div class="field arr7-pilot-entry"><label>QNH hPa</label><div class="wind-control"><input id="arr7-qnh" class="wind-num" type="number" inputmode="decimal" placeholder="1013" readonly><button type="button" class="arr7-key-btn" onclick="window.arr7OpenQnhPicker()">QNH</button></div></div>
+
+      <div class="field arr7-pilot-entry"><label>Temp C</label><div class="wind-control"><input id="arr7-temp" class="wind-num" type="number" inputmode="decimal" placeholder="15" readonly><button type="button" class="arr7-key-btn" onclick="window.arr7OpenTempKeypad()">TEMP</button></div></div>
+      
+      <div class="field arr7-pilot-entry"><label>Wind Dir °</label><div class="wind-control"><input id="arr7-wind-dir-input" class="wind-num" type="number" inputmode="numeric" min="0" max="360" step="10" value="0" readonly><button type="button" class="arr7-key-btn" onclick="window.arr7OpenWindDirKeypad()">HDG</button></div></div>
+
+      <div class="field arr7-pilot-entry"><label>Wind Speed kt</label><div class="wind-control"><input id="arr7-wind-spd-input" class="wind-num" type="number" inputmode="numeric" min="0" max="60" step="1" value="0" readonly><button type="button" class="arr7-key-btn" onclick="window.arr7OpenWindSpdKeypad()">SPD</button><button type="button" id="arr7-calm-btn" class="arr7-key-btn arr7-inline-calm" onclick="window.arr7SetCalmWind()">CALM</button></div></div>
+    </div>
+
+    <div id="arr7-banner" class="arrival7-banner go">GO - Planned landing distance meets displaced touchdown + 150% rule</div>
+
+    <div class="arrival7-buttons">
+      <button id="arr7-photo-btn" class="btn-photo" onclick="window.openArrivalAirstripPhoto()">AIRSTRIP PHOTO</button>
+      <button id="arr7-chart-btn" class="btn-chart" onclick="window.openArrivalChart()">VIEW CHART</button>
+    </div>
+
+    <div class="arrival7-briefstrip">
+      <div class="arr7-mission-card">
+        <div class="arr7-inline-grid">
+          <div class="arr7-inline-item"><span class="k">Available</span><span class="v" id="arr7-rwylen">0 m</span></div>
+          <div class="arr7-inline-item"><span class="k">Ground Roll</span><span class="v" id="arr7-roll">0 m</span></div>
+          <div class="arr7-inline-item"><span class="k">Planned Dist</span><span class="v" id="arr7-planned">0 m</span></div>
+          <div class="arr7-inline-item"><span class="k">Margin</span><span class="v" id="arr7-margin">0 m</span></div>
+        </div>
+        <div class="arr7-badge-row">
+          <span id="arr7-weight-badge" class="arr7-badge green">Weight: 0kg</span>
+        </div>
+        <div class="arr7-strip-sub" id="arr7-secondary-strip">Density Alt 0 ft • Head/Tail 0 kt • Crosswind 0 kt</div>
+      </div>
+    </div>
+
+    <div class="arrival7-sub">Runway Diagram</div>
+    <svg id="arr7-runway-diagram" width="100%" height="320" viewBox="0 0 400 320" style="border:1px solid #ddd; border-radius:4px; background:#f9f9f9; display:none;"></svg>
+    <div id="arr7-diagram-empty" style="font-size:1rem; color:#999; text-align:center; padding:14px 0 2px 0;">Select runway to view landing markers</div>
+  </div>
+</div>
+
+<div id="arr7-keypad-backdrop" class="arr7-keypad-backdrop">
+  <div class="arr7-keypad">
+    <div id="arr7-keypad-title" class="arr7-keypad-title">Keypad</div>
+    <div id="arr7-keypad-grid" class="arr7-keypad-grid"></div>
+    <div id="arr7-keypad-actions" class="arr7-keypad-actions"></div>
+  </div>
+</div>
+
+<script>
+  window.arrival7 = {
+    missionId: '',
+    flightLegId: '',
+    aircraftType: '',
+    toIcao: '',
+    runways: [],
+    calcReference: null,
+    surfaceOptions: [],
+    selectedRunway: null,
+    risk: { pilot:null, aircraft:null, runway:null, weather:null, mission:null },
+    weightKg: 0,
+    chartUrl: '',
+    photoUrl: '',
+    lastResult: null,
+    keypadMode: '',
+    slopeOverridden: false
+  };
+
+  function _arr7PerfSetupCacheKey(icao) {
+    return 'mba_cache_perfsetup_' + String(icao || '').trim().toUpperCase();
+  }
+
+  function _arr7ReadCachedPerfSetup(icao) {
+    try {
+      const raw = localStorage.getItem(_arr7PerfSetupCacheKey(icao));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.payload ? parsed.payload : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function _arr7CachePerfSetup(icao, data) {
+    try {
+      if (!icao || !data) return;
+      localStorage.setItem(_arr7PerfSetupCacheKey(icao), JSON.stringify({
+        icao: String(icao || '').trim().toUpperCase(),
+        cachedAt: new Date().toISOString(),
+        payload: data
+      }));
+    } catch (e) {}
+  }
+
+  function _arr7ReadGlobalCalcRef() {
+    try {
+      const raw = localStorage.getItem('mba_cache_perfcalc_ref_global');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const ref = parsed && parsed.calcReference ? parsed.calcReference : null;
+      if (!ref || !Array.isArray(ref.baseRows) || !ref.baseRows.length || !Array.isArray(ref.perfRows) || !ref.perfRows.length) return null;
+      return ref;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function _arr7LikelyNetworkErr_(err) {
+    const msg = err && err.message ? String(err.message) : String(err || '');
+    return /HTTP 0|NetworkError|Connection failure|Failed to fetch|ScriptError/i.test(msg);
+  }
+
+  function _arr7CacheGlobalCalcRef(calcReference) {
+    try {
+      const baseRows = (calcReference && calcReference.baseRows) || [];
+      const perfRows = (calcReference && calcReference.perfRows) || [];
+      if (!Array.isArray(baseRows) || !baseRows.length || !Array.isArray(perfRows) || !perfRows.length) return;
+      localStorage.setItem('mba_cache_perfcalc_ref_global', JSON.stringify({
+        cachedAt: new Date().toISOString(),
+        calcReference: { baseRows: baseRows, perfRows: perfRows }
+      }));
+    } catch (e) {}
+  }
+
+  function _arr7RunwayHeadingFromIdent(rwyIdent) {
+    const raw = String(rwyIdent || '').toUpperCase();
+    const m = raw.match(/(\d{1,2})/);
+    if (!m) return 0;
+    const n = parseInt(m[1], 10);
+    if (isNaN(n) || n < 1 || n > 36) return 0;
+    return (n * 10) % 360;
+  }
+
+  function _arr7RunwayDisplayIdent(rwyIdent) {
+    const raw = String(rwyIdent == null ? '' : rwyIdent).trim().toUpperCase();
+    const m = raw.match(/(\d{1,2})/);
+    if (!m) return raw || 'RWY';
+    const n = parseInt(m[1], 10);
+    if (isNaN(n) || n < 1 || n > 36) return raw || 'RWY';
+    return String(n).padStart(2, '0');
+  }
+
+  function _arr7ToMeters(v) {
+    if (v == null || v === '') return 0;
+    const txt = String(v).trim().toUpperCase();
+    const n = parseFloat(txt.replace(',', '.'));
+    if (isNaN(n)) return 0;
+    if (txt.indexOf('FT') >= 0 || txt.indexOf('FEET') >= 0) {
+      return n * 0.3048;
+    }
+    return n;
+  }
+
+  function _arr7ApplySetup(setup) {
+    const payload = setup || {};
+    window.arrival7.runways = Array.isArray(payload.runways) ? payload.runways : [];
+    window.arrival7.surfaceOptions = Array.isArray(payload.surfaceOptions) ? payload.surfaceOptions : [];
+    window.arrival7.surfaceTranslator = (payload.surfaceTranslator && typeof payload.surfaceTranslator === 'object') ? payload.surfaceTranslator : {};
+    window.arrival7.calcReference = payload.calcReference ? payload.calcReference : (_arr7ReadGlobalCalcRef() || { baseRows: [], perfRows: [] });
+    _arr7PopulateSelectors();
+  }
+
+  function _arr7BuildSetupFromAppData(icao) {
+    const airportCode = String(icao || '').trim().toUpperCase();
+    if (!airportCode) return null;
+
+    const field = function(row, names, fallback) {
+      for (let i = 0; i < names.length; i++) {
+        const key = names[i];
+        if (row && row[key] != null && row[key] !== '') return row[key];
+      }
+      return fallback;
+    };
+
+    const rowIcao = function(row) {
+      return String(field(row, ['icao', 'ICAO', 'airport', 'AIRPORT', 'airportCode', 'AIRPORT_CODE', 'apt', 'APT', 'ident', 'IDENT', 'code', 'CODE'], '') || '').trim().toUpperCase();
+    };
+
+    const rows = (window.appData && Array.isArray(window.appData.airports))
+      ? window.appData.airports.filter(r => rowIcao(r) === airportCode)
+      : [];
+    if (!rows.length) return null;
+
+    const runways = rows.map(function(r) {
+      const rawIdent = field(r, ['runwayIdent','rwyIdent','runway','RWY_IDENT','RWY','RUNWAY','RUNWAY_DESIGNATOR'], '');
+      const rwyIdent = _arr7RunwayDisplayIdent(rawIdent);
+      const headingExplicit = _arr7Num(field(r, ['runwayHeading','heading','RUNWAY_HEADING','HEADING'], 0), 0);
+      let lengthM = _arr7ToMeters(field(r, ['runwayLength','length','lengthM','LENGTH_OFFICIAL','LENGTH_METERS','LENGTH_M'], 0));
+      let widthM = _arr7ToMeters(field(r, ['runwayWidth','width','widthM','WIDTH_OFFICIAL','WIDTH_METERS','WIDTH_M'], 0));
+      const slopeRaw = field(r, ['runwaySlopePercent','slope','SLOPE_PERCENT','SLOPE_PCT'], '');
+      let defaultSlope = _arr7Num(slopeRaw, 0);
+      let slopeKnown = String(slopeRaw == null ? '' : slopeRaw).trim() !== '';
+
+      let slopeProfile = [];
+      let verifiedOp = {};
+      let officialRef = {};
+      const slopeProfileRaw = field(r, ['runwaySlopeProfile','slopeProfile','SLOPE_PROFILE','RUNWAY_SLOPE_PROFILE'], '');
+      const slopeProfileStr = String(slopeProfileRaw == null ? '' : slopeProfileRaw).trim();
+      let knownFeatures = [];
+      const featuresRaw = field(r, ['knownFeatures', 'KNOWN_FEATURES', 'features', 'FEATURES'], '');
+      const featuresStr = String(featuresRaw == null ? '' : featuresRaw).trim();
+      if (featuresStr) {
+        try {
+          const parsedFeatures = (typeof featuresRaw === 'string') ? JSON.parse(featuresStr) : featuresRaw;
+          const knownObj = Array.isArray(parsedFeatures) ? { features: parsedFeatures } : (parsedFeatures || {});
+          verifiedOp = (knownObj && typeof knownObj.verifiedOperational === 'object' && knownObj.verifiedOperational) ? knownObj.verifiedOperational : {};
+          officialRef = (knownObj && typeof knownObj.officialReference === 'object' && knownObj.officialReference) ? knownObj.officialReference : {};
+          if (Array.isArray(verifiedOp.features)) knownFeatures = verifiedOp.features;
+          else if (Array.isArray(knownObj.features)) knownFeatures = knownObj.features;
+          if (Array.isArray(knownObj.slopeProfile) && knownObj.slopeProfile.length) {
+            slopeProfile = knownObj.slopeProfile
+              .map(function(seg) {
+                return {
+                  distance: _arr7Num(seg && (seg.distance ?? seg.length ?? seg.segmentM), 0),
+                  slope: _arr7Num(seg && (seg.slope ?? seg.slopePercent ?? seg.grade), 0)
+                };
+              })
+              .filter(function(seg) { return seg.distance > 0 && isFinite(seg.distance) && isFinite(seg.slope); });
+          }
+        } catch (e) {
+          knownFeatures = [];
+        }
+      }
+
+      if (!slopeProfile.length && slopeProfileStr) {
+        try {
+          const parsedProfile = (typeof slopeProfileRaw === 'string') ? JSON.parse(slopeProfileStr) : slopeProfileRaw;
+          if (Array.isArray(parsedProfile)) {
+            slopeProfile = parsedProfile
+              .map(function(seg) {
+                return {
+                  distance: _arr7Num(seg && (seg.distance ?? seg.length ?? seg.segmentM), 0),
+                  slope: _arr7Num(seg && (seg.slope ?? seg.slopePercent ?? seg.grade), 0)
+                };
+              })
+              .filter(function(seg) { return seg.distance > 0 && isFinite(seg.distance) && isFinite(seg.slope); });
+          }
+        } catch (e) {
+          slopeProfile = [];
+        }
+      }
+
+      if (Array.isArray(slopeProfile) && slopeProfile.length) {
+        const sumD = slopeProfile.reduce(function(acc, seg) { return acc + seg.distance; }, 0) || 1;
+        const sumWeighted = slopeProfile.reduce(function(acc, seg) { return acc + (seg.distance * seg.slope); }, 0);
+        defaultSlope = sumWeighted / sumD;
+        slopeKnown = true;
+      }
+
+      const approvedLengthM = _arr7Num(verifiedOp.lengthM, 0);
+      const approvedWidthM = _arr7Num(verifiedOp.widthM, 0);
+      if (approvedLengthM > 0) lengthM = approvedLengthM;
+      if (approvedWidthM > 0) widthM = approvedWidthM;
+      if (!slopeProfile.length) {
+        slopeProfile = [{ distance: Math.max(lengthM, 0), slope: defaultSlope }];
+      }
+
+      return {
+        icao: airportCode,
+        rwyIdent: rwyIdent,
+        headingDeg: headingExplicit > 0 ? headingExplicit : _arr7RunwayHeadingFromIdent(rwyIdent),
+        length: lengthM,
+        width: widthM,
+        slope: defaultSlope,
+        slopeKnown: slopeKnown,
+        elevation: _arr7Num(field(r, ['elevationFt','elevation','ELEVATION','ALT_FEET','ELEVATION_FT'], 0), 0),
+        surface: String(verifiedOp.surface || field(r, ['runwaySurfaceActual','surface','SURFACE_ACTUAL','SURFACE_OFFICIAL','SURFACE'], '')).trim(),
+        surfaceCondition: String(field(r, ['runwaySurfaceCondition','surfaceCondition','SURFACE_CONDITION','CONDITION'], '')).trim(),
+        pilotNotes: String(field(r, ['pilotNotes','PILOT_NOTES'], '')).trim(),
+        chartUrl: String(field(r, ['chartUrl','CHART_URL','PLATE_URL','APPROACH_CHART','PROCEDURE_PDF','PDF_URL'], '')).trim(),
+        airstripPhoto: String(field(r, ['airstripPhoto','AIRSTRIP_PHOTO','RUNWAY_PHOTO','PHOTO_URL'], '')).trim(),
+        knownFeatures: knownFeatures,
+        slopeProfile: slopeProfile,
+        officialReference: officialRef,
+        verifiedOperational: verifiedOp
+      };
+    }).filter(function(rwy) {
+      return (rwy.length > 0) || (rwy.rwyIdent && rwy.rwyIdent !== 'RWY');
+    }).sort(function(a, b) {
+      const ha = _arr7Num(a.headingDeg, 0);
+      const hb = _arr7Num(b.headingDeg, 0);
+      if (ha !== hb) return ha - hb;
+      return String(a.rwyIdent || '').localeCompare(String(b.rwyIdent || ''));
+    });
+
+    if (!runways.length) return null;
+
+    const surfaceSet = {};
+    runways.forEach(function(rwy) {
+      const s = String(rwy && rwy.surface || '').trim();
+      if (s) surfaceSet[s] = true;
+    });
+
+    const surfaceTranslator = {
+      'ASFALTO': 'Paved',
+      'CONCRETO': 'Paved',
+      'GRAMA': 'Grass to 6"',
+      'GRAMA CURTA': 'Short Grass',
+      'GRAMA LONGA': 'Long Grass',
+      'TERRA': 'Rough',
+      'AREIA': 'Sand',
+      'CASCALHO': 'Rough',
+      'MUD': 'Mud',
+      'LAMA': 'Mud',
+      'TURF FIRME': 'Firm Turf',
+      'TURF': 'Firm Turf'
+    };
+
+    return {
+      runways: runways,
+      surfaceOptions: Object.keys(surfaceSet).sort(function(a, b) { return a.localeCompare(b); }),
+      surfaceTranslator: surfaceTranslator,
+      calcReference: _arr7ReadGlobalCalcRef() || { baseRows: [], perfRows: [] }
+    };
+  }
+
+  function _arr7Norm(v) {
+    return String(v || '').toUpperCase().trim().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+
+  function _arr7Num(v, d) {
+    const n = parseFloat(v);
+    return isNaN(n) ? (d || 0) : n;
+  }
+
+  function _arr7Val(obj, keys, fallback) {
+    for (let i = 0; i < keys.length; i++) {
+      const k = _arr7Norm(keys[i]);
+      if (Object.prototype.hasOwnProperty.call(obj || {}, k) && obj[k] !== '' && obj[k] != null) return obj[k];
+    }
+    return fallback;
+  }
+
+  function _arr7Nearest(rows, keyNames, target, valueNames, fallback) {
+    let best = null;
+    let bestDiff = Number.MAX_VALUE;
+    (rows || []).forEach(r => {
+      const k = parseFloat(_arr7Val(r, keyNames, ''));
+      const v = parseFloat(_arr7Val(r, valueNames, ''));
+      if (isNaN(k) || isNaN(v)) return;
+      const diff = Math.abs(k - target);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = v;
+      }
+    });
+    return (best == null || isNaN(best)) ? (fallback || 1) : best;
+  }
+
+  function _arr7Surface(rows, surfaceText, valueNames, fallback) {
+    const key = _arr7Norm(surfaceText || '');
+    if (!key) return fallback || 1;
+    for (let i = 0; i < (rows || []).length; i++) {
+      const rowSurface = _arr7Norm(_arr7Val(rows[i], ['SURFACE'], ''));
+      if (!rowSurface) continue;
+      if (rowSurface === key || rowSurface.indexOf(key) >= 0 || key.indexOf(rowSurface) >= 0) {
+        const v = parseFloat(_arr7Val(rows[i], valueNames, ''));
+        if (!isNaN(v)) return v;
+      }
+    }
+    return fallback || 1;
+  }
+
+  function _arr7InterpBase(baseRows, weightKg) {
+    if (!baseRows || !baseRows.length) return { to: 0, ldg: 0 };
+    const sorted = baseRows.slice().sort((a, b) => a.w - b.w);
+    if (weightKg <= sorted[0].w) return { to: sorted[0].to, ldg: sorted[0].ldg };
+    if (weightKg >= sorted[sorted.length - 1].w) {
+      const last = sorted[sorted.length - 1];
+      return { to: last.to, ldg: last.ldg };
+    }
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      if (weightKg >= a.w && weightKg <= b.w) {
+        const ratio = (weightKg - a.w) / ((b.w - a.w) || 1);
+        return { to: a.to + ratio * (b.to - a.to), ldg: a.ldg + ratio * (b.ldg - a.ldg) };
+      }
+    }
+    return { to: sorted[0].to, ldg: sorted[0].ldg };
+  }
+
+  function _arr7DensityAlt(elevationFt, qnhHpa, tempC) {
+    const elev = _arr7Num(elevationFt, 0);
+    const qnh = _arr7Num(qnhHpa, 1013.25);
+    const temp = _arr7Num(tempC, 15);
+    const pressureAltitude = elev + ((1013.25 - qnh) * 30);
+    const isaTemp = 15 - (2 * (elev / 1000));
+    return pressureAltitude + (120 * (temp - isaTemp));
+  }
+
+  function _arr7NormalizeSlopeProfile(profileRaw, runwayLengthM, fallbackSlope) {
+    const runwayLen = Math.max(_arr7Num(runwayLengthM, 0), 0);
+    const fb = _arr7Num(fallbackSlope, 0);
+    let profile = Array.isArray(profileRaw)
+      ? profileRaw.map(seg => ({
+          distance: _arr7Num(seg && (seg.distance ?? seg.length ?? seg.segmentM), 0),
+          slope: _arr7Num(seg && (seg.slope ?? seg.slopePercent ?? seg.grade), fb)
+        })).filter(seg => seg.distance > 0 && isFinite(seg.distance) && isFinite(seg.slope))
+      : [];
+    if (!profile.length) return [{ distance: runwayLen > 0 ? runwayLen : 1, slope: fb }];
+    const sumDist = profile.reduce((acc, seg) => acc + seg.distance, 0);
+    if (sumDist < runwayLen) profile.push({ distance: runwayLen - sumDist, slope: 0 });
+    else if (sumDist > runwayLen && runwayLen > 0) {
+      let remaining = runwayLen;
+      const trimmed = [];
+      for (let i = 0; i < profile.length && remaining > 0; i++) {
+        const d = Math.min(profile[i].distance, remaining);
+        if (d > 0) trimmed.push({ distance: d, slope: profile[i].slope });
+        remaining -= d;
+      }
+      profile = trimmed.length ? trimmed : [{ distance: runwayLen, slope: fb }];
+    }
+    return profile;
+  }
+
+  function _arr7SlopeAtDistance(profile, distanceM) {
+    const target = Math.max(_arr7Num(distanceM, 0), 0);
+    if (!target || !Array.isArray(profile) || !profile.length) return 0;
+    let remaining = target;
+    let weighted = 0;
+    let lastSlope = _arr7Num(profile[profile.length - 1].slope, 0);
+    for (let i = 0; i < profile.length && remaining > 0; i++) {
+      const seg = profile[i];
+      const segDist = Math.max(_arr7Num(seg.distance, 0), 0);
+      const segSlope = _arr7Num(seg.slope, 0);
+      const used = Math.min(segDist, remaining);
+      weighted += used * segSlope;
+      remaining -= used;
+      lastSlope = segSlope;
+    }
+    if (remaining > 0) weighted += remaining * lastSlope;
+    return weighted / target;
+  }
+
+  function _arr7CalcLocally(payload, calcReference) {
+    try {
+      const aircraftType = String(payload && payload.aircraftType || '').trim();
+      const weightKg = _arr7Num(payload && payload.weightKg, 0);
+      const runwayLengthM = _arr7Num(payload && payload.runwayLengthM, 0);
+      const slopePercent = _arr7Num(payload && payload.slopePercent, 0);
+      const slopeProfileRaw = payload && payload.slopeProfile;
+      const elevationFt = _arr7Num(payload && payload.elevationFt, 0);
+      const surface = String(payload && payload.surface || '').trim();
+      const surfaceCondition = String(payload && payload.surfaceCondition || 'DRY').toUpperCase();
+      const qnhHpa = _arr7Num(payload && payload.qnhHpa, 1013.25);
+      const tempC = _arr7Num(payload && payload.tempC, 15);
+      const humidityPct = _arr7Num(payload && payload.humidityPct, 50);
+      const windDirectionDeg = _arr7Num(payload && payload.windDirectionDeg, 0);
+      const windSpeedKts = _arr7Num(payload && payload.windSpeedKts, 0);
+      const runwayHeadingDeg = _arr7Num(payload && payload.runwayHeadingDeg, 0);
+
+      if (!aircraftType) return { success:false, error:'Aircraft type is required.' };
+      if (weightKg <= 0) return { success:false, error:'Weight must be greater than zero.' };
+      if (runwayLengthM <= 0) return { success:false, error:'Runway length must be greater than zero.' };
+
+      const baseRows = ((calcReference && calcReference.baseRows) || [])
+        .filter(r => String(_arr7Val(r, ['AIRCRAFT_TYPE'], '')).trim().toUpperCase() === aircraftType.toUpperCase())
+        .map(r => ({
+          w: _arr7Num(_arr7Val(r, ['WEIGHT_KG', 'WEIGHT'], 0), 0),
+          to: _arr7Num(_arr7Val(r, ['TO_ROLL_M', 'TO_ROLL'], 0), 0),
+          ldg: _arr7Num(_arr7Val(r, ['LDG_ROLL_M', 'LDG_ROLL'], 0), 0)
+        }))
+        .filter(r => r.w > 0 && r.to > 0 && r.ldg > 0);
+      if (!baseRows.length) return { success:false, error:'No base roll rows found for aircraft type: ' + aircraftType };
+
+      const perfRows = (calcReference && calcReference.perfRows) || [];
+      const base = _arr7InterpBase(baseRows, weightKg);
+      const densityAltitudeFt = _arr7DensityAlt(elevationFt, qnhHpa, tempC);
+      const daTo = _arr7Nearest(perfRows, ['DA_FT', 'DA'], densityAltitudeFt, ['TO_MULTIPLIER'], 1);
+      const daLdg = _arr7Nearest(perfRows, ['DA_FT', 'DA'], densityAltitudeFt, ['LDG_MULTIPLIER'], 1);
+      const isWet = surfaceCondition === 'WET';
+      const surfaceTo = _arr7Surface(perfRows, surface, [isWet ? 'TAKEOFF_WET' : 'TAKEOFF_DRY'], 1);
+      const surfaceLdg = _arr7Surface(perfRows, surface, [isWet ? 'LANDING_WET' : 'LANDING_DRY'], 1);
+      const slopeProfile = _arr7NormalizeSlopeProfile(slopeProfileRaw, runwayLengthM, slopePercent);
+
+      let headTailComponent = 0;
+      let crosswindComponent = 0;
+      let effectiveWindType = 'HEAD';
+      let effectiveWindKts = windSpeedKts;
+      if (runwayHeadingDeg > 0 && windDirectionDeg >= 0) {
+        const rawDelta = ((windDirectionDeg - runwayHeadingDeg) % 360 + 360) % 360;
+        const delta = rawDelta > 180 ? rawDelta - 360 : rawDelta;
+        const rad = delta * Math.PI / 180;
+        headTailComponent = windSpeedKts * Math.cos(rad);
+        crosswindComponent = Math.abs(windSpeedKts * Math.sin(rad));
+        effectiveWindType = headTailComponent >= 0 ? 'HEAD' : 'TAIL';
+        effectiveWindKts = Math.abs(headTailComponent);
+      }
+
+      const windColTo = effectiveWindType === 'TAIL' ? 'TAKEOFF_TAIL' : 'TAKEOFF_HEAD';
+      const windColLdg = effectiveWindType === 'TAIL' ? 'LANDING_TAIL' : 'LANDING_HEAD';
+      const windTo = _arr7Nearest(perfRows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColTo], 1);
+      const windLdg = _arr7Nearest(perfRows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColLdg], 1);
+      const humidity = _arr7Nearest(perfRows, ['HUMIDITY'], humidityPct, ['HUMIDITY_FACTOR'], 1);
+      const flap = 1;
+
+      const toNoSlope = base.to * daTo * surfaceTo * flap * humidity * windTo;
+      let slopeTo = 1;
+      let effectiveSlopeTakeoff = slopePercent;
+      for (let i = 0; i < 3; i++) {
+        const estTakeoff = toNoSlope * slopeTo;
+        effectiveSlopeTakeoff = _arr7SlopeAtDistance(slopeProfile, Math.min(estTakeoff, runwayLengthM));
+        const slopeAbsTo = Math.abs(effectiveSlopeTakeoff);
+        slopeTo = _arr7Nearest(perfRows, ['SLOPE'], slopeAbsTo, [effectiveSlopeTakeoff >= 0 ? 'TAKEOFF_UP' : 'TAKEOFF_DOWN'], 1);
+      }
+
+      const ldgNoSlope = base.ldg * daLdg * surfaceLdg * windLdg;
+      let slopeLdg = 1;
+      let effectiveSlopeLanding = slopePercent;
+      for (let i = 0; i < 3; i++) {
+        const estLanding = ldgNoSlope * slopeLdg;
+        effectiveSlopeLanding = _arr7SlopeAtDistance(slopeProfile, Math.min(estLanding, runwayLengthM));
+        const slopeAbsLdg = Math.abs(effectiveSlopeLanding);
+        slopeLdg = _arr7Nearest(perfRows, ['SLOPE'], slopeAbsLdg, [effectiveSlopeLanding >= 0 ? 'LANDING_UP' : 'LANDING_DOWN'], 1);
+      }
+
+      const takeoffRollM = toNoSlope * slopeTo;
+      const landingRollM = ldgNoSlope * slopeLdg;
+      const combinedRollM = takeoffRollM + landingRollM;
+      const halfTakeoffRollM = takeoffRollM * 0.5;
+      const takeoff75PctThresholdM = runwayLengthM * 0.75;
+      const displacedTouchdownM = 30;
+      const plannedLandingDistanceM = displacedTouchdownM + (landingRollM * 1.5);
+      const warnings = [];
+      let blocking = false;
+      if (takeoffRollM > takeoff75PctThresholdM) warnings.push('Takeoff roll exceeds 75% of runway length.');
+      if (landingRollM > runwayLengthM) warnings.push('Landing roll exceeds runway length.');
+      if (combinedRollM > runwayLengthM) { warnings.push('Takeoff + landing roll is greater than runway length.'); blocking = true; }
+      if (plannedLandingDistanceM > runwayLengthM) {
+        warnings.push('Planned landing distance (30m + 150% ground roll) exceeds runway length.');
+        blocking = true;
+      }
+
+      return {
+        success: true,
+        baseTakeoffM: Math.round(base.to),
+        baseLandingM: Math.round(base.ldg),
+        densityAltitudeFt: Math.round(densityAltitudeFt),
+        takeoffRollM: Math.round(takeoffRollM),
+        landingRollM: Math.round(landingRollM),
+        combinedRollM: Math.round(combinedRollM),
+        halfTakeoffRollM: Math.round(halfTakeoffRollM),
+        takeoff75PctThresholdM: Math.round(takeoff75PctThresholdM),
+        displacedTouchdownM: displacedTouchdownM,
+        plannedLandingDistanceM: Math.round(plannedLandingDistanceM),
+        runwayAdequate: plannedLandingDistanceM <= runwayLengthM,
+        headTailComponentKts: Number(headTailComponent.toFixed(1)),
+        crosswindComponentKts: Number(crosswindComponent.toFixed(1)),
+        effectiveWindKts: Number(effectiveWindKts.toFixed(1)),
+        effectiveWindType: effectiveWindType,
+        warnings: warnings,
+        blocking: blocking,
+        factors: {
+          daTakeoff: daTo,
+          daLanding: daLdg,
+          surfaceTakeoff: surfaceTo,
+          surfaceLanding: surfaceLdg,
+          slopeTakeoff: slopeTo,
+          slopeLanding: slopeLdg,
+          effectiveSlopeTakeoff: Number(effectiveSlopeTakeoff.toFixed(2)),
+          effectiveSlopeLanding: Number(effectiveSlopeLanding.toFixed(2)),
+          flap: flap,
+          humidity: humidity,
+          windTakeoff: windTo,
+          windLanding: windLdg
+        }
+      };
+    } catch (e) {
+      return { success:false, error: e && e.message ? e.message : String(e) };
+    }
+  }
+
+  function _arr7RiskTotal() {
+    const r = window.arrival7.risk;
+    const values = [r.pilot, r.aircraft, r.runway, r.weather, r.mission].map(function(v) {
+      return (v == null || v === '') ? null : Number(v);
+    });
+    const complete = values.every(function(v) { return v != null && isFinite(v); });
+    const total = complete ? values.reduce(function(sum, v) { return sum + v; }, 0) : 0;
+    let label = 'Low';
+    if (total >= 11) label = 'High';
+    else if (total >= 8) label = 'Moderate';
+    return { total: total, label: label, complete: complete };
+  }
+
+  function _arr7RiskColor(total) {
+    if (total >= 11) return 'red';
+    if (total >= 8) return 'yellow';
+    return 'green';
+  }
+
+  window.arrival7SelectRisk = function(category, level) {
+    window.arrival7.risk[category] = Number(level);
+    const nodes = document.querySelectorAll('.risk-btn[data-category="' + category + '"]');
+    nodes.forEach(n => n.classList.remove('active'));
+    const active = document.querySelector('.risk-btn[data-category="' + category + '"][data-level="' + level + '"]');
+    if (active) active.classList.add('active');
+
+    const info = _arr7RiskTotal();
+    const badge = document.getElementById('arrival7-risk-total');
+    if (badge) {
+      if (!info.complete) {
+        badge.className = 'risk-total pending';
+        badge.textContent = 'Risk Matrix Incomplete';
+      } else {
+        badge.className = 'risk-total ' + _arr7RiskColor(info.total);
+        badge.textContent = 'Risk ' + info.total + '/15 - ' + info.label;
+      }
+    }
+  };
+
+  function _arr7RenderRiskMatrix() {
+    const holder = document.getElementById('arrival7-risk-rows');
+    if (!holder) return;
+
+    const items = [
+      { key:'pilot', label:'Pilot' },
+      { key:'aircraft', label:'Aircraft' },
+      { key:'runway', label:'Runway' },
+      { key:'weather', label:'WX' },
+      { key:'mission', label:'Mission' }
+    ];
+
+    holder.innerHTML = '<div class="risk-matrix-head">'
+      + items.map(function(it) { return '<div class="risk-label">' + it.label + '</div>'; }).join('')
+      + '</div>'
+      + '<div class="risk-matrix-row">'
+      + items.map(function(it) {
+        return '<div class="risk-choice-group">'
+          + '<button class="risk-btn level-1" data-category="' + it.key + '" data-level="1" onclick="arrival7SelectRisk(\'' + it.key + '\',1)">1</button>'
+          + '<button class="risk-btn level-2" data-category="' + it.key + '" data-level="2" onclick="arrival7SelectRisk(\'' + it.key + '\',2)">2</button>'
+          + '<button class="risk-btn level-3" data-category="' + it.key + '" data-level="3" onclick="arrival7SelectRisk(\'' + it.key + '\',3)">3</button>'
+          + '</div>';
+      }).join('')
+      + '</div>';
+
+    items.forEach(function(it) {
+      var level = window.arrival7.risk[it.key];
+      if (level == null || level === '') return;
+      var active = holder.querySelector('.risk-btn[data-category="' + it.key + '"][data-level="' + Number(level) + '"]');
+      if (active) active.classList.add('active');
+    });
+
+    const info = _arr7RiskTotal();
+    const badge = document.getElementById('arrival7-risk-total');
+    if (badge) {
+      if (!info.complete) {
+        badge.className = 'risk-total pending';
+        badge.textContent = 'Risk Matrix Incomplete';
+      } else {
+        badge.className = 'risk-total ' + _arr7RiskColor(info.total);
+        badge.textContent = 'Risk ' + info.total + '/15 - ' + info.label;
+      }
+    }
+  }
+
+  function _arr7BindLive() {
+    const ids = ['arr7-runway','arr7-surface','arr7-slope','arr7-cond','arr7-qnh','arr7-temp','arr7-wind-dir-input','arr7-wind-spd-input'];
+    ids.forEach(function(id){
+      const el = document.getElementById(id);
+      if (!el || el.dataset.bound === '1') return;
+      const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(evt, function(){
+        if (id === 'arr7-runway') _arr7ApplySelectedRunwayData_();
+        window.calculateArrivalPerformance(false);
+      });
+      el.dataset.bound = '1';
+    });
+  }
+
+  function _arr7BindWindControls() {
+    const windDirInput = document.getElementById('arr7-wind-dir-input');
+    const windSpdInput = document.getElementById('arr7-wind-spd-input');
+
+    if (windDirInput && windDirInput.dataset.bound !== '1') {
+      windDirInput.addEventListener('input', function() {
+        let v = Number(this.value || 0);
+        if (!isFinite(v)) v = 0;
+        v = Math.max(0, Math.min(360, Math.round(v / 10) * 10));
+        this.value = String(v);
+        window.calculateArrivalPerformance(false);
+      });
+      windDirInput.dataset.bound = '1';
+    }
+
+    if (windSpdInput && windSpdInput.dataset.bound !== '1') {
+      windSpdInput.addEventListener('input', function() {
+        let v = Number(this.value || 0);
+        if (!isFinite(v)) v = 0;
+        v = Math.max(0, Math.min(60, Math.round(v)));
+        this.value = String(v);
+        const btn = document.getElementById('arr7-calm-btn');
+        if (btn && v !== 0) { btn.style.background = '#fff'; btn.style.color = '#1565c0'; }
+        window.calculateArrivalPerformance(false);
+      });
+      windSpdInput.dataset.bound = '1';
+    }
+  }
+
+  function _arr7OpenTab2Keypad_(inputId, label, opts) {
+    const input = document.getElementById(inputId || '');
+    if (!input) return false;
+    if (typeof window.briefOpenKeypad_ !== 'function') return false;
+    window.briefOpenKeypad_(input, label || 'Entry', opts || {});
+    return true;
+  }
+
+  function _arr7OpenKeypad(title, values, mode) {
+    const back = document.getElementById('arr7-keypad-backdrop');
+    const titleEl = document.getElementById('arr7-keypad-title');
+    const grid = document.getElementById('arr7-keypad-grid');
+    if (!back || !titleEl || !grid) return;
+    window.arrival7.keypadMode = mode;
+    titleEl.textContent = title;
+    grid.innerHTML = (values || []).map(function(v) {
+      const txt = String(v).padStart(mode === 'dir' ? 3 : 1, '0');
+      return '<button type="button" onclick="window.arr7KeypadSet(' + Number(v) + ')">' + txt + '</button>';
+    }).join('');
+    back.style.display = 'flex';
+    _arr7SetKeypadActions(mode);
+  }
+
+  function _arr7SetKeypadActions(mode) {
+    const actions = document.getElementById('arr7-keypad-actions');
+    if (!actions) return;
+    if (mode === 'spd' || mode === 'qnh' || mode === 'temp') {
+      actions.innerHTML =
+        '<button type="button" onclick="window.arr7KeypadAdjust(-1)">- 1</button>' +
+        '<button type="button" onclick="window.arr7KeypadAdjust(1)">+ 1</button>' +
+        '<button type="button" onclick="window.arr7CloseKeypad()" style="background:#6b7280;">CLOSE</button>';
+    } else {
+      actions.innerHTML =
+        '<button type="button" onclick="window.arr7CloseKeypad()" style="grid-column:1/-1;background:#6b7280;">CLOSE</button>';
+    }
+  }
+
+  window.arr7CloseKeypad = function() {
+    const back = document.getElementById('arr7-keypad-backdrop');
+    if (back) back.style.display = 'none';
+  };
+
+  window.arr7KeypadSet = function(v) {
+    const mode = String(window.arrival7.keypadMode || '');
+    if (mode === 'dir') {
+      const el = document.getElementById('arr7-wind-dir-input');
+      if (el) el.value = String(Math.max(0, Math.min(360, Math.round(Number(v || 0) / 10) * 10)));
+    } else if (mode === 'qnh') {
+      const el = document.getElementById('arr7-qnh');
+      if (el) el.value = String(Math.max(930, Math.min(1080, Math.round(Number(v || 1013)))));
+    } else if (mode === 'temp') {
+      const el = document.getElementById('arr7-temp');
+      if (el) el.value = String(Math.max(-40, Math.min(55, Math.round(Number(v || 0)))));
+    } else {
+      const el = document.getElementById('arr7-wind-spd-input');
+      if (el) el.value = String(Math.max(0, Math.min(60, Math.round(Number(v || 0)))));
+    }
+    window.arr7CloseKeypad();
+    window.calculateArrivalPerformance(false);
+  };
+
+  window.arr7KeypadAdjust = function(delta) {
+    const mode = String(window.arrival7.keypadMode || '');
+    if (mode === 'qnh') {
+      const elQnh = document.getElementById('arr7-qnh');
+      const curQnh = Number(elQnh && elQnh.value || 1013);
+      if (elQnh) elQnh.value = String(Math.max(930, Math.min(1080, Math.round(curQnh + delta))));
+      window.calculateArrivalPerformance(false);
+      return;
+    }
+    if (mode === 'temp') {
+      const elTemp = document.getElementById('arr7-temp');
+      const curTemp = Number(elTemp && elTemp.value || 15);
+      if (elTemp) elTemp.value = String(Math.max(-40, Math.min(55, Math.round(curTemp + delta))));
+      window.calculateArrivalPerformance(false);
+      return;
+    }
+    const el = document.getElementById('arr7-wind-spd-input');
+    const cur = Number(el && el.value || 0);
+    if (el) el.value = String(Math.max(0, Math.min(60, Math.round(cur + delta))));
+    window.calculateArrivalPerformance(false);
+  };
+
+  window.arr7OpenWindDirKeypad = function() {
+    const dirs = [];
+    for (let d = 10; d <= 360; d += 10) dirs.push(d);
+    _arr7OpenKeypad('Wind Direction (°)', dirs, 'dir');
+  };
+
+  window.arr7OpenWindSpdKeypad = function() {
+    if (_arr7OpenTab2Keypad_('arr7-wind-spd-input', 'Wind Speed (kt)', {
+      decimal: false,
+      min: 0,
+      max: 60,
+      onCommit: function() { window.calculateArrivalPerformance(false); }
+    })) return;
+    if (typeof window.flightDeckOpenNumericKeypad === 'function') {
+      window.flightDeckOpenNumericKeypad('arr7-wind-spd-input', {
+        title: 'WIND SPEED KT',
+        allowSign: false,
+        clearOnOpen: true,
+        onCommit: function(v) {
+          const speed = Math.max(0, Math.min(60, Math.round(Number(v || 0))));
+          const spd = document.getElementById('arr7-wind-spd-input');
+          if (spd) spd.value = String(speed);
+          window.calculateArrivalPerformance(false);
+        }
+      });
+      return;
+    }
+    _arr7OpenKeypad('Wind Speed (kt)', [0,5,10,15,20,25,30,35,40,45,50,55,60], 'spd');
+  };
+
+  window.arr7SetCalmWind = function() {
+    const windDirInput = document.getElementById('arr7-wind-dir-input');
+    const windSpdInput = document.getElementById('arr7-wind-spd-input');
+    if (windDirInput) windDirInput.value = '0';
+    if (windSpdInput) windSpdInput.value = '0';
+    const btn = document.getElementById('arr7-calm-btn');
+    if (btn) {
+      btn.style.background = '#1565c0';
+      btn.style.color = '#fff';
+    }
+    window.calculateArrivalPerformance(false);
+  };
+
+  window.arr7OpenQnhPicker = function() {
+    const back = document.getElementById('arr7-keypad-backdrop');
+    const titleEl = document.getElementById('arr7-keypad-title');
+    const grid = document.getElementById('arr7-keypad-grid');
+    const actions = document.getElementById('arr7-keypad-actions');
+    const input = document.getElementById('arr7-qnh');
+    const current = Number(input && input.value || 1013) || 1013;
+    if (!back || !titleEl || !grid || !actions) return;
+    titleEl.textContent = 'ARRIVAL QNH HPA';
+    grid.innerHTML = '<div class="arr7-qnh-list">'
+      + Array.from({ length: 41 }, function(_, idx) {
+          const val = 993 + idx;
+          const inHg = (val * 0.0295299830714).toFixed(2);
+          const cls = val === 1013 ? 'arr7-qnh-item recommended' : 'arr7-qnh-item';
+          return '<button type="button" class="' + cls + '" data-qnh-value="' + val + '" onclick="window.arr7ChooseQnh(' + val + ', true)">' + val + ' / ' + inHg + ' inHg</button>';
+        }).join('')
+      + '</div>';
+    actions.innerHTML = '<button type="button" onclick="(function(){var el=document.getElementById(\'arr7-qnh\'); if(el) el.value=\'1013\'; window.arr7CloseKeypad(); window.calculateArrivalPerformance(false);})()">STD 1013 / 29.92</button>'
+      + '<button type="button" onclick="window.arr7CloseKeypad()" style="background:#6b7280;">CLOSE</button>';
+    back.style.display = 'flex';
+    setTimeout(function() {
+      const list = document.querySelector('#arr7-keypad-grid .arr7-qnh-list');
+      const active = list && list.querySelector('[data-qnh-value="' + current + '"]');
+      if (list && active && typeof active.scrollIntoView === 'function') {
+        active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }, 40);
+  };
+
+  window.arr7ChooseQnh = function(val, autoCommit) {
+    const el = document.getElementById('arr7-qnh');
+    if (el) el.value = String(val);
+    if (autoCommit) {
+      window.arr7CloseKeypad();
+      window.calculateArrivalPerformance(false);
+    }
+  };
+
+  window.arr7OpenTempKeypad = function() {
+    if (_arr7OpenTab2Keypad_('arr7-temp', 'Arrival Temp (C)', {
+      decimal: false,
+      min: -40,
+      max: 55,
+      onCommit: function() {
+        const el = document.getElementById('arr7-temp');
+        const val = Math.max(-40, Math.min(55, Math.round(Number(el && el.value || 15))));
+        if (el) el.value = String(val);
+        window.calculateArrivalPerformance(false);
+      }
+    })) return;
+    if (typeof window.flightDeckOpenNumericKeypad === 'function') {
+      window.flightDeckOpenNumericKeypad('arr7-temp', {
+        title: 'ARRIVAL TEMP °C',
+        allowSign: true,
+        clearOnOpen: true,
+        onCommit: function(v) {
+          const temp = Math.max(-40, Math.min(55, Math.round(Number(v || 0))));
+          const t = document.getElementById('arr7-temp');
+          if (t) t.value = String(temp);
+          window.calculateArrivalPerformance(false);
+        }
+      });
+      return;
+    }
+    _arr7OpenKeypad('Arrival Temp (°C)', [-20,-10,0,10,15,20,25,30,35,40,45,50], 'temp');
+  };
+
+  function _arr7CurrentRunway() {
+    const el = document.getElementById('arr7-runway');
+    const val = el ? el.value : '';
+    if (val === '' || val == null) return null;
+    return window.arrival7.runways[Number(val)] || null;
+  }
+
+  function _arr7ApplySelectedRunwayData_() {
+    const runway = _arr7CurrentRunway();
+    const airportEl = document.getElementById('arr7-airport');
+    if (airportEl) airportEl.value = window.arrival7.toIcao || '';
+
+    const elevEl = document.getElementById('arr7-elev');
+    const lenEl = document.getElementById('arr7-length');
+    const widEl = document.getElementById('arr7-width');
+    const slopeEl = document.getElementById('arr7-slope');
+    const slopeLock = document.getElementById('arr7-slope-lock');
+    const surfaceSel = document.getElementById('arr7-surface');
+
+    if (!runway) {
+      if (elevEl) elevEl.value = '';
+      if (lenEl) lenEl.value = '';
+      if (widEl) widEl.value = '';
+      if (slopeEl) { slopeEl.value = ''; slopeEl.readOnly = false; slopeEl.style.background = '#fff'; }
+      _arr7SetFieldLock_('slope', false);
+      window.arrival7.slopeOverridden = false;
+      if (surfaceSel) surfaceSel.value = '';
+      _arr7SetFieldLock_('surface', false);
+      window.arrival7.photoUrl = '';
+      window.arrival7.chartUrl = '';
+      window.drawArrivalRunwayDiagram(null, null);
+      return;
+    }
+
+    const rawSlope = String(runway && runway.slope != null ? runway.slope : '').trim();
+    const slopeKnown = runway && (runway.slopeKnown === true || rawSlope !== '');
+    if (elevEl) elevEl.value = Math.round(Number(runway.elevation || 0));
+    if (lenEl) lenEl.value = Math.round(Number(runway.length || 0));
+    if (widEl) widEl.value = Math.round(Number(runway.width || 0));
+
+    if (slopeEl) {
+      const slopeValue = isFinite(Number(rawSlope)) ? Number(rawSlope) : 0;
+      slopeEl.value = slopeValue.toFixed(1);
+      _arr7SetFieldLock_('slope', true);
+      if (slopeLock) slopeLock.onclick = function() { window._arr7ToggleLock_('slope'); };
+    }
+    if (slopeLock) slopeLock.style.display = 'inline';
+    window.arrival7.slopeOverridden = false;
+
+    if (surfaceSel) {
+      const surfaceValue = String(runway.surface || '').trim();
+      if (surfaceValue) {
+        if (!Array.from(surfaceSel.options || []).some(function(opt) { return String(opt.value || '') === surfaceValue; })) {
+          const opt = document.createElement('option');
+          opt.value = surfaceValue;
+          opt.textContent = surfaceValue;
+          surfaceSel.appendChild(opt);
+        }
+        surfaceSel.value = surfaceValue;
+      }
+      if (window.M && window.M.FormSelect) {
+        const inst = M.FormSelect.getInstance(surfaceSel);
+        if (inst) inst.destroy();
+        M.FormSelect.init(surfaceSel);
+      }
+    }
+
+    if (String(runway.surface || '').trim()) {
+      _arr7SetFieldLock_('surface', true);
+      const surfaceLock = document.getElementById('arr7-surface-lock');
+      if (surfaceLock) surfaceLock.onclick = function() { window._arr7ToggleLock_('surface'); };
+    } else {
+      _arr7SetFieldLock_('surface', false);
+    }
+
+    window.arrival7.photoUrl = String(runway.airstripPhoto || '').trim();
+    window.arrival7.chartUrl = String(runway.chartUrl || '').trim();
+    window.drawArrivalRunwayDiagram(runway, null);
+  }
+
+  function _arr7SetFieldLock_(fieldKey, locked) {
+    const fieldEl = document.getElementById('arr7-field-' + fieldKey);
+    const lockIcon = document.getElementById('arr7-' + fieldKey + '-lock');
+    if (!fieldEl) return;
+    if (locked) {
+      fieldEl.classList.add('arr7-field-locked');
+      fieldEl.classList.remove('arr7-field-unlocked-override');
+      if (lockIcon) { lockIcon.style.display = 'inline'; lockIcon.textContent = '🔒'; }
+      fieldEl.querySelectorAll('input, select').forEach(function(el) {
+        el.setAttribute('readonly', 'readonly');
+        el.setAttribute('disabled', 'disabled');
+      });
+    } else {
+      fieldEl.classList.remove('arr7-field-locked');
+      if (lockIcon) lockIcon.style.display = 'none';
+      fieldEl.querySelectorAll('input, select').forEach(function(el) {
+        el.removeAttribute('readonly');
+        el.removeAttribute('disabled');
+      });
+    }
+  }
+
+  window._arr7ToggleLock_ = function(fieldKey) {
+    const fieldEl = document.getElementById('arr7-field-' + fieldKey);
+    if (!fieldEl || !fieldEl.classList.contains('arr7-field-locked')) return;
+    const lockIcon = document.getElementById('arr7-' + fieldKey + '-lock');
+    fieldEl.classList.remove('arr7-field-locked');
+    fieldEl.classList.add('arr7-field-unlocked-override');
+    if (lockIcon) { lockIcon.textContent = '🔓'; lockIcon.title = 'Overriding DB data'; }
+    fieldEl.querySelectorAll('input, select').forEach(function(el) {
+      el.removeAttribute('readonly');
+      el.removeAttribute('disabled');
+    });
+    if (fieldKey === 'slope') window.arrival7.slopeOverridden = true;
+    if (window.M) M.toast({ html: 'Field unlocked for pilot override', classes: 'blue darken-2', displayLength: 2200 });
+  };
+
+  function _arr7PopulateSelectors(preserveRunwaySelection) {
+    const rwySel = document.getElementById('arr7-runway');
+    const surfSel = document.getElementById('arr7-surface');
+    const previousRunwayValue = rwySel ? String(rwySel.value || '') : '';
+    const shouldPreserve = preserveRunwaySelection === true;
+
+    if (rwySel) {
+      rwySel.innerHTML = '<option value="">— Select Runway —</option>' + (window.arrival7.runways || []).map(function(r, i){
+        return '<option value="' + i + '">' + (r.rwyIdent || 'RWY') + ' / ' + Math.round(Number(r.length || 0)) + 'm</option>';
+      }).join('');
+      if (shouldPreserve && previousRunwayValue !== '' && window.arrival7.runways[Number(previousRunwayValue)]) {
+        rwySel.value = previousRunwayValue;
+      } else {
+        rwySel.value = '';
+      }
+    }
+
+    if (surfSel) {
+      const options = window.arrival7.surfaceOptions || [];
+      surfSel.innerHTML = '<option value="">Select surface...</option>' + options.map(function(s){ return '<option value="' + s + '">' + s + '</option>'; }).join('');
+    }
+
+    _arr7ApplySelectedRunwayData_();
+    _arr7BindWindControls();
+  }
+
+  window.drawArrivalRunwayDiagram = function(runway, result) {
+    const svg = document.getElementById('arr7-runway-diagram');
+    const empty = document.getElementById('arr7-diagram-empty');
+    if (!svg || !empty || !runway) {
+      if (svg) svg.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+
+    const makeEl = function(tag, attrs, text) {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      Object.keys(attrs || {}).forEach(function(k) { el.setAttribute(k, String(attrs[k])); });
+      if (text != null) el.textContent = text;
+      return el;
+    };
+
+    const runwayLengthM = Math.max(Number(runway.length || 0), 1);
+    const runwayWidthM = Math.max(Number(runway.width || 0), 0);
+    const landingRollM = Math.max(Number(result && result.landingRollM || 0), 0);
+    const displacedTouchdownM = 30;
+    const plannedLandingDistanceM = displacedTouchdownM + (landingRollM * 1.5);
+
+    const topX = 20;
+    const topY = 58;
+    const topH = 56;
+    const usableW = 360;
+    const scale = usableW / runwayLengthM;
+    const runwayPx = runwayLengthM * scale;
+
+    svg.innerHTML = '';
+    svg.setAttribute('viewBox', '0 0 400 320');
+
+    const surfaceValue = String(document.getElementById('arr7-surface')?.value || runway.surface || 'Paved');
+    const norm = _arr7Norm(surfaceValue);
+    const isPaved = /PAVED|ASPHALT|CONCRETE|ASFALTO|CONCRETO/.test(norm);
+    const runwayFill = isPaved ? '#5f5f5f' : '#6d9557';
+
+    const marginM = Math.round(runwayLengthM - plannedLandingDistanceM);
+    const metricCards = [
+      { x: 20, title: 'AVAILABLE', value: Math.round(runwayLengthM) + ' m', color: '#0b5394' },
+      { x: 115, title: 'GROUND ROLL', value: Math.round(landingRollM) + ' m', color: '#1e88e5' },
+      { x: 220, title: 'PLANNED', value: Math.round(plannedLandingDistanceM) + ' m', color: '#d32f2f' },
+      { x: 315, title: 'MARGIN', value: marginM + ' m', color: marginM >= 0 ? '#2e7d32' : '#d32f2f' }
+    ];
+    metricCards.forEach(function(card) {
+      svg.appendChild(makeEl('rect', { x: card.x, y: 10, width: 70, height: 36, rx: 6, ry: 6, fill: '#f8fbff', stroke: '#d6e4f5' }));
+      svg.appendChild(makeEl('text', { x: card.x + 35, y: 22, 'font-size': 11.5, fill: '#607d8b', 'font-weight': '700', 'text-anchor': 'middle' }, card.title));
+      svg.appendChild(makeEl('text', { x: card.x + 35, y: 36, 'font-size': 12, fill: card.color, 'font-weight': '900', 'text-anchor': 'middle' }, card.value));
+    });
+
+    svg.appendChild(makeEl('text', { x: topX, y: 52, 'font-size': 14, fill: '#333', 'font-weight': '700' }, 'RUNWAY TOP VIEW'));
+    svg.appendChild(makeEl('rect', {
+      x: topX,
+      y: topY,
+      width: runwayPx,
+      height: topH,
+      fill: runwayFill,
+      stroke: '#2a2a2a',
+      'stroke-width': 1.5,
+      rx: 2,
+      ry: 2
+    }));
+
+    if (isPaved) {
+      svg.appendChild(makeEl('line', {
+        x1: topX,
+        y1: topY + (topH / 2),
+        x2: topX + runwayPx,
+        y2: topY + (topH / 2),
+        stroke: '#f3f3f3',
+        'stroke-width': 2,
+        'stroke-dasharray': '12,8'
+      }));
+    }
+
+    const touchdownX = topX + (Math.min(displacedTouchdownM, runwayLengthM) * scale);
+    const rollMarkerX = topX + (Math.min(landingRollM, runwayLengthM) * scale);
+    const plannedMarkerX = topX + (Math.min(plannedLandingDistanceM, runwayLengthM) * scale);
+
+    svg.appendChild(makeEl('line', {
+      x1: touchdownX,
+      y1: topY - 8,
+      x2: touchdownX,
+      y2: topY + topH + 8,
+      stroke: '#f57c00',
+      'stroke-width': 2
+    }));
+
+    if (landingRollM > 0) {
+      svg.appendChild(makeEl('line', {
+        x1: rollMarkerX,
+        y1: topY - 4,
+        x2: rollMarkerX,
+        y2: topY + topH + 4,
+        stroke: '#1e88e5',
+        'stroke-width': 2
+      }));
+    }
+
+    if (plannedLandingDistanceM > 0) {
+      svg.appendChild(makeEl('line', {
+        x1: plannedMarkerX,
+        y1: topY - 10,
+        x2: plannedMarkerX,
+        y2: topY + topH + 10,
+        stroke: '#d32f2f',
+        'stroke-width': 3
+      }));
+    }
+
+    const features = Array.isArray(runway.knownFeatures) ? runway.knownFeatures.slice() : [];
+    const verifiedOp = (runway && runway.verifiedOperational && typeof runway.verifiedOperational === 'object') ? runway.verifiedOperational : {};
+    const obstacleAngles = Array.isArray(verifiedOp.obstacleAngles50m) ? verifiedOp.obstacleAngles50m : [];
+    const iconForFeature = function(name) {
+      const s = String(name || '').toUpperCase();
+      if (s.indexOf('TREE') >= 0) return '🌳';
+      if (s.indexOf('SCHOOL') >= 0) return '🏫';
+      if (s.indexOf('WINDSOCK') >= 0) return '🎏';
+      if (s.indexOf('POWER') >= 0) return '⚡';
+      if (s.indexOf('HOUSE') >= 0 || s.indexOf('BUILD') >= 0 || s.indexOf('CHURCH') >= 0) return '🏠';
+      return '📍';
+    };
+
+    features.sort(function(a, b) { return Number(a.distance || 0) - Number(b.distance || 0); }).forEach(function(feat) {
+      const distM = Math.max(0, Math.min(runwayLengthM, Number(feat && feat.distance || 0)));
+      const x = topX + (distM * scale);
+      const side = String(feat && feat.side || 'right').toLowerCase() === 'left' ? 'left' : 'right';
+      const iconY = side === 'left' ? topY - 12 : topY + topH + 18;
+      svg.appendChild(makeEl('line', { x1: x, y1: side === 'left' ? topY : topY + topH, x2: x, y2: side === 'left' ? iconY + 6 : iconY - 8, stroke: '#fb8c00', 'stroke-width': 1.5 }));
+      svg.appendChild(makeEl('text', { x: x, y: iconY, 'font-size': 12, 'text-anchor': 'middle' }, iconForFeature(feat && (feat.name || feat.type))));
+    });
+
+    const aObs = obstacleAngles.filter(function(o) { return String(o && o.checkpointCorner || 'A').toUpperCase() === 'A'; });
+    const cObs = obstacleAngles.filter(function(o) { return String(o && o.checkpointCorner || '').toUpperCase() === 'C'; });
+    aObs.slice(0, 2).forEach(function(obs, idx) {
+      const y = topY + 10 + (idx * 16);
+      svg.appendChild(makeEl('text', { x: topX - 4, y: y, 'font-size': 12, 'text-anchor': 'end', fill: '#2e7d32' }, '🌳'));
+      svg.appendChild(makeEl('text', { x: topX + 8, y: y + 1, 'font-size': 12, fill: '#37474f', 'font-weight': '700' }, Math.round(Number(obs && obs.checkpointDistanceM || 0)) + 'm ' + Number(obs && obs.fromThrA50mDeg || 0).toFixed(1) + '°'));
+    });
+    cObs.slice(0, 2).forEach(function(obs, idx) {
+      const y = topY + 10 + (idx * 16);
+      svg.appendChild(makeEl('text', { x: topX + runwayPx + 4, y: y, 'font-size': 12, fill: '#2e7d32' }, '🌳'));
+      svg.appendChild(makeEl('text', { x: topX + runwayPx - 8, y: y + 1, 'font-size': 12, fill: '#37474f', 'font-weight': '700', 'text-anchor': 'end' }, Number(obs && obs.fromThrA50mDeg || 0).toFixed(1) + '° ' + Math.round(Number(obs && obs.checkpointDistanceM || 0)) + 'm'));
+    });
+
+    svg.appendChild(makeEl('text', { x: topX, y: topY + topH + 24, 'font-size': 14, fill: '#f57c00', 'font-weight': '700' }, 'TDZ: 30m • RWY ' + String(runway.rwyIdent || '')));
+    svg.appendChild(makeEl('text', { x: topX, y: topY + topH + 40, 'font-size': 13.5, fill: '#455a64', 'font-weight': '700' }, 'Blue = ground roll • Red = 150% planned landing distance • Icons = approved survey features'));
+
+    svg.style.display = 'block';
+    empty.style.display = 'none';
+  };
+
+  window.calculateArrivalPerformance = function(showToast, opts) {
+    opts = opts || {};
+    const runway = _arr7CurrentRunway();
+    if (!runway || !window.arrival7.aircraftType) {
+      window.drawArrivalRunwayDiagram(null, null);
+      return;
+    }
+
+    const slopeEl = document.getElementById('arr7-slope');
+    const elevEl = document.getElementById('arr7-elev');
+    const lenEl = document.getElementById('arr7-length');
+    const widEl = document.getElementById('arr7-width');
+    if (elevEl) elevEl.value = Math.round(Number(runway.elevation || 0));
+    if (lenEl) lenEl.value = Math.round(Number(runway.length || 0));
+    if (widEl) widEl.value = Math.round(Number(runway.width || 0));
+    if (slopeEl && !slopeEl.readOnly && String(slopeEl.value || '').trim() === '') {
+      slopeEl.value = Number(runway.slope || 0).toFixed(1);
+    }
+
+    const payload = {
+      aircraftType: String(window.arrival7.aircraftType || ''),
+      weightKg: Number(document.getElementById('arr7-weight')?.value || 0),
+      runwayLengthM: Number(runway.length || 0),
+      slopePercent: Number(document.getElementById('arr7-slope')?.value || 0),
+      slopeProfile: runway.slopeProfile || [],
+      elevationFt: Number(document.getElementById('arr7-elev')?.value || 0),
+      surface: String(document.getElementById('arr7-surface')?.value || runway.surface || ''),
+      surfaceCondition: String(document.getElementById('arr7-cond')?.value || 'DRY'),
+      qnhHpa: Number(document.getElementById('arr7-qnh')?.value || 1013),
+      tempC: Number(document.getElementById('arr7-temp')?.value || 30),
+      humidityPct: 50,
+      windSpeedKts: Number(document.getElementById('arr7-wind-spd-input')?.value || 0),
+      windDirectionDeg: Number(document.getElementById('arr7-wind-dir-input')?.value || 0),
+      runwayHeadingDeg: Number(runway.headingDeg || 0)
+    };
+
+    const weightBadgeLive = document.getElementById('arr7-weight-badge');
+    if (weightBadgeLive) weightBadgeLive.textContent = 'Weight: ' + Math.round(Number(payload.weightKg || 0)) + 'kg';
+
+    let calcReference = window.arrival7.calcReference;
+    if (!calcReference || !Array.isArray(calcReference.baseRows) || !calcReference.baseRows.length || !Array.isArray(calcReference.perfRows) || !calcReference.perfRows.length) {
+      calcReference = _arr7ReadGlobalCalcRef();
+      window.arrival7.calcReference = calcReference || { baseRows: [], perfRows: [] };
+    }
+
+    if (calcReference && Array.isArray(calcReference.baseRows) && calcReference.baseRows.length && Array.isArray(calcReference.perfRows) && calcReference.perfRows.length) {
+      const result = _arr7CalcLocally(payload, calcReference);
+      if (!result || !result.success) {
+        if (showToast && window.M) M.toast({html: (result && result.error) ? result.error : 'Arrival calc failed', classes:'red'});
+        return;
+      }
+
+      const landingRoll = Number(result.landingRollM || 0);
+      const runwayLen = Math.round(Number(runway.length || 0));
+      const plannedDistance = Math.round(30 + (landingRoll * 1.5));
+      const margin = Math.round(runwayLen - plannedDistance);
+
+      document.getElementById('arr7-roll').textContent = Math.round(landingRoll) + ' m';
+      document.getElementById('arr7-planned').textContent = plannedDistance + ' m';
+      document.getElementById('arr7-rwylen').textContent = runwayLen + ' m';
+      document.getElementById('arr7-margin').textContent = margin + ' m';
+      const sec = document.getElementById('arr7-secondary-strip');
+      if (sec) sec.textContent = 'Density Alt ' + Math.round(Number(result.densityAltitudeFt || 0)) + ' ft • Head/Tail ' + Number(result.headTailComponentKts || 0).toFixed(1) + ' kt • Crosswind ' + Number(result.crosswindComponentKts || 0).toFixed(1) + ' kt';
+
+      const banner = document.getElementById('arr7-banner');
+      if (banner) {
+        const go = plannedDistance <= runwayLen;
+        banner.className = 'arrival7-banner ' + (go ? 'go' : 'nogo');
+        banner.textContent = go
+          ? 'GO - Planned landing distance meets displaced touchdown + 150% rule'
+          : 'NO-GO - Planned landing distance exceeds runway available';
+      }
+
+      window.arrival7.lastResult = result;
+      window.drawArrivalRunwayDiagram(runway, result);
+      return;
+    }
+
+    if (!window.google || !google.script || !google.script.run) return;
+
+    google.script.run
+      .withSuccessHandler(function(result){
+        if (!result || !result.success) {
+          if (showToast && window.M) M.toast({html: (result && result.error) ? result.error : 'Arrival calc failed', classes:'red'});
+          return;
+        }
+
+        window.arrival7.lastResult = result;
+        const ldg = Math.round(Number(result.landingRollM || 0));
+        const runwayLen = Math.round(Number(runway.length || 0));
+        const plannedDistance = Math.round(30 + (ldg * 1.5));
+        const margin = runwayLen - plannedDistance;
+
+        const rollEl = document.getElementById('arr7-roll'); if (rollEl) rollEl.textContent = ldg + ' m';
+        const limEl = document.getElementById('arr7-planned'); if (limEl) limEl.textContent = plannedDistance + ' m';
+        const rwyLenEl = document.getElementById('arr7-rwylen'); if (rwyLenEl) rwyLenEl.textContent = runwayLen + ' m';
+        const mgEl = document.getElementById('arr7-margin'); if (mgEl) mgEl.textContent = margin + ' m';
+        const sec = document.getElementById('arr7-secondary-strip');
+        if (sec) sec.textContent = 'Density Alt ' + Math.round(Number(result.densityAltitudeFt || 0)) + ' ft • Head/Tail ' + Number(result.headTailComponentKts || 0).toFixed(1) + ' kt • Crosswind ' + Number(result.crosswindComponentKts || 0).toFixed(1) + ' kt';
+
+        const banner = document.getElementById('arr7-banner');
+        const isGo = plannedDistance <= runwayLen;
+        if (banner) {
+          banner.className = 'arrival7-banner ' + (isGo ? 'go' : 'nogo');
+          banner.textContent = isGo
+            ? 'GO - Planned landing distance meets displaced touchdown + 150% rule'
+            : 'NO-GO - Planned landing distance exceeds runway available';
+        }
+
+        window.drawArrivalRunwayDiagram(runway, result);
+      })
+      .withFailureHandler(function(err){
+        if (!opts.retryAttempted && _arr7LikelyNetworkErr_(err)) {
+          setTimeout(function() {
+            window.calculateArrivalPerformance(showToast, { retryAttempted: true });
+          }, 350);
+          return;
+        }
+        if (showToast && window.M) M.toast({html:'Arrival calc error', classes:'red'});
+        console.error('calculateArrivalPerformance failed', err);
+      })
+      .calculatePerformanceRolls(payload);
+  };
+
+  window.openArrivalAirstripPhoto = function() {
+    const url = String(window.arrival7.photoUrl || '').trim();
+    if (!url) {
+      if (window.M) M.toast({html:'No airstrip photo URL found', classes:'orange'});
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
+  window.openArrivalChart = function() {
+    const url = String(window.arrival7.chartUrl || '').trim();
+    if (!url) {
+      if (window.M) M.toast({html:'No chart URL found', classes:'orange'});
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
+  window.tab7OnBlocksThenAdvance = function() {
+    const info = _arr7RiskTotal();
+    const runway = _arr7CurrentRunway();
+    const result = window.arrival7.lastResult || {};
+
+    const payload = {
+      missionId: String(window.arrival7.missionId || ''),
+      flightLegId: String(window.arrival7.flightLegId || ''),
+      riskTotal: Number(info.total || 5),
+      arrivalJson: {
+        savedAt: new Date().toISOString(),
+        toIcao: window.arrival7.toIcao || '',
+        runwayIdent: runway ? String(runway.rwyIdent || '') : '',
+        landingWeightKg: Number(document.getElementById('arr7-weight')?.value || 0),
+        slopePercent: Number(document.getElementById('arr7-slope')?.value || 0),
+        surface: String(document.getElementById('arr7-surface')?.value || ''),
+        condition: String(document.getElementById('arr7-cond')?.value || ''),
+        qnhHpa: Number(document.getElementById('arr7-qnh')?.value || 1013),
+        tempC: Number(document.getElementById('arr7-temp')?.value || 30),
+        windDir: Number(document.getElementById('arr7-wind-dir-input')?.value || 0),
+        windSpd: Number(document.getElementById('arr7-wind-spd-input')?.value || 0),
+        landingRollM: Number(result.landingRollM || 0),
+        displacedTouchdownM: 30,
+        plannedLandingDistanceM: Math.round(30 + (Number(result.landingRollM || 0) * 1.5)),
+        runwayLengthM: runway ? Math.round(Number(runway.length || 0)) : 0,
+        crosswindKts: Number(result.crosswindComponentKts || 0),
+        headTailKts: Number(result.headTailComponentKts || 0)
+      }
+    };
+
+    if (!payload.flightLegId) {
+      if (window.M) M.toast({html:'No flight leg found for On Blocks', classes:'red'});
+      return;
+    }
+
+    const onOnBlocksDone = function() {
+        // Update cached mission leg status → COMPLETE (persists offline)
+        (function() {
+          try {
+            var mid = String(window.arrival7.missionId || '');
+            if (!mid) return;
+            var key = 'mission_' + mid;
+            var cached = null;
+            try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+            if (!cached || !Array.isArray(cached.legs)) return;
+            var fid = String(payload.flightLegId || '');
+            var leg = cached.legs.find(function(l) { return String(l.flightLegId || '') === fid; });
+            if (!leg) return;
+            var now = new Date().toISOString();
+            leg.logStatus = 'COMPLETE';
+            leg.onBlocks = now;
+            localStorage.setItem(key, JSON.stringify(cached));
+            if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
+              var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l.flightLegId || '') === fid; });
+              if (ml) { ml.logStatus = 'COMPLETE'; ml.onBlocks = now; }
+            }
+          } catch (e) { console.warn('leg cache update (COMPLETE) failed', e); }
+        })();
+        if (window.M) M.toast({html:'On Blocks recorded', classes:'green'});
+        if (typeof window.switchTab === 'function') window.switchTab(8);
+      };
+
+    if (typeof window.runOrQueueServerAction === 'function') {
+      window.runOrQueueServerAction({
+        method: 'recordArrivalOnBlocks',
+        args: [payload],
+        label: 'On Blocks'
+      }, {
+        onSuccess: onOnBlocksDone,
+        onQueued: function() {
+          if (window.M) M.toast({html:'Offline: On Blocks queued', classes:'orange'});
+          onOnBlocksDone();
+        },
+        onFailure: function(err) {
+          console.error('recordArrivalOnBlocks failed', err);
+          if (window.M) M.toast({html:'Failed to record On Blocks', classes:'red'});
+        }
+      });
+      return;
+    }
+
+    if (!window.google || !google.script || !google.script.run) {
+      if (window.M) M.toast({html:'Apps Script bridge unavailable', classes:'red'});
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(){
+        onOnBlocksDone();
+      })
+      .withFailureHandler(function(err){
+        console.error('recordArrivalOnBlocks failed', err);
+        if (window.M) M.toast({html:'Failed to record On Blocks', classes:'red'});
+      })
+      .recordArrivalOnBlocks(payload);
+  };
+
+  window.setupArrivalTab = function(mission) {
+    if (!mission || !mission.legs || !mission.legs.length) return;
+
+    const firstLeg = (function() {
+      var legs = mission.legs;
+      if (window.activeLegFlightId) {
+        var found = legs.find(function(l) { return String(l.flightLegId || '') === String(window.activeLegFlightId); });
+        if (found) return found;
+      }
+      var firstPending = legs.find(function(l) { return (l.logStatus || 'PENDING') !== 'COMPLETE'; });
+      return firstPending || legs[legs.length - 1] || legs[0];
+    })() || {};
+    const acftReg = String(mission.acft || '').trim().toUpperCase();
+    const acftObj = (window.appData && Array.isArray(window.appData.aircraft))
+      ? window.appData.aircraft.find(a => String(a.reg || '').trim().toUpperCase() === acftReg)
+      : null;
+
+    let gross = 0;
+    try {
+      if (typeof window.calculateWB === 'function') {
+        const wb = window.calculateWB();
+        gross = Number(wb && wb.totalWeight ? wb.totalWeight : 0);
+      }
+    } catch (e) { gross = 0; }
+
+    const fallbackGross = Number(firstLeg.limit || firstLeg.payload || 0);
+    const landingWeight = Math.max(0, (gross > 0 ? gross : fallbackGross));
+
+    window.arrival7.missionId = String(mission.id || '');
+    window.arrival7.flightLegId = String(firstLeg.flightLegId || '');
+    var derivedTo = String(firstLeg.to || '').trim().toUpperCase();
+    if (!derivedTo || derivedTo === '?') {
+      const routeRaw = String(firstLeg.route || '').trim();
+      if (routeRaw) {
+        const routeParts = routeRaw.split('-').map(function(p) { return String(p || '').trim().toUpperCase(); }).filter(Boolean);
+        if (routeParts.length) derivedTo = routeParts[routeParts.length - 1];
+        if (!derivedTo || derivedTo === '?') {
+          const tokenHits = routeRaw.toUpperCase().match(/[A-Z0-9]{3,4}/g) || [];
+          if (tokenHits.length) derivedTo = tokenHits[tokenHits.length - 1];
+        }
+      }
+    }
+    if (!derivedTo || derivedTo === '?') {
+      const lastLeg = mission.legs[mission.legs.length - 1] || {};
+      derivedTo = String(lastLeg.to || '').trim().toUpperCase();
+    }
+    derivedTo = String(derivedTo || '').replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    window.arrival7.toIcao = derivedTo;
+    window.arrival7.aircraftType = String((acftObj && (acftObj.typeForPerformance || acftObj.aircraftType)) || '').trim();
+    window.arrival7.weightKg = landingWeight;
+
+    const wtEl = document.getElementById('arr7-weight');
+    if (wtEl) wtEl.value = Math.round(landingWeight);
+    const weightBadge = document.getElementById('arr7-weight-badge');
+    if (weightBadge) weightBadge.textContent = 'Weight: ' + Math.round(landingWeight) + 'kg';
+
+    _arr7RenderRiskMatrix();
+    _arr7BindLive();
+
+    if (!window.arrival7.toIcao) {
+      if (window.M) M.toast({html:'Arrival airport ICAO missing in mission leg data', classes:'orange'});
+      return;
+    }
+
+    const cachedSetup = _arr7ReadCachedPerfSetup(window.arrival7.toIcao);
+    const appDataSetup = _arr7BuildSetupFromAppData(window.arrival7.toIcao);
+
+    if (cachedSetup) {
+      _arr7ApplySetup(cachedSetup);
+      window.calculateArrivalPerformance(false);
+    } else if (appDataSetup) {
+      _arr7ApplySetup(appDataSetup);
+      window.calculateArrivalPerformance(false);
+    }
+
+    if (!window.google || !google.script || !google.script.run) {
+      if ((cachedSetup || appDataSetup) && window.M) M.toast({html:'Offline: loaded cached arrival runway data', classes:'orange'});
+      if (!cachedSetup && !appDataSetup && window.M) M.toast({html:'Offline: no cached runway data for this airport', classes:'red'});
+      return;
+    }
+
+    const loadSetup = function(retryAttempted) {
+      google.script.run
+        .withSuccessHandler(function(setup){
+          _arr7CachePerfSetup(window.arrival7.toIcao, setup);
+          _arr7CacheGlobalCalcRef(setup && setup.calcReference ? setup.calcReference : null);
+          _arr7ApplySetup(setup);
+          window.calculateArrivalPerformance(false);
+        })
+        .withFailureHandler(function(err){
+          if (!retryAttempted && _arr7LikelyNetworkErr_(err)) {
+            setTimeout(function() { loadSetup(true); }, 350);
+            return;
+          }
+          console.error('setupArrivalTab getPerformanceSetup failed', err);
+          if (cachedSetup) {
+            _arr7ApplySetup(cachedSetup);
+            window.calculateArrivalPerformance(false);
+            if (window.M) M.toast({html:'Offline: loaded cached arrival runway data', classes:'orange'});
+            return;
+          }
+          if (appDataSetup) {
+            _arr7ApplySetup(appDataSetup);
+            window.calculateArrivalPerformance(false);
+            if (window.M) M.toast({html:'Loaded runway data from offline airport directory', classes:'orange'});
+            return;
+          }
+          if (window.M) M.toast({html:'Failed loading arrival runway data', classes:'red'});
+        })
+        .getPerformanceSetup(window.arrival7.toIcao);
+    };
+
+    loadSetup(false);
+  };
+</script>

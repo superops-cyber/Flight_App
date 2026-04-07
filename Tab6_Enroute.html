@@ -1,0 +1,3493 @@
+<style>
+  /* ===== TAB 6 ENROUTE — MISSION RUGGED ===== */
+
+  #enroute6-wrap {
+    background:
+      linear-gradient(180deg, rgba(26,42,36,0.88) 0%, rgba(26,42,36,0.18) 220px),
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.07) 0 1px, transparent 1px 110px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.06) 0 1px, transparent 1px 110px),
+      linear-gradient(180deg, #4b5645 0%, #7b7d66 40%, #8f927c 100%);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    padding: 0 8px 105px 8px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  #enroute6-wrap * { font-weight: 800; box-sizing: border-box; }
+
+  .enroute6-panel {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    position: relative;
+  }
+
+  /* gs-badge kept for JS null-safe references, but hidden */
+  .gs-badge { display: none; }
+
+  /* ---- Cards ---- */
+  .enroute-card {
+    background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+    border: 1px solid #6e6e6e;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  }
+
+  .enroute-subtitle {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #f0a03b;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  /* ---- Text ---- */
+  .status-line {
+    font-size: 0.92rem;
+    color: #d0d0d0;
+  }
+
+  /* ---- Buttons ---- */
+  .mini-btn {
+    border: 1px solid #4f6380;
+    background: #1d2936;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0 10px;
+    height: 36px;
+    font-size: 0.86rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .mini-btn:active { background: #2a3c50; }
+
+  .mini-fab {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 1px solid #4f6380;
+    background: #1d2936;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+
+  /* ---- GPS / actions ---- */
+  .gps-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  /* ---- API row ---- */
+  .api-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .api-row input {
+    height: 40px;
+    border: 1px solid #5a6a7a;
+    border-radius: 6px;
+    padding: 0 8px;
+    font-size: 0.9rem;
+    width: 100%;
+    background: linear-gradient(180deg, #121212 0%, #191919 100%);
+    color: #fff;
+  }
+
+  /* ---- Phase-2 settings / roll grid ---- */
+  .phase2-settings {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .phase2-settings label {
+    font-size: 0.76rem;
+    color: #c7c7c7;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .phase2-settings input {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #5a6a7a;
+    border-radius: 6px;
+    padding: 0 8px;
+    font-size: 0.9rem;
+    background: linear-gradient(180deg, #121212 0%, #191919 100%);
+    color: #fff;
+  }
+
+  .roll-tool-grid { grid-template-columns: repeat(3, 1fr); }
+  .roll-tool-grid label { color: #c7c7c7; }
+  .roll-tool-grid .status-line {
+    font-size: 1.5rem;
+    color: #8ce26c;
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+
+  .roll-tool-row {
+    display: grid;
+    grid-template-columns: auto auto repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    align-items: stretch;
+    margin-top: 6px;
+  }
+
+  .roll-tool-row .mini-btn {
+    min-width: 0;
+    height: auto;
+    padding: 0 8px;
+    font-size: 0.78rem;
+  }
+
+  .roll-vr-goal {
+    background: linear-gradient(180deg, #1a2a3a 0%, #111c28 100%);
+    border: 1px solid #4f6380;
+    border-radius: 6px;
+    padding: 4px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+  }
+  .roll-vr-goal label {
+    font-size: 0.66rem;
+    color: #c7c7c7;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 1px;
+  }
+  .roll-vr-goal .vr-goal-val {
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #ffe082;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .roll-metric {
+    background: linear-gradient(180deg, #121212 0%, #191919 100%);
+    border: 1px solid #5a6a7a;
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+
+  .roll-metric label {
+    font-size: 0.72rem;
+    color: #c7c7c7;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .roll-metric .status-line {
+    font-size: 1.1rem;
+    color: #8ce26c;
+    line-height: 1.15;
+  }
+  .roll-metric label {
+    font-size: 0.66rem;
+  }
+
+  /* ---- Diag box ---- */
+  .diag-box {
+    margin-top: 6px;
+    border: 1px solid #3a4a5a;
+    border-radius: 6px;
+    background: #0d141c;
+    max-height: 110px;
+    overflow-y: auto;
+    padding: 6px;
+    font-size: 0.8rem;
+    color: #8ce26c;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    line-height: 1.3;
+  }
+
+  /* ---- XTK strip ---- */
+  .xtk-strip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid #3a4a5a;
+    background: #1a2a3a;
+    font-size: 0.84rem;
+    color: #8ce26c;
+    margin-top: 6px;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .xtk-strip.xtk-warn   { background: #3a2a00; border-color: #ffc107; color: #f0a03b; }
+  .xtk-strip.xtk-danger { background: #3a1a1a; border-color: #ef5350; color: #ff6b6b; animation: xtkPulse 1s ease infinite alternate; }
+
+  @keyframes xtkPulse {
+    from { box-shadow: 0 0 0 0   rgba(239,83,80,0.0); }
+    to   { box-shadow: 0 0 0 6px rgba(239,83,80,0.25); }
+  }
+
+  /* ---- Map pack ---- */
+  .pack-status {
+    font-size: 0.84rem;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid #5a6a7a;
+    margin-bottom: 6px;
+  }
+  .pack-none    { background: #1d2936; color: #aaa;    border-color: #4a5a6a; }
+  .pack-ok      { background: #1a3a2a; color: #8ce26c; border-color: #3a7a4a; }
+  .pack-warn    { background: #3a2a00; color: #f0a03b; border-color: #6a5a00; }
+  .pack-expired { background: #3a1a1a; color: #ff6b6b; border-color: #8a3a3a; }
+
+  .pack-controls {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px;
+  }
+  .pack-controls label { font-size: 0.76rem; color: #c7c7c7; text-transform: uppercase; }
+  .pack-controls input[type=number] {
+    width: 52px; height: 34px;
+    border: 1px solid #5a6a7a; border-radius: 6px;
+    padding: 0 6px; font-size: 0.9rem;
+    background: linear-gradient(180deg, #121212 0%, #191919 100%);
+    color: #fff;
+  }
+  .pack-progress-bar {
+    height: 6px; background: #1a2a3a; border-radius: 3px; overflow: hidden; margin-bottom: 4px;
+  }
+  .pack-progress-bar-fill {
+    height: 100%; width: 0%;
+    background: #8ce26c; border-radius: 3px; transition: width 0.2s;
+  }
+
+  /* ---- Leaflet map ---- */
+  #enroute-leaflet-map {
+    width: 100%; height: 280px;
+    border: 1px solid #5a6a7a; border-radius: 8px;
+    overflow: hidden; background: #1a2a3a;
+  }
+
+  /* ---- Fuel strip ---- */
+  .fuel-strip {
+    display: grid;
+    grid-template-columns: 1fr 3fr 3fr 1fr;
+    gap: 4px; margin-bottom: 4px;
+  }
+  .fuel-box {
+    border: 1px solid #5a6a7a; border-radius: 6px; padding: 4px;
+    background: linear-gradient(180deg, #1d2936 0%, #141e2a 100%);
+    text-align: center; font-size: 0.78rem; cursor: pointer; color: #c7c7c7;
+  }
+  .fuel-box b { font-size: 0.94rem; color: #8ce26c; display: block; line-height: 1.05; }
+  .fuel-box.active-main {
+    border: 2px solid #8ce26c;
+    background: linear-gradient(180deg, #1a3a2a 0%, #122a1e 100%);
+  }
+  .fuel-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .fuel-actions .mini-btn { height: 30px; font-size: 0.74rem; padding: 0 8px; }
+  .fuel-tag {
+    display: inline-block; border-radius: 4px;
+    background: #1a2a3a; border: 1px solid #4a5a6a;
+    padding: 2px 5px; margin-right: 3px;
+    font-size: 0.78rem; color: #8ce26c;
+  }
+  .fuel-note {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.68rem;
+    color: #c7d5e5;
+    line-height: 1.25;
+  }
+  .fuel-cell-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .fuel-cell-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .fuel-chip-btn {
+    display: inline-block;
+    min-width: 0;
+    border: 1px solid #4a5a6a;
+    background: #1a2a3a;
+    color: #8ce26c;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
+    cursor: pointer;
+  }
+  .fuel-chip-btn small {
+    display: none;
+  }
+  .fuel-chip-btn.active-main {
+    border-color: #8ce26c;
+    background: #1a3a2a;
+    color: #dff7cf;
+  }
+  .fuel-chip-btn.transfer-live {
+    border-color: #ffe082;
+    background: #4b3b0b;
+    color: #fff0b3;
+  }
+  .fuel-chip-btn:disabled {
+    opacity: 0.65;
+    cursor: default;
+  }
+  .fuel-cell-hint {
+    font-size: 0.6rem;
+    color: #9fb1c7;
+    line-height: 1.2;
+  }
+  .fuel-used-badge {
+    display: inline-flex;
+    min-width: 46px;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid #72521b;
+    background: #3b2a08;
+    color: #ffd27d;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-weight: 900;
+  }
+  .transfer-banner { font-size: 0.78rem; color: #ff6b6b; line-height: 1.2; }
+  .transfer-banner.active {
+    color: #ffe082;
+    background: rgba(255, 193, 7, 0.15);
+    border: 1px solid rgba(255, 193, 7, 0.45);
+    border-radius: 6px;
+    padding: 5px 7px;
+  }
+  .transfer-banner.complete {
+    color: #ff5252;
+    background: rgba(239, 83, 80, 0.14);
+    border: 1px solid rgba(239, 83, 80, 0.45);
+    border-radius: 6px;
+    padding: 5px 7px;
+    animation: xtkPulse 0.8s ease infinite alternate;
+  }
+
+  .enroute-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+
+  .enroute-row-kpis {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .enroute-kpi-btn {
+    height: 28px;
+    border: 1px solid #4f6380;
+    background: #1d2936;
+    color: #cfe6ff;
+    border-radius: 999px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  /* ---- Waypoint table ---- */
+  .wp-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.82rem; background: transparent; color: #d0d0d0;
+  }
+  .wp-table th,
+  .wp-table td { border-bottom: 1px solid #3a3a3a; padding: 5px 5px; text-align: left; vertical-align: middle; }
+  .wp-table th { font-size: 0.72rem; text-transform: uppercase; color: #c7c7c7; background: #1a1a1a; }
+  .wp-table td { color: #d0d0d0; }
+  .wp-table td.hdg-cell,
+  .wp-table td.dist-cell {
+    color: #f2f2f2;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+  }
+
+  .wp-leg-row {
+    background: #212933;
+    font-size: 0.8rem;
+    color: #dbe6f3;
+  }
+
+  .wp-leg-row td {
+    border-bottom: 1px solid #334353;
+  }
+
+  .wp-pass-btn, .wp-del-btn, .wp-direct-btn {
+    border-radius: 5px; color: #fff; height: 26px;
+    padding: 0 6px; font-size: 0.7rem; font-weight: 800; cursor: pointer; margin-right: 2px;
+  }
+  .wp-pass-btn  { background: #1d2936; border: 1px solid #4f6380; }
+  .wp-del-btn   { background: #3a1a1a; border: 1px solid #8a3a3a; }
+  .wp-direct-btn { background: #3a1a33; border: 1px solid #8a4a6a; font-size: 0.78rem; }
+
+  .wp-row { cursor: move; }
+  .wp-row.passed { background: #1a2a1a; opacity: 0.72; }
+  .wp-row.bypassed td        { text-decoration: line-through; color: #666; font-style: italic; }
+  .wp-leg-row.bypassed td    { text-decoration: line-through; color: #555; }
+
+  .wp-add-row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 4px; margin-top: 6px; position: relative;
+  }
+  .wp-add-row input {
+    height: 32px; border: 1px solid #5a6a7a; border-radius: 6px;
+    padding: 0 8px; font-size: 0.82rem; width: 100%;
+    background: linear-gradient(180deg, #121212 0%, #191919 100%); color: #fff;
+  }
+  .wp-add-row .mini-btn { height: 32px; font-size: 0.74rem; }
+  .wp-add-row input::placeholder { color: #666; font-weight: 700; }
+
+  .suggest-list {
+    position: absolute; left: 0; right: 74px; top: 34px;
+    background: #1d2936; border: 1px solid #4a5a6a;
+    border-radius: 6px; max-height: 140px; overflow-y: auto; z-index: 4;
+  }
+  .suggest-item {
+    padding: 6px 8px; font-size: 0.86rem;
+    border-bottom: 1px solid #2a3a4a; cursor: pointer; color: #d0d0d0;
+  }
+  .suggest-item:hover { background: #2a3a4a; }
+
+  /* ---- Slide overlay ---- */
+  .slide-overlay {
+    position: fixed; top: 0; right: -380px;
+    width: 340px; max-width: 94vw; height: 100vh;
+    background: #1d2936; border-left: 1px solid #4a5a6a;
+    box-shadow: -4px 0 14px rgba(0,0,0,0.4);
+    z-index: 1002; transition: right 0.25s ease;
+    padding: 12px; color: #d0d0d0;
+  }
+  .slide-overlay.open { right: 0; }
+  .slide-overlay textarea {
+    width: 100%; min-height: 80px;
+    border: 1px solid #5a6a7a; border-radius: 6px; padding: 8px;
+    font-size: 0.88rem;
+    background: linear-gradient(180deg, #121212 0%, #191919 100%); color: #fff;
+  }
+
+  /* ---- DB layer legend ---- */
+  .db-legend { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; color: #c7c7c7; }
+  .db-leg-dot {
+    display: inline-block; width: 11px; height: 11px;
+    border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 1px #6a6a6a; flex-shrink: 0;
+  }
+  .db-leg-tri {
+    display: inline-block; width: 0; height: 0;
+    border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-bottom: 10px solid #6a1b9a; flex-shrink: 0;
+  }
+
+  /* ---- AutoLog chips ---- */
+  .autolog-strip { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .autolog-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; border: 2px solid;
+    flex: 1; min-width: 0; letter-spacing: 0.02em;
+  }
+  .autolog-ground   { background:#1a1a3a; color:#9fa8da; border-color:#3949ab; }
+  .autolog-rolling  { background:#3a2a00; color:#ffcc02; border-color:#ffa000; animation: xtkPulse 0.7s ease infinite alternate; }
+  .autolog-airborne { background:#1a3a2a; color:#8ce26c; border-color:#43a047; }
+  .autolog-landing  { background:#3a1a00; color:#ffab40; border-color:#ff7043; animation: xtkPulse 1s ease infinite alternate; }
+  .autolog-locked   { background:#2a1a3a; color:#ce93d8; border-color:#ab47bc; }
+  .autolog-off      { background:#2a2a2a; color:#888;    border-color:#444; }
+
+  /* ---- Map popup ---- */
+  .map-popup {
+    position: fixed; inset: 8% 4%; z-index: 1003;
+    background: #1d2936; border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    display: none; overflow: hidden;
+  }
+  .map-popup.open { display: block; }
+  .map-popup iframe { width: 100%; height: calc(100% - 44px); border: none; }
+  .map-topbar {
+    height: 44px; display: flex; justify-content: space-between; align-items: center;
+    padding: 0 10px;
+    background: linear-gradient(180deg, #2d69bd 0%, #1f4d8d 100%);
+    color: #fff; font-size: 0.9rem;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 700px) {
+    .roll-tool-grid  { grid-template-columns: 1fr; }
+    .roll-tool-row   { grid-template-columns: 1fr 1fr 1fr; }
+    .roll-tool-row .mini-btn { grid-column: 1 / 2; height: auto; }
+    .roll-vr-goal    { grid-column: 2 / 4; }
+    .fuel-strip      { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .enroute-row-head { align-items: flex-start; }
+    .enroute-row-kpis { width: 100%; }
+    .api-row         { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div id="enroute6-wrap">
+  <div class="enroute6-panel">
+    <span id="enroute-gs-badge" class="gs-badge"></span>
+
+    <div class="enroute-card">
+      <div class="enroute-subtitle">Takeoff Roll Tool</div>
+      <div class="status-line" id="enroute-roll-status">Ready to start roll measurement.</div>
+      <div class="roll-tool-row">
+        <button class="mini-btn" id="enroute-roll-start-btn" onclick="startTakeoffRollMeasurement()">START ROLL</button>
+        <div class="roll-vr-goal">
+          <label>Vr Goal</label>
+          <div class="vr-goal-val" id="enroute-roll-vr-goal">-- kts</div>
+        </div>
+        <div class="roll-metric">
+          <label id="enroute-roll-dist-label">Distance</label>
+          <div class="status-line" id="enroute-roll-distance">-- m</div>
+        </div>
+        <div class="roll-metric">
+          <label>GS</label>
+          <div class="status-line" id="enroute-roll-gs">-- kts</div>
+        </div>
+        <div class="roll-metric">
+          <label id="enroute-roll-totime-label">Airborne</label>
+          <div class="status-line" id="enroute-roll-totime">----Z</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="enroute-card">
+      <div class="enroute-subtitle">Moving Map</div>
+      <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
+        <button class="mini-btn" onclick="centerEnrouteMap()" style="font-size:0.77rem;">CENTER MAP</button>
+        <button class="mini-btn" id="db-airports-toggle-btn" onclick="toggleDbAirportLayer()" style="font-size:0.77rem;">AIRPORTS ON</button>
+        <button class="mini-btn" id="db-waypoints-toggle-btn" onclick="toggleDbWaypointLayer()" style="font-size:0.77rem;">WAYPOINTS ON</button>
+        <button class="mini-btn" id="route-layer-toggle-btn" onclick="toggleRouteLayer()" style="font-size:0.77rem;">ROUTE ON</button>
+        <span class="db-legend"><span class="db-leg-dot" style="background:#388e3c;"></span>Grass</span>
+        <span class="db-legend"><span class="db-leg-dot" style="background:#1565c0;"></span>Water</span>
+        <span class="db-legend"><span class="db-leg-dot" style="background:#212121;"></span>Paved/Other</span>
+        <span class="db-legend"><span class="db-leg-tri"></span>Waypoint</span>
+      </div>
+      <div id="enroute-leaflet-map"></div>
+    </div>
+
+    <div class="enroute-card">
+      <div class="enroute-row-head">
+        <div class="enroute-subtitle" style="margin-bottom:0;">Waypoint Table</div>
+        <div class="enroute-row-kpis">
+          <span class="enroute-kpi-btn" id="enroute-distance-summary">DIST -- nm</span>
+          <span class="enroute-kpi-btn" id="enroute-fuel-summary">FUEL -- L</span>
+        </div>
+      </div>
+      <div id="enroute-transfer-banner" class="transfer-banner" style="margin-bottom:6px;"></div>
+      <table class="wp-table">
+        <thead>
+          <tr>
+            <th>Fix</th>
+            <th>Hdg</th>
+            <th>Dist</th>
+            <th>ETE</th>
+            <th>ETA</th>
+            <th>Fuel</th>
+            <th>Fuel Used</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="enroute-wp-body"></tbody>
+      </table>
+
+      <div class="wp-add-row">
+        <input id="enroute-add-fix" placeholder="+ ADD waypoint (from DB_Airports / DB_Waypoints)">
+        <button class="mini-btn" onclick="addWaypointFromInput()">ADD</button>
+        <div id="enroute-suggest-list" class="suggest-list" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.enroute6 = {
+    missionId: '',
+    flightLegId: '',
+    waypoints: [],
+    passedIndex: -1,
+    gsKts: 0,
+    lat: null,
+    lon: null,
+    endpoint: '',
+    mapUrl: '',
+    pollTimer: null,
+    gpsWatchId: null,
+    transferRateLpm: 0.8,
+    transferTimer: null,
+    transferSecondsLeft: 0,
+    transferActive: null,
+    lastTransferMessage: '',
+    fuel: { LM: 0, RM: 0, LT: 0, RT: 0, activeMain: 'RM' },
+    directToTargetIdx: null,
+    reminderTimer: null,
+    reminderMins: 0,
+    lastUpdateTs: 0,
+    mapObj: null,
+    mapTiles: null,
+    routeLayer: null,
+    waypointLayer: null,
+    aircraftLayer: null,
+    mapReady: false,
+    mapLoadedOnce: false,
+    tileTemplate: '',
+    autoPassThresholdNm: 1.5,
+    takeoffRoll: {
+      active: false,
+      startLat: null,
+      startLon: null,
+      prevLat: null,
+      prevLon: null,
+      distanceNm: 0,
+      startTs: null,
+      maxGsKts: 0,
+      flapSetting: 0,
+      vrKts: 0,
+      vrHit: false,
+      vrHitAtTs: null,
+      gsAtVrKts: 0,
+      distanceAtVrNm: 0,
+      saveSent: false
+    }
+    ,diag: []
+  };
+    window.enroute6.autoLog = { enabled: false, state: 'GROUND', prevGsKts: 0, aboveTs: 0, belowTs: 0, brakesReleaseFired: false, airborneConfirmed: false, promptShown: false };
+    window.enroute6.directToLayer = null;
+    window.enroute6.hideDirectToLine = false;
+  window.enroute6.dbAirportLayer = null;
+  window.enroute6.dbWpLayer = null;
+  window.enroute6.dbLayersVisible = true;
+  window.enroute6.dbAirportsVisible = true;
+  window.enroute6.dbWaypointsVisible = true;
+  window.enroute6.dbLastRefreshTs = 0;
+  window.enroute6.dbRefreshIntervalMs = 12000;
+  window.enroute6.routeVisible = true;
+  window.enroute6.lastWaypointPoints = null;
+  window.enroute6.routeRedrawTimer = null;
+  window.enroute6.lastRouteStartIdx = -999;
+
+    // Early resilience hook: keep PilotApp from seeing Tab 6 as "not loaded"
+    window.__setupEnrouteTabImpl = window.__setupEnrouteTabImpl || null;
+    if (typeof window.setupEnrouteTab !== 'function') {
+      window.setupEnrouteTab = function(mission) {
+        if (typeof window.__setupEnrouteTabImpl === 'function') {
+          return window.__setupEnrouteTabImpl(mission);
+        }
+        if (window.M) {
+          M.toast({ html: 'Tab 6 is still initializing. Please tap Enroute again.', classes: 'orange', displayLength: 3500 });
+        }
+      };
+    }
+
+  function _enrouteFmtHhmm(dateObj) {
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '--:--';
+    const hh = String(dateObj.getHours()).padStart(2, '0');
+    const mm = String(dateObj.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
+  function _enrouteFmtBsbHhmm_(dateObj) {
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '--:-- BSB';
+    const hhmm = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Sao_Paulo',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(dateObj);
+    return `${hhmm} BSB`;
+  }
+
+  function _enrouteKtsFrom(value) {
+    const n = Number(value || 0);
+    if (!isFinite(n) || n <= 0) return 0;
+    if (n > 130) return n; // likely already knots for aircraft
+    return n * 1.94384; // assume m/s
+  }
+
+  function _enrouteSetStatus(text) {
+    const el = document.getElementById('enroute-live-status');
+    if (el) el.textContent = text;
+  }
+
+  function _enrouteDiag(message) {
+    try {
+      const msg = String(message == null ? '' : message);
+      const timestamp = _enrouteFmtHhmm(new Date());
+      const line = (timestamp && timestamp !== '--:--') ? (`[${timestamp}] ${msg}`) : msg;
+      if (!window.enroute6 || !Array.isArray(window.enroute6.diag)) {
+        if (!window.enroute6) window.enroute6 = {};
+        window.enroute6.diag = [];
+      }
+      window.enroute6.diag.push(line);
+      if (window.enroute6.diag.length > 30) window.enroute6.diag.shift();
+      const box = document.getElementById('enroute-diag-box');
+      if (box) box.textContent = window.enroute6.diag[window.enroute6.diag.length - 1] || 'Diagnostics ready.';
+      try { console.log('[ENR6]', msg); } catch (e) {}
+    } catch (e) {
+      try { console.log('[ENR6] diag failed', e); } catch (e2) {}
+    }
+  }
+
+  function _enroutePulseGs() {
+    const badge = document.getElementById('enroute-gs-badge');
+    if (!badge) return;
+    badge.classList.remove('pulse');
+    void badge.offsetWidth;
+    badge.classList.add('pulse');
+  }
+
+  function _enrouteUpdateHeader() {
+    const gs = Math.round(Number(window.enroute6.gsKts || 0));
+    const badge = document.getElementById('enroute-gs-badge');
+    if (badge) badge.textContent = `GS: ${gs || '--'} kts`;
+
+    const pos = document.getElementById('enroute-position-line');
+    if (pos) {
+      const lat = window.enroute6.lat;
+      const lon = window.enroute6.lon;
+      const tail = window.currentBriefingMission && window.currentBriefingMission.acft ? window.currentBriefingMission.acft : 'N/A';
+      pos.textContent = (lat != null && lon != null)
+        ? `Position: ${lat.toFixed(5)}, ${lon.toFixed(5)} • ${tail}`
+        : `Position: -- • ${tail}`;
+    }
+  }
+
+  function _enrouteDefaultVrForAircraft_(acftObj) {
+    return 0;
+  }
+
+  function _enrouteResolveVrFromAircraft_(acftObj, flapSetting) {
+    var flap = Number(flapSetting || 0);
+    var defaultVr = _enrouteDefaultVrForAircraft_(acftObj);
+    if (!acftObj || typeof acftObj !== 'object') return defaultVr;
+
+    var keys = Object.keys(acftObj || {});
+    var preferredKeys = [
+      'Vr' + Math.round(flap),
+      'VR' + Math.round(flap),
+      'VR_FLAPS_' + flap,
+      'VR_FLAP_' + flap,
+      'VR_' + flap,
+      'V_R_FLAPS_' + flap,
+      'V_ROTATE_FLAPS_' + flap,
+      'VR_KTS'
+    ];
+    for (var i = 0; i < preferredKeys.length; i++) {
+      var key = preferredKeys[i];
+      if (!Object.prototype.hasOwnProperty.call(acftObj, key)) continue;
+      var val = Number(acftObj[key]);
+      if (isFinite(val) && val > 0) return val;
+    }
+
+    var flapDigits = String(Math.round(flap));
+    for (var j = 0; j < keys.length; j++) {
+      var rawKey = String(keys[j] || '');
+      var normalized = rawKey.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (normalized.indexOf('VR') < 0) continue;
+      if (flapDigits && normalized.indexOf(flapDigits) < 0 && normalized.indexOf('KTS') < 0) continue;
+      var v = Number(acftObj[rawKey]);
+      if (isFinite(v) && v > 0) return v;
+    }
+    return defaultVr;
+  }
+
+  function _enrouteGetSelectedFlapSetting_() {
+    var flapEl = document.getElementById('perf-flaps');
+    var flapValue = Number(flapEl && flapEl.value || 0);
+    return isFinite(flapValue) ? flapValue : 0;
+  }
+
+  function _enrouteFindMissionAircraft_() {
+    var acft = String((window.currentBriefingMission && window.currentBriefingMission.acft) || '').trim().toUpperCase();
+    if (!acft || !window.appData || !Array.isArray(window.appData.aircraft)) return null;
+    return window.appData.aircraft.find(function(a) {
+      return String(a && a.reg || '').trim().toUpperCase() === acft;
+    }) || null;
+  }
+
+  function _enrouteUtcHhmm_(isoStr) {
+    var d = new Date(isoStr);
+    if (!d || isNaN(d.getTime())) return '----Z';
+    return String(d.getUTCHours()).padStart(2, '0') + String(d.getUTCMinutes()).padStart(2, '0') + 'Z';
+  }
+
+  function _enrouteUpdateRollUi_() {
+    var r = (window.enroute6 && window.enroute6.takeoffRoll) ? window.enroute6.takeoffRoll : null;
+    var gsEl = document.getElementById('enroute-roll-gs');
+    var distEl = document.getElementById('enroute-roll-distance');
+    var distLabelEl = document.getElementById('enroute-roll-dist-label');
+    var vrGoalEl = document.getElementById('enroute-roll-vr-goal');
+    var toTimeEl = document.getElementById('enroute-roll-totime');
+    var toTimeLabelEl = document.getElementById('enroute-roll-totime-label');
+    var statusEl = document.getElementById('enroute-roll-status');
+    var btn = document.getElementById('enroute-roll-start-btn');
+
+    // Vr goal: visible before roll starts
+    var acftObj = _enrouteFindMissionAircraft_();
+    var flapNow = r ? Number(r.flapSetting || 0) : _enrouteGetSelectedFlapSetting_();
+    var vrGoal = _enrouteResolveVrFromAircraft_(acftObj, flapNow);
+    if (vrGoalEl) vrGoalEl.textContent = (isFinite(vrGoal) && vrGoal > 0) ? (Math.round(vrGoal) + ' kts') : '-- kts';
+
+    if (!r) return;
+    var gsNow = Number(window.enroute6.gsKts || 0);
+    if (gsEl) gsEl.textContent = (isFinite(gsNow) ? gsNow.toFixed(1) : '--') + ' kts';
+
+    // Distance box: freeze and relabel once Vr hit
+    if (distEl) {
+      if (r.vrHit && r.distanceAtVrNm != null) {
+        if (distLabelEl) distLabelEl.textContent = 'Hit Vr At';
+        distEl.textContent = Math.round(Number(r.distanceAtVrNm || 0) * 1852) + ' m';
+      } else {
+        if (distLabelEl) distLabelEl.textContent = 'Distance';
+        var meters = Number(r.distanceNm || 0) * 1852;
+        distEl.textContent = isFinite(meters) ? (Math.round(meters) + ' m') : '-- m';
+      }
+    }
+
+    // Airborne time: prefer Vr-hit timestamp; fall back to button-press (startTs)
+    if (toTimeEl) {
+      if (r.vrHitAtTs) {
+        if (toTimeLabelEl) toTimeLabelEl.textContent = 'Airborne';
+        toTimeEl.textContent = _enrouteUtcHhmm_(r.vrHitAtTs);
+      } else if (r.startTs) {
+        if (toTimeLabelEl) toTimeLabelEl.textContent = 'T/O (btn)';
+        toTimeEl.textContent = _enrouteUtcHhmm_(r.startTs);
+      } else {
+        if (toTimeLabelEl) toTimeLabelEl.textContent = 'Airborne';
+        toTimeEl.textContent = '----Z';
+      }
+    }
+
+    if (statusEl) {
+      if (!r.active && !r.startTs) statusEl.textContent = 'Ready to start roll measurement.';
+      else if (r.active && !r.vrHit) statusEl.textContent = 'Measuring roll...';
+      else if (r.vrHit) statusEl.textContent = 'Vr reached. Saved to flight log JSON.';
+      else statusEl.textContent = 'Roll tool idle.';
+    }
+    if (btn) btn.textContent = r.active ? 'MEASURING...' : 'START ROLL';
+  }
+
+  function _enroutePersistTakeoffRoll_(rollSnapshot) {
+    var flightId = String(window.enroute6 && window.enroute6.flightLegId || '').trim();
+    if (!flightId || !rollSnapshot) return;
+
+    var sendViaGs = function() {
+      if (!window.google || !google.script || !google.script.run) return;
+      google.script.run
+        .withSuccessHandler(function() {})
+        .withFailureHandler(function(err) {
+          console.warn('saveTakeoffRollToLog failed', err);
+        })
+        .saveTakeoffRollToLog(flightId, rollSnapshot);
+    };
+
+    if (typeof window.runOrQueueServerAction === 'function') {
+      window.runOrQueueServerAction({
+        method: 'saveTakeoffRollToLog',
+        args: [flightId, rollSnapshot],
+        label: 'Takeoff roll'
+      }, {
+        onSuccess: function() {},
+        onQueued: function() {},
+        onFailure: function(err) {
+          console.warn('Queued saveTakeoffRollToLog failed', err);
+          sendViaGs();
+        }
+      });
+      return;
+    }
+    sendViaGs();
+  }
+
+  window.startTakeoffRollMeasurement = function() {
+    var lat = Number(window.enroute6.lat);
+    var lon = Number(window.enroute6.lon);
+    if (!isFinite(lat) || !isFinite(lon)) {
+      if (window.M) M.toast({ html: 'Need GPS lock before starting roll tool', classes: 'orange' });
+      return;
+    }
+    var flapSetting = _enrouteGetSelectedFlapSetting_();
+    var acftObj = _enrouteFindMissionAircraft_();
+    var vr = _enrouteResolveVrFromAircraft_(acftObj, flapSetting);
+    window.enroute6.takeoffRoll = {
+      active: true,
+      startLat: lat,
+      startLon: lon,
+      prevLat: lat,
+      prevLon: lon,
+      distanceNm: 0,
+      startTs: new Date().toISOString(),
+      maxGsKts: Number(window.enroute6.gsKts || 0),
+      flapSetting: flapSetting,
+      vrKts: Number(vr || 0),
+      vrHit: false,
+      vrHitAtTs: null,
+      gsAtVrKts: 0,
+      distanceAtVrNm: 0,
+      saveSent: false
+    };
+    _enrouteUpdateRollUi_();
+    if (window.M) M.toast({ html: 'Takeoff roll measurement started', classes: 'blue darken-2' });
+  };
+
+  function _enrouteUpdateTakeoffRoll_() {
+    var e = window.enroute6;
+    var r = e && e.takeoffRoll;
+    if (!r) return;
+    var lat = Number(e.lat);
+    var lon = Number(e.lon);
+    var gs = Number(e.gsKts || 0);
+    if (!isFinite(lat) || !isFinite(lon)) {
+      _enrouteUpdateRollUi_();
+      return;
+    }
+
+    if (r.active && isFinite(r.prevLat) && isFinite(r.prevLon)) {
+      var segNm = _enrouteDistNm(r.prevLat, r.prevLon, lat, lon);
+      if (isFinite(segNm) && segNm >= 0 && segNm < 0.2) {
+        r.distanceNm += segNm;
+      }
+      r.prevLat = lat;
+      r.prevLon = lon;
+      r.maxGsKts = Math.max(Number(r.maxGsKts || 0), gs);
+
+      var vrTarget = Number(r.vrKts || 0);
+      if (!r.vrHit && vrTarget > 0 && gs >= vrTarget) {
+        r.vrHit = true;
+        r.active = false;
+        r.vrHitAtTs = new Date().toISOString();
+        r.gsAtVrKts = Number(gs.toFixed(1));
+        r.distanceAtVrNm = Number(r.distanceNm || 0);
+        if (!r.saveSent) {
+          r.saveSent = true;
+          _enroutePersistTakeoffRoll_({
+            capturedAt: r.vrHitAtTs,
+            startTs: r.startTs,
+            flapSetting: Number(r.flapSetting || 0),
+            vrKts: Number(vrTarget.toFixed(1)),
+            gsAtVrKts: Number(r.gsAtVrKts || 0),
+            distanceAtVrNm: Number((r.distanceAtVrNm || 0).toFixed(4)),
+            distanceAtVrM: Math.round(Number(r.distanceAtVrNm || 0) * 1852),
+            maxGsKts: Number((r.maxGsKts || 0).toFixed(1))
+          });
+        }
+        if (window.M) {
+          M.toast({
+            html: 'Vr reached at ' + Math.round(Number(r.distanceAtVrNm || 0) * 1852) + ' m • GS ' + Number(r.gsAtVrKts || 0).toFixed(1) + ' kts',
+            classes: 'green',
+            displayLength: 7000
+          });
+        }
+      }
+    }
+    _enrouteUpdateRollUi_();
+  }
+
+  // ----------- Phase 2 geometry helpers -----------
+
+  // Haversine distance between two lat/lon points in nautical miles
+  function _enrouteDistNm(lat1, lon1, lat2, lon2) {
+    const R = 3440.065;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2
+      + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(Math.min(1, a)));
+  }
+
+  // Cross-track (perpendicular) distance from point P to great-circle A→B, in nm
+  function _enrouteCrossTrackNm(pLat, pLon, aLat, aLon, bLat, bLon) {
+    const R = 3440.065;
+    const toRad = d => d * Math.PI / 180;
+    const d13 = _enrouteDistNm(aLat, aLon, pLat, pLon) / R;
+    const brg13 = toRad(_calculateBearing(aLat, aLon, pLat, pLon));
+    const brg12 = toRad(_calculateBearing(aLat, aLon, bLat, bLon));
+    return Math.abs(Math.asin(Math.max(-1, Math.min(1, Math.sin(d13) * Math.sin(brg13 - brg12)))) * R);
+  }
+
+  // Along-track distance from A to the closest point on A→B to P, in nm (positive = ahead)
+  function _enrouteAlongTrackNm(pLat, pLon, aLat, aLon, bLat, bLon) {
+    const R = 3440.065;
+    const toRad = d => d * Math.PI / 180;
+    const d13 = _enrouteDistNm(aLat, aLon, pLat, pLon) / R;
+    const xtk = _enrouteCrossTrackNm(pLat, pLon, aLat, aLon, bLat, bLon) / R;
+    return Math.acos(Math.max(-1, Math.min(1, Math.cos(d13) / Math.cos(xtk)))) * R;
+  }
+
+  // ----------- Phase 2 logic -----------
+
+  function _enrouteAutoProgress() {
+    const e = window.enroute6;
+    const wps = e.waypoints;
+    if (!wps || !wps.length || e.lat == null || e.lon == null) return;
+    const nextIdx = e.passedIndex + 1;
+    if (nextIdx >= wps.length) return;
+
+    const nextWp = wps[nextIdx];
+    const coord = _lookupFix(nextWp.fix);
+    if (!coord) return;
+
+    const dist = _enrouteDistNm(e.lat, e.lon, coord.lat, coord.lon);
+    if (dist <= Number(e.autoPassThresholdNm || 1.5)) {
+      markWaypointPassed(nextIdx, { auto: true, distanceNm: dist });
+      _enrouteDiag(`AUTO-PASS ${nextWp.fix} dist=${dist.toFixed(1)}nm`);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+  }
+
+  function _enrouteUpdateOffCourseBanner(xtkNm) {
+    const strip = document.getElementById('enroute-xtk-strip');
+    if (!strip) return;
+    const e = window.enroute6;
+    const wps = e.waypoints;
+    const nextIdx = e.passedIndex + 1;
+    const nextFix = (wps && wps[nextIdx]) ? wps[nextIdx].fix : '--';
+    const distToNext = (wps && wps[nextIdx]) ? _enrouteDistNm(
+      e.lat, e.lon,
+      ...(() => { const c = _lookupFix(nextFix); return c ? [c.lat, c.lon] : [e.lat, e.lon]; })()
+    ) : null;
+    const distStr = distToNext != null ? distToNext.toFixed(1) + ' nm' : '-- nm';
+    strip.textContent = `📍 XTK: ${xtkNm.toFixed(1)} nm  |  Next (${nextFix}): ${distStr}`;
+
+    const threshold = Number(e.offCourseThresholdNm || 3);
+    strip.classList.remove('xtk-warn', 'xtk-danger');
+    if (xtkNm >= threshold) {
+      strip.classList.add('xtk-danger');
+    } else if (xtkNm >= threshold * 0.6) {
+      strip.classList.add('xtk-warn');
+    }
+  }
+
+  function _enrouteCheckOffCourse() {
+    const e = window.enroute6;
+    const wps = e.waypoints;
+    if (!wps || e.lat == null || e.lon == null) return;
+
+    const fromIdx = Math.max(0, e.passedIndex);
+    const toIdx = e.passedIndex + 1;
+    if (toIdx >= wps.length) return;
+
+    const fromCoord = _lookupFix(wps[fromIdx].fix);
+    const toCoord   = _lookupFix(wps[toIdx].fix);
+    if (!fromCoord || !toCoord) return;
+
+    const xtk = _enrouteCrossTrackNm(
+      e.lat, e.lon,
+      fromCoord.lat, fromCoord.lon,
+      toCoord.lat, toCoord.lon
+    );
+    e.lastCrossTrackNm = xtk;
+    _enrouteUpdateOffCourseBanner(xtk);
+
+    _enrouteRefreshOffCourseLayer(xtk, toCoord);
+
+    const threshold = Number(e.offCourseThresholdNm || 3);
+    if (xtk >= threshold) {
+      if (!e.offCourseAlertActive) {
+        e.offCourseAlertActive = true;
+        if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]);
+        if (window.M) M.toast({
+          html: `⚠️ OFF COURSE: ${xtk.toFixed(1)} nm deviation`,
+          classes: 'red darken-1',
+          displayLength: 9000
+        });
+        _enrouteDiag(`OFF COURSE ${xtk.toFixed(1)}nm threshold=${threshold}nm`);
+      }
+    } else {
+      e.offCourseAlertActive = false;
+    }
+  }
+
+  function _enrouteRefreshOffCourseLayer(xtkNm, toCoord) {
+    if (!window.enroute6.mapObj || !window.L) return;
+    const e = window.enroute6;
+    if (e.lat == null || e.lon == null) return;
+    const threshold = Number(e.offCourseThresholdNm || 3);
+    if (xtkNm < threshold * 0.6) {
+      if (e.offCourseLayer && e.mapObj.hasLayer(e.offCourseLayer)) e.mapObj.removeLayer(e.offCourseLayer);
+      return;
+    }
+    const color = xtkNm >= threshold ? '#ef5350' : '#ffc107';
+    const latLngs = [[e.lat, e.lon], [toCoord.lat, toCoord.lon]];
+    if (!e.offCourseLayer) {
+      e.offCourseLayer = window.L.polyline(
+        latLngs,
+        { color: color, weight: 2, opacity: 0.75, dashArray: '6 6' }
+      );
+    } else {
+      e.offCourseLayer.setLatLngs(latLngs);
+      e.offCourseLayer.setStyle({ color: color });
+    }
+    if (!e.mapObj.hasLayer(e.offCourseLayer)) e.offCourseLayer.addTo(e.mapObj);
+    e.offCourseLayer.bindTooltip(`XTK ${xtkNm.toFixed(1)} nm`, { direction: 'center', permanent: false });
+  }
+
+  // ----------- Position update (hooks Phase 2 in) -----------
+
+  function _enrouteSetPosition(lat, lon, speedAny, sourceLabel) {
+    window.enroute6.lat = Number(lat);
+    window.enroute6.lon = Number(lon);
+    window.enroute6.gsKts = Number(_enrouteKtsFrom(speedAny).toFixed(1));
+    window.enroute6.lastUpdateTs = Date.now();
+    _enrouteUpdateHeader();
+    _enrouteRefreshAircraftMarker();
+    _enroutePulseGs();
+    _enrouteUpdateTakeoffRoll_();
+    _enrouteAutoProgress();
+    _enrouteRefreshDirectLayer();
+    _enrouteMaybeRefreshDbLayers();
+    _debounceRouteRedraw();
+    _enrouteSetStatus(`Live: ${sourceLabel} • updated ${_enrouteFmtBsbHhmm_(new Date())}`);
+    _enrouteDiag(`OK ${sourceLabel} lat=${Number(lat).toFixed(5)} lon=${Number(lon).toFixed(5)} gs=${Math.round(window.enroute6.gsKts)}kt`);
+  }
+
+  function _enrouteMaybeRefreshDbLayers(force) {
+    var e = window.enroute6;
+    var now = Date.now();
+    if (!force && (now - Number(e.dbLastRefreshTs || 0)) < Number(e.dbRefreshIntervalMs || 12000)) return;
+    e.dbLastRefreshTs = now;
+    _enrouteRefreshDbLayers();
+  }
+
+  function _debounceRouteRedraw() {
+    if (window.enroute6.routeRedrawTimer) clearTimeout(window.enroute6.routeRedrawTimer);
+    window.enroute6.routeRedrawTimer = setTimeout(function() {
+      recalcWaypointsFromGs();
+      window.enroute6.routeRedrawTimer = null;
+    }, 1200);
+  }
+
+  function _parseTraccarPayload(payload) {
+    if (!payload) return null;
+
+    const one = Array.isArray(payload)
+      ? (payload[0] || null)
+      : (payload.position || payload.data || payload);
+
+    if (!one || typeof one !== 'object') return null;
+
+    const lat = one.latitude ?? one.lat ?? one.coords?.latitude;
+    const lon = one.longitude ?? one.lng ?? one.lon ?? one.coords?.longitude;
+    const speed = one.speed ?? one.attributes?.speed ?? one.coords?.speed;
+
+    if (lat == null || lon == null) return null;
+    return { lat: Number(lat), lon: Number(lon), speed: Number(speed || 0) };
+  }
+
+  async function _pollTraccarEndpoint(endpointUrl) {
+    const resp = await fetch(endpointUrl, { method: 'GET', cache: 'no-store' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const contentType = String(resp.headers.get('content-type') || '').toLowerCase();
+    if (contentType.indexOf('application/json') < 0 && contentType.indexOf('text/json') < 0) {
+      throw new Error('Non-JSON response');
+    }
+    const json = await resp.json();
+    const parsed = _parseTraccarPayload(json);
+    if (!parsed) throw new Error('No lat/lon in payload');
+    _enrouteSetPosition(parsed.lat, parsed.lon, parsed.speed, 'Traccar API');
+  }
+
+  function _startGeoFallback() {
+    if (!navigator.geolocation) {
+      _enrouteSetStatus('No geolocation available on this device/browser.');
+      return;
+    }
+
+    if (window.enroute6.gpsWatchId != null) return;
+
+    window.enroute6.gpsWatchId = navigator.geolocation.watchPosition(function(pos) {
+      const coords = pos.coords || {};
+      _enrouteSetPosition(coords.latitude, coords.longitude, coords.speed || 0, 'iPad GPS fallback');
+    }, function(err) {
+      _enrouteSetStatus(`GPS fallback error: ${err && err.message ? err.message : err}`);
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 10000
+    });
+  }
+
+      // ============================================================
+      // AUTO-LOG ENGINE
+      // ============================================================
+
+      function _autoLogUpdateChip() {
+        var chip = document.getElementById('autolog-state-chip');
+        if (!chip) return;
+        var al = window.enroute6.autoLog;
+        if (!al.enabled) {
+          chip.className = 'autolog-chip autolog-off';
+          chip.textContent = '⚙ AUTO-LOG: OFF';
+          return;
+        }
+        var labels = {
+          GROUND:   ['autolog-ground',   '⏸ GROUND'],
+          ROLLING:  ['autolog-rolling',  '🔴 ROLLING — BRAKES RELEASED'],
+          AIRBORNE: ['autolog-airborne', '✈ AIRBORNE'],
+          LANDING:  ['autolog-landing',  '🛬 SLOWING — ON BLOCKS?'],
+          LOCKED:   ['autolog-locked',   '✓ LEG COMPLETE']
+        };
+        var entry = labels[al.state] || ['autolog-off', '? ' + al.state];
+        chip.className = 'autolog-chip ' + entry[0];
+        chip.textContent = entry[1];
+      }
+
+      window.toggleAutoLog = function() {
+        var al = window.enroute6.autoLog;
+        al.enabled = !al.enabled;
+        var btn = document.getElementById('autolog-toggle-btn');
+        if (btn) btn.textContent = al.enabled ? 'DISABLE' : 'ENABLE';
+        if (al.enabled) {
+          var legId = String(window.enroute6.flightLegId || '');
+          var mission = window.currentBriefingMission;
+          var currentLeg = (mission && Array.isArray(mission.legs))
+            ? mission.legs.find(function(l) { return String(l.flightLegId || '') === legId; })
+            : null;
+          var legStatus = currentLeg ? (currentLeg.logStatus || 'PENDING') : 'PENDING';
+          if (legStatus === 'COMPLETE') {
+            al.state = 'LOCKED';
+          } else if (legStatus === 'DEPARTED') {
+            al.state = 'AIRBORNE'; al.airborneConfirmed = true; al.brakesReleaseFired = true;
+          } else {
+            al.state = 'GROUND'; al.brakesReleaseFired = false; al.airborneConfirmed = false;
+          }
+        }
+        _autoLogUpdateChip();
+        if (window.M) M.toast({ html: al.enabled ? 'Auto-log enabled' : 'Auto-log disabled', displayLength: 2500 });
+      };
+
+      function _autoLogFireBrakesRelease() {
+        var legId = String(window.enroute6.flightLegId || '');
+        var missionId = String(window.enroute6.missionId || '');
+        _enrouteDiag('AUTO-LOG: brakes release (≥10 kts)');
+        if (window.M) M.toast({ html: '🛫 Brakes release auto-logged', classes: 'blue darken-3', displayLength: 6000 });
+        var tab5 = window.releaseTab5State || {};
+        var riskTotal = 5;
+        if (tab5.selected && Object.keys(tab5.selected).length) {
+          riskTotal = 0;
+          Object.values(tab5.selected).forEach(function(v) { riskTotal += Number(v || 1); });
+        }
+        var payload = {
+          missionId: missionId, flightId: legId, flightLegId: legId,
+          riskTotal: riskTotal, riskDetail: tab5.selected || {},
+          chatMessage: '', wbSnapshot: {}, runwaySnapshot: {}
+        };
+        (function() {
+          try {
+            var key = 'mission_' + missionId;
+            var cached = null;
+            try { cached = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+            if (!cached || !Array.isArray(cached.legs)) return;
+            var leg = cached.legs.find(function(l) { return String(l.flightLegId || '') === legId; });
+            if (!leg) return;
+            var now = new Date().toISOString();
+            leg.logStatus = 'DEPARTED'; leg.bracesRelease = now;
+            localStorage.setItem(key, JSON.stringify(cached));
+            if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === missionId) {
+              var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l.flightLegId || '') === legId; });
+              if (ml) { ml.logStatus = 'DEPARTED'; ml.bracesRelease = now; }
+            }
+          } catch(e) { console.warn('autoLog brakes cache update failed', e); }
+        })();
+        if (typeof window.runOrQueueServerAction === 'function') {
+          window.runOrQueueServerAction(
+            { method: 'releaseBrakes', args: [payload], label: 'Auto brakes release' },
+            {
+              onSuccess: function() { _enrouteDiag('AUTO-LOG: releaseBrakes synced'); },
+              onQueued:  function() { _enrouteDiag('AUTO-LOG: releaseBrakes queued offline'); },
+              onFailure: function(e) { _enrouteDiag('AUTO-LOG: releaseBrakes error: ' + e); }
+            }
+          );
+        }
+      }
+
+      function _autoLogFireAirborne() {
+        _enrouteDiag('AUTO-LOG: AIRBORNE confirmed at 40 kts — ' + new Date().toISOString());
+        if (window.M) M.toast({ html: '✈ Airborne confirmed (40 kts)', classes: 'green darken-2', displayLength: 5000 });
+      }
+
+      window._autoLogConfirmOnBlocks = function(confirmed) {
+        if (confirmed) {
+          if (typeof window.tab7OnBlocksThenAdvance === 'function') {
+            window.tab7OnBlocksThenAdvance();
+          } else {
+            var legId = String(window.enroute6.flightLegId || '');
+            var missionId = String(window.enroute6.missionId || '');
+            (function() {
+              try {
+                var key = 'mission_' + missionId;
+                var cached = null;
+                try { cached = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+                if (!cached || !Array.isArray(cached.legs)) return;
+                var leg = cached.legs.find(function(l) { return String(l.flightLegId || '') === legId; });
+                if (!leg) return;
+                var now = new Date().toISOString();
+                leg.logStatus = 'COMPLETE'; leg.onBlocks = now;
+                localStorage.setItem(key, JSON.stringify(cached));
+                if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === missionId) {
+                  var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l.flightLegId || '') === legId; });
+                  if (ml) { ml.logStatus = 'COMPLETE'; ml.onBlocks = now; }
+                }
+              } catch(e) { console.warn('autoLog on-blocks cache fallback failed', e); }
+            })();
+            _enrouteDiag('AUTO-LOG: on-blocks fallback cache written');
+            if (window.M) M.toast({ html: 'On blocks recorded', classes: 'green' });
+            if (typeof window.switchTab === 'function') window.switchTab(8);
+          }
+        } else {
+          var al = window.enroute6.autoLog;
+          al.state = 'AIRBORNE'; al.belowTs = 0; al.promptShown = false;
+          _enrouteDiag('AUTO-LOG: on-blocks dismissed, monitoring resumed');
+          _autoLogUpdateChip();
+        }
+      };
+
+      function _autoLogPromptOnBlocks() {
+        _enrouteDiag('AUTO-LOG: on-blocks prompt shown');
+        if (window.M) {
+          var html = '<span style="margin-right:8px;">🛬 On blocks? Speed <35 kts for 45s</span>'
+            + '<button class="btn btn-flat toast-action" onclick="window._autoLogConfirmOnBlocks(true)" style="color:#a5d6a7;font-weight:800;">ON BLOCKS</button>'
+            + '<button class="btn btn-flat toast-action" onclick="window._autoLogConfirmOnBlocks(false)" style="color:#ef9a9a;">DISMISS</button>';
+          M.toast({ html: html, displayLength: 30000, classes: 'blue-grey darken-4' });
+        }
+      }
+
+      function _autoLogTick(gsKts) {
+        var al = window.enroute6.autoLog;
+        if (!al || !al.enabled) return;
+        var now = Date.now();
+        var prev = al.prevGsKts;
+        al.prevGsKts = gsKts;
+        var legId = String(window.enroute6.flightLegId || '');
+        var mission = window.currentBriefingMission;
+        var currentLeg = (mission && Array.isArray(mission.legs))
+          ? mission.legs.find(function(l) { return String(l.flightLegId || '') === legId; })
+          : null;
+        var legStatus = currentLeg ? (currentLeg.logStatus || 'PENDING') : 'PENDING';
+        if (legStatus === 'COMPLETE') { al.state = 'LOCKED'; _autoLogUpdateChip(); return; }
+        if (al.state === 'LOCKED') { _autoLogUpdateChip(); return; }
+        if ((al.state === 'GROUND' || al.state === 'ROLLING') && legStatus === 'DEPARTED') {
+          al.state = 'AIRBORNE'; al.airborneConfirmed = true; al.brakesReleaseFired = true;
+          _autoLogUpdateChip(); return;
+        }
+        if (al.state === 'GROUND') {
+          if (!al.brakesReleaseFired && prev < 8 && gsKts >= 10 && (gsKts - prev) >= 1.5) {
+            al.state = 'ROLLING'; al.aboveTs = 0; al.brakesReleaseFired = true;
+            _autoLogFireBrakesRelease();
+          }
+        } else if (al.state === 'ROLLING') {
+          if (gsKts < 5) {
+            al.state = 'GROUND'; al.aboveTs = 0;
+            _enrouteDiag('AUTO-LOG: roll aborted (speed < 5 kts)');
+          } else if (gsKts >= 40) {
+            if (!al.aboveTs) al.aboveTs = now;
+            if ((now - al.aboveTs) >= 8000 && !al.airborneConfirmed) {
+              al.airborneConfirmed = true; al.state = 'AIRBORNE'; _autoLogFireAirborne();
+            }
+          } else {
+            al.aboveTs = 0;
+          }
+        } else if (al.state === 'AIRBORNE') {
+          if (gsKts < 35) { if (!al.belowTs) al.belowTs = now; al.state = 'LANDING'; }
+        } else if (al.state === 'LANDING') {
+          if (gsKts >= 40) {
+            al.state = 'AIRBORNE'; al.belowTs = 0; al.promptShown = false;
+            _enrouteDiag('AUTO-LOG: touch-and-go / go-around');
+            if (window.M) M.toast({ html: '↩ Touch-and-go / go-around detected', classes: 'orange darken-2', displayLength: 5000 });
+          } else if ((now - al.belowTs) >= 45000 && !al.promptShown) {
+            al.promptShown = true; _autoLogPromptOnBlocks();
+          }
+        }
+        _autoLogUpdateChip();
+      }
+
+      // ============================================================
+      // DIRECT TO
+      // ============================================================
+
+      window.directToWaypoint = function(tgtIdx) {
+        var e = window.enroute6;
+        var wps = e.waypoints;
+        if (!wps || tgtIdx <= 0 || tgtIdx >= wps.length) return;
+        var tgtFix = wps[tgtIdx].fix;
+        var bypassTs = _enrouteFmtHhmm(new Date());
+        for (var i = e.passedIndex + 1; i < tgtIdx; i++) {
+          if (!wps[i].passedAt) wps[i].bypassedAt = bypassTs;
+        }
+        e.passedIndex = tgtIdx - 1;
+        e.directToTargetIdx = tgtIdx;
+        e.hideDirectToLine = false;
+        if (e.directToLayer) { e.mapObj.removeLayer(e.directToLayer); e.directToLayer = null; }
+        renderEnrouteWaypointRows();
+        _enrouteRefreshRouteLayer();
+        _enrouteRefreshDirectLayer();
+        recalcWaypointsFromGs();
+        if (window.M) M.toast({ html: '➡ Direct to ' + tgtFix, classes: 'purple darken-2', displayLength: 4000 });
+        _enrouteDiag('DIRECT TO ' + tgtFix + ' (idx=' + tgtIdx + ')');
+      };
+
+      function _enrouteRefreshDirectLayer() {
+        var e = window.enroute6;
+        if (!e.mapObj || !window.L) return;
+        if (e.directToLayer && e.hideDirectToLine) {
+          if (e.mapObj.hasLayer(e.directToLayer)) e.mapObj.removeLayer(e.directToLayer);
+          e.directToLayer = null;
+        }
+        if (e.hideDirectToLine) return;
+        var targetIdx = Number(e.directToTargetIdx);
+        if (!isFinite(targetIdx) || targetIdx < 0 || e.lat == null || e.lon == null) {
+          if (e.directToLayer && e.mapObj.hasLayer(e.directToLayer)) e.mapObj.removeLayer(e.directToLayer);
+          return;
+        }
+        if (targetIdx >= (e.waypoints || []).length) {
+          if (e.directToLayer && e.mapObj.hasLayer(e.directToLayer)) e.mapObj.removeLayer(e.directToLayer);
+          return;
+        }
+        var nextFix = e.waypoints[targetIdx].fix;
+        var coord = _lookupFix(nextFix);
+        if (!coord) {
+          if (e.directToLayer && e.mapObj.hasLayer(e.directToLayer)) e.mapObj.removeLayer(e.directToLayer);
+          return;
+        }
+        var latLngs = [[e.lat, e.lon], [coord.lat, coord.lon]];
+        if (!e.directToLayer) {
+          e.directToLayer = window.L.polyline(
+            latLngs,
+            { color: '#ad1457', weight: 4, opacity: 0.95, dashArray: '10 6' }
+          );
+        } else {
+          e.directToLayer.setLatLngs(latLngs);
+        }
+        if (!e.mapObj.hasLayer(e.directToLayer)) e.directToLayer.addTo(e.mapObj);
+        e.directToLayer.bindTooltip('DIRECT → ' + nextFix, { direction: 'center', permanent: false });
+      }
+
+  function _stopGeoFallback() {
+    if (window.enroute6.gpsWatchId != null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(window.enroute6.gpsWatchId);
+      window.enroute6.gpsWatchId = null;
+    }
+  }
+
+  function _enrouteEnsureLeaflet(onReady) {
+    if (window.L && typeof window.L.map === 'function') {
+      onReady();
+      return;
+    }
+
+    const existingScript = document.getElementById('enroute-leaflet-js');
+    if (existingScript && existingScript.dataset.loading === '1') {
+      const timer = setInterval(function() {
+        if (window.L && typeof window.L.map === 'function') {
+          clearInterval(timer);
+          onReady();
+        }
+      }, 100);
+      return;
+    }
+
+    if (!document.getElementById('enroute-leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'enroute-leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+
+    const script = existingScript || document.createElement('script');
+    script.id = 'enroute-leaflet-js';
+    script.dataset.loading = '1';
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = function() {
+      script.dataset.loading = '0';
+      onReady();
+    };
+    script.onerror = function() {
+      script.dataset.loading = '0';
+      _enrouteSetStatus('Leaflet failed to load. Connect once to load map library or host Leaflet locally.');
+      _enrouteDiag('Leaflet load failed');
+    };
+
+    if (!existingScript) document.head.appendChild(script);
+  }
+
+  function _enrouteDefaultTileTemplate() {
+    return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  }
+
+  function _enrouteGetTileTemplate() {
+    return window.enroute6.tileTemplate || String(localStorage.getItem('enrouteTileTemplate') || '').trim() || _enrouteDefaultTileTemplate();
+  }
+
+  function _enrouteApplyTileLayer() {
+    _enrouteApplyOfflineTileLayer();
+  }
+
+  // ============================================================
+  // PHASE 3 — Offline Map Pack (IndexedDB tile cache)
+  // ============================================================
+
+  const _IDB_NAME  = 'enrouteMapPackDB';
+  const _IDB_STORE = 'tiles';
+  let   _idbInst   = null;
+  let   _packDownloadActive = false;
+
+  function _idbOpen() {
+    return new Promise(function(resolve, reject) {
+      if (_idbInst) { resolve(_idbInst); return; }
+      const req = indexedDB.open(_IDB_NAME, 1);
+      req.onupgradeneeded = function(e) {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(_IDB_STORE)) db.createObjectStore(_IDB_STORE);
+      };
+      req.onsuccess = function(e) { _idbInst = e.target.result; resolve(_idbInst); };
+      req.onerror   = function(e) { reject(e.target.error); };
+    });
+  }
+
+  function _idbPut(key, val) {
+    return _idbOpen().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        const tx = db.transaction(_IDB_STORE, 'readwrite');
+        tx.objectStore(_IDB_STORE).put(val, key);
+        tx.oncomplete = resolve;
+        tx.onerror    = function(e) { reject(e.target.error); };
+      });
+    });
+  }
+
+  function _idbGet(key) {
+    return _idbOpen().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        const tx  = db.transaction(_IDB_STORE, 'readonly');
+        const req = tx.objectStore(_IDB_STORE).get(key);
+        req.onsuccess = function(e) { resolve(e.target.result || null); };
+        req.onerror   = function(e) { reject(e.target.error); };
+      });
+    });
+  }
+
+  function _idbGetTile(z, x, y) {
+    return _idbGet('t_' + z + '_' + x + '_' + y).catch(function() { return null; });
+  }
+
+  function _idbPutTile(z, x, y, blob) {
+    return _idbPut('t_' + z + '_' + x + '_' + y, blob);
+  }
+
+  function _idbGetPackMeta() {
+    return _idbGet('meta_pack').catch(function() { return null; });
+  }
+
+  function _idbPutPackMeta(meta) {
+    return _idbPut('meta_pack', meta).catch(function() {});
+  }
+
+  function _idbClearAll() {
+    return _idbOpen().then(function(db) {
+      return new Promise(function(resolve) {
+        try {
+          const tx = db.transaction(_IDB_STORE, 'readwrite');
+          tx.objectStore(_IDB_STORE).clear();
+          tx.oncomplete = resolve;
+          tx.onerror    = resolve;
+        } catch(e) { resolve(); }
+      });
+    }).catch(function() {});
+  }
+
+  function _idbCountTiles() {
+    return _idbOpen().then(function(db) {
+      return new Promise(function(resolve) {
+        try {
+          const tx = db.transaction(_IDB_STORE, 'readonly');
+          const req = tx.objectStore(_IDB_STORE).count();
+          req.onsuccess = function(e) { resolve(Number(e.target.result || 0)); };
+          req.onerror = function() { resolve(0); };
+        } catch (e) {
+          resolve(0);
+        }
+      });
+    }).catch(function() { return 0; });
+  }
+
+  // --- Tile coordinate math (slippy map standard) ---
+
+  function _latLonToTile(lat, lon, zoom) {
+    const n    = Math.pow(2, zoom);
+    const x    = Math.floor((lon + 180) / 360 * n);
+    const lRad = lat * Math.PI / 180;
+    const y    = Math.floor((1 - Math.log(Math.tan(lRad) + 1 / Math.cos(lRad)) / Math.PI) / 2 * n);
+    return { x: Math.max(0, Math.min(n - 1, x)), y: Math.max(0, Math.min(n - 1, y)) };
+  }
+
+  function _enumTiles(minLat, minLon, maxLat, maxLon, minZoom, maxZoom) {
+    const tiles = [];
+    for (let z = minZoom; z <= maxZoom; z++) {
+      const tl = _latLonToTile(maxLat, minLon, z);
+      const br = _latLonToTile(minLat, maxLon, z);
+      for (let x = tl.x; x <= br.x; x++) {
+        for (let y = tl.y; y <= br.y; y++) {
+          tiles.push({ z: z, x: x, y: y });
+        }
+      }
+    }
+    return tiles;
+  }
+
+  function _tileUrlFromTemplate(template, z, x, y) {
+    const subs = ['a', 'b', 'c'];
+    const s    = subs[Math.floor(Math.random() * 3)];
+    return template.replace('{z}', z).replace('{x}', x).replace('{y}', y).replace('{s}', s);
+  }
+
+  function _enrouteWaypointsBbox(bufferDeg) {
+    const buf    = Number(bufferDeg || 0.5);
+    const wps    = Array.isArray(window.enroute6.waypoints) ? window.enroute6.waypoints : [];
+    const coords = wps.map(function(wp) { return _lookupFix(wp.fix); }).filter(Boolean);
+    if (!coords.length) return null;
+    const lats = coords.map(function(c) { return c.lat; });
+    const lons = coords.map(function(c) { return c.lon; });
+    return {
+      minLat: Math.min.apply(null, lats) - buf,
+      maxLat: Math.max.apply(null, lats) + buf,
+      minLon: Math.min.apply(null, lons) - buf,
+      maxLon: Math.max.apply(null, lons) + buf
+    };
+  }
+
+  function _offlineWacBbox() {
+    return { minLat: -34.0, maxLat: 6.0, minLon: -74.0, maxLon: -28.0 };
+  }
+
+  function _offlinePackDefaults(scope) {
+    if (String(scope || 'base').toLowerCase() === 'route') {
+      return { minZoom: 6, maxZoom: 8, label: 'Route pack' };
+    }
+    return { minZoom: 4, maxZoom: 6, label: 'OpenStreetMap/base pack' };
+  }
+
+  function _packDateLabel(isoDate) {
+    const d = new Date(isoDate || '');
+    if (isNaN(d.getTime())) return '';
+    const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May.', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
+    const month = months[d.getMonth()] || '---';
+    return month + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  function _offlinePackBbox(scope) {
+    return String(scope || 'base').toLowerCase() === 'route'
+      ? _enrouteWaypointsBbox(0.5)
+      : _offlineWacBbox();
+  }
+
+  function _setOfflineMapDbIndicator(state, label) {
+    const dot = document.getElementById('rdot-mapdb');
+    const text = document.getElementById('rlabel-mapdb');
+    if (text) text.textContent = label || 'Checking…';
+    if (dot) {
+      const colors = { none: '#bdbdbd', ok: '#2e7d32', warn: '#f9a825', expired: '#d32f2f', syncing: '#1565c0' };
+      dot.style.background = colors[state] || colors.none;
+    }
+    // Update shared readiness state
+    const stateMap = { ok: 'ok', syncing: 'sync', expired: 'bad', warn: 'warn', none: 'none' };
+    if (window._readinessState) window._readinessState.mapdb = stateMap[state] || 'none';
+    if (typeof window._recomputeOverallReadiness_ === 'function') window._recomputeOverallReadiness_();
+  }
+
+  // --- Pack status display ---
+
+  function _renderPackStatusFromMeta(meta) {
+    const els = [document.getElementById('enroute-mappack-status'), document.getElementById('offline-map-status')].filter(Boolean);
+    if (!meta || !meta.savedAt) {
+      els.forEach(function(el) {
+        el.textContent = 'Maps not downloaded.';
+        el.className   = 'pack-status pack-none';
+      });
+      _setOfflineMapDbIndicator('none', 'Not downloaded');
+      return;
+    }
+    const ageDays = Math.floor((Date.now() - new Date(meta.savedAt).getTime()) / 86400000);
+    const dateLabel = _packDateLabel(meta.savedAt);
+    const maxFreshDays = 15;
+    if (ageDays > maxFreshDays) {
+      els.forEach(function(el) {
+        el.textContent = '✖ MAPS EXPIRED — last download ' + (dateLabel || 'unknown date');
+        el.className   = 'pack-status pack-expired';
+      });
+      _setOfflineMapDbIndicator('expired', 'Expired');
+    } else {
+      els.forEach(function(el) {
+        el.textContent = '✔ MAPS DOWNLOADED — ' + (dateLabel || 'date unavailable');
+        el.className   = 'pack-status pack-ok';
+      });
+      _setOfflineMapDbIndicator('ok', 'Ready');
+    }
+  }
+
+  function _updatePackStatus() {
+    const els = [document.getElementById('enroute-mappack-status'), document.getElementById('offline-map-status')].filter(Boolean);
+    const metaRaw = localStorage.getItem('enrouteMapPackMeta');
+    if (!metaRaw) {
+      _idbGetPackMeta().then(function(idbMeta) {
+        if (idbMeta && idbMeta.savedAt) {
+          try { localStorage.setItem('enrouteMapPackMeta', JSON.stringify(idbMeta)); } catch (e) {}
+          _renderPackStatusFromMeta(idbMeta);
+          return;
+        }
+        _idbCountTiles().then(function(tileCount) {
+          if (tileCount > 0) {
+            els.forEach(function(el) {
+              el.textContent = '✖ Map metadata missing — please Sync Maps again.';
+              el.className   = 'pack-status pack-expired';
+            });
+            _setOfflineMapDbIndicator('expired', 'Re-sync required');
+          } else {
+            els.forEach(function(el) {
+              el.textContent = 'Maps not downloaded.';
+              el.className   = 'pack-status pack-none';
+            });
+            _setOfflineMapDbIndicator('none', 'Not downloaded');
+          }
+        });
+      });
+      return;
+    }
+    let meta;
+    try { meta = JSON.parse(metaRaw); } catch(e) { meta = null; }
+    _renderPackStatusFromMeta(meta);
+  }
+
+  window.refreshOfflineMapPackStatus = _updatePackStatus;
+
+  // --- Custom Leaflet offline-first tile layer ---
+
+  function _enrouteApplyOfflineTileLayer() {
+    if (!window.enroute6.mapObj || !window.L) return;
+    if (window.enroute6.mapTiles) {
+      window.enroute6.mapObj.removeLayer(window.enroute6.mapTiles);
+      window.enroute6.mapTiles = null;
+    }
+    const template = _enrouteGetTileTemplate();
+    const OfflineTileLayer = window.L.TileLayer.extend({
+      createTile: function(coords, done) {
+        const img = document.createElement('img');
+        img.alt = '';
+        const networkUrl = this.getTileUrl(coords);
+        _idbGetTile(coords.z, coords.x, coords.y).then(function(blob) {
+          if (blob) {
+            const objUrl = URL.createObjectURL(blob);
+            img.onload  = function() { URL.revokeObjectURL(objUrl); done(null, img); };
+            img.onerror = function() { URL.revokeObjectURL(objUrl); img.src = networkUrl; };
+            img.src = objUrl;
+          } else {
+            img.onload  = function() { done(null, img); };
+            img.onerror = function(e) { done(e, img); };
+            img.src = networkUrl;
+          }
+        }).catch(function() {
+          img.onload  = function() { done(null, img); };
+          img.onerror = function(e) { done(e, img); };
+          img.src = networkUrl;
+        });
+        return img;
+      }
+    });
+    window.enroute6.mapTiles = new OfflineTileLayer(template, {
+      maxZoom: 16, minZoom: 4, attribution: 'Map data (offline pack)'
+    });
+    window.enroute6.mapTiles.addTo(window.enroute6.mapObj);
+  }
+
+  // --- Estimate ---
+
+  window.estimateMapPack = function(scope) {
+    const defaults = _offlinePackDefaults(scope);
+    const bbox = _offlinePackBbox(scope);
+    if (!bbox) { if (window.M) M.toast({ html: 'No map coverage data available yet', classes: 'orange' }); return; }
+    const minZ = Math.max(4,  Number(document.getElementById('enroute-pack-minzoom')?.value || defaults.minZoom));
+    const maxZ = Math.max(minZ, Number(document.getElementById('enroute-pack-maxzoom')?.value || defaults.maxZoom));
+    const tiles = _enumTiles(bbox.minLat, bbox.minLon, bbox.maxLat, bbox.maxLon, minZ, maxZ);
+    const estMB = Math.round(tiles.length * 22 / 1024);
+    if (window.M) M.toast({
+      html: defaults.label + ': ~' + tiles.length + ' tiles (~' + estMB + ' MB) for zooms ' + minZ + '–' + maxZ,
+      classes: 'blue darken-2', displayLength: 6000
+    });
+    _enrouteDiag(defaults.label + ' estimate: ' + tiles.length + ' tiles z' + minZ + '-' + maxZ);
+  };
+
+  // --- Download ---
+
+  window.downloadMapPack = async function(scope) {
+    if (_packDownloadActive) {
+      if (window.M) M.toast({ html: 'Download already in progress', classes: 'orange' });
+      return;
+    }
+    const defaults = _offlinePackDefaults(scope);
+    const bbox = _offlinePackBbox(scope);
+    if (!bbox) { if (window.M) M.toast({ html: 'No map coverage data available yet', classes: 'orange' }); return; }
+    const template = _enrouteGetTileTemplate();
+    if (!template || template.indexOf('{z}') < 0) {
+      if (window.M) M.toast({ html: 'Set a valid tile URL template first', classes: 'orange' });
+      return;
+    }
+    const minEl = document.getElementById('enroute-pack-minzoom');
+    const maxEl = document.getElementById('enroute-pack-maxzoom');
+    const minZ  = Math.max(4,    Math.min(10, Number(minEl?.value || defaults.minZoom)));
+    const maxZ  = Math.max(minZ, Math.min(10, Number(maxEl?.value || defaults.maxZoom)));
+    const tiles = _enumTiles(bbox.minLat, bbox.minLon, bbox.maxLat, bbox.maxLon, minZ, maxZ);
+    if (tiles.length > 2000) {
+      const ok = await window.flightAppConfirm(defaults.label + ' download: ~' + tiles.length + ' tiles (~' + Math.round(tiles.length * 22 / 1024) + ' MB). Proceed?', { title: 'Offline Map Pack', okText: 'Download' });
+      if (!ok) return;
+    }
+    _packDownloadActive = true;
+    _setOfflineMapDbIndicator('syncing', 'Syncing…');
+    const progDiv = document.getElementById('enroute-pack-progress');
+    const progBar = document.getElementById('enroute-pack-bar');
+    const progTxt = document.getElementById('enroute-pack-progress-text');
+    const packBtn = document.getElementById('enroute-pack-btn');
+    if (progDiv) progDiv.style.display = 'block';
+    if (packBtn) { packBtn.textContent = 'SYNCING...'; packBtn.disabled = true; }
+    let done = 0, failed = 0;
+    const BATCH = 6;
+    const updateProg = function() {
+      const pct = Math.round((done + failed) / tiles.length * 100);
+      if (progBar) progBar.style.width = pct + '%';
+      if (progTxt) progTxt.textContent = (done + failed) + '/' + tiles.length + ' tiles (' + failed + ' failed)';
+    };
+    for (let i = 0; i < tiles.length; i += BATCH) {
+      if (!_packDownloadActive) break;
+      await Promise.all(tiles.slice(i, i + BATCH).map(async function(t) {
+        try {
+          const url  = _tileUrlFromTemplate(template, t.z, t.x, t.y);
+          const resp = await fetch(url, { cache: 'no-store' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const blob = await resp.blob();
+          await _idbPutTile(t.z, t.x, t.y, blob);
+          done++;
+        } catch(e) { failed++; }
+        updateProg();
+      }));
+    }
+    _packDownloadActive = false;
+    if (packBtn) { packBtn.textContent = 'SYNC MAPS'; packBtn.disabled = false; }
+    const meta = {
+      missionId:  window.enroute6.missionId || 'unknown',
+      scope:      String(scope || 'base').toLowerCase(),
+      savedAt:    new Date().toISOString(),
+      tileCount:  done,
+      failedCount: failed,
+      bbox:       bbox,
+      minZoom:    minZ,
+      maxZoom:    maxZ,
+      tileTemplate: template
+    };
+    localStorage.setItem('enrouteMapPackMeta', JSON.stringify(meta));
+    _idbPutPackMeta(meta);
+    _updatePackStatus();
+    _enrouteDiag('Pack downloaded: ' + done + '/' + tiles.length + ' tiles');
+    if (window.M) M.toast({
+      html: '\uD83D\uDCE6 ' + defaults.label + ' ready: ' + done + ' tiles' + (failed ? ' (' + failed + ' failed)' : ''),
+      classes: done > 0 ? 'green' : 'orange', displayLength: 6000
+    });
+    if (done > 0) _enrouteApplyOfflineTileLayer();
+  };
+
+  // --- Clear ---
+
+  window.clearMapPack = async function() {
+    const ok = await window.flightAppConfirm('Clear all cached map tiles?', { title: 'Offline Map Pack', okText: 'Clear' });
+    if (!ok) return;
+    await _idbClearAll();
+    localStorage.removeItem('enrouteMapPackMeta');
+    _packDownloadActive = false;
+    _updatePackStatus();
+    _enrouteApplyTileLayer();
+    if (window.M) M.toast({ html: 'Map pack cleared', classes: 'orange' });
+    _enrouteDiag('Pack cleared');
+  };
+
+  // Silent clear used by the combined Tab1 CLEAR button (confirm already shown there)
+  window.clearMapPackDirect = async function() {
+    await _idbClearAll();
+    localStorage.removeItem('enrouteMapPackMeta');
+    _packDownloadActive = false;
+    _updatePackStatus();
+    if (typeof _enrouteApplyTileLayer === 'function') _enrouteApplyTileLayer();
+    _enrouteDiag('Map pack cleared (direct)');
+  };
+
+  // ============================================================
+  // END PHASE 3
+  // ============================================================
+
+  function _enrouteWaypointPoints() {
+    const waypoints = Array.isArray(window.enroute6.waypoints) ? window.enroute6.waypoints : [];
+    return waypoints.map((wp, idx) => {
+      const coord = _lookupFix(wp.fix);
+      if (!coord) return null;
+      return {
+        idx: idx,
+        fix: String(wp.fix || ''),
+        lat: Number(coord.lat),
+        lon: Number(coord.lon),
+        eta: String(wp.eta || '--:--'),
+        distNm: Number(wp.distNm || 0)
+      };
+    }).filter(Boolean);
+  }
+
+  function _enrouteRefreshRouteLayer() {
+    if (!window.enroute6.mapObj || !window.L) return;
+    const points = _enrouteWaypointPoints();
+
+    if (!points.length) {
+      if (window.enroute6.routeLayer) {
+        window.enroute6.mapObj.removeLayer(window.enroute6.routeLayer);
+        window.enroute6.routeLayer = null;
+      }
+      if (window.enroute6.waypointLayer) {
+        window.enroute6.mapObj.removeLayer(window.enroute6.waypointLayer);
+        window.enroute6.waypointLayer = null;
+      }
+      window.enroute6.lastWaypointPoints = null;
+      return;
+    }
+
+    const directToStartIdx = Number(window.enroute6.directToTargetIdx);
+    const startIdx = (isFinite(directToStartIdx) && directToStartIdx >= 0)
+      ? directToStartIdx
+      : Math.max(0, Number(window.enroute6.passedIndex || -1) + 1);
+    const pointsCached = JSON.stringify(points);
+    const unchanged = (startIdx === window.enroute6.lastRouteStartIdx && pointsCached === window.enroute6.lastWaypointPoints);
+    if (unchanged) {
+      return;
+    }
+
+    if (window.enroute6.routeLayer) {
+      window.enroute6.mapObj.removeLayer(window.enroute6.routeLayer);
+      window.enroute6.routeLayer = null;
+    }
+    if (window.enroute6.waypointLayer) {
+      window.enroute6.mapObj.removeLayer(window.enroute6.waypointLayer);
+      window.enroute6.waypointLayer = null;
+    }
+
+    const routePoints = points.slice(startIdx);
+    if (window.enroute6.routeVisible && routePoints.length > 1) {
+      const routeLatLng = routePoints.map(p => [p.lat, p.lon]);
+      window.enroute6.routeLayer = window.L.polyline(routeLatLng, {
+        color: '#1565c0',
+        weight: 4,
+        opacity: 0.9
+      }).addTo(window.enroute6.mapObj);
+    }
+
+    window.enroute6.waypointLayer = window.L.layerGroup();
+    points.forEach(function(p) {
+      const passed = p.idx <= Number(window.enroute6.passedIndex || -1);
+      const marker = window.L.circleMarker([p.lat, p.lon], {
+        radius: 6,
+        color: passed ? '#2e7d32' : '#0b5394',
+        fillColor: passed ? '#81c784' : '#42a5f5',
+        fillOpacity: 0.95,
+        weight: 2
+      });
+      marker.bindPopup('<b>' + p.fix + '</b><br>ETA ' + p.eta + '<br>Leg ' + Math.round(p.distNm) + ' nm');
+      window.enroute6.waypointLayer.addLayer(marker);
+    });
+    window.enroute6.waypointLayer.addTo(window.enroute6.mapObj);
+
+    window.enroute6.lastRouteStartIdx = startIdx;
+    window.enroute6.lastWaypointPoints = pointsCached;
+    if (!window.enroute6.mapLoadedOnce) {
+      if (window.enroute6.routeLayer) {
+        window.enroute6.mapObj.fitBounds(window.enroute6.routeLayer.getBounds(), { padding: [24, 24] });
+      } else if (window.enroute6.waypointLayer) {
+        window.enroute6.mapObj.fitBounds(window.enroute6.waypointLayer.getBounds(), { padding: [24, 24] });
+      }
+      window.enroute6.mapLoadedOnce = true;
+    }
+  }
+
+  function _enrouteInvalidateMapSize_(centerIfNeeded) {
+    const mapObj = window.enroute6 && window.enroute6.mapObj;
+    if (!mapObj || typeof mapObj.invalidateSize !== 'function') return;
+
+    const refresh = function() {
+      try {
+        mapObj.invalidateSize(true);
+      } catch (e) {}
+
+      if (centerIfNeeded && window.enroute6 && window.enroute6.aircraftLayer) {
+        const lat = Number(window.enroute6.lat);
+        const lon = Number(window.enroute6.lon);
+        if (isFinite(lat) && isFinite(lon)) {
+          try { mapObj.panTo([lat, lon], { animate: false }); } catch (e2) {}
+        }
+      }
+    };
+
+    refresh();
+    setTimeout(refresh, 120);
+    setTimeout(refresh, 420);
+  }
+
+  function _enrouteRefreshAircraftMarker() {
+    if (!window.enroute6.mapObj || !window.L) return;
+    const lat = Number(window.enroute6.lat);
+    const lon = Number(window.enroute6.lon);
+    if (!isFinite(lat) || !isFinite(lon)) return;
+
+    if (!window.enroute6.aircraftLayer) {
+      window.enroute6.aircraftLayer = window.L.circleMarker([lat, lon], {
+        radius: 8,
+        color: '#1a237e',
+        fillColor: '#3949ab',
+        fillOpacity: 0.95,
+        weight: 2
+      }).addTo(window.enroute6.mapObj);
+      window.enroute6.aircraftLayer.bindTooltip('Aircraft', { direction: 'top', offset: [0, -8] });
+      return;
+    }
+    window.enroute6.aircraftLayer.setLatLng([lat, lon]);
+  }
+
+  function _enrouteInitMap() {
+    _enrouteEnsureLeaflet(function() {
+      const host = document.getElementById('enroute-leaflet-map');
+      if (!host || !window.L) return;
+
+      if (!window.enroute6.mapObj) {
+        window.enroute6.mapObj = window.L.map('enroute-leaflet-map', {
+          zoomControl: true,
+          attributionControl: true
+        }).setView([-14.235, -51.925], 4);
+      }
+
+      window.enroute6.mapReady = true;
+      _enrouteApplyOfflineTileLayer();
+      _enrouteRefreshDbLayers();
+      _enrouteRefreshRouteLayer();
+      _enrouteRefreshAircraftMarker();
+      _enrouteInvalidateMapSize_(true);
+
+      if (!window.enroute6.resizeBound) {
+        window.addEventListener('resize', function() {
+          _enrouteInvalidateMapSize_(false);
+        });
+        window.enroute6.resizeBound = true;
+      }
+    });
+  }
+
+  function _enrouteAirportDivIcon(surfaceActual, hasFuel) {
+    var s = String(surfaceActual || '').toUpperCase();
+    var color;
+    if (/GRASS|GRAMA|SOD|TURF|CAMPO|TERRA/.test(s)) color = '#388e3c';
+    else if (/WATER|\u00C1GUA|AGUA|LAKE|LAGO|HIDRO|FLOAT|SEA/.test(s)) color = '#1565c0';
+    else color = '#212121';
+    var badge = hasFuel
+      ? '<circle cx="16" cy="4" r="4" fill="#2e7d32" stroke="white" stroke-width="1.2"/><text x="16" y="5.5" text-anchor="middle" font-size="5.2" fill="white" font-family="sans-serif" font-weight="bold">⛽</text>'
+      : '';
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">'
+      + '<circle cx="10" cy="10" r="9" fill="' + color + '" stroke="white" stroke-width="1.5" opacity="0.92"/>'
+      + '<text x="10" y="14" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif" font-weight="bold">✈</text>'
+      + badge
+      + '</svg>';
+    return window.L.divIcon({ html: svg, className: '', iconSize: [20, 20], iconAnchor: [10, 10] });
+  }
+
+  function _enrouteWpDbDivIcon() {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14">'
+      + '<polygon points="7,1 13,13 1,13" fill="#6a1b9a" stroke="white" stroke-width="1.5" opacity="0.9"/>'
+      + '</svg>';
+    return window.L.divIcon({ html: svg, className: '', iconSize: [14, 14], iconAnchor: [7, 13] });
+  }
+
+  function _enrouteRefreshDbLayers() {
+    var e = window.enroute6;
+    if (!e.mapObj || !window.L) return;
+
+    var airports  = (window.appData && Array.isArray(window.appData.airports))  ? window.appData.airports  : [];
+    var wps       = (window.appData && Array.isArray(window.appData.waypoints)) ? window.appData.waypoints : [];
+
+    var centerLat = isFinite(Number(e.lat)) ? Number(e.lat) : Number(e.mapObj.getCenter().lat);
+    var centerLon = isFinite(Number(e.lon)) ? Number(e.lon) : Number(e.mapObj.getCenter().lng);
+    var airportRadiusNm = 90;
+    var waypointRadiusNm = 45;
+    var airportLimit = 70;
+    var waypointLimit = 120;
+
+    var nearestAirports = airports.map(function(apt) {
+      var lat = parseFloat(apt.lat); var lon = parseFloat(apt.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return null;
+      return { item: apt, lat: lat, lon: lon, dist: _enrouteDistNm(centerLat, centerLon, lat, lon) };
+    }).filter(Boolean).sort(function(a, b) { return a.dist - b.dist; });
+
+    var nearestWaypoints = wps.map(function(wp) {
+      var lat = parseFloat(wp.lat); var lon = parseFloat(wp.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return null;
+      return { item: wp, lat: lat, lon: lon, dist: _enrouteDistNm(centerLat, centerLon, lat, lon) };
+    }).filter(Boolean).sort(function(a, b) { return a.dist - b.dist; });
+
+    var airportSubset = nearestAirports.filter(function(row) { return row.dist <= airportRadiusNm; }).slice(0, airportLimit);
+    var wpSubset = nearestWaypoints.filter(function(row) { return row.dist <= waypointRadiusNm; }).slice(0, waypointLimit);
+    if (!airportSubset.length) airportSubset = nearestAirports.slice(0, Math.min(airportLimit, 30));
+    if (!wpSubset.length) wpSubset = nearestWaypoints.slice(0, Math.min(waypointLimit, 60));
+
+    if (e.dbAirportLayer && e.mapObj.hasLayer(e.dbAirportLayer)) e.mapObj.removeLayer(e.dbAirportLayer);
+    if (e.dbWpLayer && e.mapObj.hasLayer(e.dbWpLayer)) e.mapObj.removeLayer(e.dbWpLayer);
+    e.dbAirportLayer = window.L.layerGroup();
+    e.dbWpLayer = window.L.layerGroup();
+
+    airportSubset.forEach(function(row) {
+      var apt = row.item;
+      var hasAirportFuel = !!(String(apt.fuelAvailable || '').trim() && String(apt.fuelAvailable || '').trim().toUpperCase() !== 'NONE');
+      var hasCacheFuel = !!((window.appData && Array.isArray(window.appData.fuelCaches))
+        ? window.appData.fuelCaches.find(function(cache) {
+            return String(cache && cache.icao || '').trim().toUpperCase() === String(apt.icao || '').trim().toUpperCase()
+              && Number(cache && cache.qty || 0) > 0;
+          })
+        : null);
+      var icon = _enrouteAirportDivIcon(apt.runwaySurfaceActual, hasAirportFuel || hasCacheFuel);
+      var name = String(apt.nome || apt.icao || '');
+      var icao = String(apt.icao || '');
+      var surface = String(apt.runwaySurfaceActual || '–');
+      var elev = apt.elevationFt ? apt.elevationFt + ' ft' : '–';
+      var popup = '<b>' + icao + '</b>' + (name && name !== icao ? '<br>' + name : '')
+        + '<br>Surface: ' + surface
+        + '<br>Elev: ' + elev
+        + '<br>Dist: ' + row.dist.toFixed(1) + ' nm';
+      window.L.marker([row.lat, row.lon], { icon: icon, zIndexOffset: -100 })
+        .bindPopup(popup)
+        .addTo(e.dbAirportLayer);
+    });
+
+    wpSubset.forEach(function(row) {
+      var wp = row.item;
+      var wpId = String(wp.wp_id || wp.id || 'WP');
+      window.L.marker([row.lat, row.lon], { icon: _enrouteWpDbDivIcon(), zIndexOffset: -200 })
+        .bindTooltip(wpId + ' • ' + row.dist.toFixed(1) + 'nm', { permanent: false, direction: 'top', offset: [0, -12] })
+        .addTo(e.dbWpLayer);
+    });
+
+    var showAirports = e.dbLayersVisible && e.dbAirportsVisible;
+    var showWaypoints = e.dbLayersVisible && e.dbWaypointsVisible;
+
+    if (showAirports) {
+      if (!e.mapObj.hasLayer(e.dbAirportLayer)) e.dbAirportLayer.addTo(e.mapObj);
+    } else if (e.mapObj.hasLayer(e.dbAirportLayer)) {
+      e.mapObj.removeLayer(e.dbAirportLayer);
+    }
+
+    if (showWaypoints) {
+      if (!e.mapObj.hasLayer(e.dbWpLayer)) e.dbWpLayer.addTo(e.mapObj);
+    } else if (e.mapObj.hasLayer(e.dbWpLayer)) {
+      e.mapObj.removeLayer(e.dbWpLayer);
+    }
+  }
+
+  window.toggleDbLayers = function() {
+    var e = window.enroute6;
+    e.dbLayersVisible = !e.dbLayersVisible;
+    _enrouteMaybeRefreshDbLayers(true);
+  };
+
+  window.toggleDbAirportLayer = function() {
+    var e = window.enroute6;
+    e.dbAirportsVisible = !e.dbAirportsVisible;
+    var btn = document.getElementById('db-airports-toggle-btn');
+    if (btn) btn.textContent = e.dbAirportsVisible ? 'AIRPORTS ON' : 'AIRPORTS OFF';
+    _enrouteMaybeRefreshDbLayers(true);
+  };
+
+  window.toggleDbWaypointLayer = function() {
+    var e = window.enroute6;
+    e.dbWaypointsVisible = !e.dbWaypointsVisible;
+    var btn = document.getElementById('db-waypoints-toggle-btn');
+    if (btn) btn.textContent = e.dbWaypointsVisible ? 'WAYPOINTS ON' : 'WAYPOINTS OFF';
+    _enrouteMaybeRefreshDbLayers(true);
+  };
+
+  window.toggleRouteLayer = function() {
+    var e = window.enroute6;
+    e.routeVisible = !e.routeVisible;
+    var btn = document.getElementById('route-layer-toggle-btn');
+    if (btn) btn.textContent = e.routeVisible ? 'ROUTE ON' : 'ROUTE OFF';
+    e.lastWaypointPoints = null;
+    _enrouteRefreshRouteLayer();
+  };
+
+  window.reloadEnrouteTiles = function() {
+    if (!window.enroute6.mapReady) {
+      _enrouteInitMap();
+      return;
+    }
+    _enrouteApplyTileLayer();
+    _enrouteDiag('Tile layer reloaded');
+  };
+
+  window.centerEnrouteMap = function() {
+    if (!window.enroute6.mapObj) {
+      _enrouteInitMap();
+      return;
+    }
+    const lat = Number(window.enroute6.lat);
+    const lon = Number(window.enroute6.lon);
+    if (isFinite(lat) && isFinite(lon)) {
+      window.enroute6.mapObj.setView([lat, lon], Math.max(window.enroute6.mapObj.getZoom(), 9));
+      _enrouteInvalidateMapSize_(false);
+      return;
+    }
+    if (window.enroute6.routeLayer) {
+      window.enroute6.mapObj.fitBounds(window.enroute6.routeLayer.getBounds(), { padding: [24, 24] });
+    }
+    _enrouteInvalidateMapSize_(false);
+  };
+
+  window.startGpsTracking = function() {
+    if (window.enroute6.pollTimer) {
+      clearInterval(window.enroute6.pollTimer);
+      window.enroute6.pollTimer = null;
+    }
+    _stopGeoFallback();
+    _startGeoFallback();
+    _enrouteSetStatus('GPS tracking started.');
+    _enrouteDiag('GPS watch started');
+  };
+
+  window.stopGpsTracking = function() {
+    _stopGeoFallback();
+    _enrouteSetStatus('GPS tracking stopped.');
+    _enrouteDiag('GPS watch stopped');
+  };
+
+  window.probeTraccarLocal = async function() {
+    const paths = ['/api/position', '/api/positions', '/position', '/positions'];
+    const ports = [8082, 5055, 8080, 5000];
+
+    for (let p = 0; p < ports.length; p++) {
+      for (let i = 0; i < paths.length; i++) {
+        const url = 'http://127.0.0.1:' + ports[p] + paths[i];
+        _enrouteDiag('TRY ' + url);
+        try {
+          await _pollTraccarEndpoint(url);
+          window.enroute6.endpoint = url;
+          const endpointEl = document.getElementById('enroute-api-endpoint');
+          if (endpointEl) endpointEl.value = url;
+
+          if (!window.enroute6.mapUrl) {
+            const mapEl = document.getElementById('enroute-map-url');
+            const root = 'http://127.0.0.1:' + ports[p];
+            window.enroute6.mapUrl = root;
+            if (mapEl) mapEl.value = root;
+          }
+          _enrouteSetStatus('Traccar endpoint detected: ' + url);
+          _enrouteDiag('FOUND ' + url);
+          return;
+        } catch (e) {
+          _enrouteDiag('FAIL ' + url + ' (' + (e && e.message ? e.message : e) + ')');
+        }
+      }
+    }
+
+    _enrouteSetStatus('No Traccar localhost endpoint detected. Using iPad GPS fallback.');
+    _enrouteDiag('No localhost Traccar endpoint detected; switching to GPS fallback');
+    _startGeoFallback();
+  };
+
+  window.startEnrouteTracking = function(fromManual) {
+    const endpointEl = document.getElementById('enroute-api-endpoint');
+    const val = String(endpointEl && endpointEl.value || '').trim();
+
+    if (window.enroute6.pollTimer) {
+      clearInterval(window.enroute6.pollTimer);
+      window.enroute6.pollTimer = null;
+    }
+
+    if (val) window.enroute6.endpoint = val;
+    if (!window.enroute6.endpoint) {
+      probeTraccarLocal();
+      return;
+    }
+
+    _enrouteSetStatus('Polling Traccar endpoint...');
+    _stopGeoFallback();
+
+    const pollOnce = async function() {
+      try {
+        await _pollTraccarEndpoint(window.enroute6.endpoint);
+      } catch (e) {
+        _enrouteSetStatus(`Traccar poll failed (${e && e.message ? e.message : e}); fallback GPS active.`);
+        _enrouteDiag(`POLL FAIL ${window.enroute6.endpoint} (${e && e.message ? e.message : e})`);
+        _startGeoFallback();
+      }
+    };
+
+    pollOnce();
+    window.enroute6.pollTimer = setInterval(pollOnce, 5000);
+  };
+
+  function _lookupFix(fixName) {
+    const name = String(fixName || '').trim().toUpperCase();
+    if (!name) return null;
+
+    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const airport = airports.find(a => String(a.icao || '').trim().toUpperCase() === name);
+    if (airport) {
+      const lat = Number(airport.lat);
+      const lon = Number(airport.lon);
+      if (!isNaN(lat) && !isNaN(lon)) return { lat: lat, lon: lon };
+    }
+
+    const waypoints = (window.appData && Array.isArray(window.appData.waypoints)) ? window.appData.waypoints : [];
+    const waypoint = waypoints.find(w => String(w.wp_id || '').trim().toUpperCase() === name);
+    if (waypoint) {
+      const lat = Number(waypoint.lat);
+      const lon = Number(waypoint.lon);
+      if (!isNaN(lat) && !isNaN(lon)) return { lat: lat, lon: lon };
+    }
+
+    return null;
+  }
+
+  function _calculateDistanceBetween(fix1, fix2) {
+    const point1 = _lookupFix(fix1);
+    const point2 = _lookupFix(fix2);
+    if (!point1 || !point2) return 20;
+
+    const toRad = (d) => d * Math.PI / 180;
+    const R = 6371e3;
+    const lat1 = toRad(Number(point1.lat));
+    const lat2 = toRad(Number(point2.lat));
+    const dLat = toRad(Number(point2.lat) - Number(point1.lat));
+    const dLon = toRad(Number(point2.lon) - Number(point1.lon));
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2)
+      + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const meters = R * c;
+    return Math.max(1, Math.round(meters / 1852));
+  }
+
+  function _recalculateWaypointDistances(waypoints) {
+    if (!waypoints || waypoints.length < 2) return;
+    
+    waypoints[0].distNm = 0;
+    
+    for (let i = 1; i < waypoints.length; i++) {
+      const prevFix = waypoints[i - 1].fix;
+      const currFix = waypoints[i].fix;
+      waypoints[i].distNm = _calculateDistanceBetween(prevFix, currFix);
+    }
+  }
+
+  function _estimateDistFromFix(fix) {
+    const wp = String(fix || '').trim().toUpperCase();
+    if (!wp) return 0;
+
+    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const known = airports.find(a => String(a.icao || '').trim().toUpperCase() === wp);
+    if (known && window.enroute6.lat != null && window.enroute6.lon != null && known.lat && known.lon) {
+      const toRad = (d) => d * Math.PI / 180;
+      const R = 6371e3;
+      const lat1 = toRad(Number(window.enroute6.lat));
+      const lat2 = toRad(Number(known.lat));
+      const dLat = toRad(Number(known.lat) - Number(window.enroute6.lat));
+      const dLon = toRad(Number(known.lon) - Number(window.enroute6.lon));
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2)
+        + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const meters = R * c;
+      return Math.max(1, Math.round(meters / 1852));
+    }
+    return 20;
+  }
+
+  function _normalizeWaypointList(rawWaypoints, origin, destination) {
+    const org = String(origin || '').trim().toUpperCase();
+    const dst = String(destination || '').trim().toUpperCase();
+
+    let tokens = [];
+    if (Array.isArray(rawWaypoints)) {
+      tokens = rawWaypoints.map(function(wp) { return String(wp || '').trim().toUpperCase(); });
+    } else if (typeof rawWaypoints === 'string') {
+      const raw = String(rawWaypoints || '').trim().toUpperCase();
+      if (raw) {
+        tokens = raw
+          .replace(/[→>]/g, ',')
+          .replace(/\s+-\s+/g, ',')
+          .split(/[\n\r,;\/|]+/)
+          .map(function(part) { return String(part || '').trim().toUpperCase(); })
+          .filter(Boolean);
+      }
+    }
+
+    // De-dup and remove origin/destination (those are rendered separately)
+    const seen = new Set();
+    return tokens.filter(function(token) {
+      if (!token || token === org || token === dst || seen.has(token)) return false;
+      seen.add(token);
+      return true;
+    });
+  }
+
+  function _buildInitialWaypoints(routeData) {
+    if (!routeData || !routeData.from) return [];
+
+    const rows = [];
+
+    const origin = String(routeData.from || 'ORIG').trim().toUpperCase();
+    rows.push({
+      id: `0-${origin}`,
+      fix: origin,
+      distNm: 0,
+      hdg: '--',
+      eteMin: 0,
+      eta: '--:--',
+      passedAt: ''
+    });
+
+    const middleWaypoints = _normalizeWaypointList(routeData.waypoints, origin, routeData.to || '');
+    if (middleWaypoints.length) {
+      middleWaypoints.forEach((wp, idx) => {
+        rows.push({
+          id: `${idx + 1}-${String(wp).trim()}`,
+          fix: String(wp).trim().toUpperCase(),
+          distNm: 0,
+          hdg: '--',
+          eteMin: 0,
+          eta: '--:--',
+          passedAt: ''
+        });
+      });
+    }
+
+    const destination = String(routeData.to || 'DEST').trim().toUpperCase();
+    if (destination !== origin) {
+      rows.push({
+        id: `${rows.length}-${destination}`,
+        fix: destination,
+        distNm: 0,
+        hdg: '--',
+        eteMin: 0,
+        eta: '--:--',
+        passedAt: ''
+      });
+    }
+
+    if (rows.length === 1) {
+      rows.push({ id: '1-WP1', fix: 'WP1', distNm: 12, hdg: '--', eteMin: 0, eta: '--:--', passedAt: '' });
+    }
+
+    _recalculateWaypointDistances(rows);
+    _calculateHeadings(rows);
+    return rows;
+  }
+
+  function _calculateHeadings(waypoints) {
+    if (!waypoints || waypoints.length < 2) return;
+
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const fromFix = waypoints[i].fix;
+      const toFix = waypoints[i + 1].fix;
+
+      const fromPoint = _lookupFix(fromFix);
+      const toPoint = _lookupFix(toFix);
+
+      if (fromPoint && toPoint && fromPoint.lat && fromPoint.lon && toPoint.lat && toPoint.lon) {
+        const hdg = _calculateBearing(fromPoint.lat, fromPoint.lon, toPoint.lat, toPoint.lon);
+        waypoints[i + 1].hdg = String(hdg).padStart(3, '0') + '°';
+      }
+    }
+  }
+
+  function _calculateBearing(lat1, lon1, lat2, lon2) {
+    const toRad = deg => deg * Math.PI / 180;
+    const toDeg = rad => rad * 180 / Math.PI;
+
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+              Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+    const bearing = toDeg(Math.atan2(y, x));
+    return Math.round((bearing + 360) % 360);
+  }
+
+  function _fuelStatusTags() {
+    const f = window.enroute6.fuel;
+    const total = Number(f.LM || 0) + Number(f.RM || 0) + Number(f.LT || 0) + Number(f.RT || 0);
+    const tag = function(label, qty, active) {
+      return `<span class="fuel-tag">${label}: ${Math.round(Number(qty || 0))}${active ? '*' : ''}</span>`;
+    };
+    return [
+      tag('LT', f.LT, false),
+      tag('LM', f.LM, f.activeMain === 'LM'),
+      tag('RM', f.RM, f.activeMain === 'RM'),
+      tag('RT', f.RT, false),
+      `<span class="fuel-tag">TOT: ${Math.round(total)}</span>`
+    ].join('');
+  }
+
+  function _enrouteActiveFuelWaypointIdx_() {
+    const wps = Array.isArray(window.enroute6.waypoints) ? window.enroute6.waypoints : [];
+    if (!wps.length) return -1;
+    const nextIdx = Math.max(0, Number(window.enroute6.passedIndex || -1) + 1);
+    return Math.min(nextIdx, wps.length - 1);
+  }
+
+  function _enrouteRecordFuelEvent_(payload) {
+    const idx = _enrouteActiveFuelWaypointIdx_();
+    const wps = Array.isArray(window.enroute6.waypoints) ? window.enroute6.waypoints : [];
+    const wp = idx >= 0 ? wps[idx] : null;
+    if (!wp) return null;
+    const usedLiters = Math.max(0, Number(payload && payload.usedLiters || 0));
+    if (usedLiters > 0) {
+      wp.fuelUsedL = Math.max(0, Number(wp.fuelUsedL || 0)) + usedLiters;
+    }
+    const note = String(payload && payload.note || '').trim();
+    if (note) wp.fuelNote = note;
+    wp.fuelEventAt = _enrouteFmtHhmm(new Date());
+    return { idx: idx, wp: wp };
+  }
+
+  function _enrouteRenderTransferBanner_() {
+    const banner = document.getElementById('enroute-transfer-banner');
+    if (!banner) return;
+    const active = window.enroute6.transferActive || null;
+    banner.classList.remove('active', 'complete');
+    if (active) {
+      const s = Math.max(0, Number(window.enroute6.transferSecondsLeft || 0));
+      const mm = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      banner.classList.add('active');
+      banner.textContent = `${active.tip} transfer running to ${active.main}. Tap ${active.tip} again to stop. ${mm}:${ss}`;
+      return;
+    }
+    if (window.enroute6.lastTransferMessage) {
+      banner.classList.add('complete');
+      banner.textContent = window.enroute6.lastTransferMessage;
+      return;
+    }
+    banner.textContent = '';
+  }
+
+  function _enrouteFuelCellHtml_(idx, isNext) {
+    const f = window.enroute6.fuel || {};
+    const activeTransfer = window.enroute6.transferActive || null;
+    if (!isNext) {
+      const wp = window.enroute6.waypoints[idx] || {};
+      return `${_fuelStatusTags()}${wp.fuelNote ? `<span class="fuel-note">${wp.fuelNote}</span>` : ''}`;
+    }
+    return `
+      <div class="fuel-cell-stack">
+        <div class="fuel-cell-grid">
+          ${['LT', 'LM', 'RM', 'RT'].map(function(tank) {
+            const isMain = tank === 'LM' || tank === 'RM';
+            const isActiveMain = isMain && tank === f.activeMain;
+            const isTransferLive = !!(activeTransfer && activeTransfer.tip === tank);
+            return `<button class="fuel-chip-btn ${isActiveMain ? 'active-main' : ''} ${isTransferLive ? 'transfer-live' : ''}" onclick="tapFuelTank('${tank}')"><span>${tank}: ${Math.round(Number(f[tank] || 0))}</span></button>`;
+          }).join('')}
+        </div>
+        <div class="fuel-cell-hint">Tap other main to switch. Tap a tip to start or stop transfer.</div>
+      </div>`;
+  }
+
+  function _enrouteDispatchRecipients_() {
+    return ['acompanhamento@asasdesocorro.org.br', 'supervisor.voo@asasdesocorro.org.br'];
+  }
+
+  function _enrouteFmtZuluHhmm_(dateObj) {
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '----Z';
+    const hh = String(dateObj.getUTCHours()).padStart(2, '0');
+    const mm = String(dateObj.getUTCMinutes()).padStart(2, '0');
+    return `${hh}${mm}Z`;
+  }
+
+  async function _enrouteCopyText_(text) {
+    const content = String(text || '').trim();
+    if (!content) return false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(content);
+        return true;
+      }
+    } catch (e) {}
+
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = content;
+      ta.setAttribute('readonly', 'readonly');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (e2) {
+      return false;
+    }
+  }
+
+  function _enrouteBuildPassageReport_(idx) {
+    const e = window.enroute6 || {};
+    const wps = Array.isArray(e.waypoints) ? e.waypoints : [];
+    const wp = wps[idx] || null;
+    if (!wp) return null;
+
+    const now = new Date();
+    const passedFix = String(wp.fix || 'UNKNOWN');
+    const passedZulu = _enrouteFmtZuluHhmm_(now);
+
+    const nextWp = wps[idx + 1] || null;
+    let estimateLine = 'Estimate position -- at ----Z';
+    if (nextWp) {
+      const gs = Number(e.gsKts || 0);
+      const dist = Math.max(0, Number(nextWp.distNm || 0));
+      if (gs > 0 && dist > 0) {
+        const eta = new Date(now.getTime() + Math.round((dist / gs) * 3600000));
+        estimateLine = `Estimate position ${nextWp.fix} at ${_enrouteFmtZuluHhmm_(eta)}`;
+      } else {
+        estimateLine = `Estimate position ${nextWp.fix} at ----Z`;
+      }
+    }
+
+    const popup = `Passed location ${passedFix} at ${passedZulu}. ${estimateLine}`;
+    const emailBody = [
+      'ENROUTE STATION PASSAGE REPORT',
+      `Mission: ${String(e.missionId || 'N/A')}`,
+      `Leg: ${String(e.flightLegId || 'N/A')}`,
+      '',
+      `Passed location ${passedFix} at ${passedZulu}`,
+      estimateLine
+    ].join('\n');
+
+    return {
+      popupText: popup,
+      earthmateText: `${passedFix} ${passedZulu}. ${estimateLine.replace('Estimate position ', 'EST ')}`,
+      emailSubject: `Station Passage ${passedFix} ${passedZulu}`,
+      emailBody: emailBody
+    };
+  }
+
+  async function _enrouteHandleStationPass_(idx) {
+    const report = _enrouteBuildPassageReport_(idx);
+    if (!report) return;
+
+    const online = !!(navigator.onLine && window.google && google.script && google.script.run);
+    if (online) {
+      if (typeof window.flightAppAlert === 'function') {
+        await window.flightAppAlert(report.popupText, { title: 'Station Passage' });
+      } else if (window.M) {
+        M.toast({ html: report.popupText, classes: 'green', displayLength: 7000 });
+      }
+
+      google.script.run
+        .withSuccessHandler(function() {
+          if (window.M) M.toast({ html: 'Station passage emailed to dispatch', classes: 'green', displayLength: 4500 });
+        })
+        .withFailureHandler(function(err) {
+          if (window.M) M.toast({ html: 'Station passage email failed', classes: 'orange', displayLength: 5000 });
+          console.error('sendDispatchEmail station passage failed', err);
+        })
+        .sendDispatchEmail({
+          emails: _enrouteDispatchRecipients_(),
+          subject: report.emailSubject,
+          message: report.emailBody
+        });
+      return;
+    }
+
+    if (typeof window.flightAppConfirm === 'function') {
+      const copyNow = await window.flightAppConfirm(
+        `${report.popupText}\n\nOffline right now. Copy to Earthmate for InReach send?`,
+        { title: 'Station Passage', okText: 'Copy To Earthmate' }
+      );
+      if (copyNow) {
+        const copied = await _enrouteCopyText_(report.earthmateText);
+        if (window.M) {
+          M.toast({ html: copied ? 'Copied station passage for Earthmate' : 'Could not copy automatically', classes: copied ? 'green' : 'orange', displayLength: 5500 });
+        }
+      }
+      return;
+    }
+
+    if (window.M) {
+      M.toast({ html: report.popupText, classes: 'orange', displayLength: 6000 });
+    }
+  }
+
+  function _updateDistanceSummary() {
+    const el = document.getElementById('enroute-distance-summary');
+    if (!el) return;
+    const total = (window.enroute6.waypoints || []).reduce((sum, wp) => sum + (Number(wp && wp.distNm || 0) || 0), 0);
+    el.textContent = `DIST ${Math.round(total)} nm`;
+  }
+
+  function _updateFuelSummary() {
+    const el = document.getElementById('enroute-fuel-summary');
+    if (!el) return;
+    const f = window.enroute6.fuel || {};
+    const total = Number(f.LM || 0) + Number(f.RM || 0) + Number(f.LT || 0) + Number(f.RT || 0);
+    el.textContent = `FUEL ${Math.round(total)} L`;
+  }
+
+  window.recalcWaypointsFromGs = function() {
+    if (!Array.isArray(window.enroute6.waypoints)) {
+      window.enroute6.waypoints = [];
+    }
+    const gs = Number(window.enroute6.gsKts || 0);
+    const now = new Date();
+    let cumulativeMin = 0;
+
+    window.enroute6.waypoints.forEach((wp, idx) => {
+      const dist = Number(wp.distNm || 0);
+      const ete = (gs > 0) ? Math.max(1, Math.round((dist / gs) * 60)) : 0;
+      cumulativeMin += ete;
+      const etaDate = new Date(now.getTime() + cumulativeMin * 60000);
+      wp.eteMin = ete;
+      wp.eta = gs > 0 ? _enrouteFmtHhmm(etaDate) : '--:--';
+    });
+
+    renderEnrouteWaypointRows();
+    _enrouteRefreshRouteLayer();
+    _updateDistanceSummary();
+    _updateFuelSummary();
+    updatePositionReportDraft();
+  };
+
+  function _bindLongPressDelete(rowEl, idx) {
+    let timer = null;
+
+    rowEl.addEventListener('mousedown', function() {
+      timer = setTimeout(async function() {
+        const wp = window.enroute6.waypoints[idx];
+        const ok = await window.flightAppConfirm(`Delete waypoint ${wp.fix}?`, { title: 'Enroute Waypoint', okText: 'Delete' });
+        if (ok) {
+          window.enroute6.waypoints.splice(idx, 1);
+          recalcWaypointsFromGs();
+          if (window.M) M.toast({ html: `Removed ${wp.fix}`, classes: 'orange' });
+        }
+      }, 700);
+    });
+
+    rowEl.addEventListener('mouseup', function() {
+      if (timer) clearTimeout(timer);
+    });
+
+    rowEl.addEventListener('mouseleave', function() {
+      if (timer) clearTimeout(timer);
+    });
+
+    rowEl.addEventListener('touchstart', function() {
+      timer = setTimeout(async function() {
+        const wp = window.enroute6.waypoints[idx];
+        const ok = await window.flightAppConfirm(`Delete waypoint ${wp.fix}?`, { title: 'Enroute Waypoint', okText: 'Delete' });
+        if (ok) {
+          window.enroute6.waypoints.splice(idx, 1);
+          recalcWaypointsFromGs();
+        }
+      }, 700);
+    }, { passive: true });
+
+    rowEl.addEventListener('touchend', function() {
+      if (timer) clearTimeout(timer);
+    }, { passive: true });
+  }
+
+  window.markWaypointPassed = function(idx, options) {
+    options = options || {};
+    if (!window.enroute6.waypoints[idx]) return;
+    const wasPassed = idx <= Number(window.enroute6.passedIndex || -1) || !!window.enroute6.waypoints[idx].passedAt;
+    window.enroute6.passedIndex = Math.max(window.enroute6.passedIndex, idx);
+    window.enroute6.waypoints[idx].passedAt = _enrouteFmtHhmm(new Date());
+    if (Number(window.enroute6.directToTargetIdx) === idx) {
+      window.enroute6.directToTargetIdx = null;
+      window.enroute6.hideDirectToLine = true;
+      if (window.enroute6.directToLayer) {
+        window.enroute6.mapObj.removeLayer(window.enroute6.directToLayer);
+        window.enroute6.directToLayer = null;
+      }
+      _enrouteRefreshRouteLayer();
+    }
+    renderEnrouteWaypointRows();
+    _enrouteRefreshRouteLayer();
+    _updateDistanceSummary();
+    _updateFuelSummary();
+    updatePositionReportDraft();
+    if (!wasPassed) {
+      _enrouteHandleStationPass_(idx);
+      if (window.M) M.toast({ html: `✔ Passed ${window.enroute6.waypoints[idx].fix}`, classes: 'green', displayLength: 3500 });
+    }
+  };
+
+  window.renderEnrouteWaypointRows = function() {
+    const body = document.getElementById('enroute-wp-body');
+    if (!body) return;
+
+    const waypoints = Array.isArray(window.enroute6.waypoints) ? window.enroute6.waypoints : [];
+
+    let html = '';
+    for (let idx = 0; idx < waypoints.length; idx++) {
+      const wp = waypoints[idx];
+      const passed = idx <= window.enroute6.passedIndex;
+      const bypassed = !passed && !!wp.bypassedAt;
+      const isNext = idx === window.enroute6.passedIndex + 1;
+      const canDelete = idx > 0 && idx < waypoints.length - 1;
+      const legEte = wp.eteMin ? (wp.eteMin + 'm') : '--';
+      const legClass = passed ? ' passed' : (bypassed ? ' bypassed' : '');
+      const passedHtml = wp.passedAt
+        ? ('<br><small>Passed ' + wp.passedAt + '</small>')
+        : (wp.bypassedAt ? ('<br><small style="color:#bbb;">Bypassed ' + wp.bypassedAt + '</small>') : '');
+      const passBtn = passed || bypassed ? '' : ('<button class="wp-pass-btn" onclick="markWaypointPassed(' + idx + ')">PASS</button>');
+      const delBtn = (canDelete && !passed && !bypassed) ? ('<button class="wp-del-btn" onclick="deleteWaypoint(' + idx + ')">x</button>') : '';
+      // DIRECT button: show for any waypoint ahead of next that has a known fix  
+      const canDirect = !passed && !bypassed && idx > (window.enroute6.passedIndex + 1);
+      const directBtn = canDirect ? ('<button class="wp-direct-btn" onclick="directToWaypoint(' + idx + ')">⇒ DIRECT</button>') : '';
+      // SKIP button: show for the "next" waypoint only (manual waypoint advance)
+      const skipBtn = isNext && !bypassed ? ('<button class="wp-pass-btn" onclick="markWaypointPassed(' + idx + ')" title="Skip to next waypoint" style="background:#7b1fa2;">SKIP</button>') : '';
+
+      if (idx > 0) {
+        html += '<tr class="wp-leg-row' + legClass + '">'
+          + '<td style="padding-left:20px; font-style:italic;">LEG ' + idx + '</td>'
+          + '<td class="hdg-cell"><b>' + (wp.hdg || '--') + '</b></td>'
+          + '<td class="dist-cell"><b>' + Number(wp.distNm || 0) + 'nm</b></td>'
+          + '<td><b>' + legEte + '</b></td>'
+          + '<td colspan="4"></td>'
+          + '</tr>';
+      }
+
+      html += '<tr class="wp-row' + legClass + '" data-wp-index="' + idx + '" draggable="' + canDelete + '">'
+        + '<td><b>' + (wp.fix || '--') + '</b>' + passedHtml + '</td>'
+        + '<td colspan="3"></td>'
+        + '<td>' + (wp.eta || '--:--') + '</td>'
+        + '<td style="font-size:0.65rem;">' + _enrouteFuelCellHtml_(idx, isNext) + '</td>'
+        + '<td>' + (wp.fuelUsedL ? ('<span class="fuel-used-badge">' + Math.round(Number(wp.fuelUsedL || 0)) + 'L</span>') : '--') + '</td>'
+        + '<td>' + (passed ? '' : (isNext ? skipBtn : (directBtn || passBtn))) + delBtn + '</td>'
+        + '</tr>';
+    }
+
+    body.innerHTML = html || '<tr><td colspan="8" style="color:#888;">No waypoints loaded</td></tr>';
+
+    const rows = body.querySelectorAll('.wp-row');
+    rows.forEach((rowEl) => {
+      const idx = Number(rowEl.dataset.wpIndex);
+      
+      rowEl.addEventListener('dragstart', function(e) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', idx);
+        this.style.opacity = '0.4';
+      });
+      
+      rowEl.addEventListener('dragend', function() {
+        this.style.opacity = '1';
+      });
+      
+      rowEl.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.style.borderTop = '2px solid #0b5394';
+      });
+      
+      rowEl.addEventListener('dragleave', function() {
+        this.style.borderTop = '';
+      });
+      
+      rowEl.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.style.borderTop = '';
+        const fromIdx = Number(e.dataTransfer.getData('text/plain'));
+        const toIdx = Number(this.dataset.wpIndex);
+        if (fromIdx !== toIdx && fromIdx > 0 && toIdx > 0) {
+          reorderWaypoint(fromIdx, toIdx);
+        }
+      });
+    });
+  };
+
+  function renderFuelStrip() {
+    _updateFuelSummary();
+    _enrouteRenderTransferBanner_();
+  }
+
+  window.tapFuelTank = async function(tankName) {
+    const f = window.enroute6.fuel;
+    const transferActive = window.enroute6.transferActive || null;
+    if (tankName === 'LM' || tankName === 'RM') {
+      if (transferActive) {
+        if (window.M) M.toast({ html: 'Stop the active tip transfer first', classes: 'orange' });
+        return;
+      }
+      if (tankName === f.activeMain) {
+        if (window.M) M.toast({ html: `${tankName} already active`, classes: 'blue-grey', displayLength: 1800 });
+        return;
+      }
+      await window.switchMainTankPrompt(tankName);
+      return;
+    }
+
+    if (transferActive && transferActive.tip === tankName) {
+      await window.stopTipTransfer();
+      return;
+    }
+    if (transferActive) {
+      if (window.M) M.toast({ html: `Stop ${transferActive.tip} transfer first`, classes: 'orange' });
+      return;
+    }
+
+    const side = tankName === 'LT' ? 'L' : 'R';
+    startTipTransfer(side);
+  };
+
+  window.switchMainTankPrompt = async function(targetTank) {
+    const f = window.enroute6.fuel;
+    const from = f.activeMain;
+    const to = targetTank === 'LM' || targetTank === 'RM' ? targetTank : (from === 'RM' ? 'LM' : 'RM');
+    const ok = await window.flightAppConfirm(`Switch from ${from} to ${to}?`, { title: 'Main Tank Switch', okText: 'Switch Tank' });
+    if (!ok) return;
+    const burnedRaw = await window.flightAppPrompt(`Enter fuel burned from ${from} (L):`, '50', { title: 'Tank Switch', okText: 'Continue', inputType: 'number', inputMode: 'decimal', step: '1', min: '0' });
+    if (burnedRaw == null) return;
+
+    const burned = Math.max(0, Number(burnedRaw || 0));
+    if (!isFinite(burned)) {
+      if (window.M) M.toast({ html: 'Enter a valid fuel burn amount', classes: 'orange' });
+      return;
+    }
+
+    f[from] = Math.max(0, Number(f[from] || 0) - burned);
+    f.activeMain = to;
+    const logEntry = _enrouteRecordFuelEvent_({ usedLiters: burned, note: `${from} to ${to} switch at ${_enrouteFmtHhmm(new Date())}` });
+    if (logEntry && logEntry.wp) {
+      logEntry.wp.activeMain = to;
+    }
+    if (window.M) M.toast({ html: `Active tank switched to ${to}`, classes: 'green', displayLength: 2400 });
+    renderFuelStrip();
+    recalcWaypointsFromGs();
+  };
+
+  window.startTipTransfer = function(side) {
+    const f = window.enroute6.fuel;
+    const tip = side === 'R' ? 'RT' : 'LT';
+    const main = side === 'R' ? 'RM' : 'LM';
+    const qty = Number(f[tip] || 0);
+    const lpm = Math.max(0.1, Number(window.enroute6.transferRateLpm || 0.8));
+
+    if (qty <= 0) {
+      if (window.M) M.toast({ html: `${tip} has no fuel to transfer`, classes: 'orange' });
+      return;
+    }
+
+    if (window.enroute6.transferTimer) {
+      clearInterval(window.enroute6.transferTimer);
+      window.enroute6.transferTimer = null;
+    }
+
+    window.enroute6.transferActive = {
+      side: side,
+      tip: tip,
+      main: main,
+      qtyAtStart: qty,
+      startedAt: Date.now(),
+      lpm: lpm
+    };
+    window.enroute6.transferSecondsLeft = 0;
+    window.enroute6.lastTransferMessage = '';
+
+    const tick = function() {
+      const active = window.enroute6.transferActive;
+      if (!active) return;
+      window.enroute6.transferSecondsLeft = Math.max(0, Math.round((Date.now() - active.startedAt) / 1000));
+      _enrouteRenderTransferBanner_();
+    };
+
+    tick();
+    window.enroute6.transferTimer = setInterval(tick, 1000);
+    renderFuelStrip();
+    recalcWaypointsFromGs();
+  };
+
+  window.stopTipTransfer = async function() {
+    const active = window.enroute6.transferActive || null;
+    if (!active) return;
+    if (window.enroute6.transferTimer) {
+      clearInterval(window.enroute6.transferTimer);
+      window.enroute6.transferTimer = null;
+    }
+
+    const f = window.enroute6.fuel;
+    const elapsedSeconds = Math.max(0, Number(window.enroute6.transferSecondsLeft || 0));
+    const suggested = Math.min(Number(active.qtyAtStart || 0), (elapsedSeconds / 60) * Math.max(0.1, Number(active.lpm || 0.8)));
+    const defaultLiters = String(Math.max(0, Math.round(suggested)));
+    const movedRaw = await window.flightAppPrompt(`How much fuel moved from ${active.tip} to ${active.main} (L)?`, defaultLiters, { title: 'Stop Tip Transfer', okText: 'Apply Fuel', inputType: 'number', inputMode: 'decimal', step: '1', min: '0' });
+    if (movedRaw == null) {
+      window.enroute6.transferTimer = setInterval(function() {
+        const live = window.enroute6.transferActive;
+        if (!live) return;
+        window.enroute6.transferSecondsLeft = Math.max(0, Math.round((Date.now() - live.startedAt) / 1000));
+        _enrouteRenderTransferBanner_();
+      }, 1000);
+      return;
+    }
+
+    const maxTransfer = Math.max(0, Number(f[active.tip] || 0));
+    const moved = Math.min(maxTransfer, Math.max(0, Number(movedRaw || 0)));
+    f[active.tip] = Math.max(0, Number(f[active.tip] || 0) - moved);
+    f[active.main] = Math.max(0, Number(f[active.main] || 0) + moved);
+    _enrouteRecordFuelEvent_({ note: `${active.tip} to ${active.main} transfer ${Math.round(moved)}L` });
+    window.enroute6.lastTransferMessage = `${active.tip} transfer stopped. ${Math.round(moved)}L moved to ${active.main}.`;
+    window.enroute6.transferActive = null;
+    window.enroute6.transferSecondsLeft = 0;
+    if (navigator.vibrate) navigator.vibrate([180, 120, 180]);
+    if (window.M) M.toast({ html: window.enroute6.lastTransferMessage, classes: 'green', displayLength: 3200 });
+    renderFuelStrip();
+    recalcWaypointsFromGs();
+  };
+
+  function _buildWaypointSuggestions(query) {
+    const q = String(query || '').trim().toUpperCase();
+    if (!q) return [];
+
+    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const waypoints = (window.appData && Array.isArray(window.appData.waypoints)) ? window.appData.waypoints : [];
+
+    const list = [];
+    airports.forEach(a => {
+      const fix = String(a.icao || '').toUpperCase();
+      if (fix && fix.indexOf(q) >= 0) list.push({ fix: fix, type: 'APT' });
+    });
+    waypoints.forEach(w => {
+      const fix = String(w.wp_id || '').toUpperCase();
+      if (fix && fix.indexOf(q) >= 0) list.push({ fix: fix, type: 'WP' });
+    });
+
+    const seen = {};
+    return list.filter(x => {
+      if (seen[x.fix]) return false;
+      seen[x.fix] = true;
+      return true;
+    }).slice(0, 10);
+  }
+
+  function renderSuggestionList(items) {
+    const box = document.getElementById('enroute-suggest-list');
+    if (!box) return;
+
+    if (!items || !items.length) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+
+    box.innerHTML = items.map(it => `<div class="suggest-item" onclick="pickWaypointSuggestion('${it.fix.replace(/'/g, "\\'")}')">${it.fix} <small style="color:#888;">${it.type}</small></div>`).join('');
+    box.style.display = 'block';
+  }
+
+  window.pickWaypointSuggestion = function(fix) {
+    const input = document.getElementById('enroute-add-fix');
+    if (input) input.value = fix;
+    renderSuggestionList([]);
+  };
+
+  window.addWaypointFromInput = function() {
+    const input = document.getElementById('enroute-add-fix');
+    const fix = String(input && input.value || '').trim().toUpperCase();
+    if (!fix) {
+      if (window.M) M.toast({ html: 'Enter waypoint code first', classes: 'orange' });
+      return;
+    }
+
+    if (!window.enroute6 || !Array.isArray(window.enroute6.waypoints)) {
+      window.enroute6 = window.enroute6 || {};
+      window.enroute6.waypoints = [];
+    }
+
+    const isDuplicate = window.enroute6.waypoints.some(wp => String(wp.fix || '').toUpperCase() === fix);
+    if (isDuplicate) {
+      if (window.M) M.toast({ html: `${fix} already in route`, classes: 'orange' });
+      return;
+    }
+
+    const insertIdx = Math.max(1, window.enroute6.waypoints.length - 1);
+    window.enroute6.waypoints.splice(insertIdx, 0, {
+      id: `${Date.now()}-${fix}`,
+      fix: fix,
+      distNm: 0,
+      hdg: '--',
+      eteMin: 0,
+      eta: '--:--',
+      passedAt: ''
+    });
+
+    if (input) input.value = '';
+    renderSuggestionList([]);
+    _enrouteDiag(`ADDED waypoint ${fix}`);
+    _recalculateWaypointDistances(window.enroute6.waypoints);
+    _calculateHeadings(window.enroute6.waypoints);
+    recalcWaypointsFromGs();
+    if (window.M) M.toast({ html: `Added ${fix}`, classes: 'green' });
+  };
+
+  window.deleteWaypoint = function(idx) {
+    if (!window.enroute6 || !Array.isArray(window.enroute6.waypoints)) return;
+    if (idx <= 0 || idx >= window.enroute6.waypoints.length - 1) return;
+
+    const wp = window.enroute6.waypoints[idx];
+    const finishDelete = function() {
+      window.enroute6.waypoints.splice(idx, 1);
+      if (window.enroute6.passedIndex >= idx) {
+        window.enroute6.passedIndex = Math.max(-1, window.enroute6.passedIndex - 1);
+      }
+      _recalculateWaypointDistances(window.enroute6.waypoints);
+      _calculateHeadings(window.enroute6.waypoints);
+      recalcWaypointsFromGs();
+      if (window.M) M.toast({ html: `Deleted ${wp.fix}`, classes: 'green' });
+    };
+
+    window.flightAppConfirm(`Delete waypoint ${wp.fix}?`, { title: 'Enroute Waypoint', okText: 'Delete' }).then(function(ok) {
+      if (ok) finishDelete();
+    });
+  };
+
+  window.reorderWaypoint = function(fromIdx, toIdx) {
+    if (!window.enroute6 || !Array.isArray(window.enroute6.waypoints)) return;
+    if (fromIdx === toIdx || fromIdx <= 0 || toIdx <= 0) return;
+    if (fromIdx >= window.enroute6.waypoints.length - 1 || toIdx >= window.enroute6.waypoints.length) return;
+
+    const waypoints = window.enroute6.waypoints;
+    const wp = waypoints.splice(fromIdx, 1)[0];
+    waypoints.splice(toIdx, 0, wp);
+
+    _recalculateWaypointDistances(waypoints);
+    _calculateHeadings(waypoints);
+    recalcWaypointsFromGs();
+    if (window.M) M.toast({ html: `Moved ${wp.fix}`, classes: 'green' });
+  };
+
+  function updatePositionReportDraft() {
+    const holder = document.getElementById('enroute-comms-auto');
+    if (!holder) return;
+
+    const i = window.enroute6.passedIndex;
+    const passed = i >= 0 ? window.enroute6.waypoints[i] : null;
+    const next = window.enroute6.waypoints[i + 1] || window.enroute6.waypoints[0] || null;
+
+    const passedText = passed
+      ? `PASSED ${passed.fix} ${passed.passedAt || _enrouteFmtHhmm(new Date())}.`
+      : 'ENROUTE.';
+    const nextText = next
+      ? ` ETA ${next.fix} ${next.eta || '--:--'}.`
+      : ' ETA --.';
+
+    holder.textContent = `${passedText}${nextText}`;
+  }
+
+  window.toggleEnrouteComms = function() {
+    const panel = document.getElementById('enroute-comms-panel');
+    if (!panel) return;
+    panel.classList.toggle('open');
+    updatePositionReportDraft();
+  };
+
+  window.sendPositionReport = function() {
+    const auto = document.getElementById('enroute-comms-auto')?.textContent || '';
+    const note = document.getElementById('enroute-comms-note')?.value || '';
+    const msg = `${auto}${note ? ` Note: ${note}` : ''}`;
+
+    const payload = {
+      missionId: window.enroute6.missionId,
+      flightLegId: window.enroute6.flightLegId,
+      text: msg
+    };
+
+    if (typeof window.runOrQueueServerAction === 'function') {
+      window.runOrQueueServerAction({
+        method: 'sendEnroutePositionReport',
+        args: [payload],
+        label: 'Position report'
+      }, {
+        onSuccess: function() {
+          if (window.M) M.toast({ html: 'Position report sent', classes: 'green' });
+          toggleEnrouteComms();
+          const noteEl = document.getElementById('enroute-comms-note');
+          if (noteEl) noteEl.value = '';
+        },
+        onQueued: function() {
+          if (window.M) M.toast({ html: 'Offline: position report queued', classes: 'orange' });
+          toggleEnrouteComms();
+          const noteEl = document.getElementById('enroute-comms-note');
+          if (noteEl) noteEl.value = '';
+        },
+        onFailure: function(err) {
+          if (window.M) M.toast({ html: 'Send failed', classes: 'red' });
+          console.error('sendEnroutePositionReport failed', err);
+        }
+      });
+      return;
+    }
+
+    if (!window.google || !google.script || !google.script.run) {
+      console.log('SEND POSITION REPORT (local):', msg);
+      toggleEnrouteComms();
+      return;
+    }
+
+    const runSend = function(retryAttempted) {
+      google.script.run
+        .withSuccessHandler(function(resp) {
+          if (window.M) M.toast({ html: 'Position report sent', classes: 'green' });
+          toggleEnrouteComms();
+          const noteEl = document.getElementById('enroute-comms-note');
+          if (noteEl) noteEl.value = '';
+        })
+        .withFailureHandler(function(err) {
+          if (!retryAttempted && _enrouteLikelyNetworkErr_(err)) {
+            setTimeout(function() { runSend(true); }, 350);
+            return;
+          }
+          if (window.M) M.toast({ html: 'Send failed', classes: 'red' });
+          console.error('sendEnroutePositionReport failed', err);
+        })
+        .sendEnroutePositionReport(payload);
+    };
+
+    runSend(false);
+  };
+
+  window.openTraccarMapPopup = function() {
+    centerEnrouteMap();
+  };
+
+  window.closeTraccarMapPopup = function() {};
+
+  window.__setupEnrouteTabImpl = function(mission) {
+    if (!mission || !mission.legs || !mission.legs.length) return;
+
+    const firstLeg = mission.legs[0] || {};
+    const flightLegId = firstLeg.flightLegId || '';
+    const acft = String(mission.acft || '').trim().toUpperCase();
+    const acftObj = (window.appData && Array.isArray(window.appData.aircraft))
+      ? window.appData.aircraft.find(a => String(a.reg || '').trim().toUpperCase() === acft)
+      : null;
+
+    const transferRate = Number(acftObj && acftObj.TRANSFER_RATE_LPM || 0.8);
+    const launchFuel = Number(firstLeg.takeoffFuel || 0);
+    const mainStart = launchFuel > 0 ? Math.round(launchFuel / 2) : 120;
+    const tipCap = Math.round(Number(acftObj && acftObj.TIP_CAPACITY_L || 0) || 0);
+
+    const _totalFuel = function(f) {
+      if (!f) return 0;
+      return Number(f.LT || 0) + Number(f.LM || 0) + Number(f.RM || 0) + Number(f.RT || 0);
+    };
+
+    const _fuelFromBriefSnapshot = function() {
+      const snap = window.briefFuelSnapshot || null;
+      if (!snap) return null;
+      const seeded = {
+        LT: Number(snap.LT || 0),
+        LM: Number(snap.LM || 0),
+        RM: Number(snap.RM || 0),
+        RT: Number(snap.RT || 0),
+        activeMain: (String(snap.activeMain || '').trim().toUpperCase() === 'LM' ? 'LM' : 'RM')
+      };
+      return _totalFuel(seeded) > 0 ? seeded : null;
+    };
+
+    const _applyActiveMainPreference = function(fuelState) {
+      const seeded = fuelState ? { ...fuelState } : null;
+      if (!seeded) return seeded;
+      const briefSnap = _fuelFromBriefSnapshot();
+      if (briefSnap && (briefSnap.activeMain === 'LM' || briefSnap.activeMain === 'RM')) {
+        seeded.activeMain = briefSnap.activeMain;
+      } else if (String(seeded.activeMain || '').trim().toUpperCase() !== 'LM') {
+        seeded.activeMain = 'RM';
+      }
+      return seeded;
+    };
+
+    const initializeEnroute = function(actualFuel, routeData) {
+      window.enroute6 = {
+        ...window.enroute6,
+        missionId: mission.id || '',
+        flightLegId: flightLegId,
+        waypoints: _buildInitialWaypoints(routeData),
+        passedIndex: -1,
+        hideDirectToLine: false,
+        transferRateLpm: transferRate > 0 ? transferRate : 0.8,
+        fuel: _applyActiveMainPreference(_totalFuel(actualFuel) > 0 ? actualFuel : (_fuelFromBriefSnapshot() || {
+          LT: tipCap,
+          LM: mainStart,
+          RM: mainStart,
+          RT: tipCap,
+          activeMain: 'RM'
+        }))
+      };
+
+      const endpointEl = document.getElementById('enroute-api-endpoint');
+      const storedTemplate = String(localStorage.getItem('enrouteTileTemplate') || '');
+      window.enroute6.tileTemplate = storedTemplate || _enrouteDefaultTileTemplate();
+
+      // Restore threshold settings
+      const storedAutoPass = Number(localStorage.getItem('enrouteAutoPassNm') || 0);
+      if (storedAutoPass > 0) {
+        window.enroute6.autoPassThresholdNm = storedAutoPass;
+        const apEl = document.getElementById('enroute-autopass-nm');
+        if (apEl) apEl.value = storedAutoPass;
+      }
+
+      if (endpointEl && !endpointEl.value) {
+        endpointEl.value = String(localStorage.getItem('traccarEndpoint') || '');
+      }
+
+      const addInput = document.getElementById('enroute-add-fix');
+      if (addInput && addInput.dataset.bound !== '1') {
+        addInput.addEventListener('input', function() {
+          renderSuggestionList(_buildWaypointSuggestions(this.value));
+        });
+        addInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') addWaypointFromInput();
+        });
+        addInput.dataset.bound = '1';
+      }
+
+      renderFuelStrip();
+      recalcWaypointsFromGs();
+      _updatePackStatus();
+      _enrouteInitMap();
+      setTimeout(function() { _enrouteInvalidateMapSize_(true); }, 220);
+      // Load offline tile layer if a valid non-expired pack exists
+      try {
+        const _pm = JSON.parse(localStorage.getItem('enrouteMapPackMeta') || 'null');
+        if (_pm && _pm.tileCount > 0) {
+          const _ageDays = (Date.now() - new Date(_pm.savedAt).getTime()) / 86400000;
+          if (_ageDays < 28) {
+            _enrouteEnsureLeaflet(function() { _enrouteApplyOfflineTileLayer(); });
+            _enrouteDiag('Offline tile pack loaded (' + _pm.tileCount + ' tiles, ' + Math.round(_ageDays) + 'd old)');
+          }
+        }
+      } catch(e) {}
+      _enrouteUpdateHeader();
+      _enrouteUpdateRollUi_();
+      _updateDistanceSummary();
+      _updateFuelSummary();
+      startGpsTracking();
+    };
+
+    if (flightLegId && window.google && google.script && google.script.run) {
+      let actualFuel = null;
+      let routeData = null;
+      let loadPending = 2;
+
+      const checkComplete = function() {
+        loadPending--;
+        if (loadPending === 0) {
+          if (!routeData) {
+            routeData = {
+              from: firstLeg.from || '',
+              to: firstLeg.to || '',
+              waypoints: firstLeg.waypoints || []
+            };
+          }
+          initializeEnroute(actualFuel, routeData);
+        }
+      };
+
+      const loadFlightLogData = function(retryAttempted) {
+        google.script.run
+          .withSuccessHandler(function(logData) {
+            if (logData && logData.actualLoadJSON) {
+              try {
+                const parsed = JSON.parse(logData.actualLoadJSON);
+                if (parsed && parsed.tanks) {
+                  actualFuel = {
+                    LT: Number(parsed.tanks.LT || 0),
+                    LM: Number(parsed.tanks.LM || 0),
+                    RM: Number(parsed.tanks.RM || 0),
+                    RT: Number(parsed.tanks.RT || 0),
+                    activeMain: (String(parsed.activeMain || parsed.tanks.activeMain || '').trim().toUpperCase() === 'LM' ? 'LM' : 'RM')
+                  };
+                }
+              } catch (e) {
+                console.warn('Failed to parse actualLoadJSON:', e);
+              }
+            }
+            checkComplete();
+          })
+          .withFailureHandler(function(err) {
+            if (!retryAttempted && _enrouteLikelyNetworkErr_(err)) {
+              setTimeout(function() { loadFlightLogData(true); }, 350);
+              return;
+            }
+            console.warn('Failed to fetch LOG_Flights data:', err);
+            checkComplete();
+          })
+          .getFlightLogData(flightLegId);
+      };
+
+      const loadFlightRouteData = function(retryAttempted) {
+        google.script.run
+          .withSuccessHandler(function(data) {
+            if (data) {
+              routeData = data;
+            }
+            checkComplete();
+          })
+          .withFailureHandler(function(err) {
+            if (!retryAttempted && _enrouteLikelyNetworkErr_(err)) {
+              setTimeout(function() { loadFlightRouteData(true); }, 350);
+              return;
+            }
+            console.warn('Failed to fetch route data:', err);
+            checkComplete();
+          })
+          .getFlightRouteData(flightLegId);
+      };
+
+      loadFlightLogData(false);
+      loadFlightRouteData(false);
+    } else {
+      const fallbackRoute = {
+        from: firstLeg.from || '',
+        to: firstLeg.to || '',
+        waypoints: firstLeg.waypoints || []
+      };
+      initializeEnroute(null, fallbackRoute);
+    }
+  };
+
+  window.setupEnrouteTab = window.__setupEnrouteTabImpl;
+
+  window.__enrouteScriptReady = true;
+
+</script>
