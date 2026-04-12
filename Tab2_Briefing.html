@@ -830,6 +830,39 @@ function briefLegInputsCacheKey_() {
   return fallbackId ? ('mba_cache_tab2_leg_inputs_' + fallbackId) : '';
 }
 
+function briefZeroOilPromptCacheKey_() {
+  const mission = window.currentBriefingMission || {};
+  const missionId = String(mission.id || '').trim();
+  if (missionId) return 'mba_cache_tab2_zero_oil_prompt_' + missionId;
+  const firstLeg = mission && Array.isArray(mission.legs) ? mission.legs[0] : null;
+  const fallbackId = String(firstLeg && firstLeg.flightLegId || '').trim();
+  return fallbackId ? ('mba_cache_tab2_zero_oil_prompt_' + fallbackId) : '';
+}
+
+function briefHasSeenZeroOilPrompt_() {
+  try {
+    const key = briefZeroOilPromptCacheKey_();
+    if (!key) return false;
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return !!(parsed && parsed.promptShown);
+  } catch (e) {
+    return false;
+  }
+}
+
+function briefMarkZeroOilPromptSeen_() {
+  try {
+    const key = briefZeroOilPromptCacheKey_();
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify({
+      promptShown: true,
+      updatedAt: new Date().toISOString()
+    }));
+  } catch (e) {}
+}
+
 function briefReadLegInputsCache_() {
   try {
     const key = briefLegInputsCacheKey_();
@@ -1074,6 +1107,43 @@ window.bindBriefingInteractions_ = function() {
 
 function renderLegs(mission) {
   const legs = mission.legs || [];
+  const acftConfig = (appData && Array.isArray(appData.aircraft))
+    ? appData.aircraft.find(a => String(a?.reg || '').trim().toUpperCase() === String(mission?.acft || '').trim().toUpperCase())
+    : null;
+
+  const legViaText_ = function(leg) {
+    const tokensFrom = function(raw) {
+      if (Array.isArray(raw)) {
+        return raw.map(function(wp) {
+          if (typeof wp === 'string') return String(wp || '').trim().toUpperCase();
+          if (wp && typeof wp === 'object') {
+            return String(wp.fix || wp.wp_id || wp.WP_ID || wp.ident || wp.icao || wp.name || wp.label || '').trim().toUpperCase();
+          }
+          return '';
+        }).filter(Boolean);
+      }
+      const txt = String(raw || '').trim().toUpperCase();
+      if (!txt) return [];
+      return txt
+        .replace(/[→>]/g, ',')
+        .split(/[\n\r,;\/|]+/)
+        .map(function(part) { return String(part || '').trim().toUpperCase(); })
+        .filter(Boolean);
+    };
+
+    const routeTokens = tokensFrom(leg && (leg.route || leg.routeStr || leg.via));
+    const wpTokens = tokensFrom(leg && leg.waypoints);
+    const from = String(leg && (leg.from || leg.origin) || '').trim().toUpperCase();
+    const to = String(leg && (leg.to || leg.destination) || '').trim().toUpperCase();
+
+    let picked = wpTokens.length > routeTokens.length ? wpTokens : routeTokens;
+    if (!picked.length) picked = [from, to].filter(Boolean);
+    if (from && (!picked.length || picked[0] !== from)) picked.unshift(from);
+    if (to && (!picked.length || picked[picked.length - 1] !== to)) picked.push(to);
+    picked = picked.filter(function(token, idx, arr) { return idx === 0 || token !== arr[idx - 1]; });
+
+    return picked.join(', ');
+  };
   // Determine active leg: first non-COMPLETE, or last leg if all complete
   let autoActiveIdx = legs.findIndex(l => (l.logStatus || 'PENDING') !== 'COMPLETE');
   if (autoActiveIdx < 0) autoActiveIdx = legs.length - 1;
@@ -1099,7 +1169,9 @@ function renderLegs(mission) {
     const takeoffFuel = Math.round(leg.takeoffFuel || 0);
     const burnFuel = Math.round(leg.fuel || 0);
     const landingFuel = Math.round(leg.landingFuel || 0);
+    const groundTime = parseFloat(leg.groundTime) || 0.5;
     const cacheDraw = leg.isFuelCacheStop ? Math.round(leg.plannedCacheDraw || 0) : 0;
+    const routeText = legViaText_(leg);
     const runwayLimitWeight = Math.round(Number(leg.limit || leg.runwayLimit || leg.rwyLimit || 0) || 0);
     const aircraftMaxTakeoffWeight = Math.round(Number(
       leg.maxTakeoffWeight ||
@@ -1110,6 +1182,8 @@ function renderLegs(mission) {
       mission.maxTOWeight ||
       mission.mtow ||
       mission.maxGrossWeight ||
+      acftConfig?.mtow ||
+      acftConfig?.MTOW ||
       0
     ) || 0);
     const effectiveMaxTakeoffWeight = runwayLimitWeight > 0 && aircraftMaxTakeoffWeight > 0
@@ -1118,6 +1192,9 @@ function renderLegs(mission) {
     const runwayPenalty = (aircraftMaxTakeoffWeight > 0 && effectiveMaxTakeoffWeight > 0 && effectiveMaxTakeoffWeight < aircraftMaxTakeoffWeight)
       ? (aircraftMaxTakeoffWeight - effectiveMaxTakeoffWeight)
       : 0;
+    const runwayLimitNote = runwayLimitWeight > 0
+      ? `${String(leg.limitType || 'Runway limit').trim() || 'Runway limit'} ${runwayLimitWeight}kg${runwayPenalty > 0 ? ` (${runwayPenalty}kg less than max ${aircraftMaxTakeoffWeight}kg)` : ''}`
+      : '';
     const payloadRemaining = Math.round((leg.finalAvailPayload || leg.availPayload || 0) - (leg.payload || 0));
 
     const actualLog = (mission.actualFuelLogs || [])
@@ -1162,7 +1239,7 @@ function renderLegs(mission) {
         <div class="leg-head">
           <div>
             <div class="leg-route-line">LEG ${i+1}: ${leg.from} → ${leg.to}</div>
-            <div class="leg-via-line">Via ${leg.waypoints || [leg.from, leg.to].filter(Boolean).join(', ')} | ${legStateText}</div>
+            <div class="leg-via-line">Via ${routeText} | ${legStateText}</div>
           </div>
           ${selectBtn}
         </div>
@@ -1174,7 +1251,7 @@ function renderLegs(mission) {
               <span class="brief-badge gray">Ldg: ${landingFuel}L</span>
               ${cacheDraw > 0 ? `<span class="brief-badge cache-draw-alert">FUEL CACHE DRAW +${cacheDraw}L</span>` : ''}
             </div>
-            <div class="brief-data-line">Rem: <span class="good">${payloadRemaining}kg</span> | ${(leg.time||0).toFixed(1)}h flt | ${(leg.groundTime||0).toFixed(1)}h gnd | T/O: ${takeoffFuel}L${runwayPenalty > 0 ? ` | <span class="weight-limit-note">(${runwayPenalty}kg less than max ${aircraftMaxTakeoffWeight}kg)</span>` : ''}</div>
+            <div class="brief-data-line">Rem: <span class="good">${payloadRemaining}kg</span> | ${(leg.time||0).toFixed(1)}h flt | ${groundTime.toFixed(1)}h gnd | T/O: ${takeoffFuel}L${runwayLimitNote ? ` | <span class="weight-limit-note">${runwayLimitNote}</span>` : ''}</div>
             ${fuelStatusHtml}
           </div>
           <div class="leg-inputs">
@@ -1232,16 +1309,16 @@ window.setupBriefing = function(mission) {
     return;
   }
 
-  const totalDuty = mission.time || mission.legs.reduce((s,l)=>s+(l.time||0)+(l.groundTime||0),0);
   const totalFlight = mission.legs.reduce((s,l)=>s+(l.time||0),0);
-  const totalGround = mission.legs.reduce((s,l)=>s+(l.groundTime||0),0);
+  const totalGround = mission.legs.reduce((s,l)=>s+(parseFloat(l.groundTime) || 0.5),0);
+  const totalDuty = mission.time || (1.0 + totalFlight + totalGround + 0.75);
   const launchFuel = Math.round(mission.legs[0]?.takeoffFuel || 0);
 
   const pilot = mission.pilot || '';
   const copilot = mission.meta?.copilot || '';
   const missionDate = mission.date || '';
 
-  const acftConfig = appData.aircraft?.find(a => a.reg === mission.acft);
+  const acftConfig = appData.aircraft?.find(a => String(a?.reg || '').trim().toUpperCase() === String(mission.acft || '').trim().toUpperCase());
   const mCap = parseFloat(acftConfig?.MAIN_CAPACITY_L || 0);
   const tCap = parseFloat(acftConfig?.TIP_CAPACITY_L || 0);
   const safeMainCap = Math.max(0, mCap);
@@ -1252,7 +1329,7 @@ window.setupBriefing = function(mission) {
     <div class="brief-main">
       <div class="brief-hero">
         <h2 class="brief-title">Mission Brief</h2>
-        <div style="font-size:0.62rem; color:#d6e5ff; margin-top:2px;">Tab2 Build: v177</div>
+        <div style="font-size:0.62rem; color:#d6e5ff; margin-top:2px;">Tab2 Build: v180</div>
       </div>
 
       <div class="brief-info">Date: ${missionDate} | Pilot: ${pilot || '—'} | Copilot: ${copilot || '—'}</div>
@@ -1347,7 +1424,9 @@ window.submitBriefingLog = async function(missionId, opts) {
     const volts = document.getElementById('brief_volts')?.value || '';
     const oilValue = Number(document.getElementById('brief_oil')?.value || 0);
 
-    if (oilValue === 0) {
+    if (oilValue === 0 && !briefHasSeenZeroOilPrompt_()) {
+      // Only ask once per mission/offline cache lifecycle.
+      briefMarkZeroOilPromptSeen_();
       const okNoOil = await window.flightAppConfirm('Oil shows 0 L. Confirm that no oil was added before loading aircraft.', { title: 'Flight App asks you to verify' });
       if (!okNoOil) return false;
     }

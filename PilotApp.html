@@ -35,8 +35,8 @@
     <div id="offline-readiness-widget" style="margin:0 10px 8px; padding:8px 10px; border-radius:10px; border:1px solid #dbe6f3; background:#f8fbff;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
         <div style="display:flex; align-items:center; gap:7px;">
-          <span id="readiness-overall-icon" style="font-size:1.5rem; line-height:1; color:#c62828;">✖</span>
-          <span id="readiness-overall-label" style="font-size:0.78rem; font-weight:900; color:#37474f; text-transform:uppercase; letter-spacing:0.03em;">Not Ready</span>
+          <span id="readiness-overall-icon" style="font-size:0.72rem; line-height:1; color:#fff; background:#8d6e63; border:2px solid #5d4037; border-radius:999px; padding:6px 10px; font-weight:900; letter-spacing:0.04em; text-transform:uppercase;">Not Ready</span>
+          <span id="readiness-overall-label" style="font-size:0.78rem; font-weight:900; color:#37474f; text-transform:uppercase; letter-spacing:0.03em;">Offline Pack</span>
         </div>
         <div style="display:flex; gap:6px;">
           <button id="btn-refresh-offline-cache" class="btn blue darken-2" style="height:30px; line-height:30px; padding:0 10px; font-size:0.74rem; font-weight:800; border-radius:7px;" onclick="downloadOfflineCacheNow()">DOWNLOAD</button>
@@ -55,16 +55,24 @@
           <span id="rlabel-cg" style="color:#5d6d7a; font-weight:700; flex:1;">—</span>
         </div>
         <div style="display:flex; align-items:center; gap:7px; font-size:0.78rem;">
+          <span id="rdot-unknown" style="width:8px; height:8px; border-radius:999px; background:#bdbdbd; flex-shrink:0; display:inline-block;"></span>
+          <span style="font-weight:800; color:#37474f; min-width:88px;">Unknown Pack</span>
+          <span id="rlabel-unknown" style="color:#5d6d7a; font-weight:700; flex:1;">Checking…</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:7px; font-size:0.78rem;">
           <span id="rdot-mapdb" style="width:8px; height:8px; border-radius:999px; background:#bdbdbd; flex-shrink:0; display:inline-block;"></span>
           <span style="font-weight:800; color:#37474f; min-width:88px;">Map DB</span>
           <span id="rlabel-mapdb" style="color:#5d6d7a; font-weight:700; flex:1;">Checking…</span>
         </div>
       </div>
       <div id="readiness-progress" style="display:none; margin-top:5px;">
-        <div style="background:#e3f2fd; border-radius:4px; height:4px; overflow:hidden;">
+        <div style="background:#e3f2fd; border-radius:6px; height:8px; overflow:hidden;">
           <div id="readiness-progress-bar" style="background:#1565c0; height:100%; width:0%; transition:width 0.2s;"></div>
         </div>
-        <span id="readiness-progress-text" style="font-size:0.7rem; color:#555; font-weight:700;"></span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; gap:8px;">
+          <span id="readiness-progress-text" style="font-size:0.72rem; color:#455a64; font-weight:800;"></span>
+          <span id="readiness-progress-percent" style="font-size:0.72rem; color:#0b5394; font-weight:900; min-width:44px; text-align:right;">0%</span>
+        </div>
       </div>
     </div>
 
@@ -75,36 +83,40 @@
     </div>
 
     <div class="action-grid" style="display: flex; gap: 10px; margin: 20px 0; justify-content: center;">
-      <div id="btn-new-flight" class="action-btn" onclick="openNewFlightApp()">
+      <div id="btn-new-flight" class="action-btn" onclick="tab1GuardedAction_('openNewFlightApp')">
         <i class="material-icons">add_circle_outline</i>
         <span>New Flight</span>
       </div>
-      <div id="btn-offline-flight" class="action-btn" onclick="openOfflineFlightModal()">
+      <div id="btn-offline-flight" class="action-btn" onclick="tab1GuardedAction_('openOfflineFlightModal')">
         <i class="material-icons">cloud_off</i>
         <span>Offline Flight</span>
       </div>
-      <div class="action-btn" onclick="openFuelModal()">
+      <div class="action-btn" onclick="tab1GuardedAction_('openFuelModal')">
         <i class="material-icons">local_gas_station</i>
         <span>Fuel Cache</span>
       </div>
-      <div class="action-btn" onclick="openPaxModal()">
+      <div class="action-btn" onclick="tab1GuardedAction_('openPaxModal')">
         <i class="material-icons">person_add</i>
         <span>New Pax</span>
       </div>
-      <div class="action-btn" onclick="openWaypointModal()">
+      <div class="action-btn" onclick="tab1GuardedAction_('openWaypointModal')">
         <i class="material-icons">place</i>
         <span>Add Waypoint</span>
       </div>
-      <div class="action-btn" onclick="openRunwaySurveyTool()">
+      <div class="action-btn" onclick="tab1GuardedAction_('openRunwaySurveyTool')">
         <i class="material-icons">gps_fixed</i>
         <span>Runway Survey</span>
       </div>
-      <div class="action-btn" onclick="openTab1Inclinometer()">
+      <div class="action-btn" onclick="tab1GuardedAction_('openTab1Inclinometer')">
         <i class="material-icons">straighten</i>
         <span>Inclinometer</span>
       </div>
     </div>
-    <div style="margin: -10px 10px 10px 10px; font-size: 0.68rem; color: #7d8b97; font-weight: 800; text-transform: uppercase;">Tab1 Build: v158</div>
+    <div id="incl-cache-status" style="margin: -12px 10px 8px 10px; font-size: 0.72rem; font-weight: 700; color: #7d8b97; text-transform: uppercase;">Inclinometer offline cache: checking...</div>
+    <div id="tab1-version-board" class="tab1-version-board">
+      <div class="tab1-version-board-title">Pilot App Tab Versions</div>
+      <div id="tab1-version-list" class="tab1-version-list"></div>
+    </div>
     <input id="tab1-inclinometer-angle" type="hidden" value="" />
 
     <div id="aircraft-status-area" style="padding: 0 15px;"></div>
@@ -283,6 +295,8 @@
           <div style="padding:8px 10px; border:1px solid #e0e0e0; border-radius:8px; background:#f7fbff;"><div style="font-size:0.72rem; color:#777; font-weight:700;">EST FUEL</div><div id="offflt_calc_fuel" style="font-size:1.05rem; font-weight:800; color:#0b5394;">— L</div></div>
           <div style="padding:8px 10px; border:1px solid #e0e0e0; border-radius:8px; background:#f7fbff;"><div style="font-size:0.72rem; color:#777; font-weight:700;">EST DUTY</div><div id="offflt_calc_duty" style="font-size:1.05rem; font-weight:800; color:#0b5394;">— hr</div></div>
         </div>
+        <div id="offflt_calc_route" style="margin-top:8px; font-size:0.8rem; color:#455a64; font-weight:700;">—</div>
+        <div id="offflt_calc_diag" style="margin-top:4px; font-size:0.74rem; color:#8d6e63; font-weight:700; min-height:1.1em;"></div>
       </div>
 
       <div class="col s12" style="margin-top:4px; margin-bottom:12px; padding:10px 12px; border-radius:8px; background:#fff8e1; border:1px solid #ffe082;">
@@ -321,6 +335,16 @@
     let currentTab = 1;
     let activeMission = null;
     let appData = {};
+    const PILOT_TAB_VERSIONS = Object.freeze({
+      1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 101 }),
+      2: Object.freeze({ shortLabel: 'Brief', fullLabel: 'Briefing', version: 180 }),
+      3: Object.freeze({ shortLabel: 'W&B', fullLabel: 'Weight & Balance', version: 103 }),
+      4: Object.freeze({ shortLabel: 'Perf', fullLabel: 'Performance', version: 104 }),
+      5: Object.freeze({ shortLabel: 'Release', fullLabel: 'Release', version: 105 }),
+      6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 106 }),
+      7: Object.freeze({ shortLabel: 'Arrv', fullLabel: 'Arrival', version: 107 }),
+      8: Object.freeze({ shortLabel: 'Log', fullLabel: 'Debrief Log', version: 108 })
+    });
     const OFFLINE_CACHE_KEYS = {
       DROPDOWN_DATA: 'mba_cache_dropdown_data_v1',
       SCHEDULED_MISSIONS: 'mba_cache_scheduled_missions_v1',
@@ -407,6 +431,56 @@
         || '';
     }
 
+    function _getPilotTabVersionInfo_(tabNum) {
+      return PILOT_TAB_VERSIONS[Number(tabNum)] || null;
+    }
+
+    function renderPilotTabVersions_() {
+      Object.keys(PILOT_TAB_VERSIONS).forEach(function(tabKey) {
+        const tabNum = Number(tabKey);
+        const info = _getPilotTabVersionInfo_(tabNum);
+        const tabEl = document.getElementById('tab' + tabNum);
+        if (info && tabEl) {
+          let badge = tabEl.querySelector('.app-tab-version-badge');
+          if (!badge) {
+            badge = document.createElement('div');
+            badge.className = 'app-tab-version-badge';
+            tabEl.appendChild(badge);
+          }
+          badge.textContent = 'Tab ' + tabNum + ' v' + String(info.version);
+          badge.setAttribute('aria-label', 'Tab ' + tabNum + ' ' + info.fullLabel + ' version ' + info.version);
+          badge.title = info.fullLabel + ' version ' + info.version;
+        }
+
+        const stepEl = document.getElementById('step' + tabNum);
+        if (info && stepEl) {
+          stepEl.setAttribute('title', 'Tab ' + tabNum + ' version ' + info.version);
+          stepEl.setAttribute('aria-label', 'Tab ' + tabNum + ' ' + info.shortLabel + ' version ' + info.version);
+        }
+      });
+
+      const listEl = document.getElementById('tab1-version-list');
+      if (!listEl) return;
+      listEl.innerHTML = Object.keys(PILOT_TAB_VERSIONS).map(function(tabKey) {
+        const tabNum = Number(tabKey);
+        const info = _getPilotTabVersionInfo_(tabNum);
+        return ''
+          + '<div class="tab1-version-row">'
+          + '<span class="tab1-version-label">Tab ' + tabNum + ' ' + info.shortLabel + '</span>'
+          + '<span class="tab1-version-value">v' + String(info.version) + '</span>'
+          + '</div>';
+      }).join('');
+    }
+
+    window.getPilotTabVersion = function(tabNum) {
+      const info = _getPilotTabVersionInfo_(tabNum);
+      return info ? info.version : null;
+    };
+
+    window.getPilotTabVersions = function() {
+      return JSON.parse(JSON.stringify(PILOT_TAB_VERSIONS));
+    };
+
     function _getDispatchPortalUrl_() {
       try {
         const base = _pilotBestBaseUrl_() || window.location.href;
@@ -423,6 +497,8 @@
       }
     }
     let hasPrefetchedMissionsThisSession = false;
+    let missionPrefetchInProgress = false;
+    let missionPrefetchProgress = { total: 0, progress: 0 };
     let outboxSyncInProgress = false;
     const OUTBOX_MAX_ATTEMPTS = 5;
     const OFFLINE_CACHE_STALE_MS = 24 * 60 * 60 * 1000;
@@ -1015,7 +1091,73 @@
     }
 
     // Track per-row readiness so overall icon can be computed any time
-    window._readinessState = { missions: 'none', cg: 'none', mapdb: 'none' };
+    window._readinessState = { missions: 'none', cg: 'none', unknown: 'none', mapdb: 'none' };
+
+    function _isMissionReadyForLock_() {
+      const s = window._readinessState || {};
+      return s.missions === 'ok' && s.cg === 'ok' && s.unknown === 'ok' && s.mapdb === 'ok';
+    }
+
+    function _updateMissionReadyLockUI_() {
+      const ready = _isMissionReadyForLock_();
+      const actionButtons = document.querySelectorAll('#tab1 .action-grid .action-btn');
+      actionButtons.forEach(function(btn) {
+        if (!btn) return;
+        btn.classList.toggle('readiness-locked', !ready);
+        btn.title = ready ? 'Mission ready' : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.';
+      });
+
+      for (let i = 2; i <= 8; i++) {
+        const step = document.getElementById('step' + i);
+        if (!step) continue;
+        step.classList.toggle('readiness-step-locked', !ready);
+      }
+
+      const btnNext = document.getElementById('btnNext');
+      if (btnNext && Number(currentTab || 1) === 1) {
+        btnNext.disabled = !ready;
+        btnNext.style.opacity = ready ? '1' : '0.6';
+        btnNext.title = ready ? '' : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.';
+      }
+    }
+
+    function _computeUnknownPackReadiness_() {
+      const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+      const source = (window.appData && typeof window.appData === 'object') ? window.appData : cachedDropdown;
+      const airports = Array.isArray(source.airports) ? source.airports.length : 0;
+      const waypoints = Array.isArray(source.waypoints) ? source.waypoints.length : 0;
+      const routes = Array.isArray(source.routes) ? source.routes.length : 0;
+      const aircraft = Array.isArray(source.aircraft) ? source.aircraft.length : 0;
+      const pilots = Array.isArray(source.pilots) ? source.pilots.length : 0;
+      const envelopes = getCachedEnvelopeCount();
+      const mapReady = !!(window._readinessState && window._readinessState.mapdb === 'ok');
+
+      const ready = airports > 0 && waypoints > 0 && routes > 0 && aircraft > 0 && pilots > 0 && envelopes > 0 && mapReady;
+      const missing = [];
+      if (airports <= 0) missing.push('airports');
+      if (waypoints <= 0) missing.push('waypoints');
+      if (routes <= 0) missing.push('routes');
+      if (aircraft <= 0) missing.push('aircraft');
+      if (pilots <= 0) missing.push('pilots');
+      if (envelopes <= 0) missing.push('envelopes');
+      if (!mapReady) missing.push('map');
+
+      return {
+        ready: ready,
+        label: ready
+          ? 'Unknown-flight pack loaded'
+          : (missing.length ? ('Missing: ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? '...' : '')) : 'Not ready')
+      };
+    }
+
+    function tab1GuardedAction_(actionName) {
+      if (!_isMissionReadyForLock_()) {
+        if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3500 });
+        return;
+      }
+      const fn = window[String(actionName || '').trim()];
+      if (typeof fn === 'function') fn();
+    }
 
     function _setReadinessDot_(id, state) {
       // state: 'ok' | 'bad' | 'warn' | 'sync' | 'none'
@@ -1029,18 +1171,34 @@
       const s = window._readinessState;
       const icon = document.getElementById('readiness-overall-icon');
       const label = document.getElementById('readiness-overall-label');
-      const allOk = s.missions === 'ok' && s.cg === 'ok' && s.mapdb === 'ok';
-      const anySyncing = s.missions === 'sync' || s.cg === 'sync' || s.mapdb === 'sync';
+      const allOk = s.missions === 'ok' && s.cg === 'ok' && s.unknown === 'ok' && s.mapdb === 'ok';
+      const anySyncing = s.missions === 'sync' || s.cg === 'sync' || s.unknown === 'sync' || s.mapdb === 'sync';
       if (anySyncing) {
-        if (icon) { icon.textContent = '…'; icon.style.color = '#1565c0'; }
-        if (label) { label.textContent = 'Syncing…'; label.style.color = '#1565c0'; }
+        if (icon) {
+          icon.textContent = 'Syncing';
+          icon.style.color = '#ffffff';
+          icon.style.background = '#1565c0';
+          icon.style.borderColor = '#0d47a1';
+        }
+        if (label) { label.textContent = 'Building Bush Pack'; label.style.color = '#1565c0'; }
       } else if (allOk) {
-        if (icon) { icon.textContent = '✔'; icon.style.color = '#2e7d32'; }
-        if (label) { label.textContent = 'Ready'; label.style.color = '#2e7d32'; }
+        if (icon) {
+          icon.textContent = 'MISSION READY';
+          icon.style.color = '#ffffff';
+          icon.style.background = '#2e7d32';
+          icon.style.borderColor = '#1b5e20';
+        }
+        if (label) { label.textContent = 'Bush Pilot Ready'; label.style.color = '#2e7d32'; }
       } else {
-        if (icon) { icon.textContent = '✖'; icon.style.color = '#c62828'; }
-        if (label) { label.textContent = 'Not Ready'; label.style.color = '#c62828'; }
+        if (icon) {
+          icon.textContent = 'Not Ready';
+          icon.style.color = '#ffffff';
+          icon.style.background = '#8d6e63';
+          icon.style.borderColor = '#5d4037';
+        }
+        if (label) { label.textContent = 'Offline Pack Needed'; label.style.color = '#c62828'; }
       }
+      _updateMissionReadyLockUI_();
     }
     window._recomputeOverallReadiness_ = _recomputeOverallReadiness_;
 
@@ -1050,37 +1208,53 @@
         window.refreshOfflineMapPackStatus();
       }
 
+      const hasExplicitState = Object.prototype.hasOwnProperty.call(opts, 'state');
+      const effectiveState = hasExplicitState
+        ? String(opts.state || '').toLowerCase()
+        : (missionPrefetchInProgress ? 'syncing' : (isServerAvailable() ? 'ready' : 'offline'));
+
       const meta = cacheGet(OFFLINE_CACHE_KEYS.PREFETCH_META) || {};
       const cachedCount = Number(typeof opts.cachedCount === 'number' ? opts.cachedCount : getCachedMissionCount());
-      const total = Number(typeof opts.total === 'number' ? opts.total : (meta.total || 0));
-      const progress = Number(typeof opts.progress === 'number' ? opts.progress : 0);
+      const total = Number(typeof opts.total === 'number' ? opts.total : (missionPrefetchProgress.total || meta.total || 0));
+      const progress = Number(typeof opts.progress === 'number' ? opts.progress : (missionPrefetchProgress.progress || 0));
       const syncedAt = opts.syncedAt || meta.syncedAt || null;
       const syncedAtMs = syncedAt ? new Date(syncedAt).getTime() : 0;
       const isStale = syncedAtMs > 0 && (Date.now() - syncedAtMs) > OFFLINE_CACHE_STALE_MS;
       const envelopeCount = Number(typeof opts.envelopeCount === 'number' ? opts.envelopeCount : getCachedEnvelopeCount());
       const hasEnvelope = envelopeCount > 0;
       const hasAnyFlightCache = cachedCount > 0 || total > 0;
-      const state = String(opts.state || (isServerAvailable() ? 'ready' : 'offline')).toLowerCase();
+      const state = effectiveState;
 
       const missionLabel = document.getElementById('rlabel-missions');
       const cgLabel = document.getElementById('rlabel-cg');
+      const unknownLabel = document.getElementById('rlabel-unknown');
       const progDiv = document.getElementById('readiness-progress');
       const progBar = document.getElementById('readiness-progress-bar');
       const progTxt = document.getElementById('readiness-progress-text');
+      const progPct = document.getElementById('readiness-progress-percent');
 
       if (state === 'syncing') {
         window._readinessState.missions = 'sync';
         _setReadinessDot_('rdot-missions', 'sync');
-        if (missionLabel) missionLabel.textContent = `Downloading ${progress}/${total || '…'}`;
+        window._readinessState.unknown = 'sync';
+        _setReadinessDot_('rdot-unknown', 'sync');
+        const pct = total > 0 ? Math.max(0, Math.min(100, Math.round((progress / total) * 100))) : 0;
+        const stageText = String(opts.message || '').trim();
+        if (missionLabel) missionLabel.textContent = stageText || `Downloading ${progress}/${total || '…'}`;
+        if (unknownLabel) unknownLabel.textContent = 'Building unknown-flight pack...';
         if (progDiv) progDiv.style.display = 'block';
-        if (progBar && total > 0) progBar.style.width = Math.round(progress / total * 100) + '%';
-        if (progTxt) progTxt.textContent = `Missions ${progress}/${total || 0}`;
+        if (progBar) progBar.style.width = pct + '%';
+        if (progTxt) progTxt.textContent = stageText || `Missions ${progress}/${total || 0}`;
+        if (progPct) progPct.textContent = pct + '%';
         _recomputeOverallReadiness_();
         updateOfflineFlightButtonState();
         return;
       }
 
       if (progDiv) progDiv.style.display = 'none';
+      if (progBar) progBar.style.width = '0%';
+      if (progTxt) progTxt.textContent = '';
+      if (progPct) progPct.textContent = '0%';
 
       const flightsReady = !hasAnyFlightCache || (cachedCount > 0 && !isStale);
       if (state === 'empty') {
@@ -1108,6 +1282,11 @@
       window._readinessState.cg = hasEnvelope ? 'ok' : 'bad';
       _setReadinessDot_('rdot-cg', hasEnvelope ? 'ok' : 'bad');
       if (cgLabel) cgLabel.textContent = hasEnvelope ? `${envelopeCount} envelope${envelopeCount !== 1 ? 's' : ''}` : 'Not cached';
+
+      const unknownPack = _computeUnknownPackReadiness_();
+      window._readinessState.unknown = unknownPack.ready ? 'ok' : 'bad';
+      _setReadinessDot_('rdot-unknown', unknownPack.ready ? 'ok' : 'bad');
+      if (unknownLabel) unknownLabel.textContent = unknownPack.label;
 
       _recomputeOverallReadiness_();
       updateOfflineFlightButtonState();
@@ -1137,8 +1316,19 @@
     }
 
     function ensureEnvelopeCacheOnStartup() {
-      if (!isServerAvailable()) return;
+      if (!isServerAvailable()) {
+        updateOfflineCacheStatus();
+        updateOfflineFlightButtonState();
+        return;
+      }
       if (!(window.google && google.script && google.script.run)) return;
+
+      // Respect 24h freshness on cold start so reopen does not force a full sync.
+      if (isOfflineCacheFresh_()) {
+        updateOfflineCacheStatus();
+        updateOfflineFlightButtonState();
+        return;
+      }
 
       syncEnvelopeCacheForAircraftRegs_(_knownAircraftRegsForEnvelopeSync_(), { forceRefresh: false });
 
@@ -1153,7 +1343,7 @@
             updateOfflineCacheStatus();
             return;
           }
-          prefetchScheduledMissionDetails(list, true);
+          prefetchScheduledMissionDetails(list, false);
           setTimeout(function() {
             updateOfflineCacheStatus();
             updateOfflineFlightButtonState();
@@ -1169,6 +1359,17 @@
     }
 
     const MAP_PACK_STALE_DAYS = 15;
+
+    function getOfflinePrefetchMeta_() {
+      return cacheGet(OFFLINE_CACHE_KEYS.PREFETCH_META) || {};
+    }
+
+    function isOfflineCacheFresh_() {
+      const meta = getOfflinePrefetchMeta_();
+      const syncedAt = meta && meta.syncedAt ? new Date(meta.syncedAt).getTime() : 0;
+      if (!syncedAt || Number.isNaN(syncedAt)) return false;
+      return (Date.now() - syncedAt) <= OFFLINE_CACHE_STALE_MS;
+    }
 
     function _isMapPackStale_() {
       try {
@@ -1204,34 +1405,79 @@
         btn.textContent = 'DOWNLOADING...';
       }
 
-      updateOfflineCacheStatus({ state: 'syncing', progress: 0, total: 0, cachedCount: getCachedMissionCount() });
+      updateOfflineCacheStatus({ state: 'syncing', progress: 0, total: 100, cachedCount: getCachedMissionCount(), message: 'Starting download...' });
 
-      google.script.run
-        .withSuccessHandler(function(missions) {
-          const list = Array.isArray(missions) ? missions : [];
-          cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, list);
-          prefetchScheduledMissionDetails(list, true);
-          syncEnvelopeCacheForAircraftRegs_(_knownAircraftRegsForEnvelopeSync_().concat(_knownAircraftRegsFromMissions_(list)), { forceRefresh: true });
-          setTimeout(function() {
-            updateOfflineCacheStatus({ state: 'ready' });
-            if (btn) {
-              btn.disabled = false;
-              btn.textContent = 'DOWNLOAD';
-            }
-            // Also refresh map pack if stale (>15 days)
-            _maybeRefreshMapPackNow_();
-          }, 1200);
-        })
-        .withFailureHandler(function(err) {
-          const msg = err && err.message ? err.message : String(err || 'unknown error');
-          M.toast({ html: `Download failed: ${msg}`, classes: 'red' });
-          updateOfflineCacheStatus();
+      const finalizeDownloadSuccess_ = function() {
+        setTimeout(function() {
+          updateOfflineCacheStatus({ state: 'ready' });
           if (btn) {
             btn.disabled = false;
             btn.textContent = 'DOWNLOAD';
           }
+          // Also refresh map pack if stale (>15 days)
+          _maybeRefreshMapPackNow_();
+        }, 1200);
+      };
+
+      const finalizeDownloadFailure_ = function(message) {
+        const msg = message || 'unknown error';
+        M.toast({ html: `Download failed: ${msg}`, classes: 'red' });
+        updateOfflineCacheStatus();
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'DOWNLOAD';
+        }
+      };
+
+      const downloadScheduledMissions_ = function() {
+        updateOfflineCacheStatus({ state: 'syncing', progress: 25, total: 100, cachedCount: getCachedMissionCount(), message: 'Loading mission list...' });
+        google.script.run
+          .withSuccessHandler(function(missions) {
+            const list = Array.isArray(missions) ? missions : [];
+            cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, list);
+            updateOfflineCacheStatus({ state: 'syncing', progress: 35, total: 100, cachedCount: getCachedMissionCount(), message: `Caching ${list.length} mission details...` });
+            prefetchScheduledMissionDetails(list, true);
+            syncEnvelopeCacheForAircraftRegs_(_knownAircraftRegsForEnvelopeSync_().concat(_knownAircraftRegsFromMissions_(list)), { forceRefresh: true });
+            finalizeDownloadSuccess_();
+          })
+          .withFailureHandler(function(err) {
+            const msg = err && err.message ? err.message : String(err || 'unknown error');
+            finalizeDownloadFailure_(msg);
+          })
+          .getScheduledMissions();
+      };
+
+      // Pull full startup dropdown data so offline flow includes DB_Routes and other core tables.
+      google.script.run
+        .withSuccessHandler(function(startupData) {
+          updateOfflineCacheStatus({ state: 'syncing', progress: 15, total: 100, cachedCount: getCachedMissionCount(), message: 'Loading core tables...' });
+          const payload = (startupData && typeof startupData === 'object') ? startupData : {};
+          if (payload.error) {
+            M.toast({ html: 'Startup data refresh warning. Continuing with mission download...', classes: 'orange' });
+            downloadScheduledMissions_();
+            return;
+          }
+
+          const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+          const mergedDropdown = Object.assign({}, cachedDropdown, payload);
+          cacheSet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA, mergedDropdown);
+          updateOfflineCacheStatus({ state: 'syncing', progress: 22, total: 100, cachedCount: getCachedMissionCount(), message: 'Core tables cached' });
+
+          if (window.appData && typeof window.appData === 'object') {
+            window.appData = Object.assign({}, window.appData, mergedDropdown);
+          } else {
+            window.appData = mergedDropdown;
+          }
+          // Keep local module state in sync with window.appData.
+          appData = window.appData;
+
+          downloadScheduledMissions_();
         })
-        .getScheduledMissions();
+        .withFailureHandler(function() {
+          M.toast({ html: 'Core cache refresh skipped (network). Downloading missions only...', classes: 'orange' });
+          downloadScheduledMissions_();
+        })
+        .getPilotStartupData();
     }
 
     function missionCacheKey(missionId) {
@@ -1543,16 +1789,20 @@
       if (!missionIds.length) return;
 
       hasPrefetchedMissionsThisSession = true;
+      missionPrefetchInProgress = true;
+      missionPrefetchProgress = { total: missionIds.length, progress: 0 };
 
       let index = 0;
       let cachedCount = 0;
       let failedCount = 0;
 
       M.toast({ html: `Syncing ${missionIds.length} flights for offline use...`, classes: 'blue darken-2' });
-      updateOfflineCacheStatus({ state: 'syncing', total: missionIds.length, progress: 0, cachedCount: getCachedMissionCount() });
+      updateOfflineCacheStatus({ state: 'syncing', total: missionIds.length, progress: 0, cachedCount: getCachedMissionCount(), message: `Syncing flight details (0/${missionIds.length})...` });
 
       const step = function() {
         if (index >= missionIds.length) {
+          missionPrefetchInProgress = false;
+          missionPrefetchProgress = { total: missionIds.length, progress: missionIds.length };
           const syncedAtIso = new Date().toISOString();
           cacheSet(OFFLINE_CACHE_KEYS.PREFETCH_META, {
             syncedAt: syncedAtIso,
@@ -1585,6 +1835,7 @@
             } else {
               failedCount += 1;
             }
+            missionPrefetchProgress = { total: missionIds.length, progress: index };
             if (mission) {
               prefetchWbForMission(mission, !!forceRefresh);
               prefetchPerformanceForMission(mission, !!forceRefresh);
@@ -1593,17 +1844,20 @@
               state: 'syncing',
               total: missionIds.length,
               progress: index,
-              cachedCount: getCachedMissionCount()
+              cachedCount: getCachedMissionCount(),
+              message: `Syncing flight details (${index}/${missionIds.length})...`
             });
             setTimeout(step, 35);
           })
           .withFailureHandler(() => {
             failedCount += 1;
+            missionPrefetchProgress = { total: missionIds.length, progress: index };
             updateOfflineCacheStatus({
               state: 'syncing',
               total: missionIds.length,
               progress: index,
-              cachedCount: getCachedMissionCount()
+              cachedCount: getCachedMissionCount(),
+              message: `Syncing flight details (${index}/${missionIds.length})...`
             });
             setTimeout(step, 80);
           })
@@ -1648,29 +1902,64 @@
 
     function _offfltFindAirport(icao) {
       const key = _offfltNormIcao(icao);
-      const airports = (appData && Array.isArray(appData.airports)) ? appData.airports : [];
-      return airports.find(a => _offfltNormIcao(a.icao) === key) || null;
+      const airportsPrimary = (appData && Array.isArray(appData.airports)) ? appData.airports : [];
+      const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+      const airportsFallback = Array.isArray(cachedDropdown.airports) ? cachedDropdown.airports : [];
+      const findMatch = function(list) {
+        return (Array.isArray(list) ? list : []).find(function(a) {
+          const aptIcao = _offfltNormIcao((a && (a.icao || a.ICAO || a.code || a.CODE)) || '');
+          return aptIcao === key;
+        }) || null;
+      };
+      return findMatch(airportsPrimary) || findMatch(airportsFallback);
     }
 
     function _offfltFindAircraft(reg) {
       const key = String(reg || '').trim().toUpperCase();
-      const aircraft = (appData && Array.isArray(appData.aircraft)) ? appData.aircraft : [];
-      return aircraft.find(a => String(a.reg || '').trim().toUpperCase() === key) || null;
+      const aircraftPrimary = (appData && Array.isArray(appData.aircraft)) ? appData.aircraft : [];
+      const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+      const aircraftFallback = Array.isArray(cachedDropdown.aircraft) ? cachedDropdown.aircraft : [];
+      const findMatch = function(list) {
+        return (Array.isArray(list) ? list : []).find(function(a) {
+          return String((a && a.reg) || '').trim().toUpperCase() === key;
+        }) || null;
+      };
+      return findMatch(aircraftPrimary) || findMatch(aircraftFallback);
+    }
+
+    function _offfltAirportLatLon(airport) {
+      if (!airport || typeof airport !== 'object') return null;
+      const latRaw = airport.lat != null ? airport.lat : (airport.latitude != null ? airport.latitude : airport.LATITUDE);
+      const lonRaw = airport.lon != null ? airport.lon : (airport.longitude != null ? airport.longitude : airport.LONGITUDE);
+      const lat = typeof _parseCoordinate === 'function' ? _parseCoordinate(latRaw) : parseFloat(latRaw);
+      const lon = typeof _parseCoordinate === 'function' ? _parseCoordinate(lonRaw) : parseFloat(lonRaw);
+      if (!isFinite(lat) || !isFinite(lon)) return null;
+      return { lat: lat, lon: lon };
     }
 
     function _offfltFindPilot(name) {
       const key = String(name || '').trim().toUpperCase();
-      const pilots = (appData && Array.isArray(appData.pilots)) ? appData.pilots : [];
-      return pilots.find(p => String(p.name || '').trim().toUpperCase() === key) || null;
+      const pilotsPrimary = (appData && Array.isArray(appData.pilots)) ? appData.pilots : [];
+      const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+      const pilotsFallback = Array.isArray(cachedDropdown.pilots) ? cachedDropdown.pilots : [];
+      const findMatch = function(list) {
+        return (Array.isArray(list) ? list : []).find(function(p) {
+          return String((p && p.name) || '').trim().toUpperCase() === key;
+        }) || null;
+      };
+      return findMatch(pilotsPrimary) || findMatch(pilotsFallback);
     }
 
     function _offfltDistanceNm(fromAirport, toAirport) {
       if (!fromAirport || !toAirport) return 0;
-      const lat1 = parseFloat(fromAirport.lat);
-      const lon1 = parseFloat(fromAirport.lon);
-      const lat2 = parseFloat(toAirport.lat);
-      const lon2 = parseFloat(toAirport.lon);
-      if ([lat1, lon1, lat2, lon2].some(v => isNaN(v))) return 0;
+      const a = _offfltAirportLatLon(fromAirport);
+      const b = _offfltAirportLatLon(toAirport);
+      if (!a || !b) return 0;
+      return _offfltHaversineNm(a.lat, a.lon, b.lat, b.lon);
+    }
+
+    function _offfltHaversineNm(lat1, lon1, lat2, lon2) {
+      if ([lat1, lon1, lat2, lon2].some(v => !isFinite(v))) return 0;
 
       const toRad = d => d * Math.PI / 180;
       const Rnm = 3440.065;
@@ -1680,6 +1969,119 @@
         + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return Math.max(0, Rnm * c);
+    }
+
+    function _offfltParseRouteTokens(routeStr) {
+      const raw = String(routeStr || '').trim().toUpperCase();
+      if (!raw) return [];
+      const normalized = raw.replace(/[→>]/g, ',').replace(/\n|\r/g, ',');
+      const tokens = normalized.split(',').map(s => s.trim()).filter(Boolean);
+      return tokens.filter((tok, idx) => idx === 0 || tok !== tokens[idx - 1]);
+    }
+
+    function _offfltResolveLocation(token) {
+      const key = String(token || '').trim().toUpperCase();
+      if (!key) return null;
+
+      const apt = _offfltFindAirport(key);
+      if (apt) {
+        const coords = _offfltAirportLatLon(apt);
+        if (coords) {
+          return { ident: key, lat: coords.lat, lon: coords.lon };
+        }
+      }
+
+      const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+      const waypointsPrimary = (appData && Array.isArray(appData.waypoints)) ? appData.waypoints : [];
+      const waypointsFallback = Array.isArray(cachedDropdown.waypoints) ? cachedDropdown.waypoints : [];
+      const waypoints = waypointsPrimary.length ? waypointsPrimary : waypointsFallback;
+      const wp = waypoints.find(function(w) {
+        return String((w && (w.wp_id || w.WP_ID || w.ident || w.ID || w.code || w.CODE || w.name || w.NAME)) || '').trim().toUpperCase() === key;
+      });
+      if (wp) {
+        const latRaw = wp.lat != null ? wp.lat :
+          (wp.latitude != null ? wp.latitude :
+          (wp.LATITUDE != null ? wp.LATITUDE : wp.LAT));
+        const lonRaw = wp.lon != null ? wp.lon :
+          (wp.longitude != null ? wp.longitude :
+          (wp.LONGITUDE != null ? wp.LONGITUDE : wp.LON));
+        const lat = typeof _parseCoordinate === 'function' ? _parseCoordinate(latRaw) : parseFloat(latRaw);
+        const lon = typeof _parseCoordinate === 'function' ? _parseCoordinate(lonRaw) : parseFloat(lonRaw);
+        if (isFinite(lat) && isFinite(lon)) {
+          return { ident: key, lat: lat, lon: lon };
+        }
+      }
+
+      return null;
+    }
+
+    function _offfltBuildRouteWithEndpoints(waypointList, fromIcao, toIcao) {
+      const from = _offfltNormIcao(fromIcao);
+      const to = _offfltNormIcao(toIcao);
+      const tokens = _offfltParseRouteTokens(waypointList);
+      if (from && (!tokens.length || tokens[0] !== from)) tokens.unshift(from);
+      if (to && (!tokens.length || tokens[tokens.length - 1] !== to)) tokens.push(to);
+      return tokens.join(', ');
+    }
+
+    function _offfltRouteDistanceNm(routeText) {
+      const ids = _offfltParseRouteTokens(routeText);
+      if (ids.length < 2) return 0;
+      let total = 0;
+      for (let i = 0; i < ids.length - 1; i++) {
+        const start = _offfltResolveLocation(ids[i]);
+        const end = _offfltResolveLocation(ids[i + 1]);
+        if (!start || !end) continue;
+        total += _offfltHaversineNm(start.lat, start.lon, end.lat, end.lon);
+      }
+      return total;
+    }
+
+    function _offfltBuildRoutePlan(fromIcao, toIcao) {
+      const from = _offfltNormIcao(fromIcao);
+      const to = _offfltNormIcao(toIcao);
+      const fromAirport = _offfltFindAirport(from);
+      const toAirport = _offfltFindAirport(to);
+
+      let routeText = [from, to].filter(Boolean).join(', ');
+      let distance = _offfltDistanceNm(fromAirport, toAirport);
+
+      const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+      const routesPrimary = (appData && Array.isArray(appData.routes)) ? appData.routes : [];
+      const routesFallback = Array.isArray(cachedDropdown.routes) ? cachedDropdown.routes : [];
+      const routes = routesPrimary.length ? routesPrimary : routesFallback;
+      const routeOrigin_ = function(r) {
+        return _offfltNormIcao((r && (r.origin || r.ORIGIN || r.from || r.FROM)) || '');
+      };
+      const routeDestination_ = function(r) {
+        return _offfltNormIcao((r && (r.destination || r.DESTINATION || r.to || r.TO)) || '');
+      };
+      const routeWaypointList_ = function(r) {
+        return String((r && (r.waypoint_list || r.WAYPOINT_LIST || r.route || r.ROUTE || r.route_text || r.ROUTE_TEXT)) || '').trim();
+      };
+      const directRoute = routes.find(function(r) {
+        return routeOrigin_(r) === from && routeDestination_(r) === to;
+      });
+      const reverseRoute = !directRoute ? routes.find(function(r) {
+        return routeOrigin_(r) === to && routeDestination_(r) === from;
+      }) : null;
+
+      const directWaypoints = directRoute ? routeWaypointList_(directRoute) : '';
+      const reverseWaypoints = reverseRoute ? routeWaypointList_(reverseRoute) : '';
+
+      if (directWaypoints) {
+        routeText = _offfltBuildRouteWithEndpoints(directWaypoints, from, to);
+        distance = _offfltRouteDistanceNm(routeText) || distance;
+      } else if (reverseWaypoints) {
+        const reversed = _offfltParseRouteTokens(reverseWaypoints).reverse().join(', ');
+        routeText = _offfltBuildRouteWithEndpoints(reversed, from, to);
+        distance = _offfltRouteDistanceNm(routeText) || distance;
+      }
+
+      return {
+        routeText: routeText,
+        distanceNm: Math.max(0, distance)
+      };
     }
 
     function _offfltHasRealEnvelope(acftReg) {
@@ -1774,6 +2176,17 @@
       if (color) el.style.color = color;
     }
 
+    function _offfltBuildComputeIssue(calc) {
+      const details = calc && typeof calc === 'object' ? calc : {};
+      if (!details.fromAirport && !details.toAirport) return 'Compute blocked: origin and destination airports were not resolved from startup data.';
+      if (!details.fromAirport) return 'Compute blocked: origin airport was not resolved from startup data.';
+      if (!details.toAirport) return 'Compute blocked: destination airport was not resolved from startup data.';
+      if (!details.acftObj) return 'Compute blocked: aircraft profile was not resolved from startup data.';
+      if (!(Number(details.distNm || 0) > 0)) return 'Compute blocked: route distance resolved to 0 nm.';
+      if (!(Number(details.speed || 0) > 0)) return 'Compute blocked: aircraft cruise speed resolved to 0 kts.';
+      return '';
+    }
+
     function _offfltRecompute() {
       const from = _offfltNormIcao((document.getElementById('offflt_from') || {}).value);
       const to = _offfltNormIcao((document.getElementById('offflt_to') || {}).value);
@@ -1784,20 +2197,31 @@
       const toAirport = _offfltFindAirport(to);
       const acftObj = _offfltFindAircraft(acft);
 
-      const distNm = _offfltDistanceNm(fromAirport, toAirport);
+      const routePlan = _offfltBuildRoutePlan(from, to);
+      const distNm = Number(routePlan.distanceNm || 0);
       const speed = acftObj ? (parseFloat(acftObj.speed) || 0) : 0;
       const burn = acftObj ? (parseFloat(acftObj.burn) || 0) : 0;
       const suggestedTime = (distNm > 0 && speed > 0) ? (distNm / speed) : 0;
       const useTime = suggestedTime;
-      const estFuel = (useTime > 0 && burn > 0) ? (useTime * burn) : 0;
+      const taxiTakeoffFuel = useTime > 0 ? 5 : 0;
+      const estFuel = (useTime > 0 && burn > 0) ? ((useTime * burn) + taxiTakeoffFuel) : 0;
       const reserveFuel = burn > 0 ? burn : 0;
       const requiredFuel = estFuel + reserveFuel;
-      const estDuty = useTime > 0 ? (1.0 + useTime + 0.5 + 0.75) : 0;
+      const estGroundTime = 0.5;
+      const estDuty = useTime > 0 ? (1.0 + useTime + estGroundTime + 0.75) : 0;
+
+      const mtowCol = (acftObj && String(acftObj.reg || '').toUpperCase().indexOf('550') >= 0) ? 'mtow550' : 'mtow520';
+      const aptLimit = fromAirport ? (Number(fromAirport[mtowCol]) || 9999) : 9999;
+      const acftMtow = acftObj ? (Number(acftObj.mtow || acftObj.MTOW || 9999) || 9999) : 9999;
+      const takeoffLimitKg = Math.min(acftMtow, aptLimit);
+      const limitType = aptLimit < acftMtow ? 'Airport Limit' : 'Aircraft MTOW';
 
       _offfltSetCalcValue('offflt_calc_dist', distNm > 0 ? `${distNm.toFixed(1)} nm` : '— nm', '#0b5394');
       _offfltSetCalcValue('offflt_calc_time', suggestedTime > 0 ? `${suggestedTime.toFixed(1)} hr` : '— hr', '#0b5394');
       _offfltSetCalcValue('offflt_calc_fuel', requiredFuel > 0 ? `${Math.round(requiredFuel)} L` : '— L', '#0b5394');
       _offfltSetCalcValue('offflt_calc_duty', estDuty > 0 ? `${estDuty.toFixed(1)} hr` : '— hr', estDuty > 14 ? '#c62828' : '#0b5394');
+      _offfltSetCalcValue('offflt_calc_route', routePlan.routeText || '—', '#455a64');
+      _offfltSetCalcValue('offflt_calc_diag', '', '#8d6e63');
 
       const auth = _offfltUpdateAuthStatus(pilot, to);
       const authEl = document.getElementById('offflt-auth-status');
@@ -1809,16 +2233,32 @@
         authEl.textContent = `No real CG envelope is cached for ${acft}. Connect online and open W&B for this aircraft before creating offline flight.`;
       }
 
+      const computeIssue = _offfltBuildComputeIssue({
+        fromAirport: fromAirport,
+        toAirport: toAirport,
+        acftObj: acftObj,
+        distNm: distNm,
+        speed: speed
+      });
+      if (computeIssue) {
+        _offfltSetCalcValue('offflt_calc_diag', computeIssue, '#b26a00');
+      }
+
       return {
         fromAirport: fromAirport,
         toAirport: toAirport,
         distNm: distNm,
+        speed: speed,
         suggestedTime: suggestedTime,
         usedTime: useTime,
         estFuel: estFuel,
         reserveFuel: reserveFuel,
         requiredFuel: requiredFuel,
         estDuty: estDuty,
+        routeText: routePlan.routeText,
+        takeoffLimitKg: takeoffLimitKg,
+        limitType: limitType,
+        estGroundTime: estGroundTime,
         auth: auth,
         hasEnvelope: hasEnvelope,
         acftObj: acftObj
@@ -1856,20 +2296,29 @@
       if (timeEl && !timeEl.value) timeEl.value = '08:00';
 
       if (acftEl) {
-        const acftList = (appData && Array.isArray(appData.aircraft)) ? appData.aircraft : [];
+        const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+        const acftPrimary = (appData && Array.isArray(appData.aircraft)) ? appData.aircraft : [];
+        const acftFallback = Array.isArray(cachedDropdown.aircraft) ? cachedDropdown.aircraft : [];
+        const acftList = acftPrimary.length ? acftPrimary : acftFallback;
         acftEl.innerHTML = '<option value="" disabled selected>Select Aircraft</option>' +
           acftList.map(a => `<option value="${String(a.reg || '')}">${String(a.reg || '')}</option>`).join('');
       }
 
       if (pilotEl) {
-        const pilotList = (appData && Array.isArray(appData.pilots)) ? appData.pilots : [];
+        const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+        const pilotPrimary = (appData && Array.isArray(appData.pilots)) ? appData.pilots : [];
+        const pilotFallback = Array.isArray(cachedDropdown.pilots) ? cachedDropdown.pilots : [];
+        const pilotList = pilotPrimary.length ? pilotPrimary : pilotFallback;
         pilotEl.innerHTML = '<option value="" disabled selected>Select Pilot</option>' +
           '<option value="PILOT TBD">PILOT TBD (Pending Only)</option>' +
           pilotList.map(p => `<option value="${String(p.name || '')}">${String(p.name || '')}</option>`).join('');
       }
 
       if (airportsDl) {
-        const airports = (appData && Array.isArray(appData.airports)) ? appData.airports : [];
+        const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+        const airportsPrimary = (appData && Array.isArray(appData.airports)) ? appData.airports : [];
+        const airportsFallback = Array.isArray(cachedDropdown.airports) ? cachedDropdown.airports : [];
+        const airports = airportsPrimary.length ? airportsPrimary : airportsFallback;
         const seen = {};
         airportsDl.innerHTML = airports.map(a => {
           const icao = _offfltNormIcao(a.icao);
@@ -1910,6 +2359,7 @@
         date: payload.date,
         acft: payload.acft,
         pilot: payload.pilot,
+        from: firstLeg.from || '',
         to: firstLeg.to || '',
         status: 'DRAFT_OFFLINE'
       };
@@ -1930,10 +2380,21 @@
           notes: payload.notes || ''
         },
         legs: payload.legs.map(l => ({
+          waypoints: (function() {
+            if (Array.isArray(l.waypoints) && l.waypoints.length) {
+              return l.waypoints.map(function(wp) { return String(wp || '').trim().toUpperCase(); }).filter(Boolean);
+            }
+            const raw = String(l.route || `${l.from || ''}-${l.to || ''}` || '').trim().toUpperCase();
+            return raw
+              .replace(/[→>]/g, ',')
+              .split(/[\n\r,;\/|]+/)
+              .map(function(part) { return String(part || '').trim().toUpperCase(); })
+              .filter(Boolean);
+          })(),
           flightLegId: l.flightLegId,
           from: l.from,
           to: l.to,
-          route: `${l.from}-${l.to}`,
+          route: String(l.route || `${l.from}-${l.to}`),
           time: Number(l.time || 0),
           groundTime: Number(l.groundTime || 0.5),
           dist: Number(l.dist || 0),
@@ -1941,6 +2402,8 @@
           fuel: Number(l.fuel || 0),
           takeoffFuel: Number(l.takeoffFuel || 0),
           landingFuel: Number(l.landingFuel || 0),
+          limit: Number(l.limit || 0),
+          limitType: String(l.limitType || ''),
           pax: Array.isArray(l.pax) ? l.pax : []
         }))
       };
@@ -1967,7 +2430,7 @@
       }
 
       if (!(legTime > 0)) {
-        M.toast({ html: 'Could not compute flight time from route + aircraft speed', classes: 'orange' });
+        M.toast({ html: _offfltBuildComputeIssue(calc) || 'Could not compute flight time from route + aircraft speed', classes: 'orange' });
         return;
       }
 
@@ -1994,9 +2457,14 @@
       const acftObj = calc.acftObj || _offfltFindAircraft(acft);
       const burn = acftObj ? (parseFloat(acftObj.burn) || 0) : 0;
       const tripFuel = burn > 0 ? (legTime * burn) : Number(calc.estFuel || 0);
+      const takeoffExtraFuel = legTime > 0 ? 5 : 0;
+      const adjustedTripFuel = tripFuel + takeoffExtraFuel;
       const reserveFuel = burn > 0 ? burn : Number(calc.reserveFuel || 0);
-      const estFuel = Math.round(tripFuel + reserveFuel);
-      const estDuty = 1.0 + legTime + 0.5 + 0.75;
+      const estFuel = Math.round(adjustedTripFuel + reserveFuel);
+      const estGroundTime = Number(calc.estGroundTime || 0.5);
+      const estDuty = 1.0 + legTime + estGroundTime + 0.75;
+      const limitKg = Number(calc.takeoffLimitKg || 0);
+      const limitType = String(calc.limitType || '').trim();
 
       let licenseWarning = '';
       const pilotObj = _offfltFindPilot(pilot);
@@ -2014,6 +2482,12 @@
 
       const dutyWarning = estDuty > 14 ? ` [⚠ DUTY EST ${estDuty.toFixed(1)}h > 14h]` : '';
 
+      let routeTokens = _offfltParseRouteTokens(calc.routeText || `${from}, ${to}`);
+      if (from && (!routeTokens.length || routeTokens[0] !== from)) routeTokens.unshift(from);
+      if (to && (!routeTokens.length || routeTokens[routeTokens.length - 1] !== to)) routeTokens.push(to);
+      routeTokens = routeTokens.filter(function(token, idx, arr) { return idx === 0 || token !== arr[idx - 1]; });
+      const routeHyphen = routeTokens.join('-') || `${from}-${to}`;
+
       const ids = buildOfflineFlightIds(date);
       const payload = {
         date: date,
@@ -2022,17 +2496,21 @@
         pilot: pilot,
         copilot: '',
         type: 'Offline Flight',
-        notes: (`[OFFLINE FLIGHT][RESERVE 1.0H ${Math.round(reserveFuel)}L]${licenseWarning}${dutyWarning}${ackAuth ? ' [ACK RUNWAY AUTHORIZATION]' : ''}`).trim(),
+        notes: (`[OFFLINE FLIGHT][ROUTE ${String(routeHyphen || (from + '-' + to)).replace(/\s+/g, ' ').trim()}][RESERVE 1.0H ${Math.round(reserveFuel)}L][TKOF EXTRA 5L]${licenseWarning}${dutyWarning}${ackAuth ? ' [ACK RUNWAY AUTHORIZATION]' : ''}`).trim(),
         legs: [{
           flightLegId: ids.flightLegId,
           from: from,
           to: to,
+          route: routeHyphen,
+          waypoints: routeTokens,
           time: legTime,
-          groundTime: 0.5,
+          groundTime: estGroundTime,
           dist: calc.distNm > 0 ? Number(calc.distNm.toFixed(1)) : 0,
-          fuel: Math.round(tripFuel) > 0 ? Math.round(tripFuel) : 0,
+          fuel: Math.round(adjustedTripFuel) > 0 ? Math.round(adjustedTripFuel) : 0,
           takeoffFuel: estFuel > 0 ? estFuel : 0,
           landingFuel: Math.round(reserveFuel),
+          limit: limitKg > 0 ? Math.round(limitKg) : undefined,
+          limitType: limitType || undefined,
           plannedCacheDraw: 0,
           pax: []
         }]
@@ -2084,6 +2562,7 @@
     // Initial Load
     document.addEventListener('DOMContentLoaded', function() {
       pruneMissionCache(OFFLINE_CACHE_MAX_MISSIONS);
+      renderPilotTabVersions_();
       initPilotDispatchClocks_();
       updateConnectivityBanner();
       updateOfflineCacheStatus();
@@ -2328,14 +2807,29 @@
         }).getPilotStartupData();
       };
 
+      const cachedStartup = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA);
+      const freshCache = isOfflineCacheFresh_();
+
+      if (cachedStartup && freshCache) {
+        applyDataAndStart(cachedStartup, true, { silentToast: true });
+        return;
+      }
+
       if (isServerAvailable()) {
         requestStartupData_(0);
         return;
       }
 
-      const cached = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA);
-      if (cached) {
-        applyDataAndStart(cached, true);
+      if (cachedStartup) {
+        applyDataAndStart(cachedStartup, true);
+        return;
+      }
+
+      const cachedMissionsFallback = cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || [];
+      const cachedMissionDetailsCount = getCachedMissionCount();
+      if (cachedMissionsFallback.length || cachedMissionDetailsCount > 0) {
+        applyDataAndStart({ missions: cachedMissionsFallback }, true, { silentToast: true });
+        M.toast({ html: 'Offline startup: using cached missions only', classes: 'orange', displayLength: 3500 });
         return;
       }
 
@@ -2346,8 +2840,237 @@
     }
 
     // Tab Logic
+    const TAB_FIELD_STATE_PREFIX = 'mba_tab_field_state_v1';
+
+    function _tabFieldStateKey_(tabNum) {
+      const missionKey = String(activeMission || '').trim();
+      if (!missionKey) return '';
+      return `${TAB_FIELD_STATE_PREFIX}:${missionKey}:tab${Number(tabNum || 0)}`;
+    }
+
+    function _tabCollectFieldState_(tabNum) {
+      const tabEl = document.getElementById('tab' + tabNum);
+      if (!tabEl) return {};
+      const fields = tabEl.querySelectorAll('input[id], select[id], textarea[id]');
+      const state = {};
+      fields.forEach(function(el) {
+        if (!el || !el.id) return;
+        const tag = String(el.tagName || '').toLowerCase();
+        const type = String(el.type || '').toLowerCase();
+        if (el.disabled || el.readOnly) return;
+        if (tag === 'input' && ['hidden', 'password', 'file', 'button', 'submit', 'reset'].includes(type)) return;
+        if (type === 'checkbox' || type === 'radio') {
+          state[el.id] = { t: 'checked', v: !!el.checked };
+        } else {
+          state[el.id] = { t: 'value', v: String(el.value == null ? '' : el.value) };
+        }
+      });
+      return state;
+    }
+
+    function _tabCollectExtraState_(tabNum) {
+      const n = Number(tabNum || 0);
+
+      if (n === 2) {
+        const tanks = {};
+        document.querySelectorAll('#tab2 .brief-tank-input').forEach(function(input) {
+          const key = String(input && input.dataset && input.dataset.tankKey || '').trim().toUpperCase();
+          if (!key) return;
+          tanks[key] = String(input.value == null ? '' : input.value);
+        });
+
+        return {
+          tanks: tanks,
+          oil: String(document.getElementById('brief_oil')?.value || ''),
+          startupTank: String(document.getElementById('brief_startup_tank')?.value || ''),
+          startTach: String(document.getElementById('brief_startTach')?.value || ''),
+          volts: String(document.getElementById('brief_volts')?.value || '')
+        };
+      }
+
+      if (n === 4) {
+        return {
+          windDirection: String(document.getElementById('perf-wind-direction')?.value || ''),
+          windSpeed: String(document.getElementById('perf-wind-speed')?.value || ''),
+          windConfirmed: !!(window.performanceTab4 && window.performanceTab4.windConfirmed)
+        };
+      }
+
+      if (n === 5) {
+        return {
+          selected: (window.releaseTab5State && window.releaseTab5State.selected)
+            ? Object.assign({}, window.releaseTab5State.selected)
+            : {}
+        };
+      }
+
+      if (n === 7) {
+        return {
+          qnh: String(document.getElementById('arr7-qnh')?.value || ''),
+          temp: String(document.getElementById('arr7-temp')?.value || ''),
+          windDir: String(document.getElementById('arr7-wind-dir-input')?.value || ''),
+          windSpd: String(document.getElementById('arr7-wind-spd-input')?.value || ''),
+          windConfirmed: !!(window.arrival7 && window.arrival7.windConfirmed)
+        };
+      }
+
+      return null;
+    }
+
+    function _tabRestoreExtraState_(tabNum, extra) {
+      if (!extra || typeof extra !== 'object') return;
+      const n = Number(tabNum || 0);
+
+      if (n === 2) {
+        const tanks = (extra.tanks && typeof extra.tanks === 'object') ? extra.tanks : {};
+        Object.keys(tanks).forEach(function(key) {
+          const normalized = String(key || '').trim().toUpperCase();
+          if (!normalized) return;
+          const input = document.querySelector('#tab2 .brief-tank-input[data-tank-key="' + normalized + '"]');
+          if (input) {
+            input.value = String(tanks[key] == null ? '' : tanks[key]);
+          }
+          const btn = document.querySelector('#tab2 .brief-tank-btn[data-tank-key="' + normalized + '"]');
+          if (btn) {
+            btn.textContent = String(tanks[key] == null ? '' : tanks[key]);
+          }
+        });
+
+        const oilInput = document.getElementById('brief_oil');
+        if (oilInput) oilInput.value = String(extra.oil == null ? '' : extra.oil);
+        document.querySelectorAll('#tab2 .oil-choice-row .oil-choice').forEach(function(btn) {
+          const v = String(btn && btn.dataset && btn.dataset.oil || '');
+          btn.classList.toggle('active', v === String(extra.oil == null ? '' : extra.oil));
+        });
+
+        const startup = document.getElementById('brief_startup_tank');
+        if (startup) startup.value = String(extra.startupTank == null ? '' : extra.startupTank);
+
+        const tach = document.getElementById('brief_startTach');
+        if (tach) tach.value = String(extra.startTach == null ? '' : extra.startTach);
+
+        const volts = document.getElementById('brief_volts');
+        if (volts) volts.value = String(extra.volts == null ? '' : extra.volts);
+
+        if (typeof window.briefRefreshStartupTankUi_ === 'function') {
+          window.briefRefreshStartupTankUi_();
+        }
+        if (typeof window.calculateBriefFuelTally === 'function') {
+          window.calculateBriefFuelTally();
+        }
+        return;
+      }
+
+      if (n === 4) {
+        const dir = document.getElementById('perf-wind-direction');
+        const spd = document.getElementById('perf-wind-speed');
+        if (dir) dir.value = String(extra.windDirection == null ? '' : extra.windDirection);
+        if (spd) spd.value = String(extra.windSpeed == null ? '' : extra.windSpeed);
+
+        if (!window.performanceTab4) window.performanceTab4 = {};
+        window.performanceTab4.windConfirmed = !!extra.windConfirmed;
+
+        if (typeof window._perfUpdateWindBtn_ === 'function') {
+          window._perfUpdateWindBtn_();
+        }
+        if (typeof window.schedulePerformanceRecalc === 'function') {
+          window.schedulePerformanceRecalc();
+        }
+        return;
+      }
+
+      if (n === 5) {
+        const selected = (extra.selected && typeof extra.selected === 'object') ? extra.selected : null;
+        if (!selected || typeof window.selectRiskLevel !== 'function') return;
+
+        ['Pilot', 'Aircraft', 'Runway', 'Weather', 'Mission'].forEach(function(category) {
+          const level = Number(selected[category] || 0);
+          if (level >= 1 && level <= 3) {
+            window.selectRiskLevel(category, level);
+          }
+        });
+        return;
+      }
+
+      if (n === 7) {
+        const extra7 = extra;
+        const qnh = document.getElementById('arr7-qnh');
+        const temp = document.getElementById('arr7-temp');
+        const windDir = document.getElementById('arr7-wind-dir-input');
+        const windSpd = document.getElementById('arr7-wind-spd-input');
+
+        if (qnh) qnh.value = String(extra7.qnh == null ? '' : extra7.qnh);
+        if (temp) temp.value = String(extra7.temp == null ? '' : extra7.temp);
+        if (windDir) windDir.value = String(extra7.windDir == null ? '' : extra7.windDir);
+        if (windSpd) windSpd.value = String(extra7.windSpd == null ? '' : extra7.windSpd);
+
+        if (window.arrival7) window.arrival7.windConfirmed = !!extra7.windConfirmed;
+
+        if (typeof window._arr7CalcIfReadyGlobal_ === 'function') {
+          window._arr7CalcIfReadyGlobal_();
+        }
+      }
+    }
+
+    function _tabPersistFieldState_(tabNum) {
+      try {
+        const key = _tabFieldStateKey_(tabNum);
+        if (!key) return;
+        const state = _tabCollectFieldState_(tabNum);
+        const extra = _tabCollectExtraState_(tabNum);
+        localStorage.setItem(key, JSON.stringify({ savedAt: new Date().toISOString(), state: state, extra: extra }));
+      } catch (e) {}
+    }
+
+    function _tabRestoreFieldState_(tabNum) {
+      try {
+        const key = _tabFieldStateKey_(tabNum);
+        if (!key) return;
+        const raw = localStorage.getItem(key);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        const state = (parsed && parsed.state && typeof parsed.state === 'object') ? parsed.state : {};
+        const extra = (parsed && parsed.extra && typeof parsed.extra === 'object') ? parsed.extra : null;
+        Object.keys(state).forEach(function(id) {
+          const el = document.getElementById(id);
+          const entry = state[id];
+          if (!el || !entry) return;
+          if (entry.t === 'checked') {
+            el.checked = !!entry.v;
+          } else {
+            el.value = String(entry.v == null ? '' : entry.v);
+          }
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        _tabRestoreExtraState_(tabNum, extra);
+      } catch (e) {}
+    }
+
+    if (!window.__tabFieldStateHooksBound) {
+      const persistNow = function() {
+        if (!currentTab || !activeMission) return;
+        _tabPersistFieldState_(currentTab);
+      };
+      document.addEventListener('change', persistNow);
+      document.addEventListener('input', function(ev) {
+        const t = ev && ev.target;
+        if (!t || !t.id) return;
+        if (!currentTab || !activeMission) return;
+        if (t.matches && t.matches('input, select, textarea')) {
+          _tabPersistFieldState_(currentTab);
+        }
+      });
+      window.__tabFieldStateHooksBound = true;
+    }
+
     function switchTab(tabNum) {
       if (tabNum < 1 || tabNum > 8) return;
+
+      if (tabNum > 1 && !_isMissionReadyForLock_()) {
+        if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3200 });
+        return;
+      }
 
       const skipTab2GateOnce = window.__skipTab2GateOnce === true;
       if (skipTab2GateOnce) {
@@ -2371,6 +3094,10 @@
       if (tabNum > 1 && !activeMission) {
         M.toast({html: 'Please select a mission first!', classes: 'orange'});
         return;
+      }
+
+      if (currentTab && activeMission) {
+        _tabPersistFieldState_(currentTab);
       }
 
       document.querySelectorAll('.app-tab').forEach(t => t.classList.remove('active'));
@@ -2416,10 +3143,18 @@
       if (tabNum === 8) {
         initiateDebrief(activeMission);
       }
+
+      if (activeMission) {
+        setTimeout(function() { _tabRestoreFieldState_(tabNum); }, 220);
+      }
     }
 
     function nextTab() {
       if (currentTab === 1) {
+        if (!_isMissionReadyForLock_()) {
+          if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3200 });
+          return;
+        }
         tab1AcceptMissionThenAdvance();
         return;
       }
@@ -2475,6 +3210,11 @@
         container.innerHTML = missions.map(m => {
           const dateObj = new Date(m.date);
           const dateStr = !isNaN(dateObj) ? formatStatusDate(dateObj) : '---';
+          const origin = String(m.from || m.origin || '').trim().toUpperCase();
+          const destination = String(m.to || m.destination || '').trim().toUpperCase();
+          const routeLabel = origin && destination
+            ? `${origin} → ${destination}`
+            : (destination || origin || 'N/A');
 
           // --- UPDATED LOGIC HERE ---
           // Check if status exists and is "APPROVED" (case insensitive)
@@ -2491,7 +3231,7 @@
               <span class="m-date">${dateStr}</span>
               <span class="m-id">${m.id}</span>
               <span class="m-acft">${m.acft}</span>
-              <span class="m-route">${m.to || 'N/A'}</span>
+              <span class="m-route">${routeLabel}</span>
               <span class="m-status ${statusClass}">${statusText}</span>
               <span class="m-pilot">${m.pilot ? m.pilot.split(' ')[0] : 'N/A'}</span>
             </div>
@@ -2500,7 +3240,18 @@
         updateOfflineCacheStatus();
       };
 
+      const cachedMissions = cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || [];
+
+      if (cachedMissions.length) {
+        render(cachedMissions);
+      }
+
       if (isServerAvailable()) {
+        if (cachedMissions.length && isOfflineCacheFresh_()) {
+          prefetchScheduledMissionDetails(cachedMissions, false);
+          return;
+        }
+
         google.script.run.withSuccessHandler(missions => {
           cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, missions || []);
           render(missions || []);
@@ -2519,9 +3270,8 @@
         return;
       }
 
-      const cached = cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || [];
-      if (cached.length) {
-        render(cached);
+      if (cachedMissions.length) {
+        render(cachedMissions);
       } else {
         const container = document.getElementById('mission-list-container');
         container.innerHTML = "<p class='center orange-text'>Offline and no cached mission list available.</p>";
@@ -3263,9 +4013,14 @@
         const grossWeight = wbWeight > 0 ? wbWeight : fallbackWeight;
 
         const acftReg = String(mission.acft || '').trim();
-        const acftObj = (appData && Array.isArray(appData.aircraft))
-          ? appData.aircraft.find(a => String(a.reg || '').trim().toUpperCase() === acftReg.toUpperCase())
-          : null;
+        const liveAircraft = (appData && Array.isArray(appData.aircraft)) ? appData.aircraft : [];
+        let cachedAircraft = [];
+        try {
+          const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+          cachedAircraft = Array.isArray(cachedDropdown.aircraft) ? cachedDropdown.aircraft : [];
+        } catch (e) { cachedAircraft = []; }
+        const aircraftList = liveAircraft.length ? liveAircraft : cachedAircraft;
+        const acftObj = aircraftList.find(a => String(a.reg || '').trim().toUpperCase() === acftReg.toUpperCase()) || null;
         // Use TYPE_FOR_PERFORMANCE if present, otherwise fall back to AIRCRAFT_TYPE
         const typeForPerf = acftObj ? String(acftObj.typeForPerformance || '').trim() : '';
         const aircraftType = typeForPerf || (acftObj ? String(acftObj.aircraftType || '') : '');
@@ -4108,8 +4863,7 @@
           </div>
           <div class="rwyhc-action-row">
             <button class="btn blue" onclick="addRunwaySurveyFeatureFromCurrentGps()">ADD FEATURE</button>
-            <button class="btn orange darken-2" onclick="openRunwaySurveyObstaclePopup(false, 'A', 50)">ADD 50M</button>
-            <button class="btn deep-orange darken-3" onclick="openRunwaySurveyObstaclePopup(false, 'A', 300)">ADD 300M</button>
+            <button class="btn orange darken-2" onclick="openRunwaySurveyObstaclePopup(false, '', null)">CAPTURE OBSTACLE ANGLE</button>
             <button class="btn green darken-2" id="rwysurvey-slope-toggle" onclick="toggleRunwaySurveySlopeCapture()">ADD SLOPE</button>
             <button class="btn light-blue darken-2" id="rwysurvey-photo-add-btn" onclick="openRunwaySurveyPhotoOptions()">ADD PHOTOS</button>
             <button class="btn teal darken-2" onclick="openRunwayDiagramPreview()">PREVIEW</button>
@@ -4164,9 +4918,24 @@
       <div style="background:#1565c0; color:#fff; padding:10px 12px; font-weight:800;">Add Feature @ Current GPS</div>
       <div style="padding:12px; display:grid; gap:8px;">
         <div id="rwysurvey-feature-fix" style="font-size:0.78rem; color:#455a64;">Current fix: --</div>
-        <select id="rwysurvey-feature-type-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;">
-          <option value="house">House</option><option value="school">School</option><option value="church">Church</option><option value="windsock">Windsock</option><option value="field">Field</option><option value="clearing">Clearing</option><option value="water_tower">Water Tower</option><option value="tree">Tree</option>
-        </select>
+        <input id="rwysurvey-feature-type-popup" list="rwysurvey-feature-type-options" type="text" placeholder="Feature type (search or type)" value="field" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
+        <datalist id="rwysurvey-feature-type-options">
+          <option value="house"></option>
+          <option value="school"></option>
+          <option value="church"></option>
+          <option value="windsock"></option>
+          <option value="field"></option>
+          <option value="clearing"></option>
+          <option value="water_tower"></option>
+          <option value="tree"></option>
+        </datalist>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" onclick="rwySurveySetFeatureType_('field')" style="border:1px solid #bbdefb; background:#e3f2fd; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Field</button>
+          <button type="button" onclick="rwySurveySetFeatureType_('tree')" style="border:1px solid #bbdefb; background:#e3f2fd; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Tree</button>
+          <button type="button" onclick="rwySurveySetFeatureType_('windsock')" style="border:1px solid #bbdefb; background:#e3f2fd; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Windsock</button>
+          <button type="button" onclick="rwySurveySetFeatureType_('house')" style="border:1px solid #bbdefb; background:#e3f2fd; border-radius:999px; padding:4px 10px; font-size:0.75rem;">House</button>
+          <button type="button" onclick="rwySurveySetFeatureType_('water_tower')" style="border:1px solid #bbdefb; background:#e3f2fd; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Water Tower</button>
+        </div>
         <select id="rwysurvey-feature-side-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;"><option value="left">Left side</option><option value="right" selected>Right side</option></select>
       </div>
       <div style="padding:10px 12px; border-top:1px solid #eceff1; display:flex; justify-content:flex-end; gap:8px;">
@@ -4181,14 +4950,41 @@
       <div id="rwysurvey-obstacle-title" style="background:#ef6c00; color:#fff; padding:10px 12px; font-weight:800;">Obstacle Angles @ 50m from A</div>
       <div style="padding:12px; display:grid; gap:8px;">
         <div id="rwysurvey-obstacle-context" style="font-size:0.78rem; color:#6d4c41;">Paused near A+50m point. Capture obstacle angle(s), then continue.</div>
-        <select id="rwysurvey-obs-type-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;"><option value="hill">Hill</option><option value="tree">Tree</option><option value="rock">Rock</option><option value="building">Building</option><option value="powerline">Powerline</option></select>
+        <input id="rwysurvey-obs-type-popup" list="rwysurvey-obs-type-options" type="text" placeholder="Obstacle type (search or type)" value="rock" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
+        <datalist id="rwysurvey-obs-type-options">
+          <option value="hill"></option>
+          <option value="tree"></option>
+          <option value="rock"></option>
+          <option value="building"></option>
+          <option value="powerline"></option>
+        </datalist>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" onclick="rwySurveySetObstacleType_('rock')" style="border:1px solid #ffe0b2; background:#fff3e0; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Rock</button>
+          <button type="button" onclick="rwySurveySetObstacleType_('tree')" style="border:1px solid #ffe0b2; background:#fff3e0; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Tree</button>
+          <button type="button" onclick="rwySurveySetObstacleType_('hill')" style="border:1px solid #ffe0b2; background:#fff3e0; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Hill</button>
+          <button type="button" onclick="rwySurveySetObstacleType_('powerline')" style="border:1px solid #ffe0b2; background:#fff3e0; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Powerline</button>
+          <button type="button" onclick="rwySurveySetObstacleType_('building')" style="border:1px solid #ffe0b2; background:#fff3e0; border-radius:999px; padding:4px 10px; font-size:0.75rem;">Building</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <select id="rwysurvey-obs-threshold-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;"></select>
+          <input id="rwysurvey-obs-distance-popup" type="number" min="1" step="1" inputmode="numeric" placeholder="Distance from threshold (m)" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
+        </div>
+        <select id="rwysurvey-obs-operation-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;">
+          <option value="auto">Operation: ask me at save</option>
+          <option value="landing">Operation: landing (threshold behind me)</option>
+          <option value="takeoff">Operation: takeoff (threshold in front of me)</option>
+        </select>
         <input id="rwysurvey-obs-a-popup" type="number" step="0.1" inputmode="decimal" placeholder="Obstacle angle (°)" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
         <button id="rwysurvey-open-inclinometer-btn" class="btn teal darken-2" onclick="rwyInclinometerOpenStandaloneTab_('rwysurvey-obs-a-popup', 'Salvar ângulo')">ABRIR CÂMERA</button>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button type="button" class="btn blue-grey darken-2" style="height:34px; line-height:34px;" onclick="openRunwaySurveyObstaclePhotoCapture_()">CAPTURE ANGLE PHOTO</button>
+          <div id="rwysurvey-obs-photo-status" style="font-size:0.75rem; color:#546e7a;">No angle photo selected.</div>
+        </div>
         <input id="rwysurvey-obs-notes-popup" type="text" placeholder="Notes (optional)" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
       </div>
       <div style="padding:10px 12px; border-top:1px solid #eceff1; display:flex; justify-content:flex-end; gap:8px;">
         <button onclick="closeRunwaySurveyObstaclePopup(false)" style="border:1px solid #cfd8dc; background:#fff; border-radius:6px; padding:7px 10px;">Done</button>
-        <button class="btn orange darken-2" style="height:34px; line-height:34px;" onclick="addRunwaySurveyObstacleAngle()">ADD ANGLE</button>
+        <button class="btn orange darken-2" style="height:34px; line-height:34px;" onclick="addRunwaySurveyObstacleAngle()">SAVE ANGLE + PHOTO</button>
       </div>
     </div>
   </div>
@@ -4222,6 +5018,7 @@
 
   <input id="rwysurvey-photo-capture-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="onRunwaySurveyPhotoInputChange(this, 'camera')" />
   <input id="rwysurvey-photo-library-input" type="file" accept="image/*" multiple style="display:none" onchange="onRunwaySurveyPhotoInputChange(this, 'library')" />
+  <input id="rwysurvey-obstacle-photo-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="onRunwaySurveyObstaclePhotoInputChange(this)" />
 
   <!-- Photo options action sheet -->
   <div id="rwysurvey-photo-sheet" style="display:none; position:fixed; inset:0; z-index:20000; background:rgba(0,0,0,0.45);" onclick="if(event.target===this)closeRunwaySurveyPhotoSheet();">
@@ -4241,6 +5038,55 @@
 
   function openTab1Inclinometer() {
     rwyInclinometerOpenStandaloneTab_('tab1-inclinometer-angle', 'Salvar ângulo');
+  }
+
+  const INCLINOMETER_HTML_CACHE_KEY = 'mba_cache_inclinometer_standalone_v1';
+
+  function rwyUpdateInclinometerCacheIndicator_() {
+    var el = document.getElementById('incl-cache-status');
+    if (!el) return;
+    var ready = !!rwyGetCachedStandaloneHtml_();
+    el.textContent = ready
+      ? 'Inclinometer offline cache: READY'
+      : 'Inclinometer offline cache: NOT READY (open once online)';
+    el.style.color = ready ? '#2e7d32' : '#ef6c00';
+  }
+
+  function rwyGetCachedStandaloneHtml_() {
+    try {
+      const raw = localStorage.getItem(INCLINOMETER_HTML_CACHE_KEY);
+      if (!raw) return '';
+      const parsed = JSON.parse(raw);
+      const html = parsed && typeof parsed.html === 'string' ? parsed.html : '';
+      return html && html.trim() ? html : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function rwySetCachedStandaloneHtml_(html) {
+    try {
+      const text = String(html || '');
+      if (!text.trim()) return;
+      localStorage.setItem(INCLINOMETER_HTML_CACHE_KEY, JSON.stringify({
+        savedAt: Date.now(),
+        html: text
+      }));
+      rwyUpdateInclinometerCacheIndicator_();
+    } catch (e) {}
+  }
+
+  function rwyLoadStandaloneHtmlIntoPopup_(popup, html, targetInputId, saveLabel) {
+    popup.document.open();
+    popup.document.write(String(html || ''));
+    popup.document.close();
+    try {
+      popup._incTargetInputId = String(targetInputId || 'angleInput');
+      popup._incSaveLabel = String(saveLabel || 'Save angle');
+      popup._incReturnUrl = String(window.location.href || WEB_APP_URL || '');
+      popup._incStorageKey = 'missionBriefing.inclinometerResult';
+    } catch(e2) {}
+    try { popup.focus(); } catch (e) {}
   }
 
   window.setInclinometerValue = function(value, targetInputId) {
@@ -4272,6 +5118,8 @@
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) rwyConsumeStandaloneInclinometerResult_();
   });
+  document.addEventListener('DOMContentLoaded', rwyUpdateInclinometerCacheIndicator_);
+  window.addEventListener('online', rwyUpdateInclinometerCacheIndicator_);
 
   function rwyInclinometerOpenStandaloneTab_(targetInputId, saveLabel) {
     rwyConsumeStandaloneInclinometerResult_();
@@ -4293,31 +5141,42 @@
       popup.document.close();
     } catch (e) {}
 
+    const cachedHtml = rwyGetCachedStandaloneHtml_();
+
     if (!google || !google.script || !google.script.run) {
+      if (cachedHtml) {
+        try {
+          rwyLoadStandaloneHtmlIntoPopup_(popup, cachedHtml, targetInputId, saveLabel);
+          if (window.M) M.toast({ html: 'Modo offline: inclinômetro carregado do cache.', classes: 'blue darken-2' });
+          return true;
+        } catch (e) {
+          try { popup.close(); } catch (e2) {}
+          if (window.M) M.toast({ html: 'Falha ao abrir inclinômetro offline.', classes: 'orange' });
+          return false;
+        }
+      }
       try { popup.close(); } catch (e) {}
-      if (window.M) M.toast({ html: 'google.script.run indisponível para abrir modo standalone.', classes: 'orange' });
+      if (window.M) M.toast({ html: 'Inclinômetro offline indisponível. Abra uma vez online para salvar cache.', classes: 'orange' });
       return false;
     }
 
     google.script.run
       .withSuccessHandler(function(html) {
         try {
-          popup.document.open();
-          popup.document.write(String(html || ''));
-          popup.document.close();
-          // Inject context so standalone can write back to correct input
-          try {
-            popup._incTargetInputId = String(targetInputId || 'angleInput');
-            popup._incSaveLabel = String(saveLabel || 'Save angle');
-            popup._incReturnUrl = String(window.location.href || WEB_APP_URL || '');
-            popup._incStorageKey = 'missionBriefing.inclinometerResult';
-          } catch(e2) {}
-          try { popup.focus(); } catch (e) {}
+          rwySetCachedStandaloneHtml_(html);
+          rwyLoadStandaloneHtmlIntoPopup_(popup, html, targetInputId, saveLabel);
         } catch (e) {
           if (window.M) M.toast({ html: 'Falha ao carregar HTML standalone no popup.', classes: 'orange' });
         }
       })
       .withFailureHandler(function(err) {
+        if (cachedHtml) {
+          try {
+            rwyLoadStandaloneHtmlIntoPopup_(popup, cachedHtml, targetInputId, saveLabel);
+            if (window.M) M.toast({ html: 'Backend offline. Inclinômetro aberto do cache.', classes: 'blue darken-2' });
+            return;
+          } catch (e2) {}
+        }
         try { popup.close(); } catch (e) {}
         if (window.M) M.toast({ html: 'Falha no backend ao abrir standalone: ' + (err && err.message ? err.message : 'erro'), classes: 'orange' });
       })
@@ -4707,7 +5566,9 @@
     },
     ui: {
       pausedByPopup: false,
-      activeObstaclePrompt: { corner: 'A', distanceM: 50 }
+      activeObstaclePrompt: { corner: 'A', distanceM: 50, fromThreshold: '', operation: 'landing', manual: false },
+      obstaclePhoto: null,
+      pendingObstacleSaveAfterPhoto: false
     },
     prompts: {
       a50Shown: false,
@@ -4762,6 +5623,15 @@
 
   function _rwySurveyMeasureDefaults_() {
     return { active: false, startIdx: -1, distanceM: 0 };
+  }
+
+  function _rwySurveyUiDefaults_() {
+    return {
+      pausedByPopup: false,
+      activeObstaclePrompt: { corner: 'A', distanceM: 50, fromThreshold: '', operation: 'landing', manual: false },
+      obstaclePhoto: null,
+      pendingObstacleSaveAfterPhoto: false
+    };
   }
 
   function _rwySurveyNormalizeThresholdIdent_(raw) {
@@ -4956,6 +5826,113 @@
     if (cancelled) renderRunwaySurveyActionButtons();
   }
 
+  function rwySurveySetFeatureType_(type) {
+    const el = document.getElementById('rwysurvey-feature-type-popup');
+    if (!el) return;
+    el.value = String(type || '').trim().toLowerCase();
+  }
+
+  function rwySurveyGetFeatureType_() {
+    const raw = String((document.getElementById('rwysurvey-feature-type-popup') || {}).value || '').trim().toLowerCase();
+    return raw.replace(/\s+/g, '_');
+  }
+
+  function rwySurveySetObstacleType_(type) {
+    const el = document.getElementById('rwysurvey-obs-type-popup');
+    if (!el) return;
+    el.value = String(type || '').trim().toLowerCase();
+  }
+
+  function rwySurveyGetObstacleType_() {
+    const raw = String((document.getElementById('rwysurvey-obs-type-popup') || {}).value || '').trim().toLowerCase();
+    return raw.replace(/\s+/g, '_');
+  }
+
+  function _rwySurveyObstaclePhotoStatusText_() {
+    const statusEl = document.getElementById('rwysurvey-obs-photo-status');
+    if (!statusEl) return;
+    const photo = runwaySurveyToolState.ui && runwaySurveyToolState.ui.obstaclePhoto ? runwaySurveyToolState.ui.obstaclePhoto : null;
+    if (!photo) {
+      statusEl.textContent = 'No angle photo selected.';
+      statusEl.style.color = '#546e7a';
+      return;
+    }
+    const status = String(photo.status || 'uploading');
+    const shortName = String(photo.name || '').slice(0, 44);
+    statusEl.textContent = 'Photo: ' + shortName + ' (' + status + ')';
+    statusEl.style.color = status === 'uploaded' ? '#2e7d32' : (status === 'failed' ? '#c62828' : '#546e7a');
+  }
+
+  function openRunwaySurveyObstaclePhotoCapture_() {
+    const input = document.getElementById('rwysurvey-obstacle-photo-input');
+    if (!input) return;
+    input.value = '';
+    input.click();
+  }
+
+  function _rwySurveyObstacleContextFromUi_() {
+    const state = runwaySurveyToolState;
+    const active = state.ui && state.ui.activeObstaclePrompt ? state.ui.activeObstaclePrompt : {};
+    const startThr = _rwySurveyGetActiveStartThreshold_() || state.rwyIdent || 'A';
+    const oppThr = _rwySurveyGetOppositeStartThreshold_() || _rwySurveyReciprocalIdent_(startThr);
+    const thresholdRaw = String((document.getElementById('rwysurvey-obs-threshold-popup') || {}).value || active.fromThreshold || startThr).trim().toUpperCase();
+    const distanceRaw = Number((document.getElementById('rwysurvey-obs-distance-popup') || {}).value);
+    const distanceM = isFinite(distanceRaw) ? Math.max(1, Math.round(distanceRaw)) : Math.max(1, Math.round(Number(active.distanceM || 50)));
+    const operationRaw = String((document.getElementById('rwysurvey-obs-operation-popup') || {}).value || active.operation || 'auto').trim().toLowerCase();
+    let operation = operationRaw;
+    if (operation === 'auto') {
+      if (distanceM <= 60) operation = 'landing';
+      else if (distanceM >= 250) operation = 'takeoff';
+      else operation = '';
+    }
+    const checkpointCorner = thresholdRaw === oppThr ? 'C' : 'A';
+    const thresholdRef = thresholdRaw === oppThr ? oppThr : startThr;
+    return {
+      fromThreshold: thresholdRef,
+      checkpointCorner: checkpointCorner,
+      checkpointDistanceM: distanceM,
+      operation: operation,
+      startThreshold: startThr,
+      oppositeThreshold: oppThr
+    };
+  }
+
+  function _rwySurveyBuildObstaclePhotoName_(ctx) {
+    const state = runwaySurveyToolState;
+    const icao = String(state.icao || 'XXXX').trim().toUpperCase() || 'XXXX';
+    const rwy = String(state.rwyIdent || 'RWY').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const thr = String(ctx && ctx.fromThreshold || state.rwyIdent || 'THR').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const now = new Date();
+    const y = String(now.getUTCFullYear());
+    const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(now.getUTCDate()).padStart(2, '0');
+    const hh = String(now.getUTCHours()).padStart(2, '0');
+    const mm = String(now.getUTCMinutes()).padStart(2, '0');
+    const ss = String(now.getUTCSeconds()).padStart(2, '0');
+    const dist = Math.max(1, Math.round(Number(ctx && ctx.checkpointDistanceM || 0)));
+    return _rwySurveyPhotoSafeName_(icao + '_' + y + m + d + '_' + hh + mm + ss + '_RWY' + rwy + '_THR' + thr + '_' + dist + 'M.jpg');
+  }
+
+  function onRunwaySurveyObstaclePhotoInputChange(input) {
+    try {
+      const files = input && input.files ? Array.from(input.files) : [];
+      if (!files.length) return;
+      const ctx = _rwySurveyObstacleContextFromUi_();
+      const forcedName = _rwySurveyBuildObstaclePhotoName_(ctx);
+      _rwySurveyUploadSelectedPhotos_(files.slice(0, 1), 'obstacle-angle', { forcedFileName: forcedName }).then(function(localRefs) {
+        const photo = Array.isArray(localRefs) && localRefs.length ? localRefs[0] : null;
+        runwaySurveyToolState.ui.obstaclePhoto = photo;
+        _rwySurveyObstaclePhotoStatusText_();
+        if (runwaySurveyToolState.ui.pendingObstacleSaveAfterPhoto) {
+          runwaySurveyToolState.ui.pendingObstacleSaveAfterPhoto = false;
+          addRunwaySurveyObstacleAngle();
+        }
+      });
+    } finally {
+      if (input) input.value = '';
+    }
+  }
+
   function openRunwaySurveyObstaclePopup(autoTriggered, cornerLabel, distanceM) {
     const gps = runwaySurveyToolState.gps || {};
     if (gps.tracking && !gps.paused) {
@@ -4970,11 +5947,53 @@
       c50Shown: false, c50Completed: false, c50Lat: null, c50Lon: null,
       c300Shown: false, c300Completed: false, c300Lat: null, c300Lon: null
     };
-    const corner = String(cornerLabel || 'A').trim().toUpperCase();
-    const dist = Math.max(1, Number(distanceM || 50));
-    const thresholdRef = _rwySurveyThresholdForCorner_(corner) || corner;
+    const state = runwaySurveyToolState;
+    const derived = _rwySurveyDerivedDimensions_();
+    const runwayLengthM = Math.max(1, Math.round(Number(derived.lengthM || state.lengthM || 0) || 1));
+    const startThr = _rwySurveyGetActiveStartThreshold_() || state.rwyIdent || 'A';
+    const oppThr = _rwySurveyGetOppositeStartThreshold_() || _rwySurveyReciprocalIdent_(startThr);
+    const manual = !(Number(distanceM || 0) > 0);
+    let corner = String(cornerLabel || 'A').trim().toUpperCase();
+    let dist = Math.max(1, Number(distanceM || 50));
+    let thresholdRef = _rwySurveyThresholdForCorner_(corner) || corner;
+    if (manual) {
+      const fix = gps.current;
+      const per = state.perimeter || {};
+      const marks = Array.isArray(per.cornerMarks) ? per.cornerMarks : [];
+      const origin = marks.length ? marks[0] : state.thresholdA;
+      let heading = Number(state.headingDeg || 0);
+      if (marks.length >= 2) {
+        const a = marks[0], b = marks[1];
+        const dy = Number(b.lat || 0) - Number(a.lat || 0);
+        const dx = Number(b.lon || 0) - Number(a.lon || 0);
+        heading = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+      }
+      let along = 0;
+      if (fix && origin) {
+        along = Math.max(0, Math.min(runwayLengthM, _rwySurveyProjectAlongAxisM_(fix.lat, fix.lon, origin.lat, origin.lon, heading)));
+      }
+      if (along > (runwayLengthM / 2)) {
+        corner = 'C';
+        thresholdRef = oppThr;
+        dist = Math.round(runwayLengthM - along);
+      } else {
+        corner = 'A';
+        thresholdRef = startThr;
+        dist = Math.round(along);
+      }
+      dist = Math.max(1, dist || 1);
+    }
+    thresholdRef = String(thresholdRef || startThr).trim().toUpperCase();
     const mode = dist >= 300 ? 'takeoff' : 'landing';
-    runwaySurveyToolState.ui.activeObstaclePrompt = { corner: corner, distanceM: dist };
+    runwaySurveyToolState.ui.activeObstaclePrompt = {
+      corner: corner,
+      distanceM: dist,
+      fromThreshold: thresholdRef,
+      operation: mode,
+      manual: manual
+    };
+    runwaySurveyToolState.ui.obstaclePhoto = null;
+    runwaySurveyToolState.ui.pendingObstacleSaveAfterPhoto = false;
     const titleEl = document.getElementById('rwysurvey-obstacle-title');
     if (titleEl) titleEl.textContent = 'Obstacle Angles @ ' + dist + 'm from THR ' + thresholdRef;
     const context = document.getElementById('rwysurvey-obstacle-context');
@@ -4990,6 +6009,27 @@
     }
     const inclBtn = document.getElementById('rwysurvey-open-inclinometer-btn');
     if (inclBtn) inclBtn.textContent = 'INCLINÔMETRO ' + dist + 'M';
+    const thresholdSel = document.getElementById('rwysurvey-obs-threshold-popup');
+    if (thresholdSel) {
+      const opts = '<option value="' + startThr + '">' + startThr + '</option><option value="' + oppThr + '">' + oppThr + '</option>';
+      thresholdSel.innerHTML = opts;
+      thresholdSel.value = thresholdRef === oppThr ? oppThr : startThr;
+      thresholdSel.disabled = !!autoTriggered;
+    }
+    const distInput = document.getElementById('rwysurvey-obs-distance-popup');
+    if (distInput) {
+      distInput.value = String(Math.max(1, Math.round(dist)));
+      distInput.readOnly = !!autoTriggered;
+    }
+    const opSel = document.getElementById('rwysurvey-obs-operation-popup');
+    if (opSel) {
+      opSel.value = autoTriggered ? mode : (manual ? 'auto' : mode);
+    }
+    if (document.getElementById('rwysurvey-obs-type-popup')) {
+      const current = rwySurveyGetObstacleType_();
+      if (!current) rwySurveySetObstacleType_('rock');
+    }
+    _rwySurveyObstaclePhotoStatusText_();
     const popup = document.getElementById('rwysurvey-obstacle-popup');
     if (popup) popup.style.display = 'block';
     renderRunwaySurveyA50Status();
@@ -5175,13 +6215,15 @@
     });
   }
 
-  async function _rwySurveyUploadSelectedPhotos_(files, source) {
+  async function _rwySurveyUploadSelectedPhotos_(files, source, options) {
     const state = runwaySurveyToolState;
     const icao = String(state.icao || '').trim().toUpperCase();
     const rwy = String(state.rwyIdent || '').trim().toUpperCase();
+    const opts = options && typeof options === 'object' ? options : {};
+    const createdRefs = [];
     if (!icao) {
       if (window.M) M.toast({ html: 'Select airport first', classes: 'orange' });
-      return;
+      return createdRefs;
     }
 
     for (let i = 0; i < files.length; i++) {
@@ -5200,7 +6242,7 @@
         const stamp = ts.toISOString().replace(/[.:]/g, '-');
         const originalName = _rwySurveyPhotoSafeName_(file.name || ('photo_' + stamp + '.jpg'));
         const rwyTag = rwy ? rwy.replace(/\//g, '-') + '_' : '';
-        const fileName = icao + '_' + rwyTag + stamp + '_' + originalName;
+        const fileName = String((i === 0 && opts.forcedFileName) ? opts.forcedFileName : (icao + '_' + rwyTag + stamp + '_' + originalName));
 
         const localRef = {
           name: fileName,
@@ -5210,6 +6252,7 @@
           sizeKb: Math.round((base64Data.length * 3 / 4) / 1024)
         };
         state.photos.push(localRef);
+        createdRefs.push(localRef);
         renderRunwaySurveyPhotoList();
 
         window.runOrQueueServerAction({
@@ -5249,6 +6292,7 @@
         if (window.M) M.toast({ html: 'Photo skipped: ' + (e && e.message ? e.message : 'read error'), classes: 'orange' });
       }
     }
+    return createdRefs;
   }
 
   function renderRunwaySurveyPhotoList() {
@@ -5736,7 +6780,7 @@
     runwaySurveyToolState.cutdownAreas = { thrA: null, thrB: null };
     runwaySurveyToolState.perimeter = _rwySurveyPerimeterDefaults_();
     runwaySurveyToolState.capture = _rwySurveyCaptureDefaults_();
-    runwaySurveyToolState.ui = { pausedByPopup: false, activeObstaclePrompt: { corner: 'A', distanceM: 50 } };
+    runwaySurveyToolState.ui = _rwySurveyUiDefaults_();
     runwaySurveyToolState.prompts = {
       a50Shown: false, a50Completed: false, a50Lat: null, a50Lon: null,
       a300Shown: false, a300Completed: false, a300Lat: null, a300Lon: null,
@@ -6688,8 +7732,12 @@
       return;
     }
 
-    const type = String((document.getElementById('rwysurvey-feature-type-popup') || {}).value || '').trim();
+    const type = rwySurveyGetFeatureType_();
     const side = String((document.getElementById('rwysurvey-feature-side-popup') || {}).value || 'right').trim().toLowerCase();
+    if (!type) {
+      if (window.M) M.toast({ html: 'Select or type a feature type', classes: 'orange' });
+      return;
+    }
     const per = runwaySurveyToolState.perimeter || {};
     const marks = Array.isArray(per.cornerMarks) ? per.cornerMarks : [];
     const origin = marks.length ? marks[0] : runwaySurveyToolState.thresholdA;
@@ -6749,7 +7797,7 @@
   }
 
   function addRunwaySurveyObstacleAngle() {
-    const type = String((document.getElementById('rwysurvey-obs-type-popup') || {}).value || '').trim();
+    const type = rwySurveyGetObstacleType_();
     const a = Number((document.getElementById('rwysurvey-obs-a-popup') || {}).value);
     const notes = String((document.getElementById('rwysurvey-obs-notes-popup') || {}).value || '').trim();
     if (!type) return;
@@ -6757,27 +7805,48 @@
       if (window.M) M.toast({ html: 'Enter valid obstacle angle', classes: 'orange' });
       return;
     }
-    const active = runwaySurveyToolState.ui && runwaySurveyToolState.ui.activeObstaclePrompt ? runwaySurveyToolState.ui.activeObstaclePrompt : { corner: 'A', distanceM: 50 };
-    const thresholdRef = _rwySurveyThresholdForCorner_(active.corner) || active.corner;
-    const operation = Number(active.distanceM || 0) >= 300 ? 'takeoff' : 'landing';
+    const obsCtx = _rwySurveyObstacleContextFromUi_();
+    if (!obsCtx.operation) {
+      if (window.M) M.toast({ html: 'Choose landing or takeoff for non-50m/300m obstacle entries', classes: 'orange' });
+      return;
+    }
+    const photoRef = runwaySurveyToolState.ui && runwaySurveyToolState.ui.obstaclePhoto ? runwaySurveyToolState.ui.obstaclePhoto : null;
+    if (!photoRef) {
+      runwaySurveyToolState.ui.pendingObstacleSaveAfterPhoto = true;
+      if (window.M) M.toast({ html: 'Capture obstacle photo before saving angle', classes: 'blue' });
+      openRunwaySurveyObstaclePhotoCapture_();
+      return;
+    }
     runwaySurveyToolState.obstacleAngles50m.push({
       type: type,
       angleDeg: isFinite(a) ? a : null,
       fromThrA50mDeg: isFinite(a) ? a : null,
       fromThrB50mDeg: null,
-      fromThreshold: thresholdRef,
-      operation: operation,
-      checkpointCorner: active.corner,
-      checkpointDistanceM: Number(active.distanceM || 50),
-      notes: notes
+      fromThreshold: obsCtx.fromThreshold,
+      operation: obsCtx.operation,
+      checkpointCorner: obsCtx.checkpointCorner,
+      checkpointDistanceM: Number(obsCtx.checkpointDistanceM || 50),
+      notes: notes,
+      photo: {
+        name: String(photoRef.name || ''),
+        status: String(photoRef.status || ''),
+        url: String(photoRef.url || ''),
+        fileId: String(photoRef.fileId || ''),
+        source: String(photoRef.source || ''),
+        queuedAt: String(photoRef.queuedAt || '')
+      }
     });
     if (document.getElementById('rwysurvey-obs-a-popup')) document.getElementById('rwysurvey-obs-a-popup').value = '';
     if (document.getElementById('rwysurvey-obs-notes-popup')) document.getElementById('rwysurvey-obs-notes-popup').value = '';
-    if (active.corner === 'A' && active.distanceM >= 300) runwaySurveyToolState.prompts.a300Completed = true;
-    else if (active.corner === 'A') runwaySurveyToolState.prompts.a50Completed = true;
-    else if (active.corner === 'C' && active.distanceM >= 300) runwaySurveyToolState.prompts.c300Completed = true;
-    else runwaySurveyToolState.prompts.c50Completed = true;
-    _rwySurveyLogEvent_('mark', active.corner + active.distanceM + ' obstacle angle added: ' + type, { angle: a });
+    const checkpointDistance = Number(obsCtx.checkpointDistanceM || 0);
+    if (obsCtx.checkpointCorner === 'A' && checkpointDistance >= 250) runwaySurveyToolState.prompts.a300Completed = true;
+    else if (obsCtx.checkpointCorner === 'A' && checkpointDistance <= 100) runwaySurveyToolState.prompts.a50Completed = true;
+    else if (obsCtx.checkpointCorner === 'C' && checkpointDistance >= 250) runwaySurveyToolState.prompts.c300Completed = true;
+    else if (obsCtx.checkpointCorner === 'C' && checkpointDistance <= 100) runwaySurveyToolState.prompts.c50Completed = true;
+    _rwySurveyLogEvent_('mark', obsCtx.checkpointCorner + checkpointDistance + ' obstacle angle added: ' + type, { angle: a, operation: obsCtx.operation });
+    runwaySurveyToolState.ui.obstaclePhoto = null;
+    runwaySurveyToolState.ui.pendingObstacleSaveAfterPhoto = false;
+    _rwySurveyObstaclePhotoStatusText_();
     renderRunwaySurveyObstacleList();
     renderRunwaySurveyA50Status();
     if (window.M) M.toast({ html: 'Obstacle angle saved', classes: 'green' });
@@ -6985,6 +8054,37 @@
     const cutdownRaw = (document.getElementById('rwysurvey-cutdown') || {}).value;
     const cutdownM = cutdownRaw !== '' && !isNaN(Number(cutdownRaw)) ? Number(cutdownRaw) : null;
     const derived = _rwySurveyDerivedDimensions_();
+    const marks = (state.perimeter && Array.isArray(state.perimeter.cornerMarks)) ? state.perimeter.cornerMarks : [];
+    const submitThresholdA = Object.assign({}, state.thresholdA || {});
+    const submitThresholdB = Object.assign({}, state.thresholdB || {});
+    const aLatValid = isFinite(Number(submitThresholdA.lat));
+    const aLonValid = isFinite(Number(submitThresholdA.lon));
+    if ((!aLatValid || !aLonValid) && marks.length) {
+      submitThresholdA.ident = state.rwyIdent;
+      submitThresholdA.lat = Number(marks[0].lat || 0);
+      submitThresholdA.lon = Number(marks[0].lon || 0);
+    }
+    const effectiveLengthM = Math.max(0, Math.round(derived.lengthM || state.lengthM || state.official.lengthM || 0));
+    const hasA = isFinite(Number(submitThresholdA.lat)) && isFinite(Number(submitThresholdA.lon));
+    const hasB = isFinite(Number(submitThresholdB.lat)) && isFinite(Number(submitThresholdB.lon));
+    const aToBM = (hasA && hasB) ? _rwySurveyDistanceMetersBetween_(submitThresholdA, submitThresholdB) : 0;
+    const shouldRebuildB = hasA && effectiveLengthM > 0 && (!hasB || aToBM < Math.max(10, effectiveLengthM * 0.2));
+    if (shouldRebuildB) {
+      let heading = Number(state.headingDeg || 0);
+      if (marks.length >= 2) {
+        const a = marks[0], b = marks[1];
+        const dy = Number(b.lat || 0) - Number(a.lat || 0);
+        const dx = Number(b.lon || 0) - Number(a.lon || 0);
+        heading = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+      }
+      const br = _rwySurveyDeg2Rad_(heading);
+      const east = Math.sin(br) * effectiveLengthM;
+      const north = Math.cos(br) * effectiveLengthM;
+      const thrBpt = _rwySurveyMetersToLatLon_(Number(submitThresholdA.lat || 0), Number(submitThresholdA.lon || 0), east, north);
+      submitThresholdB.ident = _rwySurveyReciprocalIdent_(state.rwyIdent);
+      submitThresholdB.lat = Number(thrBpt.lat || 0);
+      submitThresholdB.lon = Number(thrBpt.lon || 0);
+    }
     const gps = state.gps || {};
     const payload = {
       icao: state.icao,
@@ -7047,7 +8147,7 @@
           };
         }) : [],
         axis: { headingDeg: state.headingDeg || 0, lengthM: Math.round(derived.lengthM || state.lengthM || 0) },
-        thresholds: { a: state.thresholdA || {}, b: state.thresholdB || {} },
+        thresholds: { a: submitThresholdA, b: submitThresholdB },
         thresholdReference: { start: state.startThresholdIdent || state.rwyIdent, opposite: state.reciprocalThresholdIdent || _rwySurveyReciprocalIdent_(state.rwyIdent) },
         notes: notes,
         gpsSummary: {
@@ -7123,7 +8223,7 @@
     const oppThr = _rwySurveyGetOppositeStartThreshold_() || _rwySurveyReciprocalIdent_(startThr);
     const slopeSegments = Array.isArray(state.slopeSegments) && state.slopeSegments.length
       ? state.slopeSegments.slice()
-      : [{ distanceM: runwayLengthM, slope: Number(state.headingDeg ? 0 : 0) }];
+      : [{ startDistanceM: 0, distanceM: runwayLengthM, slope: 0, fromThreshold: startThr }];
 
     const modal = document.createElement('div');
     modal.id = 'rwy-diagram-preview-modal';
@@ -7223,8 +8323,15 @@
     const sideY = 212;
     const sideH = 80;
     const profile = slopeSegments.map(function(seg) {
-      const start = Math.max(0, Math.min(runwayLengthM, Number(seg && seg.startDistanceM || 0)));
-      const distance = Math.max(0, Number(seg && seg.distanceM || 0));
+      const segDist = Math.max(0, Number(seg && (seg.distanceM != null ? seg.distanceM : seg.distance) || 0));
+      const segFromThreshold = String(seg && seg.fromThreshold || startThr).trim().toUpperCase();
+      const rawStart = Number(seg && seg.startDistanceM);
+      let start = isFinite(rawStart) ? rawStart : 0;
+      if (!isFinite(rawStart)) {
+        start = segFromThreshold === oppThr ? Math.max(0, runwayLengthM - segDist) : 0;
+      }
+      start = Math.max(0, Math.min(runwayLengthM, start));
+      const distance = segDist;
       const end = Math.max(start, Math.min(runwayLengthM, start + distance));
       return {
         startDistanceM: start,
@@ -7287,16 +8394,17 @@
     const endAnchorX = { left: sideX - 34, right: sideX + runwayPx + 34 };
     const endStacks = { left: 0, right: 0 };
 
-    const drawObstacleShape_ = function(type, anchorX, anchorY, sideDir) {
+    const drawObstacleShape_ = function(type, anchorX, anchorY, sideDir, container) {
       const t = String(type || '').toLowerCase();
+      const c = container || svg;
       if (t.indexOf('tree') >= 0) {
-        svg.appendChild(makeEl('text', { x: anchorX - (sideDir * 10), y: anchorY + 4, 'font-size': 12, 'text-anchor': 'middle' }, '🌳'));
-        svg.appendChild(makeEl('text', { x: anchorX, y: anchorY + 4, 'font-size': 12, 'text-anchor': 'middle' }, '🌳'));
-        svg.appendChild(makeEl('text', { x: anchorX + (sideDir * 10), y: anchorY + 4, 'font-size': 12, 'text-anchor': 'middle' }, '🌳'));
+        c.appendChild(makeEl('text', { x: anchorX - (sideDir * 10), y: anchorY + 4, 'font-size': 12, 'text-anchor': 'middle' }, '🌳'));
+        c.appendChild(makeEl('text', { x: anchorX, y: anchorY + 4, 'font-size': 12, 'text-anchor': 'middle' }, '🌳'));
+        c.appendChild(makeEl('text', { x: anchorX + (sideDir * 10), y: anchorY + 4, 'font-size': 12, 'text-anchor': 'middle' }, '🌳'));
         return;
       }
       if (t.indexOf('hill') >= 0) {
-        svg.appendChild(makeEl('path', {
+        c.appendChild(makeEl('path', {
           d: 'M' + (anchorX - 18) + ',' + (anchorY + 10)
             + ' L' + (anchorX - 6) + ',' + (anchorY - 4)
             + ' L' + anchorX + ',' + (anchorY + 2)
@@ -7308,21 +8416,24 @@
         }));
         return;
       }
-      svg.appendChild(makeEl('text', { x: anchorX, y: anchorY + 4, 'font-size': 13, 'text-anchor': 'middle' }, iconForObstacle(t)));
+      c.appendChild(makeEl('text', { x: anchorX, y: anchorY + 4, 'font-size': 13, 'text-anchor': 'middle' }, iconForObstacle(t)));
     };
 
-    obstacles.forEach(function(obs) {
-      const corner = String(obs && obs.checkpointCorner || 'A').toUpperCase();
-      const distM = Math.max(0, Math.min(runwayLengthM, Number(obs && obs.checkpointDistanceM || 0)));
+    obstacles.forEach(function(obs, obsIdx) {
+      const obsGroup = makeEl('g', { id: 'pilotObsGrp_' + obsIdx });
+      const cornerRaw = String(obs && obs.checkpointCorner || 'A').toUpperCase();
+      const fromThreshold = String(obs && obs.fromThreshold || '').trim().toUpperCase();
+      const corner = fromThreshold === oppThr ? 'C' : (fromThreshold === startThr ? 'A' : cornerRaw);
+      const distM = Math.max(0, Math.min(runwayLengthM, Number(obs && (obs.checkpointDistanceM != null ? obs.checkpointDistanceM : obs.distanceM) || 0)));
       const fromA = corner === 'C' ? (runwayLengthM - distM) : distM;
       const baseX = sideX + (fromA * scale);
       const baseY = yForDist(fromA);
-      const operation = Number(distM) >= 300 ? 'takeoff' : 'landing';
+      const operation = String(obs && obs.operation || '').toLowerCase() || (Number(distM) >= 300 ? 'takeoff' : 'landing');
       const dir = corner === 'C'
         ? (operation === 'landing' ? 1 : -1)
         : (operation === 'landing' ? -1 : 1);
       const sideKey = dir > 0 ? 'right' : 'left';
-      const rawAngle = Math.max(0, Number(obs && (obs.angleDeg != null ? obs.angleDeg : obs.fromThrA50mDeg) || 0));
+      const rawAngle = Math.max(0, Number(obs && (obs.angleDeg != null ? obs.angleDeg : (obs.fromThrA50mDeg != null ? obs.fromThrA50mDeg : obs.fromThrB50mDeg)) || 0));
       const angle = Math.min(45, rawAngle);
       const rad = angle * Math.PI / 180;
       const stackIndex = endStacks[sideKey]++;
@@ -7331,11 +8442,11 @@
       const tipY = Math.min(baseY - 8, anchorY + (Math.abs(anchorX - baseX) * Math.tan(rad)));
       const thr = String(obs && obs.fromThreshold || _rwySurveyThresholdForCorner_(corner) || (corner === 'C' ? oppThr : startThr));
 
-      svg.appendChild(makeEl('circle', { cx: baseX, cy: baseY, r: 2.2, fill: '#37474f' }));
-      svg.appendChild(makeEl('line', { x1: baseX, y1: baseY, x2: anchorX, y2: tipY, stroke: '#ef6c00', 'stroke-width': 2.2 }));
-      svg.appendChild(makeEl('circle', { cx: anchorX, cy: tipY, r: 1.7, fill: '#ef6c00' }));
-      drawObstacleShape_(obs && obs.type, anchorX, anchorY, dir);
-      svg.appendChild(makeEl('text', {
+      obsGroup.appendChild(makeEl('circle', { cx: baseX, cy: baseY, r: 2.2, fill: '#37474f' }));
+      obsGroup.appendChild(makeEl('line', { x1: baseX, y1: baseY, x2: anchorX, y2: tipY, stroke: '#ef6c00', 'stroke-width': 2.2 }));
+      obsGroup.appendChild(makeEl('circle', { cx: anchorX, cy: tipY, r: 1.7, fill: '#ef6c00' }));
+      drawObstacleShape_(obs && obs.type, anchorX, anchorY, dir, obsGroup);
+      obsGroup.appendChild(makeEl('text', {
         x: anchorX,
         y: anchorY + 18,
         'font-size': 8,
@@ -7343,13 +8454,14 @@
         'text-anchor': 'middle',
         'font-weight': '700'
       }, Math.round(distM) + 'm • ' + rawAngle.toFixed(1) + '°'));
-      svg.appendChild(makeEl('text', {
+      obsGroup.appendChild(makeEl('text', {
         x: anchorX,
         y: anchorY + 28,
         'font-size': 7.5,
         fill: '#546e7a',
         'text-anchor': 'middle'
       }, thr + ' ' + operation));
+      svg.appendChild(obsGroup);
     });
 
     normalizedProfile.forEach(function(seg) {
@@ -7359,13 +8471,40 @@
     });
 
     body.appendChild(summary);
-    body.appendChild(svg);
+
+    // Build flex row: SVG + obstacle checklist panel
+    const normThrPilot = function(raw) {
+      const txt = String(raw || '').trim().toUpperCase().replace(/^RWY\s*/, '');
+      const m = txt.match(/^(\d{1,2})([LCR])?$/);
+      if (!m) return txt;
+      const n = parseInt(m[1], 10);
+      if (!isFinite(n) || n < 1 || n > 36) return txt;
+      return String(n).padStart(2, '0') + (m[2] || '');
+    };
+    const diagramRow = document.createElement('div');
+    diagramRow.style.cssText = 'display:flex; gap:10px; align-items:flex-start;';
+    diagramRow.appendChild(svg);
+    if (obstacles.length) {
+      const obsPanel = document.createElement('div');
+      obsPanel.style.cssText = 'border:1px solid #e0e6eb; border-radius:8px; padding:8px 10px; background:#fafefe; min-width:150px; max-width:185px; flex-shrink:0; font-size:0.8rem;';
+      obsPanel.innerHTML = '<div style="font-weight:800; color:#0b5394; margin-bottom:6px; font-size:0.78rem;">Obstacle Angles</div>'
+        + obstacles.map(function(obs, idx) {
+          const dist = Math.round(Number(obs && obs.checkpointDistanceM || 0));
+          const thr = normThrPilot(obs && obs.fromThreshold || '') || startThr;
+          const operation = String(obs && obs.operation || '').toLowerCase() || (dist >= 300 ? 'takeoff' : 'landing');
+          const label = 'RWY ' + thr + ' \u00b7 ' + dist + 'm \u00b7 ' + operation;
+          return '<label style="display:flex;align-items:center;gap:4px;margin-bottom:4px;cursor:pointer;white-space:nowrap;">'
+            + '<input type="checkbox" checked onchange="_pilotObsToggle_(this,' + idx + ')">'
+            + '<span>' + label + '</span></label>';
+        }).join('');
+      diagramRow.appendChild(obsPanel);
+    }
+    body.appendChild(diagramRow);
 
     const footer = document.createElement('div');
     footer.style.cssText = 'display:grid; gap:6px; font-size:0.82rem; color:#37474f;';
     footer.innerHTML = ''
-      + '<div style="background:#eef6ff; border-left:4px solid #1976d2; padding:8px 10px; border-radius:6px;">Features: ' + (features.length || 0) + ' • Obstacles: ' + (obstacles.length || 0) + ' • Slope segments: ' + (slopeSegments.length || 0) + '</div>'
-      + '<div style="background:#f9fbfc; border:1px solid #e0e6eb; padding:8px 10px; border-radius:6px;">Obstacles are shown only in side view, off the runway ends. For ' + startThr + ': +50m vectors point back for landing clearance, +300m point ahead for takeoff climb. Opposite threshold follows mirrored logic.</div>';
+      + '<div style="background:#eef6ff; border-left:4px solid #1976d2; padding:8px 10px; border-radius:6px;">Features: ' + (features.length || 0) + ' • Obstacles: ' + (obstacles.length || 0) + ' • Slope segments: ' + (slopeSegments.length || 0) + '</div>';
     body.appendChild(footer);
 
     content.appendChild(header);
@@ -7379,6 +8518,11 @@
     const modal = document.getElementById('rwy-diagram-preview-modal');
     if (modal) modal.remove();
   }
+
+  window._pilotObsToggle_ = function(cb, idx) {
+    var g = document.getElementById('pilotObsGrp_' + idx);
+    if (g) g.style.display = cb.checked ? '' : 'none';
+  };
 
   </script>
 
