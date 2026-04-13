@@ -1760,25 +1760,75 @@ function wbBuildOfflinePayload_(flightId) {
   const aircraftReg = String(mission.acft || '').trim();
   const pilotName = String(mission.pilot || '').trim();
   const aircraftObj = wbFindAircraft_(aircraftReg) || {};
+  const wbTemplate = (function() {
+    const target = String(aircraftReg || '').trim().toUpperCase();
+    if (!target) return null;
+    try {
+      const keys = Object.keys(localStorage || {});
+      for (let i = 0; i < keys.length; i++) {
+        const key = String(keys[i] || '');
+        if (!key.startsWith('mba_cache_wb_')) continue;
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        const payload = parsed && parsed.payload ? parsed.payload : null;
+        if (!payload) continue;
+        if (String(payload.aircraft || '').trim().toUpperCase() !== target) continue;
+        if (!payload.seats || !payload.items) continue;
+        return payload;
+      }
+    } catch (e) {}
+    return null;
+  })();
 
-  const emptyArm = wbNum_(aircraftObj.emptyArm, 47);
-  const mtow = wbNum_(aircraftObj.mtow, 1600);
-  const emptyWeight = wbNum_(aircraftObj.emptyWeight, 1000);
-  const fuelBurn = wbNum_(aircraftObj.burn, 60);
+  const emptyArm = wbNum_(wbTemplate && wbTemplate.airframeData && wbTemplate.airframeData.Empty_Arm, wbNum_(aircraftObj.emptyArm, 47));
+  const mtow = wbNum_(wbTemplate && wbTemplate.airframeData && wbTemplate.airframeData.MTOW, wbNum_(aircraftObj.mtow, 1600));
+  const emptyWeight = wbNum_(wbTemplate && wbTemplate.airframeData && wbTemplate.airframeData.Empty_Weight, wbNum_(aircraftObj.emptyWeight, 1000));
+  const fuelBurn = wbNum_(wbTemplate && wbTemplate.airframeData && wbTemplate.airframeData.Fuel_Burn_Per_Hour, wbNum_(aircraftObj.burn, 60));
   const pilotArm = Math.max(30, emptyArm - 9);
-  const fuelArm = emptyArm;
+  const fuelArm = wbNum_(wbTemplate && wbTemplate.fuelArm, emptyArm);
   const midArm = pilotArm + 28;
   const aftArm = midArm + 22;
   const cargoArm = aftArm + 16;
 
-  const seatDefs = [
-    { key: 'pilot', label: 'Pilot Seat', arm: pilotArm, seatWeight: wbNum_(aircraftObj.pilotSeat, 13), locked: true },
-    { key: 'copilot', label: 'Copilot Seat', arm: pilotArm, seatWeight: wbNum_(aircraftObj.pilotSeat, 13), locked: false },
-    { key: 'lh-mid', label: 'LH Mid Seat', arm: midArm, seatWeight: wbNum_(aircraftObj.midSeat, 11), locked: false },
-    { key: 'rh-mid', label: 'RH Mid Seat', arm: midArm, seatWeight: wbNum_(aircraftObj.midSeat, 11), locked: false },
-    { key: 'lh-aft', label: 'LH Aft Seat', arm: aftArm, seatWeight: wbNum_(aircraftObj.aftSeat, 10), locked: false },
-    { key: 'rh-aft', label: 'RH Aft Seat', arm: aftArm, seatWeight: wbNum_(aircraftObj.aftSeat, 10), locked: false }
-  ];
+  const seatDefs = (function() {
+    if (wbTemplate && wbTemplate.seats && typeof wbTemplate.seats === 'object') {
+      const knownOrder = ['pilot', 'copilot', 'rh-mid', 'lh-mid', 'rh-aft', 'lh-aft'];
+      const defs = Object.keys(wbTemplate.seats).map(function(seatName) {
+        const seat = wbTemplate.seats[seatName] || {};
+        const key = String(seat.seatId || seatName || '').trim();
+        const seatNameNorm = String(seatName || '').trim().toUpperCase();
+        const keyNorm = String(key || '').trim().toLowerCase();
+        const isPilot = (keyNorm === 'pilot') || /^PILOT\b/.test(seatNameNorm);
+        return {
+          key: key || String(seatName || '').trim().toLowerCase().replace(/\s+/g, '-'),
+          label: String(seatName || seat.label || 'Seat'),
+          arm: wbNum_(seat.arm, pilotArm),
+          seatWeight: wbNum_(seat.weight, wbNum_(aircraftObj.pilotSeat, 12)),
+          locked: !!(seat.locked || isPilot)
+        };
+      }).filter(function(def) { return !!def.key; });
+
+      defs.sort(function(a, b) {
+        const ai = knownOrder.indexOf(String(a.key || '').toLowerCase());
+        const bi = knownOrder.indexOf(String(b.key || '').toLowerCase());
+        const sa = ai >= 0 ? ai : 999;
+        const sb = bi >= 0 ? bi : 999;
+        if (sa !== sb) return sa - sb;
+        return String(a.label || '').localeCompare(String(b.label || ''));
+      });
+      if (defs.length >= 2) return defs;
+    }
+
+    return [
+      { key: 'pilot', label: 'Pilot Seat', arm: pilotArm, seatWeight: wbNum_(aircraftObj.pilotSeat, 13), locked: true },
+      { key: 'copilot', label: 'Copilot Seat', arm: pilotArm, seatWeight: wbNum_(aircraftObj.pilotSeat, 13), locked: false },
+      { key: 'lh-mid', label: 'LH Mid Seat', arm: midArm, seatWeight: wbNum_(aircraftObj.midSeat, 11), locked: false },
+      { key: 'rh-mid', label: 'RH Mid Seat', arm: midArm, seatWeight: wbNum_(aircraftObj.midSeat, 11), locked: false },
+      { key: 'lh-aft', label: 'LH Aft Seat', arm: aftArm, seatWeight: wbNum_(aircraftObj.aftSeat, 10), locked: false },
+      { key: 'rh-aft', label: 'RH Aft Seat', arm: aftArm, seatWeight: wbNum_(aircraftObj.aftSeat, 10), locked: false }
+    ];
+  })();
 
   const rawPax = Array.isArray(leg.pax) ? leg.pax : [];
   const paxList = rawPax
@@ -1894,22 +1944,34 @@ function wbBuildOfflinePayload_(flightId) {
   });
   freightList.forEach(function(item) { cargoManifest.push(item); });
 
-  const cargoAreas = [
-    { id: 'cargo_a', name: 'Cargo A', arm: cargoArm - 10, maxWeightKg: 90, maxWeightLbs: 198 },
-    { id: 'cargo_b', name: 'Cargo B', arm: cargoArm, maxWeightKg: 110, maxWeightLbs: 243 },
-    { id: 'cargo_c', name: 'Cargo C', arm: cargoArm + 10, maxWeightKg: 90, maxWeightLbs: 198 }
-  ];
+  const cargoAreas = (function() {
+    if (wbTemplate && Array.isArray(wbTemplate.cargoAreas) && wbTemplate.cargoAreas.length) {
+      return wbTemplate.cargoAreas.map(function(area) {
+        return {
+          id: String(area && area.id || '').trim() || ('cargo_' + Math.random().toString(36).slice(2, 6)),
+          name: String(area && area.name || 'Cargo').trim(),
+          arm: wbNum_(area && area.arm, cargoArm),
+          maxWeightKg: wbNum_(area && area.maxWeightKg, 0),
+          maxWeightLbs: wbNum_(area && area.maxWeightLbs, 0)
+        };
+      });
+    }
+    return [
+      { id: 'cargo_a', name: 'Cargo A', arm: cargoArm - 10, maxWeightKg: 90, maxWeightLbs: 198 },
+      { id: 'cargo_b', name: 'Cargo B', arm: cargoArm, maxWeightKg: 110, maxWeightLbs: 243 },
+      { id: 'cargo_c', name: 'Cargo C', arm: cargoArm + 10, maxWeightKg: 90, maxWeightLbs: 198 }
+    ];
+  })();
 
-  const cargoAreaWeights = {
-    cargo_a: { planned: 0, actual: 0 },
-    cargo_b: { planned: 0, actual: 0 },
-    cargo_c: { planned: 0, actual: 0 }
-  };
+  const cargoAreaWeights = {};
+  cargoAreas.forEach(function(area) {
+    cargoAreaWeights[area.id] = { planned: 0, actual: 0 };
+  });
   const plannedCargo = cargoManifest.reduce(function(sum, c) {
     return sum + wbNum_(c.actualWeight, wbNum_(c.plannedWeight, 0));
   }, 0);
-  if (plannedCargo > 0) {
-    cargoAreaWeights.cargo_a = { planned: plannedCargo, actual: plannedCargo };
+  if (plannedCargo > 0 && cargoAreas.length) {
+    cargoAreaWeights[cargoAreas[0].id] = { planned: plannedCargo, actual: plannedCargo };
   }
 
   const fuelLiters = wbNum_(leg.takeoffFuel, wbNum_(leg.fuel, 0));
@@ -2231,10 +2293,7 @@ window.calculateWB = function() {
     const seatArm = wbNum_(seat && seat.arm, 0);
     if (!(seatWeight > 0)) return;
 
-    if (seat.status === 'base') {
-      totalWeight -= seatWeight;
-      totalMoment -= window.calculateMoment(seatWeight, seatArm);
-    } else if (seat.status === 'cargo') {
+    if (seat.status === 'cargo') {
       totalMoment += window.calculateMoment(seatWeight, (seatStowArm - seatArm));
     }
   });
@@ -2413,8 +2472,8 @@ window.drawCGGraph = function() {
       const timeStr = String(window.wbData.time || '00:00');
       const [hours, minutes] = timeStr.split(':').map(x => parseInt(x, 10));
       const flightHours = hours + (minutes / 60);
-      const fuelBurnRate = window.wbData.airframeData.Fuel_Burn_Per_Hour || 12; // kg/hour
-      const fuelBurned = flightHours * fuelBurnRate;
+      const fuelBurnRate = window.wbData.airframeData.Fuel_Burn_Per_Hour || 12; // liters/hour
+      const fuelBurned = flightHours * fuelBurnRate * 0.72;
       const landingWeight = Math.max(wb.totalWeight - fuelBurned, 0);
       
       if (landingWeight > 0 && fuelBurned > 0) {
@@ -2963,7 +3022,17 @@ window.renderManifest = function() {
   }
   
   // 4. Conditional cargo areas (Pod A, Pod B, Cargo A, B, C)
-  const availableCargoAreas = window.getAvailableCargoAreas();
+  const cargoSortOrder = ['POD A', 'POD B', 'CARGO A', 'CARGO B', 'CARGO C', 'CARGO D'];
+  const availableCargoAreas = window.getAvailableCargoAreas().slice().sort(function(a, b) {
+    const aName = String(a && a.name || '').toUpperCase();
+    const bName = String(b && b.name || '').toUpperCase();
+    const aIdx = cargoSortOrder.findIndex(function(k) { return aName.indexOf(k) >= 0; });
+    const bIdx = cargoSortOrder.findIndex(function(k) { return bName.indexOf(k) >= 0; });
+    const safeA = aIdx >= 0 ? aIdx : 999;
+    const safeB = bIdx >= 0 ? bIdx : 999;
+    if (safeA !== safeB) return safeA - safeB;
+    return aName.localeCompare(bName);
+  });
   availableCargoAreas.forEach(area => {
     // Initialize cargo areas in wbData if not present
     if (!window.wbData.cargoAreaWeights) {

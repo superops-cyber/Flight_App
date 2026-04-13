@@ -1,0 +1,626 @@
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  #ff-container {
+    background: #f5f5f5;
+    font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    color: #333;
+  }
+
+  .ff-toolbar {
+    background: #1a3a52;
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .ff-toolbar-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .ff-selector {
+    min-width: 280px;
+    padding: 6px 10px;
+    border: 2px solid #90caf9;
+    border-radius: 4px;
+    background: #e3f2fd;
+    color: #0b5394;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  .ff-btn-primary {
+    background: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+
+  .ff-btn-primary:hover { background: #1976d2; }
+
+  .ff-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .ff-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(900px, 1fr));
+    gap: 16px;
+  }
+
+  .ff-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+
+  .ff-card-header {
+    background: #eceff1;
+    padding: 10px 14px;
+    border-bottom: 1px solid #cfd8dc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ff-card-reg {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #0b5394;
+    text-transform: uppercase;
+  }
+
+  .ff-card-type {
+    font-size: 0.75rem;
+    color: #607d8b;
+    font-weight: 700;
+  }
+
+  .ff-card-content {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ff-table {
+    width: 100%;
+    border: 1px solid #c0c0c0;
+    border-collapse: collapse;
+    background: white;
+    font-size: 0.8rem;
+  }
+
+  .ff-table thead {
+    background: #404040;
+    color: white;
+  }
+
+  .ff-table th {
+    border: 1px solid #c0c0c0;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+  }
+
+  .ff-table td {
+    border: 1px solid #c0c0c0;
+    padding: 5px 8px;
+    background: white;
+  }
+
+  .ff-table tbody tr:nth-child(odd) { background: #f9f9f9; }
+  .ff-table tbody tr:hover { background: #f0f0f0; }
+
+  .ff-input-cell {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font: inherit;
+    padding: 2px 4px;
+  }
+
+  .ff-input-cell:focus {
+    outline: 2px solid #2196f3;
+    background: #e3f2fd;
+  }
+
+  .ff-checklist {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    overflow: hidden;
+  }
+
+  .ff-check-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .ff-check-row:last-child { border-bottom: none; }
+
+  .ff-check-box {
+    width: 32px;
+    height: 28px;
+    border: 2px solid #ff9800;
+    border-radius: 4px;
+    background: #ffe0b2;
+    color: #ef6c00;
+    font-weight: 900;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ff-check-box.checked {
+    border-color: #4caf50;
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .ff-map-container {
+    width: 100%;
+    height: 220px;
+    background: #e8eef7;
+    border: 1px solid #b3c5d4;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #546e7a;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .ff-chat-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    height: 240px;
+    overflow: hidden;
+  }
+
+  .ff-chat-header {
+    background: #e0e0e0;
+    padding: 8px 10px;
+    border-bottom: 1px solid #ccc;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .ff-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .ff-chat-msg {
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    background: white;
+    border-left: 3px solid #2196f3;
+    border-radius: 2px;
+  }
+
+  .ff-chat-msg.device {
+    border-left-color: #ff9800;
+    background: #fff8e1;
+  }
+
+  .ff-chat-input-group {
+    display: flex;
+    gap: 6px;
+    padding: 8px 10px;
+    border-top: 1px solid #ccc;
+  }
+
+  .ff-chat-input {
+    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    font-family: inherit;
+  }
+
+  .ff-chat-send {
+    background: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .ff-chat-send:hover { background: #1976d2; }
+
+  .ff-pax-table {
+    width: 100%;
+    border: 1px solid #c0c0c0;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .ff-notes-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ff-notes-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #455a64;
+  }
+
+  .ff-notes-textarea {
+    width: 100%;
+    min-height: 80px;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    resize: vertical;
+  }
+
+  .ff-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #90a4ae;
+    font-size: 1rem;
+  }
+
+  @media (max-width: 1200px) {
+    .ff-cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div id="ff-container">
+  <div class="ff-toolbar">
+    <label class="ff-toolbar-label">FLIGHT FOLLOW</label>
+    <select class="ff-selector" id="ff-flight-selector" onchange="ffSelectFlight()">
+      <option value="">Select flight to follow...</option>
+    </select>
+    <button class="ff-btn-primary" onclick="ffLoadFlights()">LOAD FLIGHTS</button>
+    <button class="ff-btn-primary" onclick="ffToggleAllFlights()">CLEAR ALL</button>
+  </div>
+
+  <div class="ff-body">
+    <div class="ff-cards-grid" id="ff-cards-grid">
+      <div class="ff-empty-state">No flights loaded. Select a flight or click LOAD FLIGHTS.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var state = {
+    aircraft: [],
+    missionsByReg: {},
+    activeFlights: new Set(),
+    messagesByReg: {},
+    checksByReg: {}
+  };
+
+  window.onFlightFollowingShown = function() {
+    loadAircraftAndMissions();
+  };
+
+  function loadAircraftAndMissions() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        state.aircraft = Array.isArray(data && data.aircraft) ? data.aircraft : [];
+        populateSelector();
+        renderGrid();
+
+        state.aircraft.forEach(function(acft) {
+          google.script.run
+            .withSuccessHandler(function(missions) {
+              state.missionsByReg[acft.reg] = Array.isArray(missions) ? missions : [];
+              populateSelector();
+            })
+            .withFailureHandler(function() {
+              state.missionsByReg[acft.reg] = [];
+              populateSelector();
+            })
+            .getFlightFollowMissionsForAcft(acft.reg);
+        });
+      })
+      .withFailureHandler(function(err) {
+        renderEmpty('Failed to load flights: ' + esc(String((err && err.message) || err || 'unknown error')));
+      })
+      .getFlightFollowInit();
+  }
+
+  function populateSelector() {
+    var sel = document.getElementById('ff-flight-selector');
+    if (!sel) return;
+
+    var options = ['<option value="">Select flight to follow...</option>'];
+    state.aircraft.forEach(function(acft) {
+      var missions = state.missionsByReg[acft.reg] || [];
+      missions.forEach(function(mission) {
+        var key = flightKey(acft.reg, mission.missionId);
+        var label = acft.reg + ' | ' + mission.missionId + ' | ' + mission.from + '-' + mission.to + ' | PIC: ' + (mission.pilot || '');
+        options.push('<option value="' + esc(key) + '">' + esc(label) + '</option>');
+      });
+    });
+    sel.innerHTML = options.join('');
+  }
+
+  window.ffSelectFlight = function() {
+    var sel = document.getElementById('ff-flight-selector');
+    if (!sel || !sel.value) return;
+    state.activeFlights.add(sel.value);
+    renderGrid();
+    var parts = sel.value.split('|');
+    if (parts[0]) loadMessages(parts[0]);
+    sel.value = '';
+  };
+
+  window.ffLoadFlights = function() {
+    state.activeFlights = new Set();
+    state.aircraft.forEach(function(acft) {
+      (state.missionsByReg[acft.reg] || []).forEach(function(mission) {
+        state.activeFlights.add(flightKey(acft.reg, mission.missionId));
+        loadMessages(acft.reg);
+      });
+    });
+    renderGrid();
+  };
+
+  window.ffToggleAllFlights = function() {
+    state.activeFlights = new Set();
+    renderGrid();
+  };
+
+  function renderGrid() {
+    var grid = document.getElementById('ff-cards-grid');
+    if (!grid) return;
+
+    if (!state.activeFlights.size) {
+      grid.innerHTML = '<div class="ff-empty-state">No flights selected.</div>';
+      return;
+    }
+
+    var cards = [];
+    state.activeFlights.forEach(function(key) {
+      var parts = key.split('|');
+      var reg = parts[0];
+      var missionId = parts[1];
+      var acft = state.aircraft.find(function(a) { return a.reg === reg; }) || { reg: reg, type: '' };
+      var mission = (state.missionsByReg[reg] || []).find(function(m) { return m.missionId === missionId; }) || null;
+      if (mission) cards.push(buildCard(acft, mission));
+    });
+
+    grid.innerHTML = cards.length ? cards.join('') : '<div class="ff-empty-state">Waiting for mission data...</div>';
+    state.activeFlights.forEach(function(key) {
+      loadMessages(key.split('|')[0]);
+    });
+  }
+
+  function buildCard(acft, mission) {
+    var reg = acft.reg;
+    var sreg = safeId(reg);
+    var missionId = mission.missionId || '';
+    var key = flightKey(reg, missionId);
+    var checks = state.checksByReg[key] || { fuel: false, data: false };
+    var pax = Array.isArray(mission.pax) ? mission.pax : [];
+    var waypoints = Array.isArray(mission.waypoints) ? mission.waypoints : [];
+    var flMatch = String(mission.planId || '').match(/F(\d{3})/i);
+    var fl = flMatch ? flMatch[1] : '--';
+
+    var paxRows = pax.length ? pax.map(function(p) {
+      var ageSex = [p.sex || '', p.age || ''].filter(Boolean).join(' / ');
+      return '<tr>' +
+        '<td style="border:1px solid #c0c0c0;padding:6px;">' + esc(p.name || '') + '</td>' +
+        '<td style="border:1px solid #c0c0c0;padding:6px;">' + esc(ageSex || '--') + '</td>' +
+        '<td style="border:1px solid #c0c0c0;padding:6px;">' + esc(p.phone || '') + '</td>' +
+        '<td style="border:1px solid #c0c0c0;padding:6px;">' + esc(p.emergencyContact || '') + '</td>' +
+      '</tr>';
+    }).join('') : '<tr><td colspan="4" style="border:1px solid #c0c0c0;padding:8px;color:#78909c;">No passengers listed</td></tr>';
+
+    var posRows = waypoints.length ? waypoints.map(function(wp, idx) {
+      var isDest = idx === waypoints.length - 1;
+      var fuelCell = '';
+      if (wp.hasFuel === true) {
+        fuelCell = '<span style="color:#2e7d32;font-weight:700;font-size:0.8rem;">⛽</span>';
+      } else if (wp.hasFuel === false && wp.fix) {
+        fuelCell = '<span style="color:#999;font-size:0.75rem;">–</span>';
+      }
+      return '<tr>' +
+        '<td>' + esc(wp.fix || '') + '</td>' +
+        '<td style="text-align:center;width:28px;">' + fuelCell + '</td>' +
+        '<td><input class="ff-input-cell" placeholder="--:--"></td>' +
+        '<td><input class="ff-input-cell" placeholder="--:--"></td>' +
+        '<td>' + esc(fl) + '</td>' +
+        '<td style="text-align:center;">' + (isDest ? '<span style="color:#2e7d32;font-weight:700;">DEST</span>' : '<button style="background:#1565c0;color:#fff;border:none;border-radius:3px;padding:4px 8px;font-size:0.72rem;font-weight:700;cursor:pointer;">PASS</button>') + '</td>' +
+      '</tr>';
+    }).join('') : '<tr><td colspan="6" style="padding:8px;color:#78909c;">No route points</td></tr>';
+
+    return '<div class="ff-card">' +
+      '<div class="ff-card-header">' +
+        '<div><div class="ff-card-reg">' + esc(reg) + '</div><div class="ff-card-type">' + esc(acft.type || '') + '</div></div>' +
+        '<div style="font-size:0.8rem;font-weight:700;color:#455a64;">' + esc(missionId) + '</div>' +
+      '</div>' +
+      '<div class="ff-card-content">' +
+        '<table class="ff-table">' +
+          '<thead><tr><th>Piloto/INVA</th><th>Acomp</th><th>Data</th><th>PLVO Código</th><th>PLVO Horário</th><th>Horário DEC</th></tr></thead>' +
+          '<tbody><tr>' +
+            '<td><input class="ff-input-cell" value="' + esc(mission.pilot || '') + '"></td>' +
+            '<td><input class="ff-input-cell" value="' + esc(mission.copilot || '') + '"></td>' +
+            '<td>' + esc(mission.date || '--') + '</td>' +
+            '<td>' + esc(mission.noPlan ? 'NO PLAN' : (mission.planId || '--')) + '</td>' +
+            '<td>' + esc(mission.takeoffUTC ? mission.takeoffUTC + 'Z' : '--') + '</td>' +
+            '<td><input class="ff-input-cell" value="" placeholder="00:00"></td>' +
+          '</tr></tbody>' +
+        '</table>' +
+
+        '<table class="ff-table">' +
+          '<thead><tr><th>Co-Piloto/Aluno</th><th>2º Acompanhador</th><th>ETE</th><th>Auto. (LTS)</th><th>Autonomia</th><th>POB</th></tr></thead>' +
+          '<tbody><tr>' +
+            '<td><input class="ff-input-cell" value="' + esc(mission.copilot || '') + '"></td>' +
+            '<td><input class="ff-input-cell" value=""></td>' +
+            '<td><input class="ff-input-cell" value=""></td>' +
+            '<td>' + esc(mission.fuelL || '--') + '</td>' +
+            '<td><input class="ff-input-cell" value="0:00"></td>' +
+            '<td>' + esc(mission.pob || '--') + '</td>' +
+          '</tr></tbody>' +
+        '</table>' +
+
+        '<div class="ff-checklist">' +
+          '<div class="ff-check-row"><span>Combustível: Coerente com o FS e suficiente para o voo?</span><button class="ff-check-box ' + (checks.fuel ? 'checked' : '') + '" onclick="ffToggleCheck(\'' + esc(key) + '\',\'fuel\')">' + (checks.fuel ? 'OK' : '') + '</button></div>' +
+          '<div class="ff-check-row"><span>Outros dados: Coerente com o plano de voo para o dia?</span><button class="ff-check-box ' + (checks.data ? 'checked' : '') + '" onclick="ffToggleCheck(\'' + esc(key) + '\',\'data\')">' + (checks.data ? 'OK' : '') + '</button></div>' +
+        '</div>' +
+
+        '<table class="ff-table">' +
+          '<thead><tr><th style="width:18%;">Origem/Destino</th><th style="width:28px;">⛽</th><th>Posição</th><th>ETA</th><th>ATA</th><th style="background:#d7f0df;color:#1b5e20;">FL</th><th></th></tr></thead>' +
+          '<tbody>' + posRows + '</tbody>' +
+        '</table>' +
+
+        '<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:12px;">' +
+          '<div>' +
+            '<div style="font-size:0.82rem;font-weight:700;margin-bottom:6px;color:#455a64;">Passengers onboard</div>' +
+            '<table class="ff-pax-table">' +
+              '<thead><tr style="background:#404040;color:#fff;"><th style="border:1px solid #c0c0c0;padding:6px;">Name</th><th style="border:1px solid #c0c0c0;padding:6px;">Sex/Age</th><th style="border:1px solid #c0c0c0;padding:6px;">Phone</th><th style="border:1px solid #c0c0c0;padding:6px;">Emergency Contact</th></tr></thead>' +
+              '<tbody>' + paxRows + '</tbody>' +
+            '</table>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:0.82rem;font-weight:700;margin-bottom:6px;color:#455a64;">Anotações</div>' +
+            '<textarea class="ff-notes-textarea" placeholder="Live notes, map checks, timeline, concerns..."></textarea>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="ff-map-container">InReach map placeholder for ' + esc(reg) + '<br><span style="font-size:0.75rem;font-weight:600;">Add Garmin share URL later</span></div>' +
+
+        '<div class="ff-chat-container">' +
+          '<div class="ff-chat-header">InReach Messages</div>' +
+          '<div class="ff-chat-messages" id="ff-chat-' + sreg + '"></div>' +
+          '<div class="ff-chat-input-group">' +
+            '<input class="ff-chat-input" id="ff-chat-input-' + sreg + '" placeholder="Message to aircraft via inReach email" onkeypress="if(event.key===\'Enter\'){ffSendChat(\'' + esc(reg) + '\');}">' +
+            '<button class="ff-chat-send" onclick="ffSendChat(\'' + esc(reg) + '\')">Send</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function loadMessages(reg) {
+    google.script.run
+      .withSuccessHandler(function(messages) {
+        state.messagesByReg[reg] = Array.isArray(messages) ? messages : [];
+        renderMessages(reg);
+      })
+      .withFailureHandler(function() {})
+      .getFlightFollowMessages(reg);
+  }
+
+  function renderMessages(reg) {
+    var container = document.getElementById('ff-chat-' + safeId(reg));
+    if (!container) return;
+    var messages = state.messagesByReg[reg] || [];
+    if (!messages.length) {
+      container.innerHTML = '<div style="color:#90a4ae;">No inbound messages yet.</div>';
+      return;
+    }
+    container.innerHTML = messages.map(function(msg) {
+      var from = String(msg.from || 'unknown');
+      var isDevice = from.toLowerCase().indexOf('inreachmail.com') >= 0;
+      var when = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '';
+      return '<div class="ff-chat-msg ' + (isDevice ? 'device' : '') + '">' +
+        '<div style="font-weight:700;">' + esc(from) + '</div>' +
+        '<div style="font-size:0.68rem;color:#607d8b;">' + esc(when) + '</div>' +
+        '<div style="margin-top:4px;">' + esc(msg.text || '') + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  window.ffToggleCheck = function(key, field) {
+    if (!state.checksByReg[key]) state.checksByReg[key] = { fuel: false, data: false };
+    state.checksByReg[key][field] = !state.checksByReg[key][field];
+    renderGrid();
+  };
+
+  window.ffSendChat = function(reg) {
+    var input = document.getElementById('ff-chat-input-' + safeId(reg));
+    if (!input) return;
+    var text = String(input.value || '').trim();
+    if (!text) return;
+
+    if (!state.messagesByReg[reg]) state.messagesByReg[reg] = [];
+    state.messagesByReg[reg].push({
+      timestamp: new Date().toISOString(),
+      from: 'dispatch@local',
+      text: text
+    });
+    renderMessages(reg);
+    input.value = '';
+
+    if (window.M) {
+      M.toast({ html: 'Chat queued for ' + esc(reg) + '. Email send wiring comes next.', classes: 'blue darken-2', displayLength: 2500 });
+    }
+  };
+
+  function renderEmpty(msg) {
+    var grid = document.getElementById('ff-cards-grid');
+    if (grid) grid.innerHTML = '<div class="ff-empty-state">' + esc(msg) + '</div>';
+  }
+
+  function flightKey(reg, missionId) {
+    return String(reg || '') + '|' + String(missionId || '');
+  }
+
+  function safeId(value) {
+    return String(value || '').replace(/[^A-Za-z0-9]/g, '_');
+  }
+
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+})();
+</script>

@@ -158,9 +158,9 @@
 
   .perf-metrics {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px;
-    margin-top: 6px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
   }
 
   .perf-factor-list {
@@ -441,9 +441,27 @@
   }
 
   .perf-calm-btn {
-    flex: 0 0 20%;
-    min-width: 74px;
-    max-width: 90px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .perf-calm-field {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .perf-calm-wide {
+    height: 40px;
+    font-size: 0.84rem;
+    letter-spacing: 0.02em;
+  }
+
+  .perf-humidity-help {
+    margin-top: 4px;
+    color: #546e7a;
+    font-size: 0.7rem;
+    line-height: 1.25;
+    font-weight: 700;
   }
 
   .perf-lock {
@@ -491,9 +509,16 @@
     }
 
     .perf-calm-btn {
-      flex: 0 0 28%;
-      min-width: 62px;
+      min-width: 0;
     }
+  }
+
+  @media (min-width: 640px) {
+    .perf-humidity-field { grid-column: 3 / span 2; }
+    .perf-condition-field { grid-column: 1; }
+    .perf-wind-dir-field { grid-column: 2; }
+    .perf-wind-spd-field { grid-column: 3; }
+    .perf-calm-field { grid-column: 4; }
   }
 </style>
 
@@ -558,21 +583,23 @@
         </div>
       </div>
 
-      <div class="perf-field perf-pilot-entry">
+      <div class="perf-field perf-pilot-entry perf-humidity-field">
         <label>Humidity %</label>
         <div class="perf-humidity-group">
           <button type="button" id="perf-humidity-low" class="perf-mini-btn perf-humidity-btn" onclick="_selectHumidity('low')">&lt; 80%</button>
           <button type="button" id="perf-humidity-high" class="perf-mini-btn perf-humidity-btn" onclick="_selectHumidity('high')">&ge; 80%</button>
         </div>
+        <div class="perf-humidity-help">Regra prática: manhã/tempo seco (&lt;80%). Chuva, neblina, pista molhada ou ar muito úmido (≥80%).</div>
         <input type="hidden" id="perf-humidity" required value="">
       </div>
-      <div class="perf-field perf-pilot-entry">
+      <div class="perf-field perf-pilot-entry perf-condition-field">
         <label>Condition</label>
         <select id="perf-surface-condition" class="browser-default" required><option value="">Select...</option><option value="DRY">Dry</option><option value="WET">Wet</option></select>
       </div>
 
-      <div class="perf-field perf-pilot-entry"><label>Wind Dir °</label><div class="perf-compact-row"><input id="perf-wind-direction" class="perf-mini-num" type="number" inputmode="numeric" min="0" max="360" step="10" value="0" readonly><button type="button" class="perf-picker-btn" onclick="window.perfOpenWindDirKeypad()">HDG</button></div></div>
-      <div class="perf-field perf-pilot-entry"><label>Wind Speed kts</label><div class="perf-compact-row"><input id="perf-wind-speed" class="perf-mini-num" type="number" inputmode="numeric" min="0" max="60" step="1" value="0" readonly><button type="button" class="perf-picker-btn" onclick="window.perfOpenWindSpdKeypad()">SPD</button><button type="button" id="perf-calm-wind-btn" class="perf-mini-btn perf-calm-btn" onclick="_perfSetCalmWind()">CALM</button></div></div>
+      <div class="perf-field perf-pilot-entry perf-wind-dir-field"><label>Wind Dir °</label><div class="perf-compact-row"><input id="perf-wind-direction" class="perf-mini-num" type="number" inputmode="numeric" min="0" max="360" step="10" value="0" readonly><button type="button" class="perf-picker-btn" onclick="window.perfOpenWindDirKeypad()">HDG</button></div></div>
+      <div class="perf-field perf-pilot-entry perf-wind-spd-field"><label>Wind Speed kts</label><div class="perf-compact-row"><input id="perf-wind-speed" class="perf-mini-num" type="number" inputmode="numeric" min="0" max="60" step="1" value="0" readonly><button type="button" class="perf-picker-btn" onclick="window.perfOpenWindSpdKeypad()">SPD</button></div></div>
+      <div class="perf-field perf-pilot-entry perf-calm-field"><label>Wind Quick Set</label><button type="button" id="perf-calm-wind-btn" class="perf-mini-btn perf-calm-btn perf-calm-wide" onclick="_perfSetCalmWind()">CALM WIND</button></div>
     </div>
 
     <div class="perf-strip">
@@ -584,24 +611,28 @@
     <div class="perf-subtitle">Live Results</div>
 
     <div class="perf-metrics" id="perf-results" style="display:none;">
-      <div class="perf-chip"><small>TO Roll</small><b id="perf-to-roll">0 m</b></div>
+      <div class="perf-chip"><small>Takeoff Roll</small><b id="perf-to-roll">0 m</b></div>
+      <div class="perf-chip"><small>Abort</small><b id="perf-abort">0 m</b></div>
       <div class="perf-chip"><small>Stop Roll</small><b id="perf-ldg-roll">0 m</b></div>
-      <div class="perf-chip"><small>50% TO</small><b id="perf-half-to">0 m</b></div>
-      <div class="perf-chip"><small>TO+LDG</small><b id="perf-total-roll">0 m</b></div>
-      <div class="perf-chip"><small>75% RWY</small><b id="perf-75">0 m</b></div>
-      <div class="perf-chip"><small>Density Alt</small><b id="perf-da">0 ft</b></div>
+      <div class="perf-chip"><small>TO Roll + Stop Roll</small><b id="perf-total-roll">0 m</b></div>
     </div>
 
     <div id="perf-results-empty" style="font-size:1rem; color:#777; margin-top:6px;">
       Live calculation starts as inputs are entered.
     </div>
 
-    <div class="perf-factor-list" id="perf-factors" style="display:none;"></div>
-
     <div id="perf-warnings" class="perf-warnings" style="display:none;"></div>
 
+    <div id="perf-trace-panel" style="margin-top:8px; display:none;">
+      <button onclick="window.togglePerfTrace_()" id="perf-trace-toggle"
+        style="background:none; border:1px solid #1976d2; color:#1976d2; border-radius:4px 4px 0 0; padding:5px 14px; font-size:0.82rem; cursor:pointer; width:100%; text-align:left; letter-spacing:0.02em;">
+        ▶ Calculation Trace
+      </button>
+      <div id="perf-trace-body" style="display:none; font-family:'Courier New',monospace; font-size:0.78rem; background:#f5f7fa; border:1px solid #b0bec5; border-top:none; border-radius:0 0 4px 4px; padding:10px 12px; overflow-x:auto;"></div>
+    </div>
+
     <div class="perf-subtitle">Runway Diagram</div>
-    <svg id="perf-runway-diagram" width="100%" height="380" viewBox="0 0 520 380" style="border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; display: none; margin-bottom: 12px;">
+    <svg id="perf-runway-diagram" width="100%" height="470" viewBox="0 0 700 470" style="border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; display: none; margin-bottom: 12px;">
       <!-- Runway diagram SVG will be drawn here -->
     </svg>
     <div id="perf-diagram-empty" style="font-size:1rem; color:#999; text-align:center; padding:20px 0;">
@@ -636,7 +667,6 @@
     manualSurfaceOptions: ['Firm Turf', 'Short Grass', 'Grass to 6"', 'Long Grass', 'Rough', 'Mud', 'Sand', 'Asphalt'],
     slopeOverridden: false,
     windConfirmed: false,
-    diagramZoomMode: 'focus',
     lastPerformanceResult: null,
     calcTimer: null
   };
@@ -962,6 +992,13 @@
         || ''
       ).trim();
       const markerFeatures = Array.isArray(verifiedOp.features) ? verifiedOp.features : knownFeatures;
+      const obstacleAngles = Array.isArray(verifiedOp.obstacleAngles50m)
+        ? verifiedOp.obstacleAngles50m
+        : (Array.isArray(knownObj.obstacleAngles50m) ? knownObj.obstacleAngles50m : []);
+      const surveySlopeSegments = Array.isArray(verifiedOp.slopeSegments) ? verifiedOp.slopeSegments : [];
+      if ((!Array.isArray(slopeProfile) || !slopeProfile.length) && Array.isArray(knownObj.slopeProfile) && knownObj.slopeProfile.length) {
+        slopeProfile = knownObj.slopeProfile;
+      }
 
       return {
         icao: airportCode,
@@ -977,6 +1014,8 @@
         chartUrl: String(r.chartUrl || '').trim(),
         airstripPhoto: String(r.airstripPhoto || '').trim(),
         knownFeatures: markerFeatures,
+        obstacleAngles: obstacleAngles,
+        surveySlopeSegments: surveySlopeSegments,
         officialReference: {
           lengthM: _perfCalcNum(officialRef.lengthM, lengthM) || lengthM,
           widthM: _perfCalcNum(officialRef.widthM, widthM) || widthM,
@@ -993,10 +1032,21 @@
 
     const fallbackRef = readGlobalPerformanceReference_() || { baseRows: [], perfRows: [] };
     const activeRef = window.performanceTab4.calcReference || fallbackRef;
+    const flapSet = {};
+    (Array.isArray(activeRef && activeRef.perfRows) ? activeRef.perfRows : []).forEach(function(row) {
+      const flapVal = _perfCalcNum(_perfCalcValue(row, ['FLAP_SETTING'], NaN), NaN);
+      if (!isNaN(flapVal)) flapSet[flapVal] = true;
+    });
+    const derivedFlaps = Object.keys(flapSet)
+      .map(function(v) { return Number(v); })
+      .filter(function(v) { return !isNaN(v); })
+      .sort(function(a, b) { return a - b; });
+    const fallbackFlaps = [10, 20, 25];
+    const flapOptions = derivedFlaps.length ? derivedFlaps : fallbackFlaps;
 
     return {
       runways: runways,
-      flapOptions: [0, 10, 20],
+      flapOptions: flapOptions,
       humidityOptions: [60, 90],
       surfaceOptions: (window.performanceTab4.manualSurfaceOptions || []).slice(),
       surfaceTranslator: {
@@ -1156,34 +1206,17 @@
     document.getElementById('perf-results-empty').style.display = 'none';
     document.getElementById('perf-results').style.display = 'grid';
 
-    document.getElementById('perf-da').textContent = `${Math.round(result.densityAltitudeFt || 0)} ft`;
     document.getElementById('perf-to-roll').textContent = `${Math.round(result.takeoffRollM || 0)} m`;
+    const abortM = Math.round(result.abortPointM != null ? result.abortPointM : (result.takeoffRollM || 0));
+    const abortTag = result.abortUsesHalfTakeoff ? ' (50% TO)' : '';
+    document.getElementById('perf-abort').textContent = `${abortM} m${abortTag}`;
     document.getElementById('perf-ldg-roll').textContent = `${Math.round(result.landingRollM || 0)} m`;
     document.getElementById('perf-total-roll').textContent = `${Math.round(result.combinedRollM || 0)} m`;
-    document.getElementById('perf-half-to').textContent = `${Math.round(result.halfTakeoffRollM || 0)} m`;
-    document.getElementById('perf-75').textContent = `${Math.round(result.takeoff75PctThresholdM || 0)} m`;
 
     const headTail = Number(result.headTailComponentKts || 0);
     const headTailTag = headTail >= 0 ? 'H' : 'T';
     document.getElementById('perf-head-tail').textContent = `${Math.abs(headTail).toFixed(1)} ${headTailTag}`;
     document.getElementById('perf-crosswind').textContent = `${Number(result.crosswindComponentKts || 0).toFixed(1)} X`;
-
-    const f = result.factors || {};
-    document.getElementById('perf-factors').style.display = 'grid';
-    document.getElementById('perf-factors').innerHTML = [
-      ['Base TO', result.baseTakeoffM],
-      ['Base LDG', result.baseLandingM],
-      ['DA TO', _factorText(f.daTakeoff)],
-      ['DA LDG', _factorText(f.daLanding)],
-      ['Surface TO', _factorText(f.surfaceTakeoff)],
-      ['Surface LDG', _factorText(f.surfaceLanding)],
-      ['Slope TO', _factorText(f.slopeTakeoff)],
-      ['Slope LDG', _factorText(f.slopeLanding)],
-      ['Wind TO', _factorText(f.windTakeoff)],
-      ['Wind LDG', _factorText(f.windLanding)],
-      ['Humidity', _factorText(f.humidity)],
-      ['Flap', _factorText(f.flap)]
-    ].map(([k, v]) => `<div><b>${k}:</b> ${v}</div>`).join('');
 
     const warnEl = document.getElementById('perf-warnings');
     const warnings = Array.isArray(result.warnings) ? result.warnings : [];
@@ -1199,7 +1232,68 @@
     window.performanceTab4.lastPerformanceResult = result;
     const runway = window.performanceTab4.selectedRunway;
     window.drawRunwayDiagram(runway, result);
+    renderPerfTrace_(result);
   }
+
+  function renderPerfTrace_(result) {
+    const panel = document.getElementById('perf-trace-panel');
+    const body  = document.getElementById('perf-trace-body');
+    if (!panel || !body) return;
+    const tr = result && result.trace;
+    if (!tr) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+
+    function stepsHtml(steps, total, sectionLabel) {
+      const rows = steps.map(function(s) {
+        if (s.factor !== undefined) {
+          const fStr  = s.factor.toFixed(4);
+          const color = s.factor > 1.0005 ? '#b71c1c' : s.factor < 0.9995 ? '#1b5e20' : '#777';
+          return '<tr>'
+            + '<td style="padding:1px 10px 1px 14px; color:#444;">' + s.label + '</td>'
+            + '<td style="padding:1px 10px; text-align:right; color:' + color + '; font-weight:700;">' + fStr + '</td>'
+            + '<td style="padding:1px 10px; text-align:right;">' + s.running + ' m</td>'
+            + '<td style="padding:1px 2px; color:#90a4ae; font-size:0.72rem;">' + (s.note || '') + '</td>'
+            + '</tr>';
+        } else {
+          return '<tr>'
+            + '<td style="padding:1px 10px 1px 4px; color:#1976d2; font-weight:700;">' + s.label + '</td>'
+            + '<td></td>'
+            + '<td style="padding:1px 10px; text-align:right; font-weight:700; color:#1976d2;">' + s.value + ' ' + s.unit + '</td>'
+            + '<td style="padding:1px 2px; color:#90a4ae; font-size:0.72rem;">' + (s.note || '') + '</td>'
+            + '</tr>';
+        }
+      }).join('');
+      return '<div style="margin-bottom:10px;">'
+        + '<div style="font-weight:700; color:#37474f; margin-bottom:3px; padding-bottom:2px; border-bottom:1px solid #cfd8dc;">'
+        + sectionLabel + ' &nbsp;→&nbsp; <span style="color:#1976d2;">' + total + ' m</span></div>'
+        + '<table style="border-collapse:collapse; width:100%;">' + rows + '</table>'
+        + '</div>';
+    }
+
+    const isaSign = tr.isaDeviationC >= 0 ? '+' : '';
+    const daHtml = '<div style="margin-bottom:8px; color:#546e7a; line-height:1.6;">'
+      + 'Press.Alt <b>' + tr.pressureAltitudeFt + ' ft</b>'
+      + ' &nbsp;|&nbsp; Temp <b>' + tr.tempC + '°C</b>'
+      + ' &nbsp;|&nbsp; ISA <b>' + isaSign + tr.isaDeviationC + '°C</b>'
+      + ' &nbsp;→&nbsp; DA <b>' + tr.densityAltitudeFt + ' ft</b>'
+      + '</div>';
+
+    body.innerHTML = daHtml
+      + stepsHtml(tr.toSteps,  tr.takeoffRollM,  'Takeoff Roll')
+      + stepsHtml(tr.ldgSteps, tr.landingRollM,  'Landing Roll');
+  }
+
+  window.togglePerfTrace_ = function() {
+    const body = document.getElementById('perf-trace-body');
+    const btn  = document.getElementById('perf-trace-toggle');
+    if (!body) return;
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : '';
+    if (btn) {
+      btn.textContent = (isOpen ? '▶' : '▼') + ' Calculation Trace';
+      btn.style.borderRadius = isOpen ? '4px 4px 0 0' : '4px 4px 0 0';
+    }
+  };
 
   function applyPerformanceSetupData_(data) {
     window.performanceTab4.runways = (data && data.runways) ? data.runways : [];
@@ -1228,7 +1322,7 @@
       const flaps = window.performanceTab4.flapOptions;
       flapSel.innerHTML = '<option value="">Select...</option>' + (flaps.length
         ? flaps.map(v => `<option value="${v}">${v}</option>`).join('')
-        : '<option value="0">0</option><option value="10">10</option><option value="20">20</option>');
+        : '<option value="10">10</option><option value="20">20</option><option value="25">25</option>');
       flapSel.value = '';
     }
 
@@ -1445,8 +1539,8 @@
 
       const windColTo = effectiveWindType === 'TAIL' ? 'TAKEOFF_TAIL' : 'TAKEOFF_HEAD';
       const windColLdg = effectiveWindType === 'TAIL' ? 'LANDING_TAIL' : 'LANDING_HEAD';
-      const windTo = _perfNearestMultiplier_(perfRows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColTo], 1);
-      const windLdg = _perfNearestMultiplier_(perfRows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColLdg], 1);
+        const windTo  = effectiveWindKts === 0 ? 1 : _perfNearestMultiplier_(perfRows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColTo], 1);
+        const windLdg = effectiveWindKts === 0 ? 1 : _perfNearestMultiplier_(perfRows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColLdg], 1);
       const humidity = _perfNearestMultiplier_(perfRows, ['HUMIDITY'], humidityPct, ['HUMIDITY_FACTOR'], 1);
       const flap = _perfNearestMultiplier_(perfRows, ['FLAP_SETTING'], flapSetting, ['FLAP_FACTOR'], 1);
 
@@ -1457,7 +1551,7 @@
         const estTakeoff = toNoSlope * slopeTo;
         effectiveSlopeTakeoff = _perfEffectiveSlopeOverDistance_(slopeProfile, Math.min(estTakeoff, runwayLengthM));
         const slopeAbsTo = Math.abs(effectiveSlopeTakeoff);
-        slopeTo = _perfNearestMultiplier_(perfRows, ['SLOPE'], slopeAbsTo, [effectiveSlopeTakeoff >= 0 ? 'TAKEOFF_UP' : 'TAKEOFF_DOWN'], 1);
+          slopeTo = _perfNearestMultiplier_(perfRows, ['SLOPE'], slopeAbsTo / 100, [effectiveSlopeTakeoff >= 0 ? 'TAKEOFF_UP' : 'TAKEOFF_DOWN'], 1);
       }
 
       const ldgNoSlope = base.ldg * daLdg * surfaceLdg * windLdg;
@@ -1467,7 +1561,7 @@
         const estLanding = ldgNoSlope * slopeLdg;
         effectiveSlopeLanding = _perfEffectiveSlopeOverDistance_(slopeProfile, Math.min(estLanding, runwayLengthM));
         const slopeAbsLdg = Math.abs(effectiveSlopeLanding);
-        slopeLdg = _perfNearestMultiplier_(perfRows, ['SLOPE'], slopeAbsLdg, [effectiveSlopeLanding >= 0 ? 'LANDING_UP' : 'LANDING_DOWN'], 1);
+          slopeLdg = _perfNearestMultiplier_(perfRows, ['SLOPE'], slopeAbsLdg / 100, [effectiveSlopeLanding >= 0 ? 'LANDING_UP' : 'LANDING_DOWN'], 1);
       }
 
       const takeoffRollM = toNoSlope * slopeTo;
@@ -1483,6 +1577,41 @@
         warnings.push('Takeoff + landing roll is greater than runway length.');
         blocking = true;
       }
+      const abortUsesHalfTakeoff = combinedRollM > runwayLengthM;
+      const abortPointM = abortUsesHalfTakeoff ? halfTakeoffRollM : takeoffRollM;
+
+      // ── Calculation trace ─────────────────────────────────────────
+      const _pressAltFt = Math.round(elevationFt + ((1013.25 - qnhHpa) * 30));
+      const _isaC = Math.round(15 - (2 * elevationFt / 1000));
+      const _isaDevC = Math.round(tempC - _isaC);
+      const _slopeSignTo  = effectiveSlopeTakeoff >= 0 ? 'UP' : 'DOWN';
+      const _slopeSignLdg = effectiveSlopeLanding  >= 0 ? 'UP' : 'DOWN';
+      const trace = {
+        pressureAltitudeFt: _pressAltFt,
+        densityAltitudeFt: Math.round(densityAltitudeFt),
+        tempC: tempC,
+        isaC: _isaC,
+        isaDeviationC: _isaDevC,
+        takeoffRollM: Math.round(takeoffRollM),
+        landingRollM: Math.round(landingRollM),
+        toSteps: [
+          { label: 'Base roll', value: Math.round(base.to), unit: 'm', note: weightKg + ' kg' },
+          { label: '× DA',      factor: daTo,      running: Math.round(base.to * daTo),                                    note: Math.round(densityAltitudeFt) + ' ft' },
+          { label: '× Surface', factor: surfaceTo, running: Math.round(base.to * daTo * surfaceTo),                        note: surface + ' ' + surfaceCondition },
+          { label: '× Flap',    factor: flap,      running: Math.round(base.to * daTo * surfaceTo * flap),                 note: flapSetting + '°' },
+          { label: '× Humidity',factor: humidity,  running: Math.round(base.to * daTo * surfaceTo * flap * humidity),      note: humidityPct + '%' },
+          { label: '× Wind',    factor: windTo,    running: Math.round(toNoSlope),                                         note: effectiveWindKts.toFixed(1) + ' kt ' + effectiveWindType },
+          { label: '× Slope',   factor: slopeTo,   running: Math.round(takeoffRollM),                                      note: 'eff. ' + (effectiveSlopeTakeoff >= 0 ? '+' : '') + effectiveSlopeTakeoff.toFixed(2) + '% ' + _slopeSignTo }
+        ],
+        ldgSteps: [
+          { label: 'Base roll', value: Math.round(base.ldg), unit: 'm', note: weightKg + ' kg' },
+          { label: '× DA',      factor: daLdg,     running: Math.round(base.ldg * daLdg),                                  note: Math.round(densityAltitudeFt) + ' ft' },
+          { label: '× Surface', factor: surfaceLdg, running: Math.round(base.ldg * daLdg * surfaceLdg),                   note: surface + ' ' + surfaceCondition },
+          { label: '× Wind',    factor: windLdg,   running: Math.round(ldgNoSlope),                                        note: effectiveWindKts.toFixed(1) + ' kt ' + effectiveWindType },
+          { label: '× Slope',   factor: slopeLdg,  running: Math.round(landingRollM),                                     note: 'eff. ' + (effectiveSlopeLanding >= 0 ? '+' : '') + effectiveSlopeLanding.toFixed(2) + '% ' + _slopeSignLdg }
+        ]
+      };
+      // ─────────────────────────────────────────────────────────────
 
       return {
         success: true,
@@ -1494,12 +1623,15 @@
         combinedRollM: Math.round(combinedRollM),
         halfTakeoffRollM: Math.round(halfTakeoffRollM),
         takeoff75PctThresholdM: Math.round(takeoff75PctThresholdM),
+        abortPointM: Math.round(abortPointM),
+        abortUsesHalfTakeoff: abortUsesHalfTakeoff,
         headTailComponentKts: Number(headTailComponent.toFixed(1)),
         crosswindComponentKts: Number(crosswindComponent.toFixed(1)),
         effectiveWindKts: Number(effectiveWindKts.toFixed(1)),
         effectiveWindType: effectiveWindType,
         warnings: warnings,
         blocking: blocking,
+        trace: trace,
         factors: {
           daTakeoff: daTo,
           daLanding: daLdg,
@@ -1572,8 +1704,16 @@
   }
 
   function _perfAllRequiredFilled_() {
-    // perf-humidity is a hidden input set by the toggle buttons
-    // windConfirmed must be explicitly set via sliders or Calm Wind button
+    // Accept explicit confirmation, or infer confirmation when both wind fields hold valid numeric values.
+    if (!window.performanceTab4.windConfirmed) {
+      const dirEl = document.getElementById('perf-wind-direction');
+      const spdEl = document.getElementById('perf-wind-speed');
+      const dirVal = dirEl ? String(dirEl.value || '').trim() : '';
+      const spdVal = spdEl ? String(spdEl.value || '').trim() : '';
+      if (dirVal !== '' && spdVal !== '' && isFinite(Number(dirVal)) && isFinite(Number(spdVal))) {
+        window.performanceTab4.windConfirmed = true;
+      }
+    }
     if (!window.performanceTab4.windConfirmed) return false;
     const ids = ['perf-runway', 'perf-surface', 'perf-runway-length', 'perf-slope',
                   'perf-flaps', 'perf-qnh', 'perf-temp', 'perf-humidity', 'perf-surface-condition'];
@@ -1583,6 +1723,10 @@
       const v = el.value;
       return v !== '' && v != null;
     });
+  }
+
+  function _perfWindConfirmedStatus_() {
+    return !!(window.performanceTab4 && window.performanceTab4.windConfirmed);
   }
 
   window._perfSetCalmWind = function() {
@@ -1622,6 +1766,8 @@
       }
     });
   };
+
+  function _perfUpdateWindBtn_() {}
 
   window.schedulePerformanceRecalc = function() {
     if (!_perfAllRequiredFilled_()) {
@@ -1702,7 +1848,7 @@
 
         const flapSel = document.getElementById('perf-flaps');
         if (flapSel && !flapSel.innerHTML.trim()) {
-          flapSel.innerHTML = '<option value="0">0</option><option value="10">10</option><option value="20">20</option>';
+          flapSel.innerHTML = '<option value="10">10</option><option value="20">20</option><option value="25">25</option>';
         }
 
         const surfaceSel = document.getElementById('perf-surface');
@@ -1773,9 +1919,6 @@
     document.getElementById('perf-rwy-hdg').textContent = `${String(Math.round(Number(runway?.headingDeg || 0))).padStart(3, '0')}°`;
     window.performanceTab4.slopeOverridden = false;
     window.performanceTab4.windConfirmed = false;
-    window.performanceTab4.diagramZoomMode = 'full';
-    const calmBtn = document.getElementById('perf-calm-wind-btn');
-    if (calmBtn) { calmBtn.style.background = '#fff'; calmBtn.style.color = '#1565c0'; }
     window.performanceTab4.selectedRunway = runway;
 
     // --- LENGTH ---
@@ -1886,12 +2029,12 @@
 
     const toPointM = Math.min(toRollM, lengthM);
 
-    const canvasW = 520;
-    const canvasH = 380;
-    const topX = 30;
+    const canvasW = 700;
+    const canvasH = 470;
+    const topX = 40;
     const topY = 42;
-    const topHeight = 56;
-    const usableWidth = 460;
+    const topHeight = 62;
+    const usableWidth = 620;
     const scale = usableWidth / lengthM;
     const runwayPx = lengthM * scale;
 
@@ -2043,10 +2186,41 @@
       if (s.indexOf('POWER') >= 0 || s.indexOf('LINE') >= 0) return '⚡';
       if (s.indexOf('HOUSE') >= 0 || s.indexOf('BUILD') >= 0) return '🏠';
       if (s.indexOf('ROAD') >= 0) return '🛣️';
-      return '📍';
+      return '●';
+    };
+
+    const iconForObstacle = function(type) {
+      const s = _perfNorm(type || '');
+      if (s.indexOf('TREE') >= 0) return '🌳';
+      if (s.indexOf('BUILD') >= 0 || s.indexOf('HOUSE') >= 0) return '🏢';
+      if (s.indexOf('HILL') >= 0) return '⛰';
+      if (s.indexOf('ROCK') >= 0) return '🪨';
+      if (s.indexOf('POWER') >= 0 || s.indexOf('LINE') >= 0) return '⚡';
+      return '●';
+    };
+
+    const normalizeThrRef = function(raw) {
+      const txt = String(raw || '').trim().toUpperCase().replace(/^RWY\s*/, '');
+      const m = txt.match(/^(\d{1,2})([LCR])?$/);
+      if (!m) return txt;
+      const n = parseInt(m[1], 10);
+      if (!isFinite(n) || n < 1 || n > 36) return txt;
+      return String(n).padStart(2, '0') + (m[2] || '');
+    };
+
+    const reciprocalThrRef = function(ident) {
+      const txt = normalizeThrRef(ident);
+      const m = txt.match(/^(\d{2})([LCR])?$/);
+      if (!m) return '';
+      const n = parseInt(m[1], 10);
+      const recip = ((n + 18 - 1) % 36) + 1;
+      const side = m[2] || '';
+      const recipSide = side === 'L' ? 'R' : (side === 'R' ? 'L' : side);
+      return String(recip).padStart(2, '0') + recipSide;
     };
 
     const features = Array.isArray(runway.knownFeatures) ? runway.knownFeatures : [];
+    const obstacleAngles = Array.isArray(runway.obstacleAngles) ? runway.obstacleAngles : [];
     let leftCount = 0;
     let rightCount = 0;
     let lastLeftLabelX = -9999;
@@ -2093,7 +2267,7 @@
         topGroup.appendChild(makeEl('text', {
           x: featureX,
           y: iconY + (side === 'left' ? -8 : 10),
-          'font-size': 12,
+          'font-size': 14,
           fill: '#5a5a5a',
           'text-anchor': 'middle'
         }, `${name} ${Math.round(distM)}m`));
@@ -2101,6 +2275,9 @@
         else lastRightLabelX = featureX;
       }
     });
+
+    const thisThr = normalizeThrRef(runway.rwyIdent || '');
+    const oppThr = reciprocalThrRef(thisThr);
 
     topGroup.appendChild(makeEl('text', {
       x: topX + (runwayPx / 2),
@@ -2125,36 +2302,75 @@
       }, `OFFICIAL ROTAER: ${offLen}m x ${offWid}m${offSurf ? ' • ' + offSurf : ''}`));
     }
 
-    const profileRaw = Array.isArray(runway.slopeProfile) && runway.slopeProfile.length
-      ? runway.slopeProfile.slice()
-      : [{ distance: lengthM, slope: editedSlope }];
+    const surveySlopeSegments = Array.isArray(runway.surveySlopeSegments) ? runway.surveySlopeSegments : [];
+    let profile = [];
+    if (surveySlopeSegments.length) {
+      const ident = String(runway.rwyIdent || '').trim().toUpperCase();
+      const sortedSegments = surveySlopeSegments.map(function(seg) {
+        const segDistance = Math.max(Number(seg && (seg.distanceM != null ? seg.distanceM : seg.distance) || 0), 0);
+        const segFromThreshold = String(seg && seg.fromThreshold || ident).trim().toUpperCase();
+        const rawStart = Number(seg && seg.startDistanceM);
+        let startDistanceM = isFinite(rawStart) ? rawStart : 0;
+        if (!isFinite(rawStart)) {
+          startDistanceM = segFromThreshold === ident ? 0 : Math.max(0, lengthM - segDistance);
+        }
+        return {
+          startDistanceM: Math.max(0, Math.min(lengthM, startDistanceM)),
+          distance: segDistance,
+          slope: Number(seg && seg.slope || 0)
+        };
+      }).filter(function(seg) {
+        return seg.distance > 0 && isFinite(seg.slope);
+      }).sort(function(a, b) {
+        return a.startDistanceM - b.startDistanceM;
+      });
 
-    let profile = profileRaw.map(seg => ({
-      distance: Math.max(Number(seg.distance || 0), 0),
-      slope: Number(seg.slope || 0)
-    })).filter(seg => seg.distance > 0 && isFinite(seg.slope));
-
-    if (!profile.length) profile = [{ distance: lengthM, slope: editedSlope }];
-
-    if (profile.length === 1) profile[0].slope = editedSlope;
-
-    const sumDist = profile.reduce((acc, seg) => acc + seg.distance, 0);
-    if (sumDist < lengthM) {
-      profile.push({ distance: lengthM - sumDist, slope: 0 });
-    } else if (sumDist > lengthM) {
-      let remaining = lengthM;
-      const trimmed = [];
-      for (let i = 0; i < profile.length && remaining > 0; i++) {
-        const d = Math.min(profile[i].distance, remaining);
-        if (d > 0) trimmed.push({ distance: d, slope: profile[i].slope });
-        remaining -= d;
+      let cursorM = 0;
+      sortedSegments.forEach(function(seg) {
+        if (seg.startDistanceM > cursorM) {
+          profile.push({ distance: seg.startDistanceM - cursorM, slope: 0 });
+        }
+        const clippedDistance = Math.max(0, Math.min(seg.distance, lengthM - seg.startDistanceM));
+        if (clippedDistance > 0) {
+          profile.push({ distance: clippedDistance, slope: seg.slope });
+          cursorM = seg.startDistanceM + clippedDistance;
+        }
+      });
+      if (cursorM < lengthM) {
+        profile.push({ distance: lengthM - cursorM, slope: 0 });
       }
-      profile = trimmed;
+    } else {
+      const profileRaw = Array.isArray(runway.slopeProfile) && runway.slopeProfile.length
+        ? runway.slopeProfile.slice()
+        : [{ distance: lengthM, slope: editedSlope }];
+
+      profile = profileRaw.map(seg => ({
+        distance: Math.max(Number(seg.distance || 0), 0),
+        slope: Number(seg.slope || 0)
+      })).filter(seg => seg.distance > 0 && isFinite(seg.slope));
+
+      if (!profile.length) profile = [{ distance: lengthM, slope: editedSlope }];
+
+      if (profile.length === 1) profile[0].slope = editedSlope;
+
+      const sumDist = profile.reduce((acc, seg) => acc + seg.distance, 0);
+      if (sumDist < lengthM) {
+        profile.push({ distance: lengthM - sumDist, slope: 0 });
+      } else if (sumDist > lengthM) {
+        let remaining = lengthM;
+        const trimmed = [];
+        for (let i = 0; i < profile.length && remaining > 0; i++) {
+          const d = Math.min(profile[i].distance, remaining);
+          if (d > 0) trimmed.push({ distance: d, slope: profile[i].slope });
+          remaining -= d;
+        }
+        profile = trimmed;
+      }
     }
 
     const sideX = topX;
-    const sideY = 266;
-    const sideH = 72;
+    const sideY = 308;
+    const sideH = 84;
     const elevations = [0];
     let curElevation = 0;
     profile.forEach(seg => {
@@ -2194,9 +2410,115 @@
     sideGroup.appendChild(makeEl('polyline', {
       points: points.join(' '),
       fill: 'none',
-      stroke: '#2e7d32',
-      'stroke-width': 3
+      stroke: '#00695c',
+      'stroke-width': 4
     }));
+    let tickPosM = 0;
+    sideGroup.appendChild(makeEl('line', {
+      x1: sideX,
+      y1: sideY + 8,
+      x2: sideX,
+      y2: sideY + sideH - 8,
+      stroke: '#00695c',
+      'stroke-width': 2
+    }));
+    profile.forEach(function(seg) {
+      tickPosM += seg.distance;
+      const tickX = sideX + (tickPosM * scale);
+      sideGroup.appendChild(makeEl('line', {
+        x1: tickX,
+        y1: sideY + 8,
+        x2: tickX,
+        y2: sideY + sideH - 8,
+        stroke: '#00897b',
+        'stroke-width': 1.5,
+        'stroke-dasharray': '3,3'
+      }));
+    });
+    sideGroup.appendChild(makeEl('text', {
+      x: sideX + 2,
+      y: sideY + sideH + 14,
+      'font-size': 11,
+      fill: '#546e7a'
+    }, thisThr || '??'));
+    if (oppThr) {
+      sideGroup.appendChild(makeEl('text', {
+        x: sideX + runwayPx - 2,
+        y: sideY + sideH + 14,
+        'font-size': 11,
+        fill: '#546e7a',
+        'text-anchor': 'end'
+      }, oppThr));
+    }
+
+    const yForDist = function(distM) {
+      const d = Math.max(0, Math.min(lengthM, Number(distM || 0)));
+      let cursor = 0;
+      let elevStart = 0;
+      for (let i = 0; i < profile.length; i++) {
+        const seg = profile[i];
+        const segStart = cursor;
+        const segEnd = cursor + seg.distance;
+        if (d <= segEnd || i === profile.length - 1) {
+          const segSpan = Math.max(0.0001, seg.distance);
+          const t = Math.max(0, Math.min(1, (d - segStart) / segSpan));
+          const elev = elevStart + (seg.distance * seg.slope / 100) * t;
+          return sideY + yOffset + usedHeight - ((elev - minEl) * elScale);
+        }
+        elevStart += (seg.distance * seg.slope / 100);
+        cursor = segEnd;
+      }
+      return sideY + yOffset + usedHeight;
+    };
+
+    const rightAnchorX = sideX + runwayPx + 30;
+    const longTakeoffCandidates = obstacleAngles.filter(function(obs) {
+      const dist = Math.max(0, Math.min(lengthM, Number(obs && obs.checkpointDistanceM || 0)));
+      if (dist < 250) return false;
+      const thr = normalizeThrRef(obs && obs.fromThreshold || '');
+      const corner = String(obs && obs.checkpointCorner || '').trim().toUpperCase();
+      const fromThisThr = (thr && thr === thisThr) || (!thr && corner !== 'C');
+      if (!fromThisThr) return false;
+      const operation = String(obs && obs.operation || '').trim().toLowerCase() || (dist >= 300 ? 'takeoff' : 'landing');
+      return operation === 'takeoff';
+    });
+
+    const chosenLongTakeoff = longTakeoffCandidates.sort(function(a, b) {
+      return Number(b && b.checkpointDistanceM || 0) - Number(a && a.checkpointDistanceM || 0);
+    })[0] || null;
+
+    if (chosenLongTakeoff) {
+      const dist = Math.max(0, Math.min(lengthM, Number(chosenLongTakeoff.checkpointDistanceM || 0)));
+      const baseX = sideX + (dist * scale);
+      const baseY = yForDist(dist);
+      const anchorY = sideY + 20;
+      const icon = iconForObstacle(chosenLongTakeoff.type);
+      const angleDeg = Number(chosenLongTakeoff.angleDeg != null ? chosenLongTakeoff.angleDeg : (chosenLongTakeoff.fromThrA50mDeg != null ? chosenLongTakeoff.fromThrA50mDeg : chosenLongTakeoff.fromThrB50mDeg) || 0);
+
+      sideGroup.appendChild(makeEl('line', {
+        x1: baseX,
+        y1: baseY,
+        x2: rightAnchorX,
+        y2: anchorY,
+        stroke: '#ef6c00',
+        'stroke-width': 3
+      }));
+      sideGroup.appendChild(makeEl('circle', { cx: baseX, cy: baseY, r: 6, fill: '#37474f' }));
+      sideGroup.appendChild(makeEl('text', {
+        x: rightAnchorX + 2,
+        y: anchorY + 7,
+        'font-size': 18,
+        fill: '#2e7d32',
+        'text-anchor': 'start'
+      }, icon + ' ' + angleDeg.toFixed(1) + '°'));
+      sideGroup.appendChild(makeEl('text', {
+        x: baseX,
+        y: sideY - 12,
+        'font-size': 13,
+        fill: '#546e7a',
+        'text-anchor': 'middle'
+      }, Math.round(dist) + 'm'));
+    }
 
     let segStartM = 0;
     let lastSegLabelX = -9999;
@@ -2207,71 +2529,19 @@
       if (canShow) {
         sideGroup.appendChild(makeEl('text', {
           x: segMidX,
-          y: sideY + sideH + 10,
-          'font-size': 12,
+          y: sideY + sideH + 28,
+          'font-size': 13,
           fill: '#4b4b4b',
           'text-anchor': 'middle'
-        }, `${seg.slope >= 0 ? '+' : ''}${seg.slope.toFixed(1)}% / ${Math.round(seg.distance)}m`));
+        }, `${Math.round(segStartM)}-${Math.round(segStartM + seg.distance)}m ${seg.slope >= 0 ? '+' : ''}${seg.slope.toFixed(1)}%`));
         lastSegLabelX = segMidX;
       }
       segStartM += seg.distance;
     });
-
-    const hint = makeEl('text', {
-      x: canvasW - 10,
-      y: 20,
-      'font-size': 13,
-      fill: '#777',
-      'text-anchor': 'end'
-    }, 'Tap diagram: zoom in/out');
-
-    const focusTargets = [];
-    if (toPointM > 0) focusTargets.push(toPointM);
-    if (abortPointM > 0) focusTargets.push(abortPointM);
-    features.forEach(feat => {
-      const d = Math.max(0, Number(feat && feat.distance || 0));
-      if (d >= 0 && d <= lengthM) focusTargets.push(d);
-    });
-
-    const applyViewBox = function(mode) {
-      if (mode === 'focus' && focusTargets.length) {
-        const minM = Math.min.apply(null, focusTargets);
-        const maxM = Math.max.apply(null, focusTargets);
-        const coreRange = Math.max(maxM - minM, 120);
-        const marginM = Math.max(80, coreRange * 0.35);
-        let startM = Math.max(0, minM - marginM);
-        let endM = Math.min(lengthM, maxM + marginM);
-        if ((endM - startM) < 220) {
-          const c = (startM + endM) / 2;
-          startM = Math.max(0, c - 110);
-          endM = Math.min(lengthM, c + 110);
-        }
-        const vx = Math.max(0, topX + (startM * scale) - 18);
-        const vRight = Math.min(canvasW, topX + (endM * scale) + 18);
-        const vw = Math.max(150, vRight - vx);
-        svg.setAttribute('viewBox', `${vx} 0 ${vw} ${canvasH}`);
-      } else {
-        svg.setAttribute('viewBox', `0 0 ${canvasW} ${canvasH}`);
-      }
-    };
-
-    if (!window.performanceTab4.diagramZoomMode) {
-      window.performanceTab4.diagramZoomMode = 'full';
-    }
-
-    if (!svg.dataset.zoomBound) {
-      svg.addEventListener('click', function() {
-        window.performanceTab4.diagramZoomMode = (window.performanceTab4.diagramZoomMode === 'focus') ? 'full' : 'focus';
-        window.drawRunwayDiagram(window.performanceTab4.selectedRunway, window.performanceTab4.lastPerformanceResult);
-      });
-      svg.dataset.zoomBound = '1';
-    }
-
-    applyViewBox(window.performanceTab4.diagramZoomMode);
+    svg.setAttribute('viewBox', `0 0 ${canvasW} ${canvasH}`);
 
     svg.appendChild(topGroup);
     svg.appendChild(sideGroup);
-    svg.appendChild(hint);
     svg.style.display = 'block';
     document.getElementById('perf-diagram-empty').style.display = 'none';
   };
@@ -2285,6 +2555,49 @@
     const windDirectionEl = document.getElementById('perf-wind-direction');
     if (windDirectionEl) windDirectionEl.value = windDirection;
 
+    const slopeProfileForCalc = (function() {
+      if (!runway || window.performanceTab4.slopeOverridden) return [];
+      const segments = Array.isArray(runway.surveySlopeSegments) ? runway.surveySlopeSegments : [];
+      if (!segments.length) return runway.slopeProfile || [];
+
+      const ident = String(runway.rwyIdent || '').trim().toUpperCase();
+      const sortedSegments = segments.map(function(seg) {
+        const segDistance = Math.max(Number(seg && (seg.distanceM != null ? seg.distanceM : seg.distance) || 0), 0);
+        const segFromThreshold = String(seg && seg.fromThreshold || ident).trim().toUpperCase();
+        const rawStart = Number(seg && seg.startDistanceM);
+        let startDistanceM = isFinite(rawStart) ? rawStart : 0;
+        if (!isFinite(rawStart)) {
+          startDistanceM = segFromThreshold === ident ? 0 : Math.max(0, Number(runway.length || 0) - segDistance);
+        }
+        return {
+          startDistanceM: Math.max(0, Math.min(Number(runway.length || 0), startDistanceM)),
+          distance: segDistance,
+          slope: Number(seg && seg.slope || 0)
+        };
+      }).filter(function(seg) {
+        return seg.distance > 0 && isFinite(seg.slope);
+      }).sort(function(a, b) {
+        return a.startDistanceM - b.startDistanceM;
+      });
+
+      const profile = [];
+      let cursorM = 0;
+      sortedSegments.forEach(function(seg) {
+        if (seg.startDistanceM > cursorM) {
+          profile.push({ distance: seg.startDistanceM - cursorM, slope: 0 });
+        }
+        const clippedDistance = Math.max(0, Math.min(seg.distance, Number(runway.length || 0) - seg.startDistanceM));
+        if (clippedDistance > 0) {
+          profile.push({ distance: clippedDistance, slope: seg.slope });
+          cursorM = seg.startDistanceM + clippedDistance;
+        }
+      });
+      if (cursorM < Number(runway.length || 0)) {
+        profile.push({ distance: Number(runway.length || 0) - cursorM, slope: 0 });
+      }
+      return profile.length ? profile : (runway.slopeProfile || []);
+    })();
+
     const payload = {
       missionId: window.performanceTab4.missionId,
       flightId: window.performanceTab4.flightId,
@@ -2293,7 +2606,7 @@
       weightKg: Number(document.getElementById('perf-weight')?.value || 0),
       runwayLengthM: Number(document.getElementById('perf-runway-length')?.value || runway?.length || 0),
       slopePercent: Number(document.getElementById('perf-slope')?.value || runway?.slope || 0),
-      slopeProfile: window.performanceTab4.slopeOverridden ? [] : (runway?.slopeProfile || []),
+      slopeProfile: slopeProfileForCalc,
       elevationFt: Number(document.getElementById('perf-elevation')?.value || runway?.elevation || 0),
       surface: String(document.getElementById('perf-surface')?.value || runway?.surface || '').trim(),
       surfaceCondition: String(document.getElementById('perf-surface-condition')?.value || 'DRY'),
@@ -2306,6 +2619,22 @@
       flapSetting: Number(document.getElementById('perf-flaps')?.value || 0)
     };
 
+    let localCalcReference = window.performanceTab4.calcReference;
+    if (!localCalcReference || !Array.isArray(localCalcReference.baseRows) || !localCalcReference.baseRows.length || !Array.isArray(localCalcReference.perfRows) || !localCalcReference.perfRows.length) {
+      localCalcReference = readGlobalPerformanceReference_() || { baseRows: [], perfRows: [] };
+      window.performanceTab4.calcReference = localCalcReference;
+    }
+
+    if (!String(payload.aircraftType || '').trim() && localCalcReference && Array.isArray(localCalcReference.baseRows) && localCalcReference.baseRows.length) {
+      const knownTypes = Array.from(new Set(localCalcReference.baseRows
+        .map(function(r) { return String(_perfCalcValue(r, ['AIRCRAFT_TYPE'], '')).trim(); })
+        .filter(Boolean)));
+      if (knownTypes.length === 1) {
+        payload.aircraftType = knownTypes[0];
+        window.performanceTab4.aircraftType = knownTypes[0];
+      }
+    }
+
     if (!payload.aircraftType || !payload.weightKg || !payload.runwayLengthM) {
       if (!silentMode && window.M) {
         M.toast({ html: 'Missing aircraft type, weight, or runway', classes: 'orange' });
@@ -2315,11 +2644,6 @@
 
     const cachedResult = readCachedPerformanceResult_(payload);
 
-    let localCalcReference = window.performanceTab4.calcReference;
-    if (!localCalcReference || !Array.isArray(localCalcReference.baseRows) || !localCalcReference.baseRows.length || !Array.isArray(localCalcReference.perfRows) || !localCalcReference.perfRows.length) {
-      localCalcReference = readGlobalPerformanceReference_() || { baseRows: [], perfRows: [] };
-      window.performanceTab4.calcReference = localCalcReference;
-    }
     if (localCalcReference && Array.isArray(localCalcReference.baseRows) && localCalcReference.baseRows.length && Array.isArray(localCalcReference.perfRows) && localCalcReference.perfRows.length) {
       const localResult = calculatePerformanceLocally_(payload, localCalcReference);
       if (!localResult || !localResult.success) {
@@ -2336,6 +2660,8 @@
     if (!window.google || !google.script || !google.script.run) {
       if (cachedResult) {
         applyPerformanceResult_(cachedResult);
+      } else if (!silentMode && window.M) {
+        M.toast({ html: 'Offline: no cached performance reference/result yet. Open Tab 4 online once for this mission.', classes: 'orange', displayLength: 7000 });
       }
       return;
     }

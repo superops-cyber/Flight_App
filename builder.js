@@ -185,6 +185,75 @@ function upgradeMaintenanceSystem() {
 
   SpreadsheetApp.getUi().alert("DB_Aircraft upgraded and Component Matrix created.");
 }
+
+function setupMaintenanceSchedulingSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  function ensureSheet(sheetName, headers) {
+    let sh = ss.getSheetByName(sheetName);
+    if (!sh) sh = ss.insertSheet(sheetName);
+    const hasData = sh.getLastRow() > 0;
+    if (!hasData) {
+      sh.getRange(1, 1, 1, headers.length)
+        .setValues([headers])
+        .setBackground('#1f2937')
+        .setFontColor('white')
+        .setFontWeight('bold');
+      sh.setFrozenRows(1);
+    }
+    return sh;
+  }
+
+  ensureSheet('DB_Maint_Templates', [
+    'TASK_CODE',
+    'TASK_NAME',
+    'AIRCRAFT_TYPE',
+    'CATEGORY',
+    'REFERENCE',
+    'INTERVAL_HOURS',
+    'INTERVAL_DAYS',
+    'ACTIVE',
+    'SOURCE',
+    'CAMO_KEY',
+    'NOTES',
+    'CREATED_AT',
+    'UPDATED_AT'
+  ]);
+
+  ensureSheet('DB_Maint_Assignments', [
+    'ASSIGNMENT_ID',
+    'AIRCRAFT_REG',
+    'TASK_CODE',
+    'TASK_NAME',
+    'CATEGORY',
+    'REFERENCE',
+    'INTERVAL_HOURS',
+    'INTERVAL_DAYS',
+    'START_TACH',
+    'START_DATE',
+    'ACTIVE',
+    'SOURCE',
+    'CAMO_KEY',
+    'NOTES',
+    'CREATED_AT',
+    'UPDATED_AT'
+  ]);
+
+  ensureSheet('DB_Maint_Log', [
+    'LOG_ID',
+    'ASSIGNMENT_ID',
+    'AIRCRAFT_REG',
+    'COMPLETED_DATE',
+    'COMPLETED_TACH',
+    'REFERENCE_DOC',
+    'PERFORMED_BY',
+    'REMARKS',
+    'CREATED_AT'
+  ]);
+
+  SpreadsheetApp.getUi().alert('Maintenance scheduling framework ready (templates, assignments, and log sheets).');
+}
+
 function setupChecksDatabase() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheetName = "DB_Checks";

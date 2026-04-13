@@ -28,13 +28,81 @@
 
 /* APP LAYOUT */
 body { background: #f4f7f9; margin: 0; padding: 0; }
-.app-tab { display: none; padding: 20px; padding-bottom: 120px; }
+.app-tab { display: none; padding: 20px; padding-bottom: 120px; position: relative; }
 .app-tab.active { display: block; animation: fadeIn 0.4s ease; }
 /* Tab 4 fills full width — its inner container handles padding */
 #tab4 { padding: 0 0 120px 0; }
 
 /* Tab 4 and Tab 7 fill full width — their inner containers handle padding */
 #tab4, #tab7 { padding: 0 0 120px 0; }
+
+.app-tab-version-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(11, 83, 148, 0.92);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 18px rgba(11, 83, 148, 0.22);
+}
+
+.tab1-version-board {
+  margin: 0 10px 12px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #dbe6f3;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(11, 83, 148, 0.06);
+}
+
+.tab1-version-board-title {
+  margin-bottom: 8px;
+  color: #0b5394;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tab1-version-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tab1-version-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f8fbff;
+  border: 1px solid #e4eef8;
+}
+
+.tab1-version-label {
+  color: #455a64;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tab1-version-value {
+  color: #0b5394;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
 
 /* STATUS CARDS (For Pilot/Aircraft) */
 .status-card {
@@ -159,6 +227,17 @@ body { background: #f4f7f9; margin: 0; padding: 0; }
 .action-btn span { font-size: 0.7rem; font-weight: bold; text-align: center; line-height: 1; }
 .action-btn:active { background: #0b5394; color: white; }
 
+.action-btn.readiness-locked {
+  opacity: 0.45;
+  filter: grayscale(0.3);
+  pointer-events: none;
+}
+
+.step.readiness-step-locked {
+  opacity: 0.3 !important;
+  pointer-events: none;
+}
+
 .cache-row {
   display: flex;
   justify-content: space-between;
@@ -213,6 +292,10 @@ body { background: #f4f7f9; margin: 0; padding: 0; }
 @media (max-width: 600px) {
   .stats-row {
     grid-template-columns: repeat(3, 1fr); /* 3 boxes on first row, 2 on second */
+  }
+
+  .tab1-version-list {
+    grid-template-columns: 1fr;
   }
 }
 .mission-info-bar {

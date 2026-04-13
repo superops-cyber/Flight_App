@@ -759,8 +759,8 @@
     <div class="tools-airport-edit-block">
       <h4>Fuel Availability</h4>
       <label class="tools-airport-edit-check" for="tools-airport-fuel-available">
-        <input id="tools-airport-fuel-available" type="checkbox" onchange="toolsToggleFuelCacheSection()">
-        Airport has fuel available
+        <input id="tools-airport-fuel-available" type="checkbox" onchange="toolsToggleFuelCacheSection('available')">
+        1) Fuel Available (supplier)
       </label>
     </div>
 
@@ -780,8 +780,8 @@
     <div class="tools-airport-edit-block">
       <h4>Fuel Cache (DB_Fuel_Caches)</h4>
       <label class="tools-airport-edit-check" for="tools-airport-cache-enabled">
-        <input id="tools-airport-cache-enabled" type="checkbox" onchange="toolsToggleFuelCacheSection()">
-        Also create or update fuel cache
+        <input id="tools-airport-cache-enabled" type="checkbox" onchange="toolsToggleFuelCacheSection('cache')">
+        2) Fuel Cache (our stock)
       </label>
       <div id="tools-airport-cache-fields" style="display:none;">
         <div class="tools-row">
@@ -1189,9 +1189,9 @@
     var raw = [];
     var origin = String(keys.origin.value || '').trim().toUpperCase();
     var destination = String(keys.destination.value || '').trim().toUpperCase();
-    var waypointList = String(keys.waypointList && keys.waypointList.value || '').trim().toUpperCase();
+    var waypointList = String(keys.waypointList && keys.waypointList.value || '');
     if (origin) raw.push(origin);
-    waypointList.split(/[\s,;\n]+/).forEach(function(token) { if (token) raw.push(token); });
+    toolsRouteTokenizeList_(waypointList).forEach(function(token) { raw.push(token); });
     if (destination) raw.push(destination);
 
     var points = [];
@@ -1490,6 +1490,16 @@
     if (hit && hit.code) el.value = hit.code;
   }
 
+  function toolsRouteTokenizeList_(rawList) {
+    var normalized = String(rawList || '')
+      .toUpperCase()
+      .replace(/\u2192|->/g, ',')
+      .replace(/[;|/\n\r]+/g, ',');
+    return normalized.split(',').map(function(token) {
+      return String(token || '').trim();
+    }).filter(Boolean);
+  }
+
   function toolsRouteRefreshSelect_() {
     var sel = document.getElementById('tools-route-select');
     if (!sel) return;
@@ -1539,10 +1549,10 @@
   function toolsRoutePreviewPoints_() {
     var origin = String((document.getElementById('tools-route-origin') || {}).value || '').trim().toUpperCase();
     var destination = String((document.getElementById('tools-route-destination') || {}).value || '').trim().toUpperCase();
-    var waypointList = String((document.getElementById('tools-route-waypoint-list') || {}).value || '').trim().toUpperCase();
+    var waypointList = String((document.getElementById('tools-route-waypoint-list') || {}).value || '');
     var tokens = [];
     if (origin) tokens.push(origin);
-    waypointList.split(/[\s,;\n]+/).forEach(function(token) { if (token) tokens.push(token); });
+    toolsRouteTokenizeList_(waypointList).forEach(function(token) { tokens.push(token); });
     if (destination) tokens.push(destination);
 
     var points = [];
@@ -1616,10 +1626,16 @@
   function toolsRouteSaveCurrent() {
     var origin = String((document.getElementById('tools-route-origin') || {}).value || '').trim().toUpperCase();
     var destination = String((document.getElementById('tools-route-destination') || {}).value || '').trim().toUpperCase();
-    var waypointList = String((document.getElementById('tools-route-waypoint-list') || {}).value || '').trim().toUpperCase();
-    waypointList = waypointList.split(/[\s,;\n]+/).filter(Boolean).join(', ');
+    var waypointListRaw = String((document.getElementById('tools-route-waypoint-list') || {}).value || '');
+    var waypointTokens = toolsRouteTokenizeList_(waypointListRaw);
+    var invalidTokens = waypointTokens.filter(function(token) { return !toolsDbRouteLookup_(token, false); });
+    var waypointList = waypointTokens.join(', ');
     if (!origin || !destination) { toolsToast_('Origin and destination are required.', 'orange'); return; }
     if (!toolsDbRouteLookup_(origin, true) || !toolsDbRouteLookup_(destination, true)) { toolsToast_('Origin and destination must be valid airports.', 'orange'); return; }
+    if (invalidTokens.length) {
+      toolsToast_('Unknown waypoint(s): ' + invalidTokens.join(', ') + '. Use comma-separated valid IDs.', 'orange');
+      return;
+    }
     var payload = { ORIGIN: origin, DESTINATION: destination, WAYPOINT_LIST: waypointList };
     var finish = function(msg) {
       toolsRefreshRouteData_(function() {
@@ -3949,6 +3965,7 @@
 
     var cache=toolsAirportCacheForIcao_(code)||{};
     var cacheEnabled=!!(fuelSetupMode===true || cache.icao);
+    if(cacheEnabled)hasFuel=false;
     var cacheChk=document.getElementById('tools-airport-cache-enabled');if(cacheChk)cacheChk.checked=cacheEnabled;
     var cacheLoc=document.getElementById('tools-airport-cache-location');if(cacheLoc)cacheLoc.value=String(cache.location||cache.locationName||cache.LOCATION_NAME||airport.nome||code);
     var cacheType=document.getElementById('tools-airport-cache-fuel-type');if(cacheType)cacheType.value=String(cache.fuelType||cache.FUEL_TYPE||'AVGAS');
@@ -3998,13 +4015,29 @@
     }).join('');
   }
 
-  function toolsToggleFuelCacheSection(){
-    var cacheEnabled=((document.getElementById('tools-airport-cache-enabled')||{}).checked);
+  function toolsToggleFuelCacheSection(source){
+    var fuelEl=document.getElementById('tools-airport-fuel-available');
+    var cacheEl=document.getElementById('tools-airport-cache-enabled');
+    var fuelAvailable=!!(fuelEl&&fuelEl.checked);
+    var cacheEnabled=!!(cacheEl&&cacheEl.checked);
+
+    // Fuel source must be explicit and mutually exclusive.
+    if(source==='available' && fuelAvailable && cacheEl){
+      cacheEl.checked=false;
+      cacheEnabled=false;
+    }
+    if(source==='cache' && cacheEnabled && fuelEl){
+      fuelEl.checked=false;
+      fuelAvailable=false;
+    }
+
     var cacheFields=document.getElementById('tools-airport-cache-fields');
     if(cacheFields)cacheFields.style.display=cacheEnabled?'block':'none';
     var contactBlock=document.getElementById('tools-airport-contact-block');
-    var fuelAvailable=((document.getElementById('tools-airport-fuel-available')||{}).checked);
-    if(contactBlock)contactBlock.style.opacity=(fuelAvailable||cacheEnabled)?'1':'0.72';
+    if(contactBlock){
+      contactBlock.style.display=fuelAvailable?'block':'none';
+      contactBlock.style.opacity=fuelAvailable?'1':'0.72';
+    }
   }
 
   function toolsOpenAirportEditor(icao, fuelSetupMode){
@@ -4031,18 +4064,20 @@
 
     var hasFuel=((document.getElementById('tools-airport-fuel-available')||{}).checked===true);
     var cacheEnabled=((document.getElementById('tools-airport-cache-enabled')||{}).checked===true);
-    var contactPayload={
+    if(cacheEnabled)hasFuel=false;
+
+    var contactPayload=hasFuel?{
       CONTATO:String(((document.getElementById('tools-airport-contact-name')||{}).value||'')).trim(),
       CELULAR:String(((document.getElementById('tools-airport-contact-mobile')||{}).value||'')).trim(),
       TELEFONE_2:String(((document.getElementById('tools-airport-contact-phone2')||{}).value||'')).trim(),
       PERMAN_NCIA_:String(((document.getElementById('tools-airport-contact-perm')||{}).value||'')).trim(),
       ANOTA__ES:String(((document.getElementById('tools-airport-contact-notes')||{}).value||'')).trim()
-    };
+    }:{};
     var cachePayload={
       ICAO:icao,
       LOCATION_NAME:String(((document.getElementById('tools-airport-cache-location')||{}).value||'')).trim() || String((airportObj&&airportObj.NOME)||icao),
       FUEL_TYPE:String(((document.getElementById('tools-airport-cache-fuel-type')||{}).value||'')).trim() || 'AVGAS',
-      FUEL_QTY_L:String(((document.getElementById('tools-airport-cache-qty')||{}).value||'')).trim(),
+      CURRENT_QTY:String(((document.getElementById('tools-airport-cache-qty')||{}).value||'')).trim(),
       LAST_UPDATED_BY:String(((document.getElementById('tools-airport-cache-updated-by')||{}).value||'')).trim() || toolsCurrentAdmin_(),
       NOTES:String(((document.getElementById('tools-airport-cache-notes')||{}).value||'')).trim()
     };
@@ -4139,40 +4174,118 @@
         if(!name) name=String(row.nome || '').trim();
       });
       if(!heading) heading=toolsRwyHeadingFromIdent_(String(primary.runwayIdent || '').split('/')[0]);
-      return { label:key, name:name, lengthM:lengthM, widthM:widthM, elevationFt:elevation, headingDeg:heading, surface:surface||'-', slopePercent:slope||'', rows:rowsInGroup };
+      // Parse obstacle angles from primary row knownFeatures
+      var obstacleAngles = [];
+      var kfRaw = String(primary.knownFeatures || '').trim();
+      if (kfRaw) {
+        try {
+          var kfParsed = JSON.parse(kfRaw);
+          var kfObj = Array.isArray(kfParsed) ? { features: kfParsed } : (kfParsed || {});
+          var vOp = (kfObj.verifiedOperational && typeof kfObj.verifiedOperational === 'object') ? kfObj.verifiedOperational : {};
+          obstacleAngles = Array.isArray(vOp.obstacleAngles50m) ? vOp.obstacleAngles50m : (Array.isArray(kfObj.obstacleAngles50m) ? kfObj.obstacleAngles50m : []);
+        } catch(e) { obstacleAngles = []; }
+      }
+      return { label:key, name:name, lengthM:lengthM, widthM:widthM, elevationFt:elevation, headingDeg:heading, surface:surface||'-', slopePercent:slope||'', rows:rowsInGroup, obstacleAngles:obstacleAngles };
     });
   }
-  function toolsRunwaySvg_(group){
+  function toolsRunwaySvg_(group, obsIdPrefix){
     var runwayLengthM=Math.max(Math.round(group.lengthM||0),1), runwayWidthM=Math.max(Math.round(group.widthM||0),0), surfaceValue=String(group.surface||'-');
     var norm=surfaceValue.toUpperCase(); var isPaved=/ASPHALT|PAVED|CONCRETE|ASFALTO|CONCRETO/.test(norm); var isGrass=/GRASS|TURF|GRAMA/.test(norm);
-    var topX=48, topY=46, topH=72, usableW=540, scale=usableW/runwayLengthM, runwayPx=runwayLengthM*scale, fill=isPaved?'#5f5f5f':(isGrass?'#6d9557':'#9c8762');
+    // Wider SVG (700px) with runway centred leaving 110px margin on each side for obstacle labels
+    var topX=110, topY=46, topH=72, usableW=480, scale=usableW/runwayLengthM, runwayPx=runwayLengthM*scale, fill=isPaved?'#5f5f5f':(isGrass?'#6d9557':'#9c8762');
     var leftIdent=String(group.label||group.rows[0]&&group.rows[0].runwayIdent||'RWY').split('/')[0]||'RWY'; var rightIdent=String(group.label||'').indexOf('/')>=0 ? String(group.label).split('/')[1] : toolsRwyReciprocalIdent_(leftIdent);
-    var sideX=48, sideY=212, sideH=80, slopeValue=Number(group.slopePercent||0) || 0, endElev=slopeValue ? (runwayLengthM * slopeValue / 100) : 0;
+    var sideX=110, sideY=210, sideH=65, slopeValue=Number(group.slopePercent||0)||0, endElev=slopeValue?(runwayLengthM*slopeValue/100):0;
     var minEl=Math.min(0,endElev), maxEl=Math.max(0,endElev), spanEl=Math.max(0.5,maxEl-minEl), elScale=Math.max(0.8,Math.min(sideH/spanEl,4)), usedHeight=spanEl*elScale, yOffset=(sideH-usedHeight)/2;
     var yStart=sideY+yOffset+usedHeight-((0-minEl)*elScale), yEnd=sideY+yOffset+usedHeight-((endElev-minEl)*elScale);
+    var obstacles = Array.isArray(group.obstacleAngles) ? group.obstacleAngles : [];
+    var normThr = function(raw) {
+      var txt=String(raw||'').trim().toUpperCase().replace(/^RWY\s*/,'');
+      var m=txt.match(/^(\d{1,2})([LCR])?$/); if(!m) return txt;
+      var n=parseInt(m[1],10); if(!isFinite(n)||n<1||n>36) return txt;
+      return String(n).padStart(2,'0')+(m[2]||'');
+    };
+    var leftThr = normThr(leftIdent);
+    // Obstacle dots are placed OUTSIDE the runway ends.
+    // Landing at leftThr  → obstacle is past the LEFT end (approach from outside).
+    // Takeoff from leftThr → obstacle is past the RIGHT end (climb-out to the right).
+    // Landing at rightThr → obstacle is past the RIGHT end.
+    // Takeoff from rightThr → obstacle is past the LEFT end.
+    var leftTipX = 50, rightTipX = sideX + runwayPx + 60;
+    var leftStack = 0, rightStack = 0;
+    var obsGroupsSvg = obstacles.slice(0,8).map(function(obs, idx) {
+      var dist = Math.max(0, Math.min(runwayLengthM, Number(obs&&obs.checkpointDistanceM||0)));
+      var thr = normThr(obs&&obs.fromThreshold||'');
+      var operation = String(obs&&obs.operation||'').trim().toLowerCase()||(dist>=300?'takeoff':'landing');
+      var isLeft = (thr===leftThr) ? (operation==='landing') : (operation==='takeoff');
+      var stack = isLeft ? leftStack++ : rightStack++;
+      var anchorY = sideY + 6 + (stack * 26);
+      var tipX = isLeft ? leftTipX : rightTipX;
+      // Line comes from the threshold end of the slope profile
+      var lineFromX = isLeft ? sideX : (sideX + runwayPx);
+      var lineFromY = isLeft ? yStart : yEnd;
+      var icon = (function(type){ var t=String(type||'').toLowerCase(); if(t.indexOf('tree')>=0)return '\ud83c\udf33'; if(t.indexOf('building')>=0||t.indexOf('house')>=0)return '\ud83c\udfe2'; if(t.indexOf('hill')>=0)return '\u26f0'; if(t.indexOf('rock')>=0)return '\ud83e\udea8'; if(t.indexOf('power')>=0)return '\u26a1'; return '\ud83d\udccd'; })(obs&&obs.type);
+      var angleDeg = Number(obs&&(obs.angleDeg!=null?obs.angleDeg:(obs.fromThrA50mDeg!=null?obs.fromThrA50mDeg:obs.fromThrB50mDeg))||0).toFixed(1);
+      var lineColor = operation==='landing'?'#1976d2':'#ef6c00';
+      var textAnchor = isLeft ? 'end' : 'start';
+      var labelX = isLeft ? (tipX-10) : (tipX+10);
+      var gId = (obsIdPrefix||'tO')+'_'+idx;
+      return '<g id="'+gId+'">'
+        +'<line x1="'+lineFromX.toFixed(1)+'" y1="'+lineFromY.toFixed(1)+'" x2="'+tipX+'" y2="'+anchorY+'" stroke="'+lineColor+'" stroke-width="3" stroke-linecap="round"></line>'
+        +'<circle cx="'+tipX+'" cy="'+anchorY+'" r="7" fill="#37474f" stroke="'+lineColor+'" stroke-width="2"></circle>'
+        +'<text x="'+labelX+'" y="'+(anchorY+5)+'" font-size="14" fill="#2e7d32" text-anchor="'+textAnchor+'">'+icon+' '+angleDeg+'\u00b0</text>'
+        +'<text x="'+labelX+'" y="'+(anchorY+19)+'" font-size="10" fill="'+lineColor+'" text-anchor="'+textAnchor+'">'+Math.round(dist)+'m \u00b7 '+(thr||leftThr)+'</text>'
+        +'</g>';
+    }).join('');
+    var maxStack = Math.max(leftStack, rightStack, 1);
+    var viewH = sideY + sideH + Math.max(55, (maxStack * 26) + 30);
     return ''
-      + '<svg width="100%" height="360" viewBox="0 0 640 360" style="border:1px solid #d7dde3; border-radius:10px; background:#f9fbfd;">'
-      + '<text x="48" y="22" font-size="12" fill="#234" font-weight="700">TOP VIEW</text>'
+      + '<svg width="100%" height="'+viewH+'" viewBox="0 0 700 '+viewH+'" style="border:1px solid #d7dde3; border-radius:10px; background:#f9fbfd;">'
+      + '<text x="'+topX+'" y="22" font-size="12" fill="#234" font-weight="700">TOP VIEW</text>'
       + '<rect x="'+topX+'" y="'+topY+'" width="'+runwayPx+'" height="'+topH+'" fill="'+fill+'" stroke="#263238" stroke-width="2" rx="4" ry="4"></rect>'
       + (isPaved?'<line x1="'+topX+'" y1="'+(topY+(topH/2))+'" x2="'+(topX+runwayPx)+'" y2="'+(topY+(topH/2))+'" stroke="#f3f3f3" stroke-width="3" stroke-dasharray="18,10"></line>':'')
       + '<g transform="rotate(90 '+(topX+22)+' '+(topY+topH/2)+')"><rect x="'+((topX+22)-18)+'" y="'+((topY+topH/2)-13)+'" width="36" height="26" fill="rgba(0,0,0,0.45)" rx="3" ry="3"></rect><text x="'+(topX+22)+'" y="'+((topY+topH/2)+6)+'" font-size="16" fill="#fff" font-weight="900" text-anchor="middle">'+leftIdent+'</text></g>'
       + '<g transform="rotate(-90 '+(topX+runwayPx-22)+' '+(topY+topH/2)+')"><rect x="'+((topX+runwayPx-22)-18)+'" y="'+((topY+topH/2)-13)+'" width="36" height="26" fill="rgba(0,0,0,0.45)" rx="3" ry="3"></rect><text x="'+(topX+runwayPx-22)+'" y="'+((topY+topH/2)+6)+'" font-size="16" fill="#fff" font-weight="900" text-anchor="middle">'+rightIdent+'</text></g>'
-      + '<text x="'+(topX+(runwayPx/2))+'" y="'+(topY+topH+22)+'" font-size="12" fill="#0b5394" font-weight="700" text-anchor="middle">'+runwayLengthM+'m × '+runwayWidthM+'m' + (surfaceValue ? ' • ' + surfaceValue : '') + '</text>'
-      + '<text x="48" y="204" font-size="12" fill="#234" font-weight="700">SIDE VIEW</text>'
+      + '<text x="'+(topX+(runwayPx/2))+'" y="'+(topY+topH+18)+'" font-size="12" fill="#0b5394" font-weight="700" text-anchor="middle">'+runwayLengthM+'m \u00d7 '+runwayWidthM+'m'+(surfaceValue?' \u2022 '+surfaceValue:'')+'</text>'
+      + '<text x="'+sideX+'" y="'+(sideY-8)+'" font-size="12" fill="#234" font-weight="700">SIDE VIEW</text>'
       + '<rect x="'+sideX+'" y="'+sideY+'" width="'+runwayPx+'" height="'+sideH+'" fill="#f2f5f8" stroke="#d7dde3"></rect>'
-      + '<line x1="'+sideX+'" y1="'+yStart+'" x2="'+(sideX+runwayPx)+'" y2="'+yEnd+'" stroke="#2e7d32" stroke-width="3"></line>'
-      + '<text x="'+(sideX+(runwayPx/2))+'" y="'+(sideY+sideH+18)+'" font-size="10" fill="#4b4b4b" text-anchor="middle">'+(slopeValue>=0?'+':'') + slopeValue.toFixed(1) + '%</text>'
+      + '<line x1="'+sideX+'" y1="'+yStart.toFixed(1)+'" x2="'+(sideX+runwayPx)+'" y2="'+yEnd.toFixed(1)+'" stroke="#2e7d32" stroke-width="3"></line>'
+      + '<text x="'+(sideX+4)+'" y="'+(sideY+sideH-6)+'" font-size="11" fill="#546e7a">'+leftIdent+'</text>'
+      + '<text x="'+(sideX+runwayPx-4)+'" y="'+(sideY+sideH-6)+'" font-size="11" fill="#546e7a" text-anchor="end">'+rightIdent+'</text>'
+      + '<text x="'+(sideX+(runwayPx/2))+'" y="'+(sideY+sideH-6)+'" font-size="10" fill="#607d8b" text-anchor="middle">'+(slopeValue>=0?'+':'')+slopeValue.toFixed(1)+'%</text>'
+      + obsGroupsSvg
       + '</svg>';
   }
+  window._toolsObsToggle_ = function(cb, gId) {
+    var g = document.getElementById(gId); if (g) g.style.display = cb.checked ? '' : 'none';
+  };
   function toolsShowRunwayPreview(icao){
     var groups=toolsGroupedRunwaysForIcao_(icao);
     if(!groups.length){if(window.M)M.toast({html:'No runway data for '+icao,classes:'orange'});return;}
     var titleEl=document.getElementById('tools-rwy-title'),subEl=document.getElementById('tools-rwy-sub'),bodyEl=document.getElementById('tools-rwy-body');
     if(!titleEl||!subEl||!bodyEl)return;
-    titleEl.textContent='RUNWAY PREVIEW';subEl.textContent=icao + (groups[0].name ? ' — ' + groups[0].name : '');
-    bodyEl.innerHTML=groups.map(function(group){
-      var slopeText=group.slopePercent ? (Number(group.slopePercent).toFixed(1)+'%') : '—';
-      var elevText=group.elevationFt ? (Math.round(group.elevationFt)+' ft') : '—';
+    titleEl.textContent='RUNWAY PREVIEW';subEl.textContent=icao + (groups[0].name ? ' \u2014 ' + groups[0].name : '');
+    bodyEl.innerHTML=groups.map(function(group, gIdx){
+      var slopeText=group.slopePercent ? (Number(group.slopePercent).toFixed(1)+'%') : '\u2014';
+      var elevText=group.elevationFt ? (Math.round(group.elevationFt)+' ft') : '\u2014';
+      var obsPrefix = 'tO'+gIdx;
+      var normThrFn = function(raw) { var txt=String(raw||'').trim().toUpperCase().replace(/^RWY\s*/,''); var m=txt.match(/^(\d{1,2})([LCR])?$/); if(!m) return txt; var n=parseInt(m[1],10); if(!isFinite(n)||n<1||n>36) return txt; return String(n).padStart(2,'0')+(m[2]||''); };
+      var leftThr = normThrFn(String(group.label||'').split('/')[0]);
+      var obsPanel = '';
+      if (group.obstacleAngles && group.obstacleAngles.length) {
+        var obsItems = group.obstacleAngles.slice(0,8).map(function(obs,idx){
+          var dist = Math.round(Number(obs&&obs.checkpointDistanceM||0));
+          var thr = normThrFn(obs&&obs.fromThreshold||'')||leftThr;
+          var operation = String(obs&&obs.operation||'').trim().toLowerCase()||(dist>=300?'takeoff':'landing');
+          var gId = obsPrefix+'_'+idx;
+          return '<label style="display:flex;align-items:center;gap:4px;font-size:0.77rem;color:#37474f;cursor:pointer;white-space:nowrap;">'
+            +'<input type="checkbox" checked onchange="_toolsObsToggle_(this,\''+gId+'\')">'
+            +'RWY '+thr+' \u00b7 '+dist+'m \u00b7 '+operation+'</label>';
+        }).join('');
+        obsPanel = '<div style="border:1px solid #e0e6eb;border-radius:8px;padding:8px 10px;background:#fafefe;min-width:148px;max-width:190px;flex-shrink:0;">'
+          +'<div style="font-size:0.78rem;font-weight:800;color:#0b5394;margin-bottom:6px;">Obstacle Angles</div>'
+          +'<div style="display:flex;flex-direction:column;gap:4px;">'+obsItems+'</div>'
+          +'</div>';
+      }
       return '<div style="margin-bottom:16px;">'
         + '<div style="font-weight:800;color:#0b5394;font-size:0.95rem;margin-bottom:8px;">RWY ' + group.label + '</div>'
         + '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px;">'
@@ -4183,7 +4296,10 @@
         + '<div style="border:1px solid #dbe7f3;border-radius:6px;padding:6px 8px;background:#f7fbff;font-size:0.8rem;"><b style="color:#0b5394;">Elevation</b><br>' + elevText + '</div>'
         + '<div style="border:1px solid #dbe7f3;border-radius:6px;padding:6px 8px;background:#f7fbff;font-size:0.8rem;"><b style="color:#0b5394;">Pair</b><br>' + group.label + '</div>'
         + '</div>'
-        + toolsRunwaySvg_(group)
+        + '<div style="display:flex;gap:10px;align-items:flex-start;">'
+        + toolsRunwaySvg_(group, obsPrefix)
+        + obsPanel
+        + '</div>'
         + '</div>';
     }).join('');
     var overlay=document.getElementById('tools-rwy-overlay');if(overlay)overlay.classList.add('open');

@@ -1,5 +1,5 @@
 <style>
-  /* ===== TAB 6 ENROUTE — MISSION RUGGED ===== */
+  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v116 ===== */
 
   #enroute6-wrap {
     background:
@@ -1949,33 +1949,16 @@
       window.enroute6.mapTiles = null;
     }
     const template = _enrouteGetTileTemplate();
-    const OfflineTileLayer = window.L.TileLayer.extend({
-      createTile: function(coords, done) {
-        const img = document.createElement('img');
-        img.alt = '';
-        const networkUrl = this.getTileUrl(coords);
-        _idbGetTile(coords.z, coords.x, coords.y).then(function(blob) {
-          if (blob) {
-            const objUrl = URL.createObjectURL(blob);
-            img.onload  = function() { URL.revokeObjectURL(objUrl); done(null, img); };
-            img.onerror = function() { URL.revokeObjectURL(objUrl); img.src = networkUrl; };
-            img.src = objUrl;
-          } else {
-            img.onload  = function() { done(null, img); };
-            img.onerror = function(e) { done(e, img); };
-            img.src = networkUrl;
-          }
-        }).catch(function() {
-          img.onload  = function() { done(null, img); };
-          img.onerror = function(e) { done(e, img); };
-          img.src = networkUrl;
-        });
-        return img;
-      }
+    
+    // Use standard L.TileLayer with error handling
+    window.enroute6.mapTiles = window.L.tileLayer(template, {
+      maxZoom: 16,
+      minZoom: 4,
+      attribution: '© OpenStreetMap contributors (offline pack)',
+      errorTileUrl: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect fill="%231a2a3a" width="256" height="256"/></svg>',
+      crossOrigin: true
     });
-    window.enroute6.mapTiles = new OfflineTileLayer(template, {
-      maxZoom: 16, minZoom: 4, attribution: 'Map data (offline pack)'
-    });
+    
     window.enroute6.mapTiles.addTo(window.enroute6.mapObj);
   }
 

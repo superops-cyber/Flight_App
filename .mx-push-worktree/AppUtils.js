@@ -19,7 +19,6 @@ const APP_SHEETS = {
   ENVELOPES: 'REF_Envelopes',
   FUEL_LOGS: 'DB_Fuel_Logs',
   FUEL_CACHES: 'DB_Fuel_Caches',
-  FLIGHT_BLOCKS: 'DB_Flight_Blocks',
   CONTACTS: 'DB_Contacts',
   DONATION_IMPORT_BATCHES: 'DB_Donation_Import_Batches',
   DONATION_STAGING: 'DB_Donation_Staging',
@@ -32,17 +31,7 @@ const APP_SHEETS = {
   STAFF_PRACTICALS: 'DB_Staff_Practical_Evaluations',
   MAINT_TEMPLATES: 'DB_Maint_Templates',
   MAINT_ASSIGNMENTS: 'DB_Maint_Assignments',
-  MAINT_LOG: 'DB_Maint_Log',
-  SCHED_CONFIG: 'SCHED_Config',
-  SCHED_PERMISSIONS: 'SCHED_Permissions',
-  SCHED_COVERAGE_RULES: 'SCHED_Coverage_Requirements',
-  SCHED_ROLE_COMPAT: 'SCHED_Role_Compatibility',
-  SCHED_STAFF_QUALS: 'SCHED_Staff_Qualifications',
-  SCHED_ASSIGNMENTS: 'SCHED_Assignments',
-  SCHED_LOCKS: 'SCHED_Assignment_Locks',
-  SCHED_ALERTS: 'SCHED_Alerts',
-  SCHED_PUBLISH_LOG: 'SCHED_Publish_Log',
-  SCHED_AVAILABILITY: 'SCHED_Staff_Availability'
+  MAINT_LOG: 'DB_Maint_Log'
 };
 
 const DISPATCH_COL = {
@@ -122,19 +111,6 @@ const DUTY_LOG_COL = {
   DESC_PRIMARY: 6
 };
 
-const FLIGHT_BLOCKS_COL = {
-  BLOCK_ID:      0,
-  NAME:          1,
-  AIRCRAFT:      2,
-  TYPE:          3,
-  ALLOCATED_HRS: 4,
-  DATE_START:    5,
-  DATE_END:      6,
-  NOTES:         7,
-  STATUS:        8,
-  CREATED_AT:    9
-};
-
 function appLog_() {
   if (!APP_DEBUG || typeof console === 'undefined' || !console.log) return;
   console.log.apply(console, arguments);
@@ -153,33 +129,9 @@ function safeDateYmd_(val) {
   return String(val);
 }
 
-function routeTokensFromString_(routeValue) {
-  const raw = String(routeValue || '').trim().toUpperCase();
-  if (!raw) return [];
-  return raw
-    .replace(/[→>]/g, ',')
-    .split(/[\n\r,;\/|]+/)
-    .map(function(part) { return String(part || '').trim().toUpperCase(); })
-    .filter(Boolean);
-}
-
 function splitRoute_(routeValue) {
   const route = String(routeValue || '');
-  let parts = routeTokensFromString_(route);
-  // Legacy fallback: old route strings used "AAA - BBB - CCC".
-  if (parts.length < 2 && /\s+-\s+/.test(route)) {
-    parts = route
-      .split(/\s+-\s+/)
-      .map(function(part) { return String(part || '').trim().toUpperCase(); })
-      .filter(Boolean);
-  }
-  // Last-resort legacy fallback for endpoint extraction only.
-  if (parts.length < 2 && route.indexOf('-') >= 0) {
-    parts = route
-      .split('-')
-      .map(function(part) { return String(part || '').trim().toUpperCase(); })
-      .filter(Boolean);
-  }
+  const parts = route.split('-');
   return {
     from: parts[0] || '',
     to: parts[parts.length - 1] || ''

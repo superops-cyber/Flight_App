@@ -1,6 +1,15 @@
 {
   "scripts": {
-    "test:deploy": "./scripts/test-deploy-loop.sh"
+    "dev:push": "clasp push -f",
+    "dev:webapp": "clasp open --webapp",
+    "dev:loop": "clasp push -f && echo '\nPushed. Refresh your /dev page with Cmd+Shift+R.\n'",
+    "release:list": "clasp deployments | head -20",
+    "release:version": "clasp version",
+    "release:deploy:legacy": "./scripts/test-deploy-loop.sh",
+    "release:deploy:legacy:quick": "./scripts/test-deploy-loop.sh \"quick test\"",
+    "test:push": "npm run dev:push",
+    "test:deploy": "npm run release:deploy:legacy",
+    "test:deploy:quick": "npm run release:deploy:legacy:quick"
   },
   "devDependencies": {
     "@types/google-apps-script": "^2.0.8"

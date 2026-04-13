@@ -169,7 +169,21 @@
     </div>
     <div style="padding:16px;">
       <label for="supervisor-password-input" style="display:block; margin-bottom:6px; font-size:0.78rem; color:#0b5394; font-weight:700; text-transform:uppercase;">Password</label>
-      <input id="supervisor-password-input" type="password" autocomplete="current-password" style="width:100%; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; height:40px; padding:0 10px; font-size:0.95rem;">
+      <input id="supervisor-password-input" type="password" autocomplete="current-password" inputmode="numeric" pattern="[0-9]*" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:100%; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; height:40px; padding:0 10px; font-size:0.95rem;">
+      <div id="supervisor-password-keypad" style="margin-top:10px; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('1')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">1</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('2')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">2</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('3')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">3</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('4')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">4</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('5')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">5</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('6')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">6</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('7')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">7</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('8')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">8</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('9')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">9</button>
+        <button type="button" onclick="supervisorPasswordKeypadClear_()" style="height:38px; border:none; border-radius:8px; background:#eceff1; color:#455a64; font-size:0.86rem; font-weight:900;">Clear</button>
+        <button type="button" onclick="supervisorPasswordKeypadAppend_('0')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">0</button>
+        <button type="button" onclick="supervisorPasswordKeypadBackspace_()" style="height:38px; border:none; border-radius:8px; background:#eceff1; color:#455a64; font-size:0.86rem; font-weight:900;">Del</button>
+      </div>
       <div id="supervisor-password-error" style="display:none; margin-top:8px; color:#c62828; font-size:0.82rem; font-weight:700;"></div>
     </div>
     <div style="display:flex; gap:8px; padding:0 16px 16px 16px;">
@@ -229,6 +243,30 @@
         return;
       }
       closeSupervisorPasswordPrompt_(true);
+    }
+
+    function supervisorPasswordKeypadAppend_(digit) {
+      const input = document.getElementById('supervisor-password-input');
+      if (!input) return;
+      input.value = String(input.value || '') + String(digit || '');
+      try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+      try { input.focus(); } catch (e2) {}
+    }
+
+    function supervisorPasswordKeypadBackspace_() {
+      const input = document.getElementById('supervisor-password-input');
+      if (!input) return;
+      input.value = String(input.value || '').slice(0, -1);
+      try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+      try { input.focus(); } catch (e2) {}
+    }
+
+    function supervisorPasswordKeypadClear_() {
+      const input = document.getElementById('supervisor-password-input');
+      if (!input) return;
+      input.value = '';
+      try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+      try { input.focus(); } catch (e2) {}
     }
 
     async function supervisorRequirePassword_(subtitle) {
@@ -366,13 +404,43 @@
       const m = data.mission;
       const t = data.timeline;
       supPilot = m.meta.pilot;
+
+      const normalizedLegs = (Array.isArray(m.legs) ? m.legs : []).map(function(leg) {
+        const safeLeg = leg || {};
+        const num = function(v, d) {
+          const n = Number(v);
+          return isFinite(n) ? n : d;
+        };
+        const waypointsText = Array.isArray(safeLeg.waypoints)
+          ? safeLeg.waypoints.filter(Boolean).join(',')
+          : String(safeLeg.waypoints || '');
+        return {
+          flightLegId: String(safeLeg.flightLegId || ''),
+          from: String(safeLeg.from || '?'),
+          to: String(safeLeg.to || '?'),
+          waypointsText: waypointsText,
+          time: num(safeLeg.time, 0),
+          dist: num(safeLeg.dist, 0),
+          groundTime: num(safeLeg.groundTime, 0.5),
+          fuel: num(safeLeg.fuel, 0),
+          takeoffFuel: num(safeLeg.takeoffFuel, 0),
+          landingFuel: num(safeLeg.landingFuel, 0),
+          payload: num(safeLeg.payload, 0),
+          availPayload: num(safeLeg.availPayload, 0),
+          limit: num(safeLeg.limit, 0),
+          pax: Array.isArray(safeLeg.pax) ? safeLeg.pax : [],
+          limitType: String(safeLeg.limitType || ''),
+          isOver: !!safeLeg.isOver,
+          missionTime: String(safeLeg.missionTime || '08:00')
+        };
+      });
       
       document.getElementById('mTitle').innerText = `${m.id}: ${m.meta.pilot} (${m.meta.acft})`;
       document.getElementById('btnApprove').disabled = false;
       
       // 1. CALCULATE TOTALS
       let totalFlight = 0, totalFuel = 0, totalGround = 0;
-      m.legs.forEach(leg => {
+      normalizedLegs.forEach(leg => {
         totalFlight += parseFloat(leg.time) || 0;
         totalFuel += parseFloat(leg.fuel) || 0;
         totalGround += parseFloat(leg.groundTime) || 0.5;
@@ -389,7 +457,7 @@
       const authRaw = data.authorizedAirports || "";
       const authList = authRaw.split(',').map(s => s.trim()); 
       let unauthorizedLegs = false;
-      m.legs.forEach(leg => {
+      normalizedLegs.forEach(leg => {
         const isAuth = authList.some(a => a.trim().toUpperCase() === leg.to.trim().toUpperCase());
         if (!isAuth) unauthorizedLegs = true;
       });
@@ -427,17 +495,17 @@
       `;
 
       // 3. LEG CARDS
-      m.legs.forEach((leg, idx) => {
+      normalizedLegs.forEach((leg, idx) => {
         const isAuthorized = authList.some(auth => auth.trim().toUpperCase() === leg.to.trim().toUpperCase());
         const authHtml = isAuthorized 
           ? `<span class="new badge green" data-badge-caption="Checked Out ✅">Pilot</span>` 
           : `<button class="btn-small red lighten-2 z-depth-0" style="font-size:0.7rem; font-weight:bold;" onclick="waiveCheck('${leg.to}')">WAIVE CHECK</button>`;
         
-        const routingHtml = leg.waypoints ? `
+        const routingHtml = leg.waypointsText ? `
         <div style="margin: 8px 0; padding: 6px 10px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 0 4px 4px 0;">
           <div style="font-size: 0.65rem; font-weight: bold; color: #1565c0; text-transform: uppercase; letter-spacing: 0.5px;">Planned Routing (VIA)</div>
           <div style="font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85rem; color: #0d47a1; font-weight: bold;">
-            ${leg.waypoints.replace(/,/g, ' ➔ ')}
+            ${leg.waypointsText.replace(/,/g, ' ➔ ')}
           </div>
         </div>
       ` : '';
@@ -733,13 +801,16 @@
         + '<div style="border:1px solid #e0e0e0; border-radius:8px; padding:8px; background:#fafafa; font-size:0.84rem;"><b style="color:#555;">Official</b><br>' + Math.round(Number(official.lengthM || 0)) + 'm × ' + Math.round(Number(official.widthM || 0)) + 'm • ' + String(official.surface || '-') + '</div>'
         + '</div>';
 
-      const runwayPx = 540;
+      const runwayPx = 480;
       const scale = runwayPx / lengthM;
       const topX = 48;
       const topY = 52;
       const topH = 72;
-      const viewW = 640;
-      const viewH = 340;
+      const sideX = topX;
+      const sideY = topY + topH + 30;
+      const sideH = 60;
+      const viewW = 600;
+      const viewH = sideY + sideH + 80;
       const endX = topX + runwayPx;
 
       const topFeatureDots = features.slice(0, 40).map(function(f) {
@@ -750,32 +821,139 @@
         return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3" fill="#fb8c00"></circle>';
       }).join('');
 
-      const obstacleRows = obstacles.slice(0, 8).map(function(o) {
-        const dist = Math.round(Number(o && o.checkpointDistanceM || 0));
-        const angle = Number(o && (o.angleDeg != null ? o.angleDeg : o.fromThrA50mDeg) || 0).toFixed(1);
-        const type = String(o && o.type || 'obstacle');
-        return '<div style="font-size:0.8rem; color:#37474f;">• ' + type + ' @ ' + dist + 'm (' + angle + '°)</div>';
-      }).join('') || '<div style="font-size:0.8rem; color:#999;">No obstacle angles captured.</div>';
+      // Slope profile from survey slopeSegments
+      const sortedSlopes = slopes.map(function(s) {
+        const sd = Math.max(0, Number(s && s.startDistanceM || 0));
+        const dist = Math.max(0, Number(s && (s.distanceM != null ? s.distanceM : s.distance) || 0));
+        return { startDistanceM: sd, distance: dist, slope: Number(s && s.slope || 0) };
+      }).filter(function(s) { return s.distance > 0; }).sort(function(a, b) { return a.startDistanceM - b.startDistanceM; });
+      const profPts = [];
+      let cursor = 0, elev = 0;
+      const elevArr = [0];
+      const profileSegs = [];
+      sortedSlopes.forEach(function(seg) {
+        if (seg.startDistanceM > cursor) profileSegs.push({ startM: cursor, endM: seg.startDistanceM, slope: 0 });
+        const endM = Math.min(lengthM, seg.startDistanceM + seg.distance);
+        profileSegs.push({ startM: seg.startDistanceM, endM: endM, slope: seg.slope });
+        cursor = endM;
+      });
+      if (cursor < lengthM) profileSegs.push({ startM: cursor, endM: lengthM, slope: 0 });
+      const allElevs = [0];
+      let ePos = 0;
+      profileSegs.forEach(function(s) { ePos += ((s.endM - s.startM) * s.slope / 100); allElevs.push(ePos); });
+      if (!profileSegs.length) { profileSegs.push({ startM: 0, endM: lengthM, slope: 0 }); allElevs.push(0); }
+      const minEl = Math.min.apply(null, allElevs);
+      const maxEl = Math.max.apply(null, allElevs);
+      const spanEl = Math.max(0.5, maxEl - minEl);
+      const elScale = Math.max(0.8, Math.min(sideH / spanEl, 4));
+      const usedH = spanEl * elScale;
+      const yOff = (sideH - usedH) / 2;
+      let eIdx = 0;
+      const sidePolyPts = [sideX + ',' + (sideY + yOff + usedH - ((allElevs[0] - minEl) * elScale))];
+      profileSegs.forEach(function(s, i) {
+        sidePolyPts.push((sideX + (s.endM * scale)).toFixed(1) + ',' + (sideY + yOff + usedH - ((allElevs[i + 1] - minEl) * elScale)).toFixed(1));
+      });
 
-      const slopeRows = slopes.slice(0, 8).map(function(s) {
-        return '<div style="font-size:0.8rem; color:#37474f;">• +' + Math.round(Number(s && s.startDistanceM || 0)) + 'm for ' + Math.round(Number(s && s.distanceM || 0)) + 'm at ' + Number(s && s.slope || 0).toFixed(1) + '%</div>';
-      }).join('') || '<div style="font-size:0.8rem; color:#999;">No slope segments captured.</div>';
+      const yForDist = function(d) {
+        const dm = Math.max(0, Math.min(lengthM, Number(d || 0)));
+        let cur = 0, elStart = 0;
+        for (let i = 0; i < profileSegs.length; i++) {
+          const s = profileSegs[i];
+          if (dm <= s.endM || i === profileSegs.length - 1) {
+            const span = Math.max(0.0001, s.endM - s.startM);
+            const t = Math.max(0, Math.min(1, (dm - s.startM) / span));
+            const e = elStart + ((s.endM - s.startM) * s.slope / 100) * t;
+            return sideY + yOff + usedH - ((e - minEl) * elScale);
+          }
+          elStart += ((s.endM - s.startM) * s.slope / 100);
+        }
+        return sideY + yOff + usedH;
+      };
+
+      const normThr = function(raw) {
+        const txt = String(raw || '').trim().toUpperCase().replace(/^RWY\s*/, '');
+        const m = txt.match(/^(\d{1,2})([LCR])?$/);
+        if (!m) return txt;
+        const n = parseInt(m[1], 10);
+        if (!isFinite(n) || n < 1 || n > 36) return txt;
+        return String(n).padStart(2, '0') + (m[2] || '');
+      };
+      const thisThrSup = normThr(item.rwyIdent || '');
+
+      const iconForObs = function(type) {
+        const t = String(type || '').toLowerCase();
+        if (t.indexOf('tree') >= 0) return '\ud83c\udf33';
+        if (t.indexOf('building') >= 0 || t.indexOf('house') >= 0) return '\ud83c\udfe2';
+        if (t.indexOf('hill') >= 0) return '\u26f0';
+        if (t.indexOf('rock') >= 0) return '\ud83e\udea8';
+        if (t.indexOf('power') >= 0) return '\u26a1';
+        return '\ud83d\udccd';
+      };
+
+      // Build obstacle SVG groups (all visible by default, user can toggle)
+      const obsDropY = sideY + sideH + 2;
+      const obsIconY = obsDropY + 20;
+      const obsDistY = obsDropY + 33;
+      const obsGroupsSvg = obstacles.map(function(obs, idx) {
+        const dist = Math.max(0, Math.min(lengthM, Number(obs && obs.checkpointDistanceM || 0)));
+        const thr = normThr(obs && obs.fromThreshold || '');
+        const corner = String(obs && obs.checkpointCorner || '').trim().toUpperCase();
+        const fromA = (thr && thr !== thisThrSup) || (!thr && corner === 'C') ? (lengthM - dist) : dist;
+        const operation = String(obs && obs.operation || '').trim().toLowerCase() || (dist >= 300 ? 'takeoff' : 'landing');
+        const bx = (sideX + (fromA * scale)).toFixed(1);
+        const by = yForDist(fromA).toFixed(1);
+        const icon = iconForObs(obs && obs.type);
+        const angleDeg = Number(obs && (obs.angleDeg != null ? obs.angleDeg : (obs.fromThrA50mDeg != null ? obs.fromThrA50mDeg : obs.fromThrB50mDeg)) || 0).toFixed(1);
+        const lineColor = operation === 'landing' ? '#1976d2' : '#ef6c00';
+        return '<g id="supObsGrp_' + idx + '">'
+          + '<line x1="' + bx + '" y1="' + by + '" x2="' + bx + '" y2="' + obsDropY + '" stroke="' + lineColor + '" stroke-width="3"></line>'
+          + '<circle cx="' + bx + '" cy="' + by + '" r="6" fill="#37474f"></circle>'
+          + '<text x="' + bx + '" y="' + obsIconY + '" font-size="16" fill="#2e7d32" text-anchor="middle">' + icon + ' ' + angleDeg + '\u00b0</text>'
+          + '<text x="' + bx + '" y="' + obsDistY + '" font-size="10" fill="' + lineColor + '" text-anchor="middle">' + Math.round(dist) + 'm</text>'
+          + '</g>';
+      }).join('');
+
+      const slopeLabels = profileSegs.map(function(s, i) {
+        const midX = (sideX + ((s.startM + (s.endM - s.startM) / 2) * scale)).toFixed(1);
+        const segPx = (s.endM - s.startM) * scale;
+        if (segPx < 28) return '';
+        return '<text x="' + midX + '" y="' + (sideY + sideH - 6) + '" font-size="9" fill="#607d8b" text-anchor="middle">'
+          + (s.slope >= 0 ? '+' : '') + s.slope.toFixed(1) + '%</text>';
+      }).join('');
+
+      // Checkbox list label for each obstacle
+      const obsCheckboxes = obstacles.map(function(obs, idx) {
+        const dist = Math.round(Number(obs && obs.checkpointDistanceM || 0));
+        const thr = normThr(obs && obs.fromThreshold || '') || normThr(item.rwyIdent || '');
+        const operation = String(obs && obs.operation || '').trim().toLowerCase() || (dist >= 300 ? 'takeoff' : 'landing');
+        const label = 'RWY ' + thr + ' · ' + dist + 'm · ' + operation;
+        return '<label style="display:flex; align-items:center; gap:4px; font-size:0.77rem; color:#37474f; cursor:pointer; white-space:nowrap;">'
+          + '<input type="checkbox" checked onchange="(function(el,id){var g=document.getElementById(id);if(g)g.style.display=el.checked?\'\':\'none\';})(this,\'supObsGrp_' + idx + '\')">'
+          + label + '</label>';
+      }).join('');
 
       body.innerHTML = ''
         + topSummary
-        + '<svg width="100%" height="340" viewBox="0 0 ' + viewW + ' ' + viewH + '" style="border:1px solid #d7dde3; border-radius:10px; background:#f9fbfd;">'
+        + '<div style="display:flex; gap:10px; align-items:flex-start;">'
+        + '<svg width="100%" height="' + viewH + '" viewBox="0 0 ' + viewW + ' ' + viewH + '" style="border:1px solid #d7dde3; border-radius:10px; background:#f9fbfd; flex:1 1 auto;">'
         + '<text x="48" y="24" font-size="12" fill="#234" font-weight="700">TOP VIEW</text>'
         + '<rect x="' + topX + '" y="' + topY + '" width="' + runwayPx + '" height="' + topH + '" fill="#616161" stroke="#263238" stroke-width="2" rx="4" ry="4"></rect>'
         + '<line x1="' + topX + '" y1="' + (topY + topH / 2) + '" x2="' + endX + '" y2="' + (topY + topH / 2) + '" stroke="#f3f3f3" stroke-width="3" stroke-dasharray="18,10"></line>'
         + '<text x="' + (topX + 10) + '" y="' + (topY + topH - 10) + '" font-size="17" fill="#fff" font-weight="800">' + String(item.rwyIdent || 'RWY') + '</text>'
         + '<text x="' + (endX - 10) + '" y="' + (topY + topH - 10) + '" font-size="17" fill="#fff" font-weight="800" text-anchor="end">' + String(survey.reciprocalIdent || '') + '</text>'
         + topFeatureDots
+        + '<text x="48" y="' + (sideY - 8) + '" font-size="12" fill="#234" font-weight="700">SIDE VIEW</text>'
+        + '<rect x="' + sideX + '" y="' + sideY + '" width="' + runwayPx + '" height="' + sideH + '" fill="#f2f5f8" stroke="#d7dde3"></rect>'
+        + '<polyline points="' + sidePolyPts.join(' ') + '" fill="none" stroke="#2e7d32" stroke-width="2.5"></polyline>'
+        + slopeLabels
+        + obsGroupsSvg
         + '</svg>'
-        + '<div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;">'
-        + '<div style="background:#f9fbfc; border:1px solid #e0e6eb; padding:8px 10px; border-radius:6px;"><div style="font-size:0.8rem; font-weight:800; color:#0b5394; margin-bottom:4px;">Obstacle Angles</div>' + obstacleRows + '</div>'
-        + '<div style="background:#f9fbfc; border:1px solid #e0e6eb; padding:8px 10px; border-radius:6px;"><div style="font-size:0.8rem; font-weight:800; color:#0b5394; margin-bottom:4px;">Slope Segments</div>' + slopeRows + '</div>'
+        + (obstacles.length ? '<div style="border:1px solid #e0e6eb; border-radius:8px; padding:8px; background:#fafefe; min-width:160px; max-width:200px; flex-shrink:0;">'
+          + '<div style="font-size:0.78rem; font-weight:800; color:#0b5394; margin-bottom:6px;">Obstacle Angles</div>'
+          + '<div style="display:flex; flex-direction:column; gap:5px;">' + obsCheckboxes + '</div>'
+          + '</div>' : '')
         + '</div>'
-        + '<div style="background:#eef6ff; border-left:4px solid #1976d2; padding:8px 10px; border-radius:6px; font-size:0.82rem; color:#37474f;">Features: ' + features.length + ' • Obstacles: ' + obstacles.length + ' • Slope segments: ' + slopes.length + '</div>';
+        + '<div style="background:#eef6ff; border-left:4px solid #1976d2; padding:8px 10px; border-radius:6px; font-size:0.82rem; color:#37474f;">Features: ' + features.length + ' \u2022 Obstacles: ' + obstacles.length + ' \u2022 Slope segments: ' + slopes.length + '</div>';
 
       modal.style.display = 'flex';
     }

@@ -25,7 +25,70 @@
     .mx-stat { background:#f7fbff; border:1px solid #d0e3f7; border-radius:8px; padding:10px; }
     .mx-stat-label { font-size:0.72rem; color:#607d8b; text-transform:uppercase; font-weight:800; margin-bottom:2px; }
     .mx-stat-val { color:#0b5394; font-size:1.15rem; font-weight:800; }
+    .mx-sched-row { border:1px solid #dbe4ee; border-radius:8px; padding:10px; margin-bottom:8px; background:#fff; }
+    .mx-sched-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+    .mx-sched-title { font-size:0.9rem; font-weight:800; color:#263238; }
+    .mx-sched-sub { font-size:0.77rem; color:#607d8b; font-weight:700; }
+    .mx-sched-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:6px; margin-top:6px; }
+    .mx-kv { background:#f7fbff; border:1px solid #d0e3f7; border-radius:6px; padding:6px; }
+    .mx-kv b { display:block; color:#607d8b; font-size:0.68rem; text-transform:uppercase; margin-bottom:2px; }
+    .mx-kv span { color:#0b5394; font-size:0.83rem; font-weight:800; }
+    .mx-inline-form { border:1px dashed #cfd8dc; border-radius:8px; padding:10px; margin-top:10px; }
   </style>
+
+  <div class="mx-card" style="border-left:5px solid #1565c0;">
+    <div class="mx-head">
+      <h5 style="color:#0b5394;">Maintenance Scheduling</h5>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <button class="mx-btn ghost" type="button" onclick="mxSeedU206Baseline_()">SEED U206 BASELINE</button>
+        <button class="mx-btn ghost" type="button" onclick="mxLoadSchedule_()">REFRESH SCHEDULE</button>
+      </div>
+    </div>
+    <div class="mx-body">
+      <div class="mx-grid" style="margin-bottom:10px;">
+        <div class="mx-stat"><div class="mx-stat-label">Scheduled Items</div><div class="mx-stat-val" id="mx-sched-total">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Overdue</div><div class="mx-stat-val" id="mx-sched-overdue">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Due Soon</div><div class="mx-stat-val" id="mx-sched-soon">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Healthy</div><div class="mx-stat-val" id="mx-sched-ok">0</div></div>
+      </div>
+
+      <div class="mx-grid">
+        <div class="mx-field">
+          <label for="mx-sched-aircraft-filter">Aircraft</label>
+          <select id="mx-sched-aircraft-filter" class="browser-default" onchange="mxLoadSchedule_()"></select>
+        </div>
+      </div>
+
+      <div class="mx-inline-form">
+        <div style="font-size:0.75rem;color:#607d8b;font-weight:800;margin-bottom:8px;">ADD MAINTENANCE ITEM</div>
+        <div class="mx-grid">
+          <div class="mx-field">
+            <label for="mx-new-apply-scope">Apply To</label>
+            <select id="mx-new-apply-scope" class="browser-default" onchange="mxToggleApplyScope_()">
+              <option value="SINGLE">Single Aircraft</option>
+              <option value="ALL">All Aircraft</option>
+              <option value="TYPE">Aircraft Type</option>
+              <option value="REG_LIST">Selected Registrations</option>
+            </select>
+          </div>
+          <div class="mx-field"><label for="mx-new-aircraft">Aircraft</label><select id="mx-new-aircraft" class="browser-default"></select></div>
+          <div class="mx-field" id="mx-new-aircraft-type-wrap" style="display:none;"><label for="mx-new-aircraft-type">Aircraft Type</label><select id="mx-new-aircraft-type" class="browser-default"></select></div>
+          <div class="mx-field" id="mx-new-aircraft-reg-list-wrap" style="display:none;"><label for="mx-new-aircraft-reg-list">Registrations</label><select id="mx-new-aircraft-reg-list" multiple size="5" style="height:auto; min-height:120px;"></select></div>
+          <div class="mx-field"><label for="mx-new-task-code">Task Code</label><input id="mx-new-task-code" type="text" placeholder="INSP-50H"></div>
+          <div class="mx-field"><label for="mx-new-task-name">Task Name</label><input id="mx-new-task-name" type="text" placeholder="50 Hour Inspection"></div>
+          <div class="mx-field"><label for="mx-new-category">Category</label><input id="mx-new-category" type="text" placeholder="INSPECTION"></div>
+          <div class="mx-field"><label for="mx-new-reference">Reference</label><input id="mx-new-reference" type="text" placeholder="MGM 5.3"></div>
+          <div class="mx-field"><label for="mx-new-hours">Interval (Hours)</label><input id="mx-new-hours" type="number" step="0.1" placeholder="100"></div>
+          <div class="mx-field"><label for="mx-new-days">Interval (Days)</label><input id="mx-new-days" type="number" step="1" placeholder="365"></div>
+          <div class="mx-field"><label for="mx-new-start-tach">Start Tach</label><input id="mx-new-start-tach" type="number" step="0.1" placeholder="Current Tach"></div>
+          <div class="mx-field"><label for="mx-new-start-date">Start Date</label><input id="mx-new-start-date" type="date"></div>
+          <div class="mx-field" style="align-self:end;"><button class="mx-btn primary" type="button" onclick="mxCreateScheduleItem_()" style="width:100%;">ADD ITEM</button></div>
+        </div>
+      </div>
+
+      <div id="mx-sched-list" style="margin-top:10px;"></div>
+    </div>
+  </div>
 
   <div class="mx-card" style="border-left:5px solid #d32f2f;">
     <div class="mx-head" style="border-bottom:none;">
@@ -48,7 +111,7 @@
       <div class="mx-grid">
         <div class="mx-field">
           <label for="mx-aircraft-filter">Aircraft</label>
-          <select id="mx-aircraft-filter" onchange="mxRenderDiscrepancies_()"></select>
+          <select id="mx-aircraft-filter" class="browser-default" onchange="mxRenderDiscrepancies_()"></select>
         </div>
         <div class="mx-field">
           <label for="mx-status-filter">Status</label>
@@ -115,6 +178,7 @@
     return list.map(function(a){
       return {
         reg:String(a.reg||'').trim().toUpperCase(),
+        aircraftType:String(a.aircraftType||'').trim().toUpperCase(),
         techStatus:String(a.techStatus||'SERVICEABLE').trim().toUpperCase(),
         openSquawks:mxParseOpenSquawks_(a.openSquawks)
       };
@@ -135,6 +199,233 @@
     if(s==='OPEN')return 'red';
     if(mxIsDeferredStatus_(s))return 'orange';
     return 'green';
+  }
+
+  function mxDuePillClass_(state){
+    var s=String(state||'').trim().toUpperCase();
+    if(s==='OVERDUE')return 'red';
+    if(s==='DUE_SOON')return 'orange';
+    return 'green';
+  }
+
+  function mxRenderAircraftSelectors_(fleet){
+    var regs=(fleet||[]).map(function(a){return a.reg;}).filter(Boolean).sort();
+    var types=[];
+    var seenType={};
+    (fleet||[]).forEach(function(a){
+      var t=String(a.aircraftType||'').trim().toUpperCase();
+      if(!t||seenType[t])return;
+      seenType[t]=true;
+      types.push(t);
+    });
+    types.sort();
+
+    var schedSel=document.getElementById('mx-sched-aircraft-filter');
+    var newSel=document.getElementById('mx-new-aircraft');
+    var typeSel=document.getElementById('mx-new-aircraft-type');
+    var regListSel=document.getElementById('mx-new-aircraft-reg-list');
+    var currentSched=schedSel?String(schedSel.value||'').trim():'ALL';
+    var schedOptions='<option value="ALL">All Aircraft</option>'+regs.map(function(reg){return '<option value="'+reg+'">'+reg+'</option>';}).join('');
+    var onlyOptions=regs.map(function(reg){return '<option value="'+reg+'">'+reg+'</option>';}).join('');
+    var typeOptions='<option value="">Select Type</option>'+types.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
+    if(schedSel){
+      schedSel.innerHTML=schedOptions;
+      schedSel.value=(currentSched&&((currentSched==='ALL')||regs.indexOf(currentSched)>=0))?currentSched:'ALL';
+    }
+    if(newSel){
+      var currentNew=String(newSel.value||'').trim();
+      newSel.innerHTML=onlyOptions;
+      if(currentNew&&regs.indexOf(currentNew)>=0)newSel.value=currentNew;
+    }
+    if(typeSel){
+      var currentType=String(typeSel.value||'').trim().toUpperCase();
+      typeSel.innerHTML=typeOptions;
+      if(currentType&&types.indexOf(currentType)>=0)typeSel.value=currentType;
+    }
+    if(regListSel){
+      var selected={};
+      Array.prototype.slice.call(regListSel.selectedOptions||[]).forEach(function(opt){selected[String(opt.value||'').trim().toUpperCase()]=true;});
+      regListSel.innerHTML=onlyOptions;
+      Array.prototype.slice.call(regListSel.options||[]).forEach(function(opt){if(selected[String(opt.value||'').trim().toUpperCase()])opt.selected=true;});
+    }
+    mxToggleApplyScope_();
+  }
+
+  function mxToggleApplyScope_(){
+    var scope=String((document.getElementById('mx-new-apply-scope')||{}).value||'SINGLE').trim().toUpperCase();
+    var singleWrap=document.getElementById('mx-new-aircraft')?document.getElementById('mx-new-aircraft').closest('.mx-field'):null;
+    var typeWrap=document.getElementById('mx-new-aircraft-type-wrap');
+    var regListWrap=document.getElementById('mx-new-aircraft-reg-list-wrap');
+    if(singleWrap)singleWrap.style.display=(scope==='SINGLE')?'':'none';
+    if(typeWrap)typeWrap.style.display=(scope==='TYPE')?'':'none';
+    if(regListWrap)regListWrap.style.display=(scope==='REG_LIST')?'':'none';
+  }
+
+  function mxTargetRegsFromForm_(){
+    var scope=String((document.getElementById('mx-new-apply-scope')||{}).value||'SINGLE').trim().toUpperCase();
+    var fleet=mxReadData_();
+    if(scope==='ALL')return fleet.map(function(a){return a.reg;});
+    if(scope==='TYPE'){
+      var aircraftType=String((document.getElementById('mx-new-aircraft-type')||{}).value||'').trim().toUpperCase();
+      return fleet.filter(function(a){return String(a.aircraftType||'').trim().toUpperCase()===aircraftType;}).map(function(a){return a.reg;});
+    }
+    if(scope==='REG_LIST'){
+      var regListSel=document.getElementById('mx-new-aircraft-reg-list');
+      if(!regListSel||!regListSel.selectedOptions)return[];
+      return Array.prototype.slice.call(regListSel.selectedOptions).map(function(opt){return String(opt.value||'').trim().toUpperCase();}).filter(Boolean);
+    }
+    var reg=String((document.getElementById('mx-new-aircraft')||{}).value||'').trim().toUpperCase();
+    return reg?[reg]:[];
+  }
+
+  function mxCreateAssignmentsForRegs_(regs, payload, onDone){
+    var list=Array.isArray(regs)?regs.slice():[];
+    if(!list.length){if(onDone)onDone({created:0,failed:0,errors:[]});return;}
+    var idx=0,created=0,failed=0,errors=[];
+    function next(){
+      if(idx>=list.length){if(onDone)onDone({created:created,failed:failed,errors:errors});return;}
+      var reg=list[idx++];
+      var body=Object.assign({},payload,{aircraftReg:reg});
+      google.script.run
+        .withSuccessHandler(function(res){
+          if(res&&res.success)created++; else {failed++;errors.push((res&&res.error)?res.error:('Failed for '+reg));}
+          next();
+        })
+        .withFailureHandler(function(err){
+          failed++;
+          errors.push('Failed for '+reg+': '+(err&&err.message?err.message:String(err)));
+          next();
+        })
+        .saveMaintenanceAssignment(body);
+    }
+    next();
+  }
+
+  function mxRenderScheduleStats_(summary){
+    var s=summary||{};
+    var elTotal=document.getElementById('mx-sched-total');if(elTotal)elTotal.textContent=String(s.total||0);
+    var elOv=document.getElementById('mx-sched-overdue');if(elOv)elOv.textContent=String(s.overdue||0);
+    var elSoon=document.getElementById('mx-sched-soon');if(elSoon)elSoon.textContent=String(s.dueSoon||0);
+    var elOk=document.getElementById('mx-sched-ok');if(elOk)elOk.textContent=String(s.ok||0);
+  }
+
+  function mxRenderScheduleRows_(rows){
+    var box=document.getElementById('mx-sched-list');
+    if(!box)return;
+    if(!rows||!rows.length){
+      box.innerHTML='<div class="mx-empty">No scheduled maintenance items yet. Add one above or seed U206 baseline.</div>';
+      return;
+    }
+
+    box.innerHTML=rows.map(function(r){
+      return '<div class="mx-sched-row">'
+        + '<div class="mx-sched-head">'
+          + '<div><div class="mx-sched-title">'+(r.aircraftReg||'')+' • '+(r.taskName||r.taskCode||'Task')+'</div><div class="mx-sched-sub">'+(r.reference||'No reference')+'</div></div>'
+          + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">'
+            + '<span class="mx-pill '+mxDuePillClass_(r.dueState)+'">'+String(r.dueState||'UNKNOWN').replace('_',' ')+'</span>'
+            + '<button class="mx-btn primary" type="button" onclick="mxCompleteItem_(\''+String(r.assignmentId||'').replace(/'/g,"\\'")+'\',\''+String(r.aircraftReg||'').replace(/'/g,"\\'")+'\')">COMPLETE</button>'
+          + '</div>'
+        + '</div>'
+        + '<div class="mx-sched-grid">'
+          + '<div class="mx-kv"><b>Interval Hrs</b><span>'+(r.intervalHours!==''?r.intervalHours:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Interval Days</b><span>'+(r.intervalDays!==''?r.intervalDays:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Current Tach</b><span>'+(r.currentTach!==''?r.currentTach:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Next Due Tach</b><span>'+(r.nextDueTach!==''?r.nextDueTach:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Hours Remaining</b><span>'+(r.hoursRemaining!==''?r.hoursRemaining:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Next Due Date</b><span>'+(r.nextDueDate||'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Days Remaining</b><span>'+(r.daysRemaining!==''?r.daysRemaining:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Last Completed</b><span>'+(r.lastCompletedDate||'-')+'</span></div>'
+        + '</div>'
+      + '</div>';
+    }).join('');
+  }
+
+  function mxLoadSchedule_(){
+    var filter=String((document.getElementById('mx-sched-aircraft-filter')||{}).value||'ALL').trim();
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.success){
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Could not load maintenance schedule',classes:'red'});
+          return;
+        }
+        mxRenderScheduleStats_(res.summary||{});
+        mxRenderScheduleRows_(Array.isArray(res.rows)?res.rows:[]);
+      })
+      .withFailureHandler(function(err){
+        if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});
+      })
+      .getMaintenanceScheduleData({aircraftReg:filter==='ALL'?'':filter});
+  }
+
+  function mxCreateScheduleItem_(){
+    var payload={
+      taskCode:String((document.getElementById('mx-new-task-code')||{}).value||'').trim().toUpperCase(),
+      taskName:String((document.getElementById('mx-new-task-name')||{}).value||'').trim(),
+      category:String((document.getElementById('mx-new-category')||{}).value||'').trim(),
+      reference:String((document.getElementById('mx-new-reference')||{}).value||'').trim(),
+      intervalHours:(document.getElementById('mx-new-hours')||{}).value,
+      intervalDays:(document.getElementById('mx-new-days')||{}).value,
+      startTach:(document.getElementById('mx-new-start-tach')||{}).value,
+      startDate:(document.getElementById('mx-new-start-date')||{}).value
+    };
+    var regs=mxTargetRegsFromForm_();
+    if(!regs.length){
+      if(window.M&&M.toast)M.toast({html:'No target aircraft selected for this scope',classes:'orange'});
+      return;
+    }
+
+    mxCreateAssignmentsForRegs_(regs,payload,function(summary){
+      if(summary.failed>0){
+        if(window.M&&M.toast)M.toast({html:'Added '+summary.created+' item(s), '+summary.failed+' failed',classes:'orange'});
+      }else{
+        if(window.M&&M.toast)M.toast({html:'Added '+summary.created+' maintenance item(s)',classes:'green'});
+      }
+      mxLoadSchedule_();
+    });
+  }
+
+  function mxCompleteItem_(assignmentId, aircraftReg){
+    var completedDate=window.prompt('Completed date (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+    if(!completedDate)return;
+    var completedTach=window.prompt('Completed tach (optional):','');
+    var referenceDoc=window.prompt('Reference document/work order (optional):','');
+    var performedBy=(document.getElementById('userDisplay')&&document.getElementById('userDisplay').innerText)?document.getElementById('userDisplay').innerText:'';
+
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.success){
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Could not complete maintenance item',classes:'red'});
+          return;
+        }
+        if(window.M&&M.toast)M.toast({html:'Maintenance item completed',classes:'green'});
+        mxLoadSchedule_();
+      })
+      .withFailureHandler(function(err){
+        if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});
+      })
+      .completeMaintenanceAssignment({
+        assignmentId:assignmentId,
+        aircraftReg:aircraftReg,
+        completedDate:completedDate,
+        completedTach:completedTach,
+        referenceDoc:referenceDoc,
+        performedBy:String(performedBy||'').trim()||'Maintenance'
+      });
+  }
+
+  function mxSeedU206Baseline_(){
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.success){
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Could not seed baseline',classes:'red'});
+          return;
+        }
+        if(window.M&&M.toast)M.toast({html:'Seeded baseline templates: '+res.inserted+' inserted, '+res.skipped+' skipped',classes:'green'});
+      })
+      .withFailureHandler(function(err){
+        if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});
+      })
+      .seedU206MaintenanceBaselineTemplates();
   }
 
   function mxAllDiscrepancies_(fleet){
@@ -241,11 +532,14 @@
     google.script.run
       .withSuccessHandler(function(dd){
         if(dd&&!dd.error){window.appData=Object.assign(window.appData||{},dd);} 
+        mxRenderAircraftSelectors_(mxReadData_());
+        mxLoadSchedule_();
         mxRenderDiscrepancies_();
       })
       .withFailureHandler(function(){mxRenderDiscrepancies_();})
       .getDropdownData();
   }
 
+  window.onMaintenanceShown = mxReload_;
   (function(){ setTimeout(mxReload_, 200); })();
 </script>

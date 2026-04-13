@@ -145,6 +145,20 @@ font-weight: bold;
   background: #eceff1;
   color: #546e7a;
 }
+.flight-block-card {
+  background: white;
+  border-left: 5px solid #6a1b9a;
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.flight-block-card .block-title { font-weight: bold; font-size: 0.9rem; color: #4a148c; }
+.flight-block-card .block-meta { font-size: 0.75rem; color: #546e7a; margin-top: 2px; }
+.block-hours-bar { height: 6px; background: #e0e0e0; border-radius: 3px; margin-top: 6px; overflow: hidden; }
+.block-hours-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.block-mx-warn { font-size: 0.72rem; font-weight: bold; margin-top: 5px; padding: 3px 6px; border-radius: 3px; }
 </style>
 <div id="dispatch-container"> <div id="loader" class="loading-overlay">
 <h5 id="loadMsg">Synchronizing Systems...</h5>
@@ -152,6 +166,7 @@ font-weight: bold;
 </div>
 <div class="nav-header">
 <span>FLIGHT DISPATCH TERMINAL V4.0</span>
+<button onclick="switchTab('view-flightfollow')" style="background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.45); color:white; border-radius:6px; padding:0 13px; height:28px; font-size:0.72rem; font-weight:900; cursor:pointer; letter-spacing:0.04em; text-transform:uppercase;">&#9992; FLIGHT FOLLOWING</button>
 <span id="missionIdDisp" style="background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:4px;">LOADING...</span>
 </div>
 <div class="main-layout">
@@ -230,6 +245,12 @@ font-weight: bold;
 <button id="btnFinalize" class="btn-large green darken-3" style="width:100%; margin-top:20px;" onclick="finalizeMission()" disabled>FINALIZE & LOG MISSION</button>
 <div class="section-title">Scheduled Missions</div>
 <div id="missionList" style="background:#fff; border:1px solid #ddd; border-radius:4px; max-height: 400px; overflow-y: auto;"></div>
+
+<div class="section-title" style="display:flex; justify-content:space-between; align-items:center; padding-right:0;">
+  <span>Flight Time Blocks</span>
+  <button class="btn-small" style="background:#6a1b9a; height:24px; line-height:24px; padding:0 10px; font-size:0.7rem;" onclick="openFlightBlockModal()">+ NEW BLOCK</button>
+</div>
+<div id="flightBlockList" style="margin-bottom:16px;"></div>
 </div>
 </div>
 </div>
@@ -253,7 +274,65 @@ font-weight: bold;
 <div id="dispatchFuelCalcSummary" class="dispatch-modal-summary">Search an airport to preview route distance, flight time, and burn.</div>
 <div id="dispatchFuelCalcMap" class="dispatch-modal-map"></div>
 </div>
-</div> <script>
+</div>
+
+<!-- Flight Time Block Modal -->
+<div id="flightBlockModal" class="dispatch-modal-overlay" onclick="if(event.target===this)closeFlightBlockModal()">
+<div class="dispatch-modal-card" style="max-width:480px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <div class="section-title" style="margin:0; border:none; font-size:0.85rem;">Flight Time Block</div>
+    <button class="dispatch-mini-btn" onclick="closeFlightBlockModal()">&#x2715;</button>
+  </div>
+  <input type="hidden" id="blkId">
+  <div class="row" style="margin-bottom:0">
+    <div class="input-field col s12" style="margin-bottom:0">
+      <input type="text" id="blkName" placeholder="e.g. Macapa Project">
+      <label class="active" for="blkName">Block Name / Project</label>
+    </div>
+  </div>
+  <div class="row" style="margin-bottom:8px; margin-top:4px;">
+    <div class="col s6">
+      <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Aircraft</label>
+      <select id="blkAircraft" class="browser-default" style="margin-top:4px; height:36px; font-size:0.85rem;" onchange="updateBlkMxPreview()">
+        <option value="">Select Aircraft</option>
+      </select>
+    </div>
+    <div class="col s6">
+      <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Flight Type</label>
+      <select id="blkType" class="browser-default" style="margin-top:4px; height:36px; font-size:0.85rem;">
+        <option value="">Any / Mixed</option>
+        <option>Missions</option><option>Training</option><option>Air Taxi</option><option>Ferry</option>
+      </select>
+    </div>
+  </div>
+  <div class="row" style="margin-bottom:0;">
+    <div class="input-field col s4">
+      <input type="number" id="blkHours" step="0.5" min="0.5" placeholder="70" oninput="updateBlkMxPreview()">
+      <label class="active" for="blkHours">Allocated Hrs</label>
+    </div>
+    <div class="input-field col s4">
+      <input type="date" id="blkStart">
+      <label class="active" for="blkStart">Start Date</label>
+    </div>
+    <div class="input-field col s4">
+      <input type="date" id="blkEnd">
+      <label class="active" for="blkEnd">End Date</label>
+    </div>
+  </div>
+  <div class="input-field" style="margin-top:0; margin-bottom:4px;">
+    <input type="text" id="blkNotes" placeholder="Optional notes">
+    <label class="active" for="blkNotes">Notes</label>
+  </div>
+  <div id="blkMxPreview" style="padding:8px 10px; border-radius:4px; font-size:0.78rem; display:none; margin-bottom:8px;"></div>
+  <div id="blkError" style="color:#d32f2f; font-size:0.8rem; min-height:16px; margin-bottom:4px;"></div>
+  <div style="display:flex; gap:10px; margin-top:6px;">
+    <button class="btn" style="background:#6a1b9a; flex:1;" onclick="submitFlightBlock()">SAVE BLOCK</button>
+    <button class="btn grey lighten-1" style="color:#333;" onclick="closeFlightBlockModal()">CANCEL</button>
+  </div>
+</div>
+</div>
+
+ <script>
 let appData = {};
 let missionLegs = [];
 let fuelStopLegs = [];
@@ -358,9 +437,8 @@ function parseSyllabusRouteTokens(routeStr) {
   const raw = String(routeStr || '').trim().toUpperCase();
   if (!raw) return [];
 
-  // Prefer commas. If none are provided, accept common dash/arrow separators.
-  const hasComma = raw.indexOf(',') >= 0;
-  const normalized = hasComma ? raw : raw.replace(/\s*(?:->|=>|>|\-|–|—)\s*/g, ',');
+  // Waypoints are comma-delimited by policy to preserve hyphenated waypoint IDs.
+  const normalized = raw.replace(/[→>]/g, ',');
   return normalized.split(',').map(s => s.trim()).filter(Boolean);
 }
 
@@ -368,11 +446,8 @@ function parseRouteWaypointTokens(routeStr) {
   const raw = String(routeStr || '').trim().toUpperCase();
   if (!raw) return [];
 
-  // Route DB entries are not always comma-separated; accept common separators.
-  const hasComma = raw.indexOf(',') >= 0;
-  const normalized = hasComma
-    ? raw
-    : raw.replace(/\s*(?:->|=>|>|\||\/|\-|–|—)\s*/g, ',').replace(/\s+/g, ',');
+  // Route waypoint lists are comma-delimited by policy.
+  const normalized = raw.replace(/[→>]/g, ',').replace(/\n|\r/g, ',');
 
   const tokens = normalized
     .split(',')
@@ -515,6 +590,10 @@ document.getElementById('loader').style.display = 'none';
 google.script.run
 .withSuccessHandler(renderMissionList)
 .getScheduledMissions();
+google.script.run
+.withSuccessHandler(renderFlightBlocks)
+.withFailureHandler(() => {})
+.getFlightBlocks();
 });
 function showDispatchError(msg) {
 document.getElementById('loadMsg').innerText = "Sync Failed";
@@ -958,8 +1037,8 @@ let fuelNeededAtTakeoff = nextSegBurn + reserve;
       leg.fuelStopSource = fuelContext.preferredSource;
       leg.isFuelCacheStop = fuelContext.preferredSource === 'cache';
 
-      // 4. STORE IT SO saveMission() AND THE UI CAN SEE IT
-      leg.plannedCacheDraw = calculatedDraw > 0 ? calculatedDraw : 0;
+      // 4. Only cache stops should produce a planned cache draw value.
+      leg.plannedCacheDraw = (leg.isFuelCacheStop && calculatedDraw > 0) ? calculatedDraw : 0;
       
       fuelInTanks = fuelNeededAtTakeoff;
    } else {
@@ -1091,7 +1170,8 @@ function addLeg() {
   missionLegs.push({
     flightLegId: `${currentMissionId}-${missionLegs.length + 1}`,
     from, to, dist, time, fuel,
-    waypoints: activeWaypoints, // Storing the full zig-zag for later!
+    routeStr: activeWaypoints, // Canonical route string for Tab 6 parsing
+    waypoints: activeWaypoints, // Legacy field for backwards compatibility
     groundTime: 0.5,
     pax: legPax, payload: 0, extraFuelLoad: 0, manualFuelNote: "",
     minFuel: fuel,
@@ -1116,7 +1196,7 @@ function renderTimeline() {
     const fuelContext = dispatchFuelContext_(l.to, i);
     const hasFuel = fuelContext.hasFuelOption;
     const takeoffMin = Math.round(Number(l.minTakeoffFuel || l.takeoffFuel || 0));
-    const fuelAlertLabel = l.fuelStopSource === 'airport' ? 'AIRPORT FUEL' : 'CACHE DRAW';
+    const fuelAlertLabel = 'CACHE DRAW';
     
     // Safety check for waypoints string
     const wp = l.waypoints || '';
@@ -1599,5 +1679,153 @@ function finalizeMission() {
        if(btn) { btn.disabled = false; btn.innerText = "FINALIZE & LOG MISSION"; }
     })
     .saveMission(mH); // Call the server function
+}
+
+// ============================================================
+// FLIGHT TIME BLOCKS
+// ============================================================
+function renderFlightBlocks(blocks) {
+  const box = document.getElementById('flightBlockList');
+  if (!box) return;
+  if (!blocks || blocks.length === 0) {
+    box.innerHTML = '<p style="padding:6px 0; font-size:0.8rem; color:#78909c;">No flight time blocks. Click + NEW BLOCK to add one.</p>';
+    return;
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  box.innerHTML = blocks.map(b => {
+    const pct = b.allocatedHrs > 0 ? Math.min(100, Math.round(b.usedHrs / b.allocatedHrs * 100)) : 0;
+    const remaining = Math.max(0, b.allocatedHrs - b.usedHrs);
+    const barColor = pct >= 90 ? '#d32f2f' : pct >= 70 ? '#f57c00' : '#6a1b9a';
+    const endD = new Date(b.dateEnd + 'T12:00:00');
+    const isPast = endD < today;
+    const statusBadge = b.status === 'CLOSED'
+      ? '<span style="font-size:0.65rem;background:#cfd8dc;color:#546e7a;padding:1px 5px;border-radius:3px;margin-left:6px;">CLOSED</span>'
+      : isPast ? '<span style="font-size:0.65rem;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px;margin-left:6px;">PAST</span>' : '';
+
+    // MX impact — look up aircraft in appData
+    let mxLine = '';
+    const acftObj = (appData.aircraft || []).find(a => a.reg === b.aircraft);
+    if (acftObj && acftObj.hoursToInsp > 0) {
+      const mxAfter = acftObj.hoursToInsp - remaining;
+      if (mxAfter <= 0) {
+        mxLine = `<div class="block-mx-warn" style="background:#ffebee; color:#d32f2f;">&#9888; MX due mid-block &mdash; ${acftObj.hoursToInsp.toFixed(1)} hrs to insp, ${remaining.toFixed(1)} hrs remain in block (exceeds by ${Math.abs(mxAfter).toFixed(1)} hrs)</div>`;
+      } else {
+        mxLine = `<div class="block-mx-warn" style="background:#e8f5e9; color:#2e7d32;">&#10003; ${acftObj.hoursToInsp.toFixed(1)} hrs to next MX &rarr; ${mxAfter.toFixed(1)} hrs margin after block</div>`;
+      }
+    }
+
+    return `<div class="flight-block-card">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div style="min-width:0;">
+      <span class="block-title">${b.name}${statusBadge}</span>
+      <div class="block-meta">${b.aircraft}${b.type ? ' &middot; ' + b.type : ''} &middot; ${b.dateStart} &rarr; ${b.dateEnd}</div>
+    </div>
+    <div style="display:flex; gap:4px; align-items:center; flex-shrink:0; margin-left:8px;">
+      <button class="dispatch-mini-btn" title="Edit block" onclick="openFlightBlockModal('${b.blockId}')">&#9998;</button>
+      <button class="dispatch-mini-btn" title="Delete block" style="color:#d32f2f;" onclick="confirmDeleteFlightBlock('${b.blockId}','${b.name.replace(/'/g,'\\&#39;')}')">&#x2715;</button>
+    </div>
+  </div>
+  <div style="display:flex; gap:14px; margin-top:6px; font-size:0.8rem; flex-wrap:wrap;">
+    <span style="color:#6a1b9a; font-weight:bold;">${b.allocatedHrs.toFixed(1)} hrs allocated</span>
+    <span style="color:#455a64;">${b.usedHrs.toFixed(1)} used</span>
+    <span style="font-weight:bold; color:${barColor};">${remaining.toFixed(1)} remaining</span>
+    <span style="color:#78909c;">${pct}%</span>
+  </div>
+  <div class="block-hours-bar"><div class="block-hours-fill" style="width:${pct}%; background:${barColor};"></div></div>
+  ${mxLine}
+</div>`;
+  }).join('');
+}
+
+function openFlightBlockModal(blockId) {
+  const acftSel = document.getElementById('blkAircraft');
+  acftSel.innerHTML = '<option value="">Select Aircraft</option>';
+  (appData.aircraft || []).forEach(a => acftSel.add(new Option(a.reg, a.reg)));
+
+  // Clear fields
+  ['blkId','blkName','blkHours','blkStart','blkEnd','blkNotes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('blkType').value = '';
+  document.getElementById('blkError').textContent = '';
+  document.getElementById('blkMxPreview').style.display = 'none';
+
+  if (blockId) {
+    google.script.run.withSuccessHandler(function(blocks) {
+      const b = (blocks || []).find(x => x.blockId === blockId);
+      if (!b) return;
+      document.getElementById('blkId').value       = b.blockId;
+      document.getElementById('blkName').value     = b.name;
+      document.getElementById('blkAircraft').value = b.aircraft;
+      document.getElementById('blkType').value     = b.type || '';
+      document.getElementById('blkHours').value    = b.allocatedHrs;
+      document.getElementById('blkStart').value    = b.dateStart;
+      document.getElementById('blkEnd').value      = b.dateEnd;
+      document.getElementById('blkNotes').value    = b.notes || '';
+      updateBlkMxPreview();
+    }).getFlightBlocks();
+  }
+  document.getElementById('flightBlockModal').style.display = 'flex';
+}
+
+function closeFlightBlockModal() {
+  document.getElementById('flightBlockModal').style.display = 'none';
+}
+
+function updateBlkMxPreview() {
+  const acft  = document.getElementById('blkAircraft').value;
+  const hrs   = parseFloat(document.getElementById('blkHours').value) || 0;
+  const el    = document.getElementById('blkMxPreview');
+  if (!acft || !hrs || !(appData.aircraft)) { el.style.display = 'none'; return; }
+  const acftObj = appData.aircraft.find(a => a.reg === acft);
+  if (!acftObj || !acftObj.hoursToInsp) { el.style.display = 'none'; return; }
+  const mxAfter = acftObj.hoursToInsp - hrs;
+  el.style.display = 'block';
+  if (mxAfter <= 0) {
+    el.style.background = '#ffebee'; el.style.border = '1px solid #e57373'; el.style.color = '#c62828';
+    el.innerHTML = '&#9888; <b>MX due mid-block</b>: ' + acftObj.hoursToInsp.toFixed(1) + ' hrs to next inspection, block needs ' + hrs.toFixed(1) + ' hrs &mdash; will exceed by ' + Math.abs(mxAfter).toFixed(1) + ' hrs.';
+  } else {
+    el.style.background = '#f3e5f5'; el.style.border = '1px solid #ce93d8'; el.style.color = '#4a148c';
+    el.innerHTML = '&#10003; ' + acftObj.hoursToInsp.toFixed(1) + ' hrs to next MX &rarr; After block: <b>' + mxAfter.toFixed(1) + ' hrs margin remaining</b>.';
+  }
+}
+
+function submitFlightBlock() {
+  const blockId    = document.getElementById('blkId').value.trim();
+  const name       = document.getElementById('blkName').value.trim();
+  const aircraft   = document.getElementById('blkAircraft').value;
+  const type       = document.getElementById('blkType').value;
+  const allocHrs   = parseFloat(document.getElementById('blkHours').value);
+  const dateStart  = document.getElementById('blkStart').value;
+  const dateEnd    = document.getElementById('blkEnd').value;
+  const notes      = document.getElementById('blkNotes').value.trim();
+  const errEl      = document.getElementById('blkError');
+  errEl.textContent = '';
+
+  if (!name)                               { errEl.textContent = 'Block name is required.'; return; }
+  if (!aircraft)                           { errEl.textContent = 'Aircraft is required.'; return; }
+  if (!allocHrs || allocHrs <= 0)          { errEl.textContent = 'Allocated hours must be > 0.'; return; }
+  if (!dateStart || !dateEnd)              { errEl.textContent = 'Start and end dates are required.'; return; }
+  if (dateEnd < dateStart)                 { errEl.textContent = 'End date must be on or after start date.'; return; }
+
+  google.script.run
+    .withSuccessHandler(function() {
+      closeFlightBlockModal();
+      google.script.run.withSuccessHandler(renderFlightBlocks).withFailureHandler(() => {}).getFlightBlocks();
+      if (typeof calendarInstance !== 'undefined' && calendarInstance) calendarInstance.refetchEvents();
+    })
+    .withFailureHandler(function(err) { errEl.textContent = 'Error: ' + (err.message || err); })
+    .saveFlightBlock({ blockId, name, aircraft, type, allocatedHrs: allocHrs, dateStart, dateEnd, notes, status: 'ACTIVE' });
+}
+
+function confirmDeleteFlightBlock(blockId, name) {
+  if (!confirm('Delete block "' + name + '"? This cannot be undone.')) return;
+  google.script.run
+    .withSuccessHandler(function() {
+      google.script.run.withSuccessHandler(renderFlightBlocks).withFailureHandler(() => {}).getFlightBlocks();
+      if (typeof calendarInstance !== 'undefined' && calendarInstance) calendarInstance.refetchEvents();
+    })
+    .withFailureHandler(function(err) { alert('Error: ' + (err.message || err)); })
+    .deleteFlightBlock(blockId);
 }
 </script>

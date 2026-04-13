@@ -408,57 +408,34 @@ routes: routeData.vals.map((r, idx) => ({
 
 
 
- aircraft: acft.vals.map(r => {
-   const vrCols = {};
-   const _idxByAliases = function(aliases) {
-     for (var i = 0; i < aliases.length; i++) {
-       var idx = acft.headers.indexOf(aliases[i]);
-       if (idx >= 0) return idx;
-     }
-     return -1;
-   };
-   const _numByAliases = function(aliases, fallback) {
-     var idx = _idxByAliases(aliases);
-     if (idx < 0) return fallback;
-     var val = parseFloat(r[idx]);
-     return isNaN(val) ? fallback : val;
-   };
-   acft.headers.forEach(function(h, idx) {
-     const normKey = String(h || '').toUpperCase().trim().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-     if (!normKey) return;
-     if (normKey.indexOf('VR') >= 0 || normKey.indexOf('ROTATE') >= 0) {
-       vrCols[normKey] = r[idx];
-     }
-   });
-   return Object.assign({
-     reg: r[acft.headers.indexOf("REGISTRATION")],
-     aircraftType: r[acft.headers.indexOf("AIRCRAFT_TYPE")] || "",
-     typeForPerformance: r[acft.headers.indexOf("TYPE_FOR_PERFORMANCE")] || "",
-     speed: parseFloat(r[acft.headers.indexOf("CRUISE_KTS")]) || 130,
-     burn: parseFloat(r[acft.headers.indexOf("BURN_LPH")]) || 60,
-     rate: parseFloat(r[acft.headers.indexOf("HOURLY_RATE")]) || 0,
-     maxFuel: parseFloat(r[acft.headers.indexOf("MAX_FUEL")]) || 400,
-     emptyWeight: parseFloat(r[acft.headers.indexOf("EMPTY_WEIGHT")]) || 1000,
-     mtow: parseFloat(r[acft.headers.indexOf("MTOW")]) || 1600,
-     License_Required: r[acft.headers.indexOf("LICENSE_REQUIRED")] || "MNTE",
-    pilotSeat: _numByAliases(["PILOT_SEAT_KGS", "PILOT_SEAT_KG", "PILOT_SEAT_WEIGHT", "PILOT_SEAT"], null),
-    midSeat: _numByAliases(["MID_SEAT_KGS", "MID_SEAT_KG", "MID_SEAT_WEIGHT", "MIDDLE_SEAT_KGS", "MIDDLE_SEAT_KG"], null),
-    aftSeat: _numByAliases(["AFT_SEAT_KGS", "AFT_SEAT_KG", "AFT_SEAT_WEIGHT", "REAR_SEAT_KGS", "REAR_SEAT_KG"], null),
-     NUM_TANKS: r[acft.headers.indexOf("NUM_TANKS")] || 0,
-     TANK_NAMES: r[acft.headers.indexOf("TANK_NAMES")] || "",
-     MAIN_CAPACITY_L: r[acft.headers.indexOf("MAIN_CAPACITY_L")] || 0,
-     TIP_CAPACITY_L: r[acft.headers.indexOf("TIP_CAPACITY_L")] || 0,
-     TRANSFER_RATE_LPM: (function(){
-       const idx = acft.headers.indexOf("TRANSFER_RATE_LPM");
-       return idx >= 0 ? (parseFloat(r[idx]) || 0) : 0;
-     })(),
-     currentTach: parseFloat(r[acft.headers.indexOf("CURRENT_TACH")]) || 0,
-     nextDue: parseFloat(r[acft.headers.indexOf("NEXT_DUE_TACH")]) || 0,
-     hoursToInsp: parseFloat(r[acft.headers.indexOf("HOURS_TO_INSPECTION")]) || 0,
-      techStatus: (r[acft.headers.indexOf("TECH_STATUS")] || "SERVICEABLE").toUpperCase(),
-     openSquawks: r[acft.headers.indexOf("OPEN_SQUAWKS")] || ""
-   }, vrCols);
- }),
+ aircraft: acft.vals.map(r => ({
+   reg: r[acft.headers.indexOf("REGISTRATION")],
+   aircraftType: r[acft.headers.indexOf("AIRCRAFT_TYPE")] || "",
+   typeForPerformance: r[acft.headers.indexOf("TYPE_FOR_PERFORMANCE")] || "",
+   speed: parseFloat(r[acft.headers.indexOf("CRUISE_KTS")]) || 130,
+   burn: parseFloat(r[acft.headers.indexOf("BURN_LPH")]) || 60,
+   rate: parseFloat(r[acft.headers.indexOf("HOURLY_RATE")]) || 0,
+   maxFuel: parseFloat(r[acft.headers.indexOf("MAX_FUEL")]) || 400,
+   emptyWeight: parseFloat(r[acft.headers.indexOf("EMPTY_WEIGHT")]) || 1000,
+   mtow: parseFloat(r[acft.headers.indexOf("MTOW")]) || 1600,
+   License_Required: r[acft.headers.indexOf("LICENSE_REQUIRED")] || "MNTE",
+   pilotSeat: parseFloat(r[acft.headers.indexOf("PILOT_SEAT_KGS")]) || null,
+   midSeat: parseFloat(r[acft.headers.indexOf("MID_SEAT_KGS")]) || null,
+   aftSeat: parseFloat(r[acft.headers.indexOf("AFT_SEAT_KGS")]) || null,
+   NUM_TANKS: r[acft.headers.indexOf("NUM_TANKS")] || 0,
+   TANK_NAMES: r[acft.headers.indexOf("TANK_NAMES")] || "",
+   MAIN_CAPACITY_L: r[acft.headers.indexOf("MAIN_CAPACITY_L")] || 0,
+   TIP_CAPACITY_L: r[acft.headers.indexOf("TIP_CAPACITY_L")] || 0,
+   TRANSFER_RATE_LPM: (function(){
+     const idx = acft.headers.indexOf("TRANSFER_RATE_LPM");
+     return idx >= 0 ? (parseFloat(r[idx]) || 0) : 0;
+   })(),
+   currentTach: parseFloat(r[acft.headers.indexOf("CURRENT_TACH")]) || 0,
+   nextDue: parseFloat(r[acft.headers.indexOf("NEXT_DUE_TACH")]) || 0,
+   hoursToInsp: parseFloat(r[acft.headers.indexOf("HOURS_TO_INSPECTION")]) || 0,
+    techStatus: (r[acft.headers.indexOf("TECH_STATUS")] || "SERVICEABLE").toUpperCase(),
+   openSquawks: r[acft.headers.indexOf("OPEN_SQUAWKS")] || ""
+ })),
  passengers: pax.vals.map(r => {
      const h = pax.headers;
      const weightIdx = h.indexOf("WEIGHT_KG") !== -1 ? h.indexOf("WEIGHT_KG") : h.indexOf("WEIGHT_KGS");
@@ -494,7 +471,6 @@ function getPilotStartupData() {
     syllabus: data && Array.isArray(data.syllabus) ? data.syllabus : [],
     waypoints: data && Array.isArray(data.waypoints) ? data.waypoints : [],
     routes: data && Array.isArray(data.routes) ? data.routes : [],
-    airports: data && Array.isArray(data.airports) ? data.airports : [],
     aircraft: data && Array.isArray(data.aircraft) ? data.aircraft : [],
     passengers: data && Array.isArray(data.passengers) ? data.passengers : []
   };
@@ -524,9 +500,6 @@ function getPilotAirportData() {
           nome: asShortText(row.nome, 90),
           lat: row.lat,
           lon: row.lon,
-          fuelAvailable: asShortText(row.fuelAvailable, 24),
-          mtow520: parseFloat(row.mtow520) || 9999,
-          mtow550: parseFloat(row.mtow550) || 9999,
           runwayIdent: asShortText(row.runwayIdent, 20),
           runwayHeading: asShortText(row.runwayHeading, 12),
           runwayLength: asShortText(row.runwayLength, 12),
@@ -575,9 +548,6 @@ function getPilotAirportDataChunk(offset, limit) {
         nome: asShortText(row.nome, 90),
         lat: row.lat,
         lon: row.lon,
-        fuelAvailable: asShortText(row.fuelAvailable, 24),
-        mtow520: parseFloat(row.mtow520) || 9999,
-        mtow550: parseFloat(row.mtow550) || 9999,
         runwayIdent: asShortText(row.runwayIdent, 20),
         runwayHeading: asShortText(row.runwayHeading, 12),
         runwayLength: asShortText(row.runwayLength, 12),
@@ -1002,168 +972,9 @@ Object.values(missions).forEach(m => {
    }
  });
 });
-
-// --- Flight Time Blocks ---
-try {
-  const blockSheet = ss.getSheetByName(APP_SHEETS.FLIGHT_BLOCKS);
-  if (blockSheet) {
-    const blockData = blockSheet.getDataRange().getValues();
-    for (let bi = 1; bi < blockData.length; bi++) {
-      const br = blockData[bi];
-      const bStatus = String(br[FLIGHT_BLOCKS_COL.STATUS] || 'ACTIVE').toUpperCase();
-      if (bStatus === 'DELETED') continue;
-      const bStartRaw = br[FLIGHT_BLOCKS_COL.DATE_START];
-      const bEndRaw   = br[FLIGHT_BLOCKS_COL.DATE_END];
-      const bStart = bStartRaw instanceof Date ? bStartRaw : new Date(bStartRaw);
-      const bEnd   = bEndRaw   instanceof Date ? bEndRaw   : new Date(bEndRaw);
-      if (isNaN(bStart.getTime()) || isNaN(bEnd.getTime())) continue;
-      // FullCalendar all-day end is exclusive — add 1 day
-      const bEndExcl = new Date(bEnd);
-      bEndExcl.setDate(bEndExcl.getDate() + 1);
-      events.push({
-        start: bStart.toISOString().split('T')[0],
-        end:   bEndExcl.toISOString().split('T')[0],
-        color: '#6a1b9a',
-        extendedProps: {
-          type:         'block',
-          blockId:      String(br[FLIGHT_BLOCKS_COL.BLOCK_ID] || ''),
-          name:         String(br[FLIGHT_BLOCKS_COL.NAME]     || ''),
-          acft:         String(br[FLIGHT_BLOCKS_COL.AIRCRAFT]  || ''),
-          allocatedHrs: safeNumber_(br[FLIGHT_BLOCKS_COL.ALLOCATED_HRS], 0),
-          blockType:    String(br[FLIGHT_BLOCKS_COL.TYPE]      || '')
-        }
-      });
-    }
-  }
-} catch(e) { /* blocks are non-critical */ }
-
 return events;
 }
 
-/* ==================================================
-   FLIGHT TIME BLOCKS
-================================================== */
-function getFlightBlocks() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const blockSheet = ss.getSheetByName(APP_SHEETS.FLIGHT_BLOCKS);
-  if (!blockSheet) return [];
-  const blockData = blockSheet.getDataRange().getValues();
-  if (blockData.length <= 1) return [];
-
-  const dispSheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
-  const dispData = dispSheet ? dispSheet.getDataRange().getValues() : [];
-
-  const blocks = [];
-  for (let i = 1; i < blockData.length; i++) {
-    const row = blockData[i];
-    const blockId = String(row[FLIGHT_BLOCKS_COL.BLOCK_ID] || '').trim();
-    if (!blockId) continue;
-    const status = String(row[FLIGHT_BLOCKS_COL.STATUS] || 'ACTIVE').toUpperCase();
-    if (status === 'DELETED') continue;
-
-    const aircraft = String(row[FLIGHT_BLOCKS_COL.AIRCRAFT] || '').trim();
-    const startRaw = row[FLIGHT_BLOCKS_COL.DATE_START];
-    const endRaw   = row[FLIGHT_BLOCKS_COL.DATE_END];
-    const dateStart = startRaw instanceof Date ? startRaw : new Date(startRaw);
-    const dateEnd   = endRaw   instanceof Date ? endRaw   : new Date(endRaw);
-    if (isNaN(dateStart.getTime()) || isNaN(dateEnd.getTime())) continue;
-
-    // Sum dispatch flight hours for this aircraft within the date range
-    let usedHours = 0;
-    for (let j = 1; j < dispData.length; j++) {
-      const dr = dispData[j];
-      if (String(dr[DISPATCH_COL.AIRCRAFT] || '').trim() !== aircraft) continue;
-      const ds = String(dr[DISPATCH_COL.STATUS] || '').toUpperCase();
-      if (ds === 'CANCELLED') continue;
-      const dRaw = dr[DISPATCH_COL.DATE];
-      const dDate = dRaw instanceof Date ? dRaw : new Date(dRaw);
-      if (isNaN(dDate.getTime())) continue;
-      if (dDate >= dateStart && dDate <= dateEnd) {
-        usedHours += safeNumber_(dr[DISPATCH_COL.FLIGHT_TIME], 0);
-      }
-    }
-
-    blocks.push({
-      blockId:      blockId,
-      name:         String(row[FLIGHT_BLOCKS_COL.NAME]          || '').trim(),
-      aircraft:     aircraft,
-      type:         String(row[FLIGHT_BLOCKS_COL.TYPE]          || '').trim(),
-      allocatedHrs: safeNumber_(row[FLIGHT_BLOCKS_COL.ALLOCATED_HRS], 0),
-      dateStart:    Utilities.formatDate(dateStart, 'GMT', 'yyyy-MM-dd'),
-      dateEnd:      Utilities.formatDate(dateEnd,   'GMT', 'yyyy-MM-dd'),
-      notes:        String(row[FLIGHT_BLOCKS_COL.NOTES]         || '').trim(),
-      status:       status,
-      usedHrs:      Math.round(usedHours * 10) / 10
-    });
-  }
-  return blocks;
-}
-
-function saveFlightBlock(data) {
-  if (!data || !data.name || !data.aircraft || !data.dateStart || !data.dateEnd) {
-    throw new Error('Missing required block fields.');
-  }
-  const allocHrs = parseFloat(data.allocatedHrs);
-  if (isNaN(allocHrs) || allocHrs <= 0) throw new Error('Allocated hours must be a positive number.');
-  if (data.dateEnd < data.dateStart) throw new Error('End date must be on or after start date.');
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let blockSheet = ss.getSheetByName(APP_SHEETS.FLIGHT_BLOCKS);
-  if (!blockSheet) {
-    blockSheet = ss.insertSheet(APP_SHEETS.FLIGHT_BLOCKS);
-    blockSheet.appendRow(['BLOCK_ID','NAME','AIRCRAFT','TYPE','ALLOCATED_HRS','DATE_START','DATE_END','NOTES','STATUS','CREATED_AT']);
-  }
-
-  const now = new Date();
-  if (data.blockId) {
-    const allData = blockSheet.getDataRange().getValues();
-    for (let i = 1; i < allData.length; i++) {
-      if (String(allData[i][FLIGHT_BLOCKS_COL.BLOCK_ID]).trim() === data.blockId) {
-        const r = i + 1;
-        blockSheet.getRange(r, FLIGHT_BLOCKS_COL.NAME          + 1).setValue(data.name);
-        blockSheet.getRange(r, FLIGHT_BLOCKS_COL.AIRCRAFT      + 1).setValue(data.aircraft);
-        blockSheet.getRange(r, FLIGHT_BLOCKS_COL.TYPE          + 1).setValue(data.type || '');
-        blockSheet.getRange(r, FLIGHT_BLOCKS_COL.ALLOCATED_HRS + 1).setValue(allocHrs);
-        blockSheet.getRange(r, FLIGHT_BLOCKS_COL.DATE_START    + 1).setValue(data.dateStart);
-        blockSheet.getRange(r, FLIGHT_BLOCKS_COL.DATE_END      + 1).setValue(data.dateEnd);
-        blockSheet.getRange(r, FLIGHT_BLOCKS_COL.NOTES         + 1).setValue(data.notes || '');
-        blockSheet.getRange(r, FLIGHT_BLOCKS_COL.STATUS        + 1).setValue(data.status || 'ACTIVE');
-        return { ok: true, blockId: data.blockId };
-      }
-    }
-    throw new Error('Block not found: ' + data.blockId);
-  } else {
-    const blockId = 'BLK-' + Utilities.formatDate(now, 'GMT', 'yyyyMMddHHmmss');
-    blockSheet.appendRow([
-      blockId,
-      data.name,
-      data.aircraft,
-      data.type || '',
-      allocHrs,
-      data.dateStart,
-      data.dateEnd,
-      data.notes || '',
-      'ACTIVE',
-      Utilities.formatDate(now, 'GMT', 'yyyy-MM-dd HH:mm:ss')
-    ]);
-    return { ok: true, blockId: blockId };
-  }
-}
-
-function deleteFlightBlock(blockId) {
-  if (!blockId) throw new Error('blockId is required.');
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const blockSheet = ss.getSheetByName(APP_SHEETS.FLIGHT_BLOCKS);
-  if (!blockSheet) throw new Error('Flight blocks sheet not found.');
-  const allData = blockSheet.getDataRange().getValues();
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][FLIGHT_BLOCKS_COL.BLOCK_ID]).trim() === blockId) {
-      blockSheet.getRange(i + 1, FLIGHT_BLOCKS_COL.STATUS + 1).setValue('DELETED');
-      return { ok: true };
-    }
-  }
-  throw new Error('Block not found: ' + blockId);
-}
 
 /* ==================================================
 4. DISPATCH SAVING & FATIGUE
@@ -1233,45 +1044,8 @@ function saveMission(data) {
 
  // Save each leg individually
  legs.forEach(leg => {
-   const _routeTokensFrom = function(raw) {
-     if (Array.isArray(raw)) {
-       return raw.map(function(wp) {
-         if (typeof wp === 'string') return String(wp || '').trim().toUpperCase();
-         if (wp && typeof wp === 'object') {
-           return String(wp.fix || wp.wp_id || wp.WP_ID || wp.ident || wp.icao || '').trim().toUpperCase();
-         }
-         return '';
-       }).filter(Boolean);
-     }
-     const txt = String(raw || '').trim().toUpperCase();
-     if (!txt) return [];
-     return txt
-       .replace(/[→>]/g, ',')
-       .split(/[\n\r,;\/|]+/)
-       .map(function(part) { return String(part || '').trim().toUpperCase(); })
-       .filter(Boolean);
-   };
-
-   const fromIcao = String(leg && (leg.from || leg.origin) || '').trim().toUpperCase();
-   const toIcao = String(leg && (leg.to || leg.destination) || '').trim().toUpperCase();
-
-   let routeTokens = _routeTokensFrom(leg && leg.route);
-   if (routeTokens.length < 2) routeTokens = _routeTokensFrom(leg && leg.waypoints);
-   if (fromIcao && (!routeTokens.length || routeTokens[0] !== fromIcao)) routeTokens.unshift(fromIcao);
-   if (toIcao && (!routeTokens.length || routeTokens[routeTokens.length - 1] !== toIcao)) routeTokens.push(toIcao);
-   routeTokens = routeTokens.filter(function(token, idx, arr) { return idx === 0 || token !== arr[idx - 1]; });
-
-  const routeCol = routeTokens.join(',') || [fromIcao, toIcao].filter(Boolean).join(',');
-   const normalizedLeg = {
-     ...leg,
-     from: fromIcao || (routeTokens[0] || ''),
-     to: toIcao || (routeTokens.length ? routeTokens[routeTokens.length - 1] : ''),
-     route: routeCol,
-     waypoints: routeTokens.length ? routeTokens : (leg && leg.waypoints)
-   };
-
    const singleLegWrapper = JSON.stringify({
-     legs: [{ ...normalizedLeg, missionTime: header.time, meta: { time: header.time } }],
+     legs: [{ ...leg, missionTime: header.time, meta: { time: header.time } }],
      time: header.time
    });
 
@@ -1280,41 +1054,40 @@ function saveMission(data) {
    const isOfflineFlight = String(header.type || '').toLowerCase().indexOf('offline') >= 0;
    const flightStatus = isOfflineFlight ? 'DRAFT_OFFLINE' : '';
    dispatchSheet.appendRow([
-     normalizedLeg.flightLegId,
+     leg.flightLegId,
      missionId,
      header.date,
      header.acft,
      header.pilot,
      header.copilot || "",
-     routeCol,
-     normalizedLeg.time,
+     `${leg.from}-${leg.to}`,
+     leg.time,
      header.type,
      singleLegWrapper, // Only this leg
      finalNotes,
      flightStatus  // STATUS column (L)
    ]);
-   // Log fuel deduction only for cache stops (never supplier fuel).
-  const fuelDraw = parseFloat(normalizedLeg.plannedCacheDraw) || 0;
-  const isCacheStop = (normalizedLeg && (normalizedLeg.isFuelCacheStop === true || String(normalizedLeg.fuelStopSource || '').toLowerCase() === 'cache'));
+   // Log fuel deduction (planned fuel)
+   const fuelDraw = parseFloat(leg.plannedCacheDraw) || 0;
 
 
-   if (fuelDraw > 0 && isCacheStop) {
+   if (fuelDraw > 0) {
      // Log the deduction from the specific "FROM" location
      // Using leg.from ensures it deducts from the airport where the fuel was pumped
      logFuelChange(
-       normalizedLeg.to,
+       leg.to,
        -fuelDraw,
        header.acft,
        header.pilot,
-       normalizedLeg.flightLegId
+       leg.flightLegId
      );
    }
    // Save passengers
-   if (transSheet && normalizedLeg.pax && Array.isArray(normalizedLeg.pax)) {
-     normalizedLeg.pax.forEach(p => {
+   if (transSheet && leg.pax && Array.isArray(leg.pax)) {
+     leg.pax.forEach(p => {
        const effectiveWeight = (p.name === "FREIGHT") ? p.cargo : p.weight;
        transSheet.appendRow([
-         normalizedLeg.flightLegId,
+         leg.flightLegId,
          p.fund || "",
          p.name,
          p.category || "",
@@ -2069,8 +1842,8 @@ legs: missionRows.map((r) => {
 
 
 
- // Parse route string using comma-delimited policy with legacy-safe fallback.
- const parsedRoute = splitRoute_(r[DISPATCH_COL.ROUTE]);
+ // Split the route string (Column G) to get clean From/To
+ const routeParts = String(r[DISPATCH_COL.ROUTE]).split('-');
 
 
 
@@ -2105,8 +1878,8 @@ legs: missionRows.map((r) => {
 
  return {
   flightLegId: r[DISPATCH_COL.FLIGHT_ID],
-  from: parsedRoute.from || "?",
-  to: parsedRoute.to || "?",
+   from: routeParts[0] || "?",
+   to: routeParts[routeParts.length - 1] || "?",
     // --- NEW: Pulling waypoints from the JSON ---
    waypoints: legPayload.waypoints || "",
     time: safeNum(r[DISPATCH_COL.FLIGHT_TIME], 0),
@@ -2732,15 +2505,12 @@ for (let i = 0; i < data.length; i++) {
    };
  }
   const legRoute = String(row[DISPATCH_RANGE_COL.ROUTE] || '');
-  if (missions[mId].routeStr === "") {
-    missions[mId].routeStr = legRoute;
-  } else {
-    const prior = splitRoute_(missions[mId].routeStr);
-    const next = splitRoute_(legRoute);
-    if (next.to && next.to !== prior.to) {
-      missions[mId].routeStr += ',' + next.to;
-    }
-  }
+ if (missions[mId].routeStr === "") {
+     missions[mId].routeStr = legRoute;
+ } else {
+     const parts = legRoute.split('-');
+     if(parts.length > 1) missions[mId].routeStr += "-" + parts[1];
+ }
 }
 
 
@@ -2751,22 +2521,15 @@ for (let i = 0; i < data.length; i++) {
 
 
 // Convert the object back to an array for the frontend
-const result = Object.values(missions).map(m => {
-  const routeTokens = routeTokensFromString_(m.routeStr || '');
-  const fromIcao = routeTokens[0] || '';
-  const toIcao = routeTokens.length ? routeTokens[routeTokens.length - 1] : '';
-
-  return {
-    id: m.id,
-    date: m.date,
-    acft: m.acft,
-    pilot: m.pilot,
-    status: m.status, // Passes Column L value to the HTML
-    from: fromIcao,
-    to: toIcao,
-    route: m.routeStr
-  };
-}).reverse().slice(0, 15);
+const result = Object.values(missions).map(m => ({
+   id: m.id,
+   date: m.date,
+   acft: m.acft,
+   pilot: m.pilot,
+   status: m.status, // Passes Column L value to the HTML
+   from: m.routeStr.split('-')[0],
+   to: m.routeStr
+})).reverse().slice(0, 15);
 
 cache.put(cacheKey, JSON.stringify(result), 45);
 return result;
@@ -2967,14 +2730,6 @@ function addToolsSheetRecord(kind, payload) {
       return '';
     });
 
-    if (sheetName === APP_SHEETS.ROUTES) {
-      var routeHeaders = headerRow.map(function(h) { return _toolsNormHeader_(h); });
-      var wpIdx = routeHeaders.indexOf('WAYPOINT_LIST');
-      if (wpIdx >= 0) {
-        row[wpIdx] = _toolsNormalizeRouteWaypointList_(row[wpIdx]);
-      }
-    }
-
     sh.appendRow(row);
     var rowNumber = sh.getLastRow();
     var response = { success: true, sheetName: sheetName, rowNumber: rowNumber };
@@ -3005,18 +2760,6 @@ function _toolsFirstHeaderMatch_(headers, candidates) {
 
 function _toolsNormalizeKeyValue_(value) {
   return String(value || '').trim().toUpperCase();
-}
-
-function _toolsNormalizeRouteWaypointList_(value) {
-  var normalized = String(value || '')
-    .toUpperCase()
-    .replace(/\u2192|->/g, ',')
-    .replace(/[;|/\n\r]+/g, ',');
-  return normalized
-    .split(',')
-    .map(function(token) { return String(token || '').trim(); })
-    .filter(Boolean)
-    .join(', ');
 }
 
 function getToolsAircraftBuilderTemplate(sourceRegistration) {
@@ -3304,14 +3047,6 @@ function updateToolsSheetRecord(kind, rowNumber, payload) {
       return currentRow[idx];
     });
 
-    if (sheetName === APP_SHEETS.ROUTES) {
-      var routeHeaders = headerRow.map(function(h) { return _toolsNormHeader_(h); });
-      var wpIdx = routeHeaders.indexOf('WAYPOINT_LIST');
-      if (wpIdx >= 0) {
-        row[wpIdx] = _toolsNormalizeRouteWaypointList_(row[wpIdx]);
-      }
-    }
-
     sh.getRange(targetRow, 1, 1, row.length).setValues([row]);
     return { success: true, sheetName: sheetName, rowNumber: targetRow };
   } catch (e) {
@@ -3594,8 +3329,7 @@ const missionData = {
 
 
 
-    const routeStr = String(r[DISPATCH_COL.ROUTE] || "").trim();
-  const parsedRoute = splitRoute_(routeStr);
+    const routeParts = String(r[DISPATCH_COL.ROUTE] || "").split('-');
     const safeNum = (val, def) => isNaN(parseFloat(val)) ? def : parseFloat(val);
 
 
@@ -3603,9 +3337,8 @@ const missionData = {
 
     return {
       flightLegId: r[DISPATCH_COL.FLIGHT_ID],
-      from: parsedRoute.from || "?",
-      to: parsedRoute.to || "?",
-      route: routeStr,
+      from: routeParts[0] || "?",
+      to: routeParts[routeParts.length - 1] || "?",
       waypoints: legPayload.waypoints || [],
       time: safeNum(r[DISPATCH_COL.FLIGHT_TIME], 0),
       dist: safeNum(legPayload.dist, 0),
@@ -3837,7 +3570,7 @@ function normalizeWaypointList_(rawWaypoints, origin, destination) {
   } else if (typeof rawWaypoints === 'string') {
     var raw = String(rawWaypoints || '').trim().toUpperCase();
     if (raw) {
-      raw = raw.replace(/[→>]/g, ',');
+      raw = raw.replace(/[→>]/g, ',').replace(/\s+-\s+/g, ',');
       tokens = raw.split(/[\n\r,;\/|]+/).map(function(part) {
         return String(part || '').trim().toUpperCase();
       });
@@ -3853,17 +3586,13 @@ function normalizeWaypointList_(rawWaypoints, origin, destination) {
 }
 
 function routeWaypointsFromRouteString_(routeValue) {
-  var tokens = routeTokensFromString_(routeValue || '');
-  if (tokens.length <= 2) {
-    var raw = String(routeValue || '').trim().toUpperCase();
-    // Legacy fallback for "AAA - BBB - CCC" only.
-    if (/\s+-\s+/.test(raw)) {
-      tokens = raw
-        .split(/\s+-\s+/)
-        .map(function(part) { return String(part || '').trim().toUpperCase(); })
-        .filter(Boolean);
-    }
-  }
+  var raw = String(routeValue || '').trim().toUpperCase();
+  if (!raw) return [];
+  var tokens = raw
+    .replace(/[→>]/g, '-')
+    .split(/\s+-\s+/)
+    .map(function(part) { return String(part || '').trim().toUpperCase(); })
+    .filter(Boolean);
   if (tokens.length <= 2) return [];
   return tokens.slice(1, tokens.length - 1);
 }
@@ -3893,13 +3622,10 @@ function getFlightRouteData(flightLegId) {
             const leg = raw.legs[0];
             const from = leg.from || fallbackFrom;
             const to = leg.to || fallbackTo;
-            const wpSource = (Array.isArray(fallbackWps) && fallbackWps.length)
-              ? fallbackWps
-              : (leg.waypoints || fallbackWps);
             routeData = {
               from: from,
               to: to,
-              waypoints: normalizeWaypointList_(wpSource, from, to)
+              waypoints: normalizeWaypointList_(leg.waypoints || fallbackWps, from, to)
             };
           } else if (raw.waypoints) {
             const from = raw.from || fallbackFrom;
@@ -3991,247 +3717,6 @@ function sendDispatchEmail(payload) {
     body: message
   });
   return { success: true };
-}
-
-// ── Flight Following ──────────────────────────────────────────────────────────
-var FF_RECIPIENTS_ = ['acompanhamento@asasdesocorro.org.br', 'supervisor.voo@asasdesocorro.org.br'];
-
-function sendFlightFollowEvent(payload) {
-  // payload: { event, reg, type, pic, route, pob, depTime, eta, notes, confirmedBy }
-  var event       = String(payload.event       || '').toUpperCase(); // AIRBORNE | POSREP | LANDED | OVERDUE
-  var reg         = String(payload.reg         || '').trim().toUpperCase();
-  var acftType    = String(payload.type        || '').trim();
-  var pic         = String(payload.pic         || '—').trim();
-  var route       = String(payload.route       || '—').trim();
-  var pob         = String(payload.pob         || '—').trim();
-  var depTime     = String(payload.depTime     || '').trim();
-  var eta         = String(payload.eta         || '').trim();
-  var notes       = String(payload.notes       || '').trim();
-  var confirmedBy = String(payload.confirmedBy || '—').trim();
-
-  if (!reg)   throw new Error('sendFlightFollowEvent: reg required');
-  if (!event) throw new Error('sendFlightFollowEvent: event required');
-
-  var now       = new Date();
-  var tz        = 'America/Manaus'; // MAO local — adjust if needed
-  var localTime = Utilities.formatDate(now, tz, 'HH:mm');
-  var zuluTime  = Utilities.formatDate(now, 'UTC', 'HHmm') + 'Z';
-
-  var icon = { AIRBORNE: '✈', POSREP: '📍', LANDED: '🛬', OVERDUE: '⚠' }[event] || '•';
-
-  var subject = icon + ' ' + event + ' ' + reg + ' ' + zuluTime;
-  if (route) subject += ' ' + route;
-
-  var lines = [
-    icon + ' FLIGHT FOLLOWING — ' + event,
-    'Aircraft : ' + reg + (acftType ? ' (' + acftType + ')' : ''),
-    'PIC      : ' + pic,
-    'Route    : ' + route,
-    'POB      : ' + pob,
-    'Time     : ' + localTime + ' MAO / ' + zuluTime,
-  ];
-  if (depTime) lines.push('Dep      : ' + depTime);
-  if (eta)     lines.push('ETA      : ' + eta);
-  if (notes)   lines.push('');
-  if (notes)   lines.push(notes);
-  lines.push('');
-  lines.push('Confirmed by: ' + confirmedBy);
-
-  var fullBody = lines.join('\n');
-
-  // Earthmate-compact variant (no emoji, no labels)
-  var compact = event + ' ' + reg + ' ' + zuluTime +
-    ' PIC:' + pic + ' ROUTE:' + route + ' POB:' + pob +
-    (eta ? ' ETA:' + eta : '') +
-    (notes ? ' ' + notes.replace(/\n/g, ' ') : '') +
-    ' BY:' + confirmedBy;
-
-  var recipients = FF_RECIPIENTS_.join(',');
-  MailApp.sendEmail({ to: recipients, subject: subject, body: fullBody });
-
-  return { success: true, compact: compact, subject: subject };
-}
-
-function getFlightFollowMissionsForAcft(reg) {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
-  if (!sheet) return [];
-
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return [];
-
-  // Build airport fuel lookup map (icao → hasFuel boolean)
-  var airportFuelMap = {};
-  try {
-    var airSheet = ss.getSheetByName(APP_SHEETS.AIRPORTS);
-    if (airSheet) {
-      var airData = airSheet.getDataRange().getValues();
-      if (airData.length > 1) {
-        var airH = airData[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
-        var icaoIdx = airH.indexOf('ICAO');
-        var fuelIdx = airH.indexOf('FUEL_AVAILABLE');
-        if (icaoIdx >= 0 && fuelIdx >= 0) {
-          for (var ai = 1; ai < airData.length; ai++) {
-            var aIcao = String(airData[ai][icaoIdx] || '').trim().toUpperCase();
-            var aFuel = String(airData[ai][fuelIdx] || '').trim().toUpperCase();
-            if (aIcao) {
-              airportFuelMap[aIcao] = !!(aFuel && aFuel !== 'NONE' && aFuel !== 'N' && aFuel !== 'NO' && aFuel !== '0');
-            }
-          }
-        }
-      }
-    }
-  } catch(e) {}
-
-  // Gather rows for this registration, today ± 1 day (catches night departures)
-  var now     = new Date();
-  var todayBsb = Utilities.formatDate(now, 'America/Sao_Paulo', 'yyyy-MM-dd');
-  var tz      = 'America/Sao_Paulo';
-
-  var missions = {};
-
-  for (var i = 1; i < data.length; i++) {
-    var row   = data[i];
-    var acft  = String(row[DISPATCH_COL.AIRCRAFT] || '').trim().toUpperCase();
-    if (acft !== String(reg || '').trim().toUpperCase()) continue;
-
-    var rawDate = row[DISPATCH_COL.DATE];
-    var dateStr = rawDate instanceof Date
-      ? Utilities.formatDate(rawDate, tz, 'yyyy-MM-dd')
-      : String(rawDate || '').trim().slice(0, 10);
-    if (dateStr !== todayBsb) continue;
-
-    var missionId  = String(row[DISPATCH_COL.MISSION_ID] || '').trim();
-    var flightLegId = String(row[DISPATCH_COL.FLIGHT_ID] || '').trim();
-    if (!missionId || !flightLegId) continue;
-
-    // Parse RAW_DATA blob
-    var raw = {};
-    try { raw = JSON.parse(String(row[DISPATCH_COL.RAW_DATA] || '{}')); } catch(e) {}
-
-    var legs = Array.isArray(raw.legs) ? raw.legs : [];
-    var leg  = legs[0] || {};
-
-    var pax = Array.isArray(leg.pax) ? leg.pax : [];
-    var paxFiltered = pax.filter(function(p) {
-      return p && String(p.name || '').toUpperCase() !== 'FREIGHT';
-    });
-    var pobCount = 1 + (String(row[DISPATCH_COL.COPILOT] || '').trim() ? 1 : 0) + paxFiltered.length;
-
-    // Flight plan
-    var planId      = String(leg.planId || leg.planDI || raw.planId || '').trim().toUpperCase();
-    var takeoffUTC  = String(leg.takeoffUTC || leg.takeoffZulu || raw.takeoffUTC || raw.time || '').trim().replace(/[^0-9]/g,'').slice(0,4);
-    var noPlan      = !!(leg.noPlan || raw.noPlan);
-
-    // Waypoints
-    var routeStr = String(row[DISPATCH_COL.ROUTE] || '').trim();
-    var rawWps   = Array.isArray(leg.waypoints) ? leg.waypoints : [];
-    var parsedRoute = splitRoute_(routeStr);
-    var from     = String(leg.from || parsedRoute.from || '').trim().toUpperCase();
-    var to       = String(leg.to   || parsedRoute.to   || '').trim().toUpperCase();
-    var waypoints = [];
-    if (rawWps.length > 0) {
-      waypoints = rawWps.map(function(w) {
-        // Legacy stored waypoints can be plain strings (e.g. ["SBAA","WP1","SBAE"])
-        var fix = typeof w === 'string'
-          ? w.trim().toUpperCase()
-          : String(w && (w.fix || w.name || w.icao) || '').trim().toUpperCase();
-        var distNm = (w && typeof w === 'object') ? Number(w.distNm || 0) : 0;
-        return { fix: fix, distNm: distNm };
-      }).filter(function(w) { return !!w.fix; });
-    }
-    if (!waypoints.length) {
-      // Build waypoints from route string using comma-delimited policy.
-      var parts = routeTokensFromString_(routeStr);
-      waypoints = parts.map(function(p) { return { fix: p, distNm: 0 }; });
-    }
-    // Ensure origin and destination are present
-    if (!waypoints.length || waypoints[0].fix !== from) waypoints.unshift({ fix: from, distNm: 0 });
-    if (waypoints[waypoints.length - 1].fix !== to)    waypoints.push({ fix: to, distNm: 0 });
-
-    // Annotate each waypoint with fuel availability from airports DB
-    waypoints = waypoints.map(function(w) {
-      var hasFuel = Object.prototype.hasOwnProperty.call(airportFuelMap, w.fix)
-        ? airportFuelMap[w.fix] : null; // null = unknown (not an airport in DB)
-      return { fix: w.fix, distNm: w.distNm, hasFuel: hasFuel };
-    });
-
-    // Planned fuel
-    var fuel = Number(leg.fuel || leg.plannedFuel || raw.fuel || 0);
-
-    if (!missions[missionId]) {
-      missions[missionId] = {
-        missionId:   missionId,
-        flightLegId: flightLegId,
-        date:        dateStr,
-        reg:         acft,
-        pilot:       String(row[DISPATCH_COL.PILOT]   || '').trim(),
-        copilot:     String(row[DISPATCH_COL.COPILOT] || '').trim(),
-        from:        from,
-        to:          to,
-        routeStr:    routeStr,
-        pob:         pobCount,
-        pax:         paxFiltered.map(function(p) { return { name: String(p.name || ''), phone: String(p.phone || ''), sex: String(p.sex || ''), age: String(p.age || ''), emergencyContact: String(p.emergencyContact || '') }; }),
-        planId:      planId,
-        takeoffUTC:  takeoffUTC,
-        noPlan:      noPlan,
-        fuelL:       fuel,
-        waypoints:   waypoints,
-        status:      String(row[DISPATCH_COL.STATUS] || '').trim()
-      };
-    }
-  }
-
-  return Object.values(missions);
-}
-
-function getFlightFollowMessages(reg) {
-  // Read InReach device replies from Gmail for the given registration
-  // Returns array of message objects: { timestamp, from, text, verified }
-  // In production, this would parse emails from inreach devices
-  try {
-    var threads = GmailApp.search('label:flight-follow from:inreachmail.com');
-    var messages = [];
-    
-    threads.slice(0, 20).forEach(function(thread) {
-      var msgs = thread.getMessages();
-      msgs.forEach(function(msg) {
-        messages.push({
-          timestamp: msg.getDate().toISOString(),
-          from: msg.getFrom(),
-          subject: msg.getSubject(),
-          text: msg.getPlainBody().substring(0, 500),
-          verified: false
-        });
-      });
-    });
-    
-    return messages;
-  } catch(e) {
-    return [];
-  }
-}
-
-function getFlightFollowInit() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('DB_Aircraft');
-  if (!sheet) return { aircraft: [] };
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return { aircraft: [] };
-  var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
-  var regIdx  = headers.indexOf('REGISTRATION');
-  var typeIdx = headers.indexOf('AIRCRAFT_TYPE');
-  if (regIdx < 0) return { aircraft: [] };
-  var aircraft = [];
-  for (var i = 1; i < data.length; i++) {
-    var reg = String(data[i][regIdx] || '').trim();
-    if (!reg) continue;
-    aircraft.push({
-      reg:  reg,
-      type: typeIdx >= 0 ? String(data[i][typeIdx] || '').trim() : ''
-    });
-  }
-  return { aircraft: aircraft };
 }
 
 function saveMissionFplToDrive(missionId, fplXml) {
@@ -5278,45 +4763,24 @@ function _interpBaseRoll(baseRows, weightKg) {
 }
 
 function _nearestMultiplier(rows, keyNames, target, valueNames, fallback) {
-  const points = [];
+  let best = null;
+  let bestDiff = Number.MAX_VALUE;
+
   rows.forEach(r => {
     const keyRaw = _perfValue(r, keyNames, '');
     const valRaw = _perfValue(r, valueNames, '');
     const k = parseFloat(keyRaw);
     const v = parseFloat(valRaw);
     if (isNaN(k) || isNaN(v)) return;
-    points.push({ k: k, v: v });
-  });
 
-  if (!points.length) return fallback || 1;
-  points.sort((a, b) => a.k - b.k);
-
-  for (let i = 0; i < points.length; i++) {
-    if (points[i].k === target) return points[i].v;
-  }
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i];
-    const b = points[i + 1];
-    if (target > a.k && target < b.k) {
-      const ratio = (target - a.k) / ((b.k - a.k) || 1);
-      return a.v + ratio * (b.v - a.v);
+    const diff = Math.abs(k - target);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = v;
     }
-  }
-
-  if (target <= points[0].k) return points[0].v;
-  if (target >= points[points.length - 1].k) return points[points.length - 1].v;
-  return fallback || 1;
-}
-
-function _slopeLookupTarget(rows, slopeAbsPercent) {
-  const slopeAbs = Math.abs(_perfNum(slopeAbsPercent, 0));
-  let maxSlopeKey = 0;
-  (rows || []).forEach(function(r) {
-    const k = parseFloat(_perfValue(r, ['SLOPE'], ''));
-    if (!isNaN(k)) maxSlopeKey = Math.max(maxSlopeKey, Math.abs(k));
   });
-  return maxSlopeKey > 1.5 ? slopeAbs : (slopeAbs / 100);
+
+  return (best == null || isNaN(best)) ? (fallback || 1) : best;
 }
 
 function _surfaceMultiplier(rows, surfaceText, valueNames, fallback) {
@@ -5493,14 +4957,8 @@ function _transformSurveyForRunway_(survey, sourceIdent, targetIdent, runwayLeng
   }).sort(function(a, b) { return Number(a.distanceM || 0) - Number(b.distanceM || 0); });
 
   const mirroredSlopeSegments = (Array.isArray(base.slopeSegments) ? base.slopeSegments : []).slice().reverse().map(function(seg) {
-    const segDistance = Math.max(Number(seg && (seg.distanceM != null ? seg.distanceM : seg.distance) || 0), 0);
-    const segStartRaw = Number(seg && seg.startDistanceM);
-    const segStart = isFinite(segStartRaw) ? segStartRaw : 0;
-    const mirroredStart = Math.max(0, Math.round(lengthM - (segStart + segDistance)));
     return Object.assign({}, seg, {
       fromThreshold: target,
-      startDistanceM: mirroredStart,
-      distanceM: segDistance,
       slope: -1 * (Number(seg && seg.slope || 0) || 0)
     });
   });
@@ -5523,12 +4981,7 @@ function _transformSurveyForRunway_(survey, sourceIdent, targetIdent, runwayLeng
       b: thresholds.a || {}
     },
     obstacleAngles50m: Array.isArray(base.obstacleAngles50m) ? base.obstacleAngles50m.map(function(item) {
-      const fromThrRaw = String(item && item.fromThreshold || '').trim().toUpperCase();
-      let mirroredThreshold = fromThrRaw;
-      if (fromThrRaw === source) mirroredThreshold = target;
-      else if (fromThrRaw === target) mirroredThreshold = source;
       return Object.assign({}, item, {
-        fromThreshold: mirroredThreshold || target,
         checkpointCorner: String(item && item.checkpointCorner || '').trim().toUpperCase() === 'C' ? 'A' : 'C'
       });
     }) : []
@@ -5659,8 +5112,6 @@ function getPerformanceSetup(icao) {
         airstripPhoto: String(_perfValue(r, ['AIRSTRIP_PHOTO', 'RUNWAY_PHOTO', 'PHOTO_URL'], '')).trim(),
         knownFeatures: knownFeatures,
         slopeProfile: slopeProfile,
-        obstacleAngles: Array.isArray(verifiedOperational.obstacleAngles50m) ? verifiedOperational.obstacleAngles50m : (Array.isArray(knownObj.obstacleAngles50m) ? knownObj.obstacleAngles50m : []),
-        surveySlopeSegments: Array.isArray(verifiedOperational.slopeSegments) ? verifiedOperational.slopeSegments : [],
         officialReference: {
           lengthM: _perfNum(officialReference.lengthM, baseLengthM) || baseLengthM,
           widthM: _perfNum(officialReference.widthM, baseWidthM) || baseWidthM,
@@ -5834,8 +5285,8 @@ function calculatePerformanceRolls(payload) {
 
     const windColTo = effectiveWindType === 'TAIL' ? 'TAKEOFF_TAIL' : 'TAKEOFF_HEAD';
     const windColLdg = effectiveWindType === 'TAIL' ? 'LANDING_TAIL' : 'LANDING_HEAD';
-      const windTo  = effectiveWindKts === 0 ? 1 : _nearestMultiplier(perfTable.rows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColTo], 1);
-      const windLdg = effectiveWindKts === 0 ? 1 : _nearestMultiplier(perfTable.rows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColLdg], 1);
+    const windTo = _nearestMultiplier(perfTable.rows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColTo], 1);
+    const windLdg = _nearestMultiplier(perfTable.rows, ['WIND_KTS', 'WIND'], effectiveWindKts, [windColLdg], 1);
 
     const humidity = _nearestMultiplier(perfTable.rows, ['HUMIDITY'], humidityPct, ['HUMIDITY_FACTOR'], 1);
     const flap = _nearestMultiplier(perfTable.rows, ['FLAP_SETTING'], flapSetting, ['FLAP_FACTOR'], 1);
@@ -5847,11 +5298,10 @@ function calculatePerformanceRolls(payload) {
       const estTakeoff = toNoSlope * slopeTo;
       effectiveSlopeTakeoff = _effectiveSlopeOverDistance(slopeProfile, Math.min(estTakeoff, runwayLengthM));
       const slopeAbsTo = Math.abs(effectiveSlopeTakeoff);
-      const slopeTargetTo = _slopeLookupTarget(perfTable.rows, slopeAbsTo);
       slopeTo = _nearestMultiplier(
         perfTable.rows,
         ['SLOPE'],
-        slopeTargetTo,
+        slopeAbsTo,
         [effectiveSlopeTakeoff >= 0 ? 'TAKEOFF_UP' : 'TAKEOFF_DOWN'],
         1
       );
@@ -5864,11 +5314,10 @@ function calculatePerformanceRolls(payload) {
       const estLanding = ldgNoSlope * slopeLdg;
       effectiveSlopeLanding = _effectiveSlopeOverDistance(slopeProfile, Math.min(estLanding, runwayLengthM));
       const slopeAbsLdg = Math.abs(effectiveSlopeLanding);
-      const slopeTargetLdg = _slopeLookupTarget(perfTable.rows, slopeAbsLdg);
       slopeLdg = _nearestMultiplier(
         perfTable.rows,
         ['SLOPE'],
-        slopeTargetLdg,
+        slopeAbsLdg,
         [effectiveSlopeLanding >= 0 ? 'LANDING_UP' : 'LANDING_DOWN'],
         1
       );
@@ -5894,8 +5343,6 @@ function calculatePerformanceRolls(payload) {
       warnings.push('Takeoff + landing roll is greater than runway length.');
       blocking = true;
     }
-    const abortUsesHalfTakeoff = combinedRollM > runwayLengthM;
-    const abortPointM = abortUsesHalfTakeoff ? halfTakeoffRollM : takeoffRollM;
 
     return {
       success: true,
@@ -5907,8 +5354,6 @@ function calculatePerformanceRolls(payload) {
       combinedRollM: Math.round(combinedRollM),
       halfTakeoffRollM: Math.round(halfTakeoffRollM),
       takeoff75PctThresholdM: Math.round(takeoff75PctThresholdM),
-      abortPointM: Math.round(abortPointM),
-      abortUsesHalfTakeoff: abortUsesHalfTakeoff,
       headTailComponentKts: Number(headTailComponent.toFixed(1)),
       crosswindComponentKts: Number(crosswindComponent.toFixed(1)),
       effectiveWindKts: Number(effectiveWindKts.toFixed(1)),
@@ -7971,694 +7416,6 @@ function setupStaffSchema() {
   }
 }
 
-function _schedulerHeaderIndex_(headers, candidate) {
-  var norms = (headers || []).map(function(h) { return _schemaNormHeader_(h); });
-  return norms.indexOf(_schemaNormHeader_(candidate));
-}
-
-function _schedulerTruthyFlag_(value) {
-  var raw = String(value == null ? '' : value).trim().toUpperCase();
-  return raw === 'Y' || raw === 'YES' || raw === 'TRUE' || raw === '1' || raw === 'SIM' || raw === 'ATIVO';
-}
-
-function _schedulerCurrentUserEmail_() {
-  try {
-    return String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
-  } catch (e) {
-    return '';
-  }
-}
-
-function _schedulerPermissionRowByEmail_(sheet, email) {
-  var target = String(email || '').trim().toLowerCase();
-  if (!target) return null;
-  var data = sheet.getDataRange().getValues();
-  if (!data || data.length < 2) return null;
-  var headers = data[0];
-  var emailIdx = _schedulerHeaderIndex_(headers, 'EMAIL');
-  if (emailIdx < 0) return null;
-  for (var i = 1; i < data.length; i++) {
-    var rowEmail = String(data[i][emailIdx] || '').trim().toLowerCase();
-    if (rowEmail && rowEmail === target) {
-      return { rowNumber: i + 1, headers: headers, row: data[i] };
-    }
-  }
-  return null;
-}
-
-function _schedulerAssertPermission_(permissionKey, contextLabel) {
-  var email = _schedulerCurrentUserEmail_();
-  if (!email) throw new Error((contextLabel || 'scheduler') + ': signed-in email is required');
-
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var permSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_PERMISSIONS || 'SCHED_Permissions', contextLabel || 'schedulerPermissionCheck');
-  var rec = _schedulerPermissionRowByEmail_(permSheet, email);
-  if (!rec) throw new Error((contextLabel || 'scheduler') + ': no scheduler permissions found for ' + email);
-
-  var activeIdx = _schedulerHeaderIndex_(rec.headers, 'ACTIVE');
-  if (activeIdx >= 0 && !_schedulerTruthyFlag_(rec.row[activeIdx])) {
-    throw new Error((contextLabel || 'scheduler') + ': scheduler access is inactive for ' + email);
-  }
-
-  if (permissionKey) {
-    var idx = _schedulerHeaderIndex_(rec.headers, permissionKey);
-    if (idx < 0) throw new Error((contextLabel || 'scheduler') + ': permission column missing: ' + permissionKey);
-    if (!_schedulerTruthyFlag_(rec.row[idx])) {
-      throw new Error((contextLabel || 'scheduler') + ': permission denied for ' + email + ' (' + permissionKey + ')');
-    }
-  }
-
-  return {
-    email: email,
-    rowNumber: rec.rowNumber,
-    headers: rec.headers,
-    row: rec.row
-  };
-}
-
-function _schedulerReadConfigMap_(configSheet) {
-  var out = {};
-  var data = configSheet.getDataRange().getValues();
-  if (!data || data.length < 2) return out;
-  var headers = data[0];
-  var keyIdx = _schedulerHeaderIndex_(headers, 'CONFIG_KEY');
-  var valueIdx = _schedulerHeaderIndex_(headers, 'CONFIG_VALUE');
-  var activeIdx = _schedulerHeaderIndex_(headers, 'ACTIVE');
-  if (keyIdx < 0 || valueIdx < 0) return out;
-  for (var i = 1; i < data.length; i++) {
-    var key = String(data[i][keyIdx] || '').trim();
-    if (!key) continue;
-    if (activeIdx >= 0 && !_schedulerTruthyFlag_(data[i][activeIdx])) continue;
-    out[key] = String(data[i][valueIdx] == null ? '' : data[i][valueIdx]);
-  }
-  return out;
-}
-
-function setupSchedulerSchema() {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var now = new Date();
-
-    var configHeaders = [
-      'CONFIG_KEY',
-      'CONFIG_VALUE',
-      'DESCRIPTION',
-      'ACTIVE',
-      'UPDATED_AT',
-      'UPDATED_BY'
-    ];
-    var permHeaders = [
-      'EMAIL',
-      'CAN_VIEW',
-      'CAN_GENERATE',
-      'CAN_EDIT_ASSIGNMENTS',
-      'CAN_LOCK_ASSIGNMENTS',
-      'CAN_PUBLISH',
-      'CAN_EDIT_RULES',
-      'CAN_MANAGE_PERMISSIONS',
-      'ACTIVE',
-      'NOTES',
-      'UPDATED_AT',
-      'UPDATED_BY'
-    ];
-    var coverageHeaders = [
-      'REQUIREMENT_ID',
-      'ROLE_CODE',
-      'LOCATION_CODE',
-      'DAYS_MASK',
-      'SHIFT_START_LOCAL',
-      'SHIFT_END_LOCAL',
-      'SHIFT_LABEL',
-      'REQUIRED_COUNT',
-      'PRIORITY',
-      'ALLOW_MULTI_ROLE_OVERLAP',
-      'ACTIVE',
-      'NOTES'
-    ];
-    var compatHeaders = [
-      'RULE_ID',
-      'ROLE_CODE_A',
-      'ROLE_CODE_B',
-      'OVERLAP_ALLOWED',
-      'ACTIVE',
-      'NOTES'
-    ];
-    var qualHeaders = [
-      'QUAL_ID',
-      'STAFF_EMAIL',
-      'ROLE_CODE',
-      'LOCATION_CODE',
-      'VALID_FROM',
-      'VALID_UNTIL',
-      'ACTIVE',
-      'SOURCE',
-      'NOTES',
-      'UPDATED_AT',
-      'UPDATED_BY'
-    ];
-    var assignHeaders = [
-      'ASSIGNMENT_ID',
-      'SCHEDULE_MONTH',
-      'ASSIGNMENT_DATE',
-      'ROLE_CODE',
-      'LOCATION_CODE',
-      'SHIFT_START_LOCAL',
-      'SHIFT_END_LOCAL',
-      'SHIFT_START_Z',
-      'SHIFT_END_Z',
-      'STAFF_EMAIL',
-      'SOURCE',
-      'LOCKED',
-      'LOCK_SCOPE',
-      'STATUS',
-      'FAIRNESS_SCORE',
-      'RULE_REASON',
-      'UPDATED_AT',
-      'UPDATED_BY'
-    ];
-    var lockHeaders = [
-      'LOCK_ID',
-      'ASSIGNMENT_ID',
-      'SCHEDULE_MONTH',
-      'LOCK_SCOPE',
-      'LOCK_REASON',
-      'LOCKED_BY',
-      'LOCKED_AT',
-      'ACTIVE'
-    ];
-    var alertsHeaders = [
-      'ALERT_ID',
-      'ALERT_TYPE',
-      'SCHEDULE_MONTH',
-      'ASSIGNMENT_DATE',
-      'ROLE_CODE',
-      'LOCATION_CODE',
-      'SEVERITY',
-      'STATUS',
-      'MESSAGE',
-      'RECIPIENTS',
-      'SENT_AT',
-      'CREATED_AT'
-    ];
-    var publishHeaders = [
-      'PUBLISH_ID',
-      'SCHEDULE_MONTH',
-      'PUBLISHED_BY',
-      'PUBLISHED_AT',
-      'RESULT',
-      'UNFILLED_COUNT',
-      'NOTES'
-    ];
-    var availabilityHeaders = [
-      'AVAILABILITY_ID',
-      'SCHEDULE_MONTH',
-      'STAFF_EMAIL',
-      'EVENT_ID',
-      'DATE_LOCAL',
-      'START_LOCAL',
-      'END_LOCAL',
-      'START_Z',
-      'END_Z',
-      'BASE_CODE',
-      'TYPE',
-      'SOURCE',
-      'UPDATED_AT'
-    ];
-
-    var configSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', configHeaders);
-    var permSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_PERMISSIONS || 'SCHED_Permissions', permHeaders);
-    var coverageSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_COVERAGE_RULES || 'SCHED_Coverage_Requirements', coverageHeaders);
-    var compatSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_ROLE_COMPAT || 'SCHED_Role_Compatibility', compatHeaders);
-    var qualSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_STAFF_QUALS || 'SCHED_Staff_Qualifications', qualHeaders);
-    var assignSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_ASSIGNMENTS || 'SCHED_Assignments', assignHeaders);
-    var lockSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_LOCKS || 'SCHED_Assignment_Locks', lockHeaders);
-    var alertsSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_ALERTS || 'SCHED_Alerts', alertsHeaders);
-    var publishSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_PUBLISH_LOG || 'SCHED_Publish_Log', publishHeaders);
-    var availabilitySheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.SCHED_AVAILABILITY || 'SCHED_Staff_Availability', availabilityHeaders);
-
-    var roleSheetRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.STAFF_ROLES || 'REF_Staff_Roles', ['ROLE_CODE', 'ROLE_NAME', 'ROLE_GROUP', 'ACTIVE', 'DESCRIPTION']);
-    var schedulerRoles = [
-      { ROLE_CODE: 'FLIGHT_SUPERVISOR', ROLE_NAME: 'Flight Supervisor', ROLE_GROUP: 'Operations', ACTIVE: 'Y', DESCRIPTION: 'Daily operational flight supervision coverage' },
-      { ROLE_CODE: 'MAINTENANCE_SUPERVISOR', ROLE_NAME: 'Maintenance Supervisor', ROLE_GROUP: 'Maintenance', ACTIVE: 'Y', DESCRIPTION: 'Daily maintenance supervision coverage' }
-    ];
-    var seededSchedulerRoles = _schemaSeedRowsByKey_(roleSheetRes.sheet, 'ROLE_CODE', schedulerRoles);
-
-    var configSeed = [
-      { CONFIG_KEY: 'AVAILABILITY_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Shared calendar id with unavailable-only events', ACTIVE: 'Y' },
-      { CONFIG_KEY: 'FLIGHTS_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Target Google Calendar id for flight events', ACTIVE: 'Y' },
-      { CONFIG_KEY: 'SCHEDULE_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Target Google Calendar id for staffing schedule', ACTIVE: 'Y' },
-      { CONFIG_KEY: 'ALERT_RECIPIENTS', CONFIG_VALUE: '', DESCRIPTION: 'Comma-separated email recipients for scheduler alerts', ACTIVE: 'Y' },
-      { CONFIG_KEY: 'PUBLISH_DAY_OF_MONTH', CONFIG_VALUE: '15', DESCRIPTION: 'Auto-publish day for next month schedule', ACTIVE: 'Y' },
-      { CONFIG_KEY: 'BASE_TZ_BVB', CONFIG_VALUE: 'America/Manaus', DESCRIPTION: 'Local timezone for BVB scheduling', ACTIVE: 'Y' },
-      { CONFIG_KEY: 'BASE_TZ_PVH', CONFIG_VALUE: 'America/Porto_Velho', DESCRIPTION: 'Local timezone for PVH scheduling', ACTIVE: 'Y' },
-      { CONFIG_KEY: 'BASE_TZ_APS', CONFIG_VALUE: 'America/Sao_Paulo', DESCRIPTION: 'Local timezone for APS scheduling', ACTIVE: 'Y' }
-    ];
-    var seededConfig = _schemaSeedRowsByKey_(configSheetRes.sheet, 'CONFIG_KEY', configSeed);
-
-    var compatSeed = [
-      { RULE_ID: 'COMPAT-FSUP-MSUP', ROLE_CODE_A: 'FLIGHT_SUPERVISOR', ROLE_CODE_B: 'MAINTENANCE_SUPERVISOR', OVERLAP_ALLOWED: 'Y', ACTIVE: 'Y', NOTES: 'Can overlap if qualified' },
-      { RULE_ID: 'COMPAT-MSUP-FF', ROLE_CODE_A: 'MAINTENANCE_SUPERVISOR', ROLE_CODE_B: 'FLIGHT_FOLLOWER', OVERLAP_ALLOWED: 'Y', ACTIVE: 'Y', NOTES: 'Can overlap if qualified' },
-      { RULE_ID: 'COMPAT-MECH-BLOCK', ROLE_CODE_A: 'MECHANIC', ROLE_CODE_B: '*', OVERLAP_ALLOWED: 'N', ACTIVE: 'Y', NOTES: 'Mechanic assignment blocks overlapping operational roles' },
-      { RULE_ID: 'COMPAT-INSP-BLOCK', ROLE_CODE_A: 'INSPECTOR', ROLE_CODE_B: '*', OVERLAP_ALLOWED: 'N', ACTIVE: 'Y', NOTES: 'Inspector assignment blocks overlapping operational roles' }
-    ];
-    var seededCompat = _schemaSeedRowsByKey_(compatSheetRes.sheet, 'RULE_ID', compatSeed);
-
-    var actorEmail = _schedulerCurrentUserEmail_();
-    var seededAdmin = false;
-    if (actorEmail) {
-      var existingAdmin = _schedulerPermissionRowByEmail_(permSheetRes.sheet, actorEmail);
-      if (!existingAdmin) {
-        permSheetRes.sheet.appendRow([
-          actorEmail,
-          'Y',
-          'Y',
-          'Y',
-          'Y',
-          'Y',
-          'Y',
-          'Y',
-          'Y',
-          'Seeded by setupSchedulerSchema',
-          now,
-          actorEmail
-        ]);
-        seededAdmin = true;
-      }
-    }
-
-    return {
-      success: true,
-      seededAdmin: seededAdmin,
-      currentUser: actorEmail,
-      seededRoles: seededSchedulerRoles.inserted,
-      seededConfig: seededConfig.inserted,
-      seededCompatibilityRules: seededCompat.inserted,
-      sheets: {
-        config: { name: configSheetRes.sheet.getName(), created: configSheetRes.created, addedColumns: configSheetRes.added },
-        permissions: { name: permSheetRes.sheet.getName(), created: permSheetRes.created, addedColumns: permSheetRes.added },
-        coverage: { name: coverageSheetRes.sheet.getName(), created: coverageSheetRes.created, addedColumns: coverageSheetRes.added },
-        compatibility: { name: compatSheetRes.sheet.getName(), created: compatSheetRes.created, addedColumns: compatSheetRes.added },
-        qualifications: { name: qualSheetRes.sheet.getName(), created: qualSheetRes.created, addedColumns: qualSheetRes.added },
-        assignments: { name: assignSheetRes.sheet.getName(), created: assignSheetRes.created, addedColumns: assignSheetRes.added },
-        locks: { name: lockSheetRes.sheet.getName(), created: lockSheetRes.created, addedColumns: lockSheetRes.added },
-        alerts: { name: alertsSheetRes.sheet.getName(), created: alertsSheetRes.created, addedColumns: alertsSheetRes.added },
-        publishLog: { name: publishSheetRes.sheet.getName(), created: publishSheetRes.created, addedColumns: publishSheetRes.added },
-        availability: { name: availabilitySheetRes.sheet.getName(), created: availabilitySheetRes.created, addedColumns: availabilitySheetRes.added }
-      }
-    };
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
-
-function getSchedulerAccessProfile() {
-  try {
-    var profile = _schedulerAssertPermission_(null, 'getSchedulerAccessProfile');
-    var headers = profile.headers || [];
-    var row = profile.row || [];
-    var out = {
-      success: true,
-      email: profile.email,
-      permissions: {}
-    };
-    ['CAN_VIEW', 'CAN_GENERATE', 'CAN_EDIT_ASSIGNMENTS', 'CAN_LOCK_ASSIGNMENTS', 'CAN_PUBLISH', 'CAN_EDIT_RULES', 'CAN_MANAGE_PERMISSIONS', 'ACTIVE'].forEach(function(key) {
-      var idx = _schedulerHeaderIndex_(headers, key);
-      out.permissions[key] = idx >= 0 ? _schedulerTruthyFlag_(row[idx]) : false;
-    });
-    return out;
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
-
-function getSchedulerConfig() {
-  try {
-    _schedulerAssertPermission_('CAN_VIEW', 'getSchedulerConfig');
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', 'getSchedulerConfig');
-    return {
-      success: true,
-      config: _schedulerReadConfigMap_(sheet)
-    };
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
-
-function saveSchedulerConfigEntries(payload) {
-  try {
-    var actor = _schedulerAssertPermission_('CAN_EDIT_RULES', 'saveSchedulerConfigEntries');
-    var body = (payload && typeof payload === 'object') ? payload : {};
-    var entries = [];
-    if (Array.isArray(body.entries)) {
-      entries = body.entries;
-    } else if (body.key) {
-      entries = [{ key: body.key, value: body.value, description: body.description, active: body.active }];
-    }
-    if (!entries.length) return { success: false, error: 'No config entries provided' };
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', 'saveSchedulerConfigEntries');
-    var data = sheet.getDataRange().getValues();
-    var headers = data.length ? data[0] : [];
-    var keyIdx = _schedulerHeaderIndex_(headers, 'CONFIG_KEY');
-    var valueIdx = _schedulerHeaderIndex_(headers, 'CONFIG_VALUE');
-    var descIdx = _schedulerHeaderIndex_(headers, 'DESCRIPTION');
-    var activeIdx = _schedulerHeaderIndex_(headers, 'ACTIVE');
-    var updAtIdx = _schedulerHeaderIndex_(headers, 'UPDATED_AT');
-    var updByIdx = _schedulerHeaderIndex_(headers, 'UPDATED_BY');
-    if (keyIdx < 0 || valueIdx < 0) return { success: false, error: 'SCHED_Config is missing required columns' };
-
-    var updated = 0;
-    var created = 0;
-    var now = new Date();
-    entries.forEach(function(entry) {
-      var key = String((entry && (entry.key || entry.CONFIG_KEY)) || '').trim();
-      if (!key) return;
-      var value = entry && Object.prototype.hasOwnProperty.call(entry, 'value') ? entry.value : entry && entry.CONFIG_VALUE;
-      var description = entry && Object.prototype.hasOwnProperty.call(entry, 'description') ? entry.description : entry && entry.DESCRIPTION;
-      var activeRaw = entry && Object.prototype.hasOwnProperty.call(entry, 'active') ? entry.active : entry && entry.ACTIVE;
-      var activeVal = activeRaw == null ? null : (_schedulerTruthyFlag_(activeRaw) ? 'Y' : 'N');
-
-      var foundRow = 0;
-      for (var i = 1; i < data.length; i++) {
-        if (String(data[i][keyIdx] || '').trim() === key) {
-          foundRow = i + 1;
-          break;
-        }
-      }
-
-      if (foundRow) {
-        sheet.getRange(foundRow, valueIdx + 1).setValue(value == null ? '' : value);
-        if (descIdx >= 0 && description != null) sheet.getRange(foundRow, descIdx + 1).setValue(description);
-        if (activeIdx >= 0 && activeVal != null) sheet.getRange(foundRow, activeIdx + 1).setValue(activeVal);
-        if (updAtIdx >= 0) sheet.getRange(foundRow, updAtIdx + 1).setValue(now);
-        if (updByIdx >= 0) sheet.getRange(foundRow, updByIdx + 1).setValue(actor.email);
-        updated++;
-      } else {
-        var row = headers.map(function() { return ''; });
-        row[keyIdx] = key;
-        row[valueIdx] = value == null ? '' : value;
-        if (descIdx >= 0) row[descIdx] = description == null ? '' : description;
-        if (activeIdx >= 0) row[activeIdx] = activeVal == null ? 'Y' : activeVal;
-        if (updAtIdx >= 0) row[updAtIdx] = now;
-        if (updByIdx >= 0) row[updByIdx] = actor.email;
-        sheet.appendRow(row);
-        created++;
-      }
-    });
-
-    return { success: true, created: created, updated: updated };
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
-
-function getSchedulerPermissions() {
-  try {
-    _schedulerAssertPermission_('CAN_MANAGE_PERMISSIONS', 'getSchedulerPermissions');
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_PERMISSIONS || 'SCHED_Permissions', 'getSchedulerPermissions');
-    var data = sheet.getDataRange().getValues();
-    if (!data || data.length < 2) return { success: true, rows: [] };
-    var headers = data[0];
-    var rows = [];
-    for (var i = 1; i < data.length; i++) {
-      var rowObj = { rowNumber: i + 1 };
-      for (var c = 0; c < headers.length; c++) {
-        rowObj[String(headers[c] || '').trim()] = data[i][c];
-      }
-      rows.push(rowObj);
-    }
-    return { success: true, rows: rows };
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
-
-function saveSchedulerPermission(payload) {
-  try {
-    var actor = _schedulerAssertPermission_('CAN_MANAGE_PERMISSIONS', 'saveSchedulerPermission');
-    var body = (payload && typeof payload === 'object') ? payload : {};
-    var targetEmail = String(body.email || body.EMAIL || '').trim().toLowerCase();
-    if (!targetEmail) return { success: false, error: 'Email is required' };
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_PERMISSIONS || 'SCHED_Permissions', 'saveSchedulerPermission');
-    var data = sheet.getDataRange().getValues();
-    var headers = data.length ? data[0] : [];
-    var now = new Date();
-
-    var rec = _schedulerPermissionRowByEmail_(sheet, targetEmail);
-    var rowNumber = rec ? rec.rowNumber : 0;
-    if (!rowNumber) {
-      var row = headers.map(function() { return ''; });
-      row[_schedulerHeaderIndex_(headers, 'EMAIL')] = targetEmail;
-      rowNumber = sheet.getLastRow() + 1;
-      sheet.appendRow(row);
-    }
-
-    var permissionKeys = [
-      'CAN_VIEW',
-      'CAN_GENERATE',
-      'CAN_EDIT_ASSIGNMENTS',
-      'CAN_LOCK_ASSIGNMENTS',
-      'CAN_PUBLISH',
-      'CAN_EDIT_RULES',
-      'CAN_MANAGE_PERMISSIONS',
-      'ACTIVE'
-    ];
-    permissionKeys.forEach(function(key) {
-      var idx = _schedulerHeaderIndex_(headers, key);
-      if (idx < 0) return;
-      if (!Object.prototype.hasOwnProperty.call(body, key) && !Object.prototype.hasOwnProperty.call(body, key.toLowerCase())) return;
-      var val = Object.prototype.hasOwnProperty.call(body, key) ? body[key] : body[key.toLowerCase()];
-      sheet.getRange(rowNumber, idx + 1).setValue(_schedulerTruthyFlag_(val) ? 'Y' : 'N');
-    });
-
-    var notesIdx = _schedulerHeaderIndex_(headers, 'NOTES');
-    if (notesIdx >= 0 && (Object.prototype.hasOwnProperty.call(body, 'notes') || Object.prototype.hasOwnProperty.call(body, 'NOTES'))) {
-      sheet.getRange(rowNumber, notesIdx + 1).setValue(Object.prototype.hasOwnProperty.call(body, 'notes') ? body.notes : body.NOTES);
-    }
-    var updatedAtIdx = _schedulerHeaderIndex_(headers, 'UPDATED_AT');
-    var updatedByIdx = _schedulerHeaderIndex_(headers, 'UPDATED_BY');
-    if (updatedAtIdx >= 0) sheet.getRange(rowNumber, updatedAtIdx + 1).setValue(now);
-    if (updatedByIdx >= 0) sheet.getRange(rowNumber, updatedByIdx + 1).setValue(actor.email);
-
-    return { success: true, rowNumber: rowNumber, email: targetEmail };
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
-
-function _schedulerMonthKey_(dateObj) {
-  if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '';
-  return Utilities.formatDate(dateObj, 'Etc/UTC', 'yyyy-MM');
-}
-
-function _schedulerParseMonthKey_(monthKey) {
-  var raw = String(monthKey || '').trim();
-  var m = raw.match(/^(\d{4})-(\d{2})$/);
-  if (!m) return null;
-  var year = Number(m[1]);
-  var month = Number(m[2]);
-  if (month < 1 || month > 12) return null;
-  return {
-    monthKey: raw,
-    start: new Date(year, month - 1, 1, 0, 0, 0, 0),
-    end: new Date(year, month, 1, 0, 0, 0, 0)
-  };
-}
-
-function _schedulerExtractEmailFromText_(text) {
-  var raw = String(text || '');
-  var hit = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  return hit ? String(hit[0] || '').trim().toLowerCase() : '';
-}
-
-function _schedulerExtractBaseFromText_(text) {
-  var raw = String(text || '');
-  var tagged = raw.match(/(?:base|location)\s*[:=]\s*([A-Z0-9_-]{2,12})/i);
-  if (tagged) return String(tagged[1] || '').trim().toUpperCase();
-  return '';
-}
-
-function _schedulerEventLooksUnavailable_(eventTitle) {
-  var title = String(eventTitle || '').trim().toUpperCase();
-  if (!title) return true;
-  if (title.indexOf('AVAILABLE') === 0) return false;
-  if (title.indexOf('DISPONIVEL') === 0) return false;
-  return true;
-}
-
-function syncSchedulerAvailabilityForMonth(payload) {
-  try {
-    var actor = _schedulerAssertPermission_('CAN_GENERATE', 'syncSchedulerAvailabilityForMonth');
-    var body = (payload && typeof payload === 'object') ? payload : {};
-    var requestedMonth = String(body.month || body.scheduleMonth || '').trim();
-    var parsedMonth = _schedulerParseMonthKey_(requestedMonth || _schedulerMonthKey_(new Date()));
-    if (!parsedMonth) return { success: false, error: 'Invalid month format. Use YYYY-MM.' };
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var configSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', 'syncSchedulerAvailabilityForMonth');
-    var cfg = _schedulerReadConfigMap_(configSheet);
-    var calendarId = String(cfg.AVAILABILITY_CALENDAR_ID || '').trim();
-    if (!calendarId) {
-      return { success: false, error: 'Missing SCHED_Config key AVAILABILITY_CALENDAR_ID' };
-    }
-
-    var calendar = CalendarApp.getCalendarById(calendarId);
-    if (!calendar) return { success: false, error: 'Calendar not found for AVAILABILITY_CALENDAR_ID' };
-
-    var availabilitySheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_AVAILABILITY || 'SCHED_Staff_Availability', 'syncSchedulerAvailabilityForMonth');
-    var allData = availabilitySheet.getDataRange().getValues();
-    var headers = allData.length ? allData[0] : [];
-    if (!headers.length) return { success: false, error: 'SCHED_Staff_Availability is missing headers' };
-
-    var idx = {
-      month: _schedulerHeaderIndex_(headers, 'SCHEDULE_MONTH'),
-      source: _schedulerHeaderIndex_(headers, 'SOURCE'),
-      id: _schedulerHeaderIndex_(headers, 'AVAILABILITY_ID'),
-      staffEmail: _schedulerHeaderIndex_(headers, 'STAFF_EMAIL'),
-      eventId: _schedulerHeaderIndex_(headers, 'EVENT_ID'),
-      dateLocal: _schedulerHeaderIndex_(headers, 'DATE_LOCAL'),
-      startLocal: _schedulerHeaderIndex_(headers, 'START_LOCAL'),
-      endLocal: _schedulerHeaderIndex_(headers, 'END_LOCAL'),
-      startZ: _schedulerHeaderIndex_(headers, 'START_Z'),
-      endZ: _schedulerHeaderIndex_(headers, 'END_Z'),
-      baseCode: _schedulerHeaderIndex_(headers, 'BASE_CODE'),
-      type: _schedulerHeaderIndex_(headers, 'TYPE'),
-      updatedAt: _schedulerHeaderIndex_(headers, 'UPDATED_AT')
-    };
-
-    var keepRows = [headers];
-    for (var r = 1; r < allData.length; r++) {
-      var row = allData[r];
-      var rowMonth = idx.month >= 0 ? String(row[idx.month] || '').trim() : '';
-      var rowSource = idx.source >= 0 ? String(row[idx.source] || '').trim().toUpperCase() : '';
-      var isTargetMonth = rowMonth === parsedMonth.monthKey;
-      var isCalendarSyncRow = rowSource === 'CALENDAR_UNAVAILABLE_SYNC';
-      if (isTargetMonth && isCalendarSyncRow) continue;
-      keepRows.push(row);
-    }
-
-    rewriteSheetData_(availabilitySheet, keepRows);
-
-    var events = calendar.getEvents(parsedMonth.start, parsedMonth.end);
-    var appendRows = [];
-    var skippedNoEmail = 0;
-    var skippedAvailable = 0;
-    var imported = 0;
-
-    events.forEach(function(ev) {
-      var title = String(ev.getTitle() || '').trim();
-      if (!_schedulerEventLooksUnavailable_(title)) {
-        skippedAvailable++;
-        return;
-      }
-
-      var desc = '';
-      try { desc = String(ev.getDescription() || ''); } catch (e) { desc = ''; }
-
-      var staffEmail = _schedulerExtractEmailFromText_(title + '\n' + desc);
-      if (!staffEmail) {
-        try {
-          var creators = ev.getCreators();
-          if (creators && creators.length) staffEmail = String(creators[0] || '').trim().toLowerCase();
-        } catch (e2) {}
-      }
-      if (!staffEmail) {
-        skippedNoEmail++;
-        return;
-      }
-
-      var start = ev.getStartTime();
-      var end = ev.getEndTime();
-      var baseCode = _schedulerExtractBaseFromText_(title + '\n' + desc) || String(body.baseCode || 'GLOBAL').trim().toUpperCase();
-      var dateLocal = Utilities.formatDate(start, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-
-      var startLocal;
-      var endLocal;
-      if (ev.isAllDayEvent()) {
-        startLocal = '00:00';
-        endLocal = '23:59';
-      } else {
-        startLocal = Utilities.formatDate(start, Session.getScriptTimeZone(), 'HH:mm');
-        endLocal = Utilities.formatDate(end, Session.getScriptTimeZone(), 'HH:mm');
-      }
-
-      var startZulu = Utilities.formatDate(start, 'Etc/UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'");
-      var endZulu = Utilities.formatDate(end, 'Etc/UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'");
-      var availabilityId = 'AVL-' + parsedMonth.monthKey + '-' + (ev.getId() || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 24) + '-' + staffEmail.replace(/[^a-z0-9]/g, '').slice(0, 16);
-
-      var row = headers.map(function() { return ''; });
-      if (idx.id >= 0) row[idx.id] = availabilityId;
-      if (idx.month >= 0) row[idx.month] = parsedMonth.monthKey;
-      if (idx.staffEmail >= 0) row[idx.staffEmail] = staffEmail;
-      if (idx.eventId >= 0) row[idx.eventId] = ev.getId();
-      if (idx.dateLocal >= 0) row[idx.dateLocal] = dateLocal;
-      if (idx.startLocal >= 0) row[idx.startLocal] = startLocal;
-      if (idx.endLocal >= 0) row[idx.endLocal] = endLocal;
-      if (idx.startZ >= 0) row[idx.startZ] = startZulu;
-      if (idx.endZ >= 0) row[idx.endZ] = endZulu;
-      if (idx.baseCode >= 0) row[idx.baseCode] = baseCode;
-      if (idx.type >= 0) row[idx.type] = 'UNAVAILABLE';
-      if (idx.source >= 0) row[idx.source] = 'CALENDAR_UNAVAILABLE_SYNC';
-      if (idx.updatedAt >= 0) row[idx.updatedAt] = new Date();
-      appendRows.push(row);
-      imported++;
-    });
-
-    if (appendRows.length) {
-      var startRow = availabilitySheet.getLastRow() + 1;
-      availabilitySheet.getRange(startRow, 1, appendRows.length, headers.length).setValues(appendRows);
-    }
-
-    return {
-      success: true,
-      month: parsedMonth.monthKey,
-      calendarId: calendarId,
-      actor: actor.email,
-      stats: {
-        eventsRead: events.length,
-        imported: imported,
-        skippedNoEmail: skippedNoEmail,
-        skippedMarkedAvailable: skippedAvailable
-      }
-    };
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
-
-function getSchedulerAvailability(payload) {
-  try {
-    _schedulerAssertPermission_('CAN_VIEW', 'getSchedulerAvailability');
-    var body = (payload && typeof payload === 'object') ? payload : {};
-    var month = String(body.month || '').trim();
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_AVAILABILITY || 'SCHED_Staff_Availability', 'getSchedulerAvailability');
-    var data = sheet.getDataRange().getValues();
-    if (!data || data.length < 2) return { success: true, rows: [] };
-
-    var headers = data[0];
-    var monthIdx = _schedulerHeaderIndex_(headers, 'SCHEDULE_MONTH');
-    var rows = [];
-    for (var i = 1; i < data.length; i++) {
-      if (month && monthIdx >= 0 && String(data[i][monthIdx] || '').trim() !== month) continue;
-      var rowObj = { rowNumber: i + 1 };
-      for (var c = 0; c < headers.length; c++) {
-        rowObj[String(headers[c] || '').trim()] = data[i][c];
-      }
-      rows.push(rowObj);
-    }
-    return { success: true, rows: rows };
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
-
 function _toolsHeaderIndexFromCandidates_(headerRow, candidates) {
   var headers = Array.isArray(headerRow) ? headerRow : [];
   var norms = headers.map(function(h) { return _toolsNormHeader_(h); });
@@ -9345,7 +8102,6 @@ function saveAirportFuelProfile(payload) {
 
     var cacheUpdated = false;
     var cacheCreated = false;
-    var cacheRemoved = false;
     if (body.fuelCacheEnabled === true) {
       var cacheSheet = ss.getSheetByName(APP_SHEETS.FUEL_CACHES);
       if (cacheSheet) {
@@ -9392,24 +8148,6 @@ function saveAirportFuelProfile(payload) {
           }
         }
       }
-    } else {
-      // Explicitly clear stale cache inventory row when mode is not "fuel cache".
-      var cleanupSheet = ss.getSheetByName(APP_SHEETS.FUEL_CACHES);
-      if (cleanupSheet) {
-        var cleanupData = cleanupSheet.getDataRange().getValues();
-        if (cleanupData.length >= 2) {
-          var cleanupHeaders = cleanupData[0].map(function(h) { return _toolsNormHeader_(h); });
-          var cleanupIcaoIdx = cleanupHeaders.indexOf('ICAO');
-          if (cleanupIcaoIdx >= 0) {
-            for (var cr = cleanupData.length - 1; cr >= 1; cr--) {
-              if (String(cleanupData[cr][cleanupIcaoIdx] || '').trim().toUpperCase() === code) {
-                cleanupSheet.deleteRow(cr + 1);
-                cacheRemoved = true;
-              }
-            }
-          }
-        }
-      }
     }
 
     if (body.hasFuel === true || body.hasFuel === false) {
@@ -9426,8 +8164,7 @@ function saveAirportFuelProfile(payload) {
       contactUpdated: contactUpdated,
       contactCreated: contactCreated,
       cacheUpdated: cacheUpdated,
-      cacheCreated: cacheCreated,
-      cacheRemoved: cacheRemoved
+      cacheCreated: cacheCreated
     };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };

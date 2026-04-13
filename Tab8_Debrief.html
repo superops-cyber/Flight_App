@@ -95,7 +95,26 @@
   }
 
   .meter-field.meter-fuel-used .meter-value {
-    width: 75%;
+    width: 100%;
+  }
+
+  .meter-field.meter-fuel-start {
+    width: 80%;
+    justify-self: start;
+  }
+
+  .meter-field.meter-fuel-used {
+    padding-left: 10px;
+  }
+
+  @media (max-width: 700px) {
+    .meter-field.meter-fuel-start {
+      width: 100%;
+    }
+
+    .meter-field.meter-fuel-used {
+      padding-left: 0;
+    }
   }
 
   .debr8-keypad-input {
@@ -508,7 +527,7 @@ function _debr8Render_(mission, leg, logData) {
           <label>End Tach (pilot input) *</label>
           <input type="text" id="debr8_endTach" inputmode="decimal" readonly onclick="window.debr8OpenNumeric_('debr8_endTach','END TACH',{ decimal:true, maxLen:6 })" placeholder="Tap for keypad" class="debrief-required debr8-keypad-input" value="${String((logData && logData.endTach) || '')}" />
         </div>
-        <div class="meter-field">
+        <div class="meter-field meter-fuel-start">
           <label>Fuel Start (L)</label>
           <div class="meter-value">${window.debrief8.fuelStart} L</div>
         </div>
