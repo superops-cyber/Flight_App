@@ -5,6 +5,7 @@
 **/.venv/**
 **/.venv-docx/**
 **/.venv_docx/**
+**/.mx-push-worktree/**
 135/**
 MX_CAMO/**
 *.py
