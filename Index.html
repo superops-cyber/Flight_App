@@ -2,6 +2,9 @@
 <html>
 <head>
   <base target="_top">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
@@ -130,6 +133,7 @@
         <li id="nav-supervisor"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-supervisor')">SUPERVISOR</a><a href="javascript:void(0)" class="nav-open-new" title="Open Supervisor in new tab" onclick="openViewInNewTab('view-supervisor'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
         <li id="nav-tools"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-tools')">TOOLS</a><a href="javascript:void(0)" class="nav-open-new" title="Open Tools in new tab" onclick="openViewInNewTab('view-tools'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
         <li id="nav-maintenance"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-maintenance')">MAINTENANCE</a><a href="javascript:void(0)" class="nav-open-new" title="Open Maintenance in new tab" onclick="openViewInNewTab('view-maintenance'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-flightfollow"><a href="javascript:void(0)" onclick="switchTab('view-flightfollow')">FLIGHT FOLLOW</a></li>
         <li id="nav-pilot"><a href="javascript:void(0)" onclick="openPilotAppFromPortal()">PILOT APP</a></li>
       </ul>
     </div>
@@ -164,6 +168,7 @@
     <div id="view-home" class="view-section view-active"><div id="calendar"></div></div>
     <div id="view-dispatch" class="view-section"><?!= include('View_Dispatch'); ?></div>
     <div id="view-supervisor" class="view-section"><?!= include('View_Supervisor'); ?></div>
+    <div id="view-flightfollow" class="view-section"><?!= include('View_FlightFollowing'); ?></div>
     <div id="view-tools" class="view-section"><?!= include('View_Tools'); ?></div>
     <div id="view-maintenance" class="view-section"><?!= include('View_Maintenance'); ?></div>
   </div>
@@ -290,6 +295,8 @@
       if (viewId === 'view-tools' && typeof window.initToolsPage === 'function') window.initToolsPage();
       if (viewId === 'view-supervisor' && typeof window.onSupervisorTabShown === 'function') window.onSupervisorTabShown();
       if (viewId !== 'view-supervisor' && typeof window.onSupervisorTabHidden === 'function') window.onSupervisorTabHidden();
+      if (viewId === 'view-flightfollow' && typeof window.onFlightFollowingShown === 'function') window.onFlightFollowingShown();
+      if (viewId === 'view-maintenance' && typeof window.onMaintenanceShown === 'function') window.onMaintenanceShown();
     }
 
     function openPilotAppFromPortal() {
@@ -341,6 +348,8 @@
         switchTab('view-tools');
       } else if (window.location.hash === '#view-maintenance') {
         switchTab('view-maintenance');
+      } else if (window.location.hash === '#view-flightfollow') {
+        switchTab('view-flightfollow');
       }
     });
 
@@ -401,6 +410,10 @@
             `;
             return { html: html };
           }
+          if (p.type === 'block') {
+            let html = `<div class="evt-one-line" style="padding:1px 5px; opacity:0.92;">&#128203; <b>${p.name}</b> &middot; ${p.acft} &middot; ${p.allocatedHrs}h</div>`;
+            return { html: html };
+          }
         },
 
         eventClick: function(info) {
@@ -426,6 +439,8 @@
             M.Modal.getInstance(document.getElementById('quickViewModal')).open();
           } else if (p.type === 'maintenance') {
             switchTab('view-maintenance');
+          } else if (p.type === 'block') {
+            switchTab('view-dispatch');
           }
         },
 
