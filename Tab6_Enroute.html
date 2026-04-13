@@ -1,5 +1,5 @@
 <style>
-  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v116 ===== */
+  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v117 ===== */
 
   #enroute6-wrap {
     background:
@@ -560,6 +560,17 @@
     border-left: 6px solid transparent; border-right: 6px solid transparent;
     border-bottom: 10px solid #6a1b9a; flex-shrink: 0;
   }
+  .db-leg-fuel {
+    position: relative;
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #b8ff91 0%, #4caf50 60%, #2e7d32 100%);
+    border: 1.5px solid #fff;
+    box-shadow: 0 0 0 1px #1b5e20, 0 0 8px rgba(76, 175, 80, 0.75);
+    flex-shrink: 0;
+  }
 
   /* ---- AutoLog chips ---- */
   .autolog-strip { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
@@ -656,6 +667,7 @@
         <span class="db-legend"><span class="db-leg-dot" style="background:#388e3c;"></span>Grass</span>
         <span class="db-legend"><span class="db-leg-dot" style="background:#1565c0;"></span>Water</span>
         <span class="db-legend"><span class="db-leg-dot" style="background:#212121;"></span>Paved/Other</span>
+        <span class="db-legend"><span class="db-leg-fuel"></span>Fuel Available</span>
         <span class="db-legend"><span class="db-leg-tri"></span>Waypoint</span>
       </div>
       <div id="enroute-leaflet-map"></div>
@@ -2305,7 +2317,7 @@
     else if (/WATER|\u00C1GUA|AGUA|LAKE|LAGO|HIDRO|FLOAT|SEA/.test(s)) color = '#1565c0';
     else color = '#212121';
     var badge = hasFuel
-      ? '<circle cx="16" cy="4" r="4" fill="#2e7d32" stroke="white" stroke-width="1.2"/><text x="16" y="5.5" text-anchor="middle" font-size="5.2" fill="white" font-family="sans-serif" font-weight="bold">⛽</text>'
+      ? '<circle cx="15.8" cy="4.2" r="4.8" fill="#2e7d32" stroke="white" stroke-width="1.3"/><circle cx="15.8" cy="4.2" r="6.5" fill="none" stroke="#7dff82" stroke-width="1.1" opacity="0.95"/><text x="15.8" y="5.8" text-anchor="middle" font-size="6.2" fill="white" font-family="sans-serif" font-weight="bold">F</text>'
       : '';
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">'
       + '<circle cx="10" cy="10" r="9" fill="' + color + '" stroke="white" stroke-width="1.5" opacity="0.92"/>'
