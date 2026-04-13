@@ -1950,16 +1950,33 @@
     }
     const template = _enrouteGetTileTemplate();
     
-    // Use standard L.TileLayer with error handling
-    window.enroute6.mapTiles = window.L.tileLayer(template, {
-      maxZoom: 16,
-      minZoom: 4,
-      attribution: '© OpenStreetMap contributors (offline pack)',
-      errorTileUrl: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect fill="%231a2a3a" width="256" height="256"/></svg>',
-      crossOrigin: true
-    });
-    
-    window.enroute6.mapTiles.addTo(window.enroute6.mapObj);
+    // Use standard L.TileLayer - OpenStreetMap tiles
+    try {
+      window.enroute6.mapTiles = window.L.tileLayer(template, {
+        maxZoom: 18,
+        minZoom: 2,
+        attribution: '© OpenStreetMap contributors',
+        crossOrigin: 'anonymous',
+        subdomains: 'abc'
+      });
+      window.enroute6.mapTiles.addTo(window.enroute6.mapObj);
+      _enrouteDiag('Tile layer applied: ' + template);
+    } catch (err) {
+      _enrouteDiag('Tile layer error: ' + String(err.message));
+      // Fallback to simple OSM
+      try {
+        window.enroute6.mapTiles = window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          minZoom: 2,
+          attribution: '© OpenStreetMap',
+          crossOrigin: 'anonymous'
+        });
+        window.enroute6.mapTiles.addTo(window.enroute6.mapObj);
+        _enrouteDiag('Fallback tile layer applied');
+      } catch (err2) {
+        _enrouteDiag('Fallback tile error: ' + String(err2.message));
+      }
+    }
   }
 
   // --- Estimate ---
@@ -2240,28 +2257,43 @@
 
   function _enrouteInitMap() {
     _enrouteEnsureLeaflet(function() {
-      const host = document.getElementById('enroute-leaflet-map');
-      if (!host || !window.L) return;
+      try {
+        const host = document.getElementById('enroute-leaflet-map');
+        if (!host) { _enrouteDiag('Map host element not found'); return; }
+        if (!window.L) { _enrouteDiag('Leaflet library (L) not loaded'); return; }
+        if (!window.L.map) { _enrouteDiag('L.map is not a function'); return; }
 
-      if (!window.enroute6.mapObj) {
-        window.enroute6.mapObj = window.L.map('enroute-leaflet-map', {
-          zoomControl: true,
-          attributionControl: true
-        }).setView([-14.235, -51.925], 4);
-      }
+        if (!window.enroute6.mapObj) {
+          try {
+            window.enroute6.mapObj = window.L.map('enroute-leaflet-map', {
+              zoomControl: true,
+              attributionControl: true,
+              preferCanvas: false
+            }).setView([-14.235, -51.925], 4);
+            _enrouteDiag('Map object created successfully');
+          } catch (mapErr) {
+            _enrouteDiag('Failed to create map object: ' + String(mapErr.message));
+            return;
+          }
+        }
 
-      window.enroute6.mapReady = true;
-      _enrouteApplyOfflineTileLayer();
-      _enrouteRefreshDbLayers();
-      _enrouteRefreshRouteLayer();
-      _enrouteRefreshAircraftMarker();
-      _enrouteInvalidateMapSize_(true);
+        window.enroute6.mapReady = true;
+        _enrouteDiag('Map ready, applying tile layer');
+        _enrouteApplyOfflineTileLayer();
+        _enrouteRefreshDbLayers();
+        _enrouteRefreshRouteLayer();
+        _enrouteRefreshAircraftMarker();
+        _enrouteInvalidateMapSize_(true);
 
-      if (!window.enroute6.resizeBound) {
-        window.addEventListener('resize', function() {
-          _enrouteInvalidateMapSize_(false);
-        });
-        window.enroute6.resizeBound = true;
+        if (!window.enroute6.resizeBound) {
+          window.addEventListener('resize', function() {
+            _enrouteInvalidateMapSize_(false);
+          });
+          window.enroute6.resizeBound = true;
+        }
+        _enrouteDiag('Map initialization complete');
+      } catch (e) {
+        _enrouteDiag('Map init error: ' + String(e.message));
       }
     });
   }
