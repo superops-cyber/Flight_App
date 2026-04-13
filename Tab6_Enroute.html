@@ -1,5 +1,5 @@
 <style>
-  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v117 ===== */
+  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v118 ===== */
 
   #enroute6-wrap {
     background:
@@ -3563,6 +3563,38 @@
           legWaypoints = noteTokens;
           if (!legFrom && noteTokens.length) legFrom = noteTokens[0];
           if (!legTo && noteTokens.length > 1) legTo = noteTokens[noteTokens.length - 1];
+        }
+      }
+    }
+
+    // --- DB_Routes lookup ---
+    // If legWaypoints is empty OR is exactly one token that contains a hyphen
+    // (i.e. the whole route concatenated as "SDRM-SJMH-PAPA-PALIMIU-SBBV"),
+    // look up the canonical middle-leg waypoints from window.appData.routes.
+    const _legWaypointsAreBad = function(wps, from, to) {
+      if (!wps || !wps.length) return true;
+      if (wps.length === 1) {
+        const t = String(wps[0] || '');
+        // Single token that is neither origin nor dest, contains a hyphen → whole route string
+        if (t !== from && t !== to && t.indexOf('-') >= 0) return true;
+      }
+      return false;
+    };
+    if (_legWaypointsAreBad(legWaypoints, legFrom, legTo) && legFrom && legTo) {
+      const _dbRoutes = (window.appData && Array.isArray(window.appData.routes)) ? window.appData.routes : [];
+      const _dbMatch = _dbRoutes.find(function(r) {
+        return r.origin === legFrom && r.destination === legTo;
+      }) || _dbRoutes.find(function(r) {
+        return r.origin === legTo && r.destination === legFrom;
+      });
+      if (_dbMatch && _dbMatch.waypoint_list) {
+        const _dbTokens = String(_dbMatch.waypoint_list || '')
+          .split(/[,;]+/)
+          .map(function(s) { return s.trim().toUpperCase(); })
+          .filter(Boolean);
+        if (_dbTokens.length) {
+          legWaypoints = _dbTokens;
+          _enrouteDiag('DB_Routes lookup used: ' + legFrom + '->' + legTo + ' wps=' + _dbTokens.join(','));
         }
       }
     }

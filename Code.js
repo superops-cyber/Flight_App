@@ -3196,19 +3196,175 @@ function saveToolsAircraftBundle(payload) {
     aircraftSheet.appendRow(aircraftRow);
     var aircraftRowNumber = aircraftSheet.getLastRow();
 
+    var aircraftFolderUrl = '';
+    var aircraftFolderWarning = '';
+    try {
+      var folderRes = _toolsEnsureAircraftDocumentFolderForRow_(aircraftSheet, aircraftHeaders, aircraftRowNumber);
+      if (folderRes && folderRes.success) {
+        aircraftFolderUrl = String(folderRes.url || '').trim();
+      } else if (folderRes && folderRes.error) {
+        aircraftFolderWarning = String(folderRes.error || '').trim();
+      }
+    } catch (folderErr) {
+      aircraftFolderWarning = String(folderErr && folderErr.message ? folderErr.message : folderErr);
+    }
+
     airframesSheet.getRange(airframesSheet.getLastRow() + 1, 1, airframeData.length, airframeData[0].length).setValues(airframeData);
     envelopesSheet.getRange(envelopesSheet.getLastRow() + 1, 1, envelopeData.length, envelopeData[0].length).setValues(envelopeData);
     rollSheet.getRange(rollSheet.getLastRow() + 1, 1, rollData.length, rollData[0].length).setValues(rollData);
 
-    return {
+    var out = {
       success: true,
       aircraftRowNumber: aircraftRowNumber,
+      folderUrl: aircraftFolderUrl,
       counts: {
         aircraft: 1,
         airframes: airframeData.length,
         envelopes: envelopeData.length,
         rollnumbers: rollData.length
       }
+    };
+    if (aircraftFolderWarning) out.folderWarning = aircraftFolderWarning;
+    return out;
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _toolsAircraftDocsRootFolder_() {
+  var props = PropertiesService.getScriptProperties();
+  var existingId = String(props.getProperty('AIRCRAFT_DOCS_ROOT_FOLDER_ID') || '').trim();
+  if (existingId) {
+    try {
+      return DriveApp.getFolderById(existingId);
+    } catch (e) {}
+  }
+
+  var folderName = 'Aircraft Docs';
+  var folders = DriveApp.getFoldersByName(folderName);
+  var root = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+  props.setProperty('AIRCRAFT_DOCS_ROOT_FOLDER_ID', root.getId());
+  return root;
+}
+
+function _toolsAircraftRegIndex_(headerRow) {
+  var headers = (headerRow || []).map(function(h) { return _toolsNormHeader_(h); });
+  var candidates = ['REGISTRATION', 'AIRCRAFT_REGISTRATION', 'TAIL', 'AIRCRAFT'];
+  for (var i = 0; i < candidates.length; i++) {
+    var idx = headers.indexOf(candidates[i]);
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+function _toolsAircraftDocsFolderUrlIndex_(sheet, headerRow) {
+  var headers = (headerRow || []).map(function(h) { return _toolsNormHeader_(h); });
+  var candidates = ['DOCUMENTS_FOLDER_URL', 'DRIVE_FOLDER_URL', 'AIRCRAFT_DOCS_URL', 'DOC_FOLDER_URL'];
+  for (var i = 0; i < candidates.length; i++) {
+    var idx = headers.indexOf(candidates[i]);
+    if (idx >= 0) return idx;
+  }
+
+  // Preferred canonical column for this feature.
+  var newCol = Math.max(sheet.getLastColumn(), 1) + 1;
+  sheet.getRange(1, newCol).setValue('DOCUMENTS_FOLDER_URL');
+  if (Array.isArray(headerRow)) headerRow.push('DOCUMENTS_FOLDER_URL');
+  return newCol - 1;
+}
+
+function _toolsEnsureAircraftDocumentFolderForRow_(sheet, headerRow, rowNumber) {
+  var regIdx = _toolsAircraftRegIndex_(headerRow);
+  if (regIdx < 0) return { success: false, error: 'REGISTRATION column not found in DB_Aircraft.' };
+
+  var folderIdx = _toolsAircraftDocsFolderUrlIndex_(sheet, headerRow);
+  var width = Math.max(sheet.getLastColumn(), 1);
+  var row = sheet.getRange(rowNumber, 1, 1, width).getValues()[0];
+
+  var registration = String(row[regIdx] || '').trim().toUpperCase();
+  if (!registration) return { success: false, error: 'Aircraft registration is empty.' };
+
+  var root = _toolsAircraftDocsRootFolder_();
+  var folderName = registration.replace(/[\\/:*?"<>|]+/g, '-');
+  var existing = root.getFoldersByName(folderName);
+  var folder = existing.hasNext() ? existing.next() : root.createFolder(folderName);
+  var url = folder.getUrl();
+
+  var currentUrl = String(row[folderIdx] || '').trim();
+  if (!currentUrl || currentUrl !== url) {
+    sheet.getRange(rowNumber, folderIdx + 1).setValue(url);
+  }
+
+  return {
+    success: true,
+    registration: registration,
+    folderId: folder.getId(),
+    folderName: folder.getName(),
+    url: url
+  };
+}
+
+function ensureAircraftDocumentFolderByRegistration(registration) {
+  try {
+    var reg = String(registration || '').trim().toUpperCase();
+    if (!reg) return { success: false, error: 'Registration is required.' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = getRequiredSheet_(ss, APP_SHEETS.AIRCRAFT, 'ensureAircraftDocumentFolderByRegistration');
+    var headers = _toolsSheetHeaderRow_(sh);
+    var regIdx = _toolsAircraftRegIndex_(headers);
+    if (regIdx < 0) return { success: false, error: 'REGISTRATION column not found in DB_Aircraft.' };
+
+    var data = sh.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][regIdx] || '').trim().toUpperCase() !== reg) continue;
+      return _toolsEnsureAircraftDocumentFolderForRow_(sh, headers, i + 1);
+    }
+    return { success: false, error: 'Aircraft not found in DB_Aircraft: ' + reg };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function ensureAllAircraftDocumentFolders() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = getRequiredSheet_(ss, APP_SHEETS.AIRCRAFT, 'ensureAllAircraftDocumentFolders');
+    var headers = _toolsSheetHeaderRow_(sh);
+    var regIdx = _toolsAircraftRegIndex_(headers);
+    if (regIdx < 0) return { success: false, error: 'REGISTRATION column not found in DB_Aircraft.' };
+
+    var data = sh.getDataRange().getValues();
+    var created = 0;
+    var updated = 0;
+    var skipped = 0;
+    var errors = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var reg = String(data[i][regIdx] || '').trim().toUpperCase();
+      if (!reg) {
+        skipped++;
+        continue;
+      }
+      try {
+        var before = String(data[i][_toolsAircraftDocsFolderUrlIndex_(sh, headers)] || '').trim();
+        var res = _toolsEnsureAircraftDocumentFolderForRow_(sh, headers, i + 1);
+        if (!res || !res.success) {
+          errors.push(reg + ': ' + String((res && res.error) || 'unknown error'));
+          continue;
+        }
+        if (before) updated++; else created++;
+      } catch (rowErr) {
+        errors.push(reg + ': ' + String(rowErr && rowErr.message ? rowErr.message : rowErr));
+      }
+    }
+
+    return {
+      success: true,
+      created: created,
+      updated: updated,
+      skipped: skipped,
+      errors: errors,
+      totalAircraftRows: Math.max(0, data.length - 1)
     };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
@@ -3922,7 +4078,42 @@ function getFlightRouteData(flightLegId) {
           waypoints: normalizeWaypointList_(routeWaypointsFromRouteString_(routeText), fallbackRoute.from || '', fallbackRoute.to || '')
         };
       }
-      
+
+      // If waypoints are still empty, look up DB_Routes by origin/destination
+      if (routeData && routeData.from && (!routeData.waypoints || !routeData.waypoints.length)) {
+        try {
+          const routeSheet = ss.getSheetByName(APP_SHEETS.ROUTES);
+          if (routeSheet) {
+            const routeVals = routeSheet.getDataRange().getValues();
+            if (routeVals.length > 1) {
+              const rHeaders = routeVals[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
+              const oriIdx = rHeaders.indexOf('ORIGIN');
+              const dstIdx = rHeaders.indexOf('DESTINATION');
+              const wpListIdx = rHeaders.indexOf('WAYPOINT_LIST');
+              if (oriIdx >= 0 && dstIdx >= 0 && wpListIdx >= 0) {
+                for (var ri = 1; ri < routeVals.length; ri++) {
+                  const rOri = String(routeVals[ri][oriIdx] || '').trim().toUpperCase();
+                  const rDst = String(routeVals[ri][dstIdx] || '').trim().toUpperCase();
+                  const isMatch = (rOri === routeData.from && rDst === routeData.to)
+                                || (rOri === routeData.to   && rDst === routeData.from);
+                  if (isMatch) {
+                    const rawWpList = String(routeVals[ri][wpListIdx] || '').trim();
+                    const dbTokens = rawWpList.split(/[,;]+/).map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);
+                    if (dbTokens.length) {
+                      routeData.waypoints = normalizeWaypointList_(dbTokens, routeData.from, routeData.to);
+                      appLog_('getFlightRouteData: DB_Routes waypoints used for', routeData.from, '->', routeData.to, ':', dbTokens.join(','));
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          appLog_('getFlightRouteData DB_Routes lookup error:', e && e.message);
+        }
+      }
+
       return routeData;
     }
   }
@@ -10305,6 +10496,292 @@ function rejectRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, ap
     sh.getRange(rowIndex + 1, idx.SUPERVISOR_NOTES + 1).setValue(String(supervisorNotes || '').trim());
     sh.getRange(rowIndex + 1, idx.APPROVED_AT + 1).setValue(nowIso);
     return { success: true, message: 'Runway survey rejected' };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _aircraftDocsHeaders_() {
+  return [
+    'TAIL',
+    'DOC_TYPE',
+    'DOC_NAME',
+    'DRIVE_URL',
+    'DRIVE_FILE_ID',
+    'REQUIRED',
+    'CRITICAL',
+    'REVISION',
+    'EFFECTIVE_DATE',
+    'LAST_VERIFIED_OFFLINE',
+    'NOTES',
+    'UPDATED_AT',
+    'UPDATED_BY'
+  ];
+}
+
+function _ensureAircraftDocsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = APP_SHEETS.AIRCRAFT_DOCS || 'DB_Aircraft_Docs';
+  var sh = ss.getSheetByName(sheetName);
+  var required = _aircraftDocsHeaders_();
+
+  if (!sh) {
+    sh = ss.insertSheet(sheetName);
+    sh.getRange(1, 1, 1, required.length).setValues([required]);
+  }
+
+  var lastCol = Math.max(sh.getLastColumn(), 1);
+  var existing = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) {
+    return String(h || '').trim();
+  });
+
+  required.forEach(function(name) {
+    if (existing.indexOf(name) < 0) {
+      existing.push(name);
+      sh.getRange(1, existing.length).setValue(name);
+    }
+  });
+
+  var norm = existing.map(function(h) { return _toolsNormHeader_(h); });
+  var idx = {};
+  existing.forEach(function(h, i) { idx[_toolsNormHeader_(h)] = i; });
+
+  return { sheet: sh, headers: existing, norm: norm, idx: idx };
+}
+
+function _aircraftDocsNormalizeTail_(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function _aircraftDocsFlag_(value) {
+  var raw = String(value == null ? '' : value).trim().toUpperCase();
+  return (raw === 'Y' || raw === 'YES' || raw === 'TRUE' || raw === '1') ? 'Y' : 'N';
+}
+
+function _aircraftDocsDriveIdFromUrl_(url) {
+  var raw = String(url || '').trim();
+  if (!raw) return '';
+  var m = raw.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (m && m[1]) return m[1];
+  m = raw.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (m && m[1]) return m[1];
+  return '';
+}
+
+function _aircraftDocsFolderUrlForTail_(tail) {
+  var code = _aircraftDocsNormalizeTail_(tail);
+  if (!code) return '';
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(APP_SHEETS.AIRCRAFT);
+  if (!sh) return '';
+  var data = sh.getDataRange().getValues();
+  if (!data || data.length < 2) return '';
+
+  var headers = data[0].map(function(h) { return _toolsNormHeader_(h); });
+  var regIdx = headers.indexOf('REGISTRATION');
+  if (regIdx < 0) regIdx = headers.indexOf('AIRCRAFT_REGISTRATION');
+  if (regIdx < 0) regIdx = headers.indexOf('TAIL');
+  if (regIdx < 0) regIdx = headers.indexOf('AIRCRAFT');
+  if (regIdx < 0) return '';
+
+  var folderCandidates = [
+    'DOCUMENTS_FOLDER_URL',
+    'DRIVE_FOLDER_URL',
+    'DOC_FOLDER_URL',
+    'AIRCRAFT_DOCS_URL',
+    'AIRCRAFT_DOCS_FOLDER',
+    'GOOGLE_DRIVE_FOLDER',
+    'DRIVE_URL'
+  ].map(function(h) { return _toolsNormHeader_(h); });
+
+  var folderIdx = -1;
+  for (var ci = 0; ci < folderCandidates.length; ci++) {
+    var at = headers.indexOf(folderCandidates[ci]);
+    if (at >= 0) {
+      folderIdx = at;
+      break;
+    }
+  }
+  if (folderIdx < 0) return '';
+
+  for (var i = 1; i < data.length; i++) {
+    if (_aircraftDocsNormalizeTail_(data[i][regIdx]) !== code) continue;
+    var url = String(data[i][folderIdx] || '').trim();
+    if (url) return url;
+  }
+  return '';
+}
+
+function _aircraftDocsListAircraftRegs_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(APP_SHEETS.AIRCRAFT);
+  if (!sh) return [];
+  var data = sh.getDataRange().getValues();
+  if (!data || data.length < 2) return [];
+
+  var headers = data[0].map(function(h) { return _toolsNormHeader_(h); });
+  var regIdx = headers.indexOf('REGISTRATION');
+  if (regIdx < 0) regIdx = headers.indexOf('AIRCRAFT_REGISTRATION');
+  if (regIdx < 0) regIdx = headers.indexOf('TAIL');
+  if (regIdx < 0) regIdx = headers.indexOf('AIRCRAFT');
+  if (regIdx < 0) return [];
+
+  var out = {};
+  for (var i = 1; i < data.length; i++) {
+    var reg = _aircraftDocsNormalizeTail_(data[i][regIdx]);
+    if (reg) out[reg] = true;
+  }
+  return Object.keys(out).sort();
+}
+
+function getAircraftDocsForTools(tail) {
+  try {
+    var schema = _ensureAircraftDocsSheet_();
+    var sh = schema.sheet;
+    var idx = schema.idx;
+    var rows = sh.getDataRange().getValues();
+    var targetTail = _aircraftDocsNormalizeTail_(tail);
+    var docs = [];
+    var lastVerified = '';
+
+    for (var i = 1; i < rows.length; i++) {
+      var row = rows[i];
+      var rowTail = _aircraftDocsNormalizeTail_(row[idx.TAIL]);
+      if (targetTail && rowTail !== targetTail) continue;
+      if (!rowTail) continue;
+
+      var verified = String(row[idx.LAST_VERIFIED_OFFLINE] || '').trim();
+      if (verified && (!lastVerified || String(verified) > String(lastVerified))) lastVerified = verified;
+
+      docs.push({
+        rowNumber: i + 1,
+        tail: rowTail,
+        docType: String(row[idx.DOC_TYPE] || '').trim(),
+        docName: String(row[idx.DOC_NAME] || '').trim(),
+        driveUrl: String(row[idx.DRIVE_URL] || '').trim(),
+        driveFileId: String(row[idx.DRIVE_FILE_ID] || '').trim(),
+        required: _aircraftDocsFlag_(row[idx.REQUIRED]) === 'Y',
+        critical: _aircraftDocsFlag_(row[idx.CRITICAL]) === 'Y',
+        revision: String(row[idx.REVISION] || '').trim(),
+        effectiveDate: String(row[idx.EFFECTIVE_DATE] || '').trim(),
+        lastVerifiedOffline: verified,
+        notes: String(row[idx.NOTES] || '').trim(),
+        updatedAt: String(row[idx.UPDATED_AT] || '').trim(),
+        updatedBy: String(row[idx.UPDATED_BY] || '').trim()
+      });
+    }
+
+    docs.sort(function(a, b) {
+      var ak = (a.tail + '|' + a.docType + '|' + a.docName).toUpperCase();
+      var bk = (b.tail + '|' + b.docType + '|' + b.docName).toUpperCase();
+      return ak.localeCompare(bk);
+    });
+
+    return {
+      success: true,
+      tail: targetTail,
+      aircraftRegs: _aircraftDocsListAircraftRegs_(),
+      folderUrl: targetTail ? _aircraftDocsFolderUrlForTail_(targetTail) : '',
+      lastVerifiedOffline: lastVerified,
+      docs: docs
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function saveAircraftDocForTools(body) {
+  try {
+    var payload = (body && typeof body === 'object') ? body : {};
+    var tail = _aircraftDocsNormalizeTail_(payload.tail);
+    if (!tail) return { success: false, error: 'Aircraft tail/registration is required' };
+
+    var docType = String(payload.docType || '').trim();
+    var docName = String(payload.docName || '').trim();
+    var driveUrl = String(payload.driveUrl || '').trim();
+    if (!docType) return { success: false, error: 'Document type is required' };
+    if (!docName) return { success: false, error: 'Document name is required' };
+    if (!driveUrl) return { success: false, error: 'Drive URL is required' };
+
+    var schema = _ensureAircraftDocsSheet_();
+    var sh = schema.sheet;
+    var idx = schema.idx;
+    var rows = sh.getDataRange().getValues();
+    var nowIso = new Date().toISOString();
+    var by = String(payload.updatedBy || _schedulerCurrentUserEmail_() || 'tools').trim();
+
+    var rowNumber = Number(payload.rowNumber || 0);
+    var targetRow = -1;
+    if (rowNumber >= 2 && rowNumber <= rows.length) {
+      targetRow = rowNumber;
+    } else {
+      for (var i = 1; i < rows.length; i++) {
+        var sameTail = _aircraftDocsNormalizeTail_(rows[i][idx.TAIL]) === tail;
+        var sameType = String(rows[i][idx.DOC_TYPE] || '').trim().toUpperCase() === docType.toUpperCase();
+        var sameName = String(rows[i][idx.DOC_NAME] || '').trim().toUpperCase() === docName.toUpperCase();
+        if (sameTail && sameType && sameName) {
+          targetRow = i + 1;
+          break;
+        }
+      }
+    }
+
+    var rec = [];
+    rec[idx.TAIL] = tail;
+    rec[idx.DOC_TYPE] = docType;
+    rec[idx.DOC_NAME] = docName;
+    rec[idx.DRIVE_URL] = driveUrl;
+    rec[idx.DRIVE_FILE_ID] = String(payload.driveFileId || '').trim() || _aircraftDocsDriveIdFromUrl_(driveUrl);
+    rec[idx.REQUIRED] = _aircraftDocsFlag_(payload.required);
+    rec[idx.CRITICAL] = _aircraftDocsFlag_(payload.critical);
+    rec[idx.REVISION] = String(payload.revision || '').trim();
+    rec[idx.EFFECTIVE_DATE] = String(payload.effectiveDate || '').trim();
+    rec[idx.LAST_VERIFIED_OFFLINE] = String(payload.lastVerifiedOffline || '').trim();
+    rec[idx.NOTES] = String(payload.notes || '').trim();
+    rec[idx.UPDATED_AT] = nowIso;
+    rec[idx.UPDATED_BY] = by;
+
+    for (var c = 0; c < schema.headers.length; c++) {
+      if (typeof rec[c] === 'undefined') rec[c] = '';
+    }
+
+    if (targetRow >= 2) {
+      sh.getRange(targetRow, 1, 1, rec.length).setValues([rec]);
+      return { success: true, rowNumber: targetRow, action: 'updated' };
+    }
+
+    sh.appendRow(rec);
+    return { success: true, rowNumber: sh.getLastRow(), action: 'created' };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function markAircraftDocsOfflineVerifiedForTools(tail, verifiedBy) {
+  try {
+    var target = _aircraftDocsNormalizeTail_(tail);
+    if (!target) return { success: false, error: 'Aircraft tail/registration is required' };
+
+    var schema = _ensureAircraftDocsSheet_();
+    var sh = schema.sheet;
+    var idx = schema.idx;
+    var rows = sh.getDataRange().getValues();
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'GMT', 'yyyy-MM-dd');
+    var nowIso = new Date().toISOString();
+    var by = String(verifiedBy || _schedulerCurrentUserEmail_() || 'tools').trim();
+    var updated = 0;
+
+    for (var i = 1; i < rows.length; i++) {
+      if (_aircraftDocsNormalizeTail_(rows[i][idx.TAIL]) !== target) continue;
+      sh.getRange(i + 1, idx.LAST_VERIFIED_OFFLINE + 1).setValue(stamp);
+      sh.getRange(i + 1, idx.UPDATED_AT + 1).setValue(nowIso);
+      sh.getRange(i + 1, idx.UPDATED_BY + 1).setValue(by);
+      updated++;
+    }
+
+    if (!updated) return { success: false, error: 'No document rows found for ' + target };
+    return { success: true, tail: target, lastVerifiedOffline: stamp, updatedRows: updated };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }
