@@ -191,8 +191,8 @@ font-weight: bold;
 <select id="pilot" class="browser-default" style="margin-top:5px;" onchange="calculateTotals()"><option value="" disabled selected>PIC / Instructor</option></select>
 <select id="copilot" class="browser-default" style="margin-top:5px;" onchange="calculateTotals()"><option value="">Co-Pilot / Students (Optional)</option></select>
 <div id="updateCrewBar" style="display:none; margin-top:8px; padding:8px 10px; background:#e8f5e9; border:1px solid #a5d6a7; border-radius:4px; font-size:0.78rem; color:#2e7d32;">
-  <b>Loaded mission.</b> Change PIC/Co-pilot then click <b>UPDATE CREW</b> to save.
-  <button class="btn-small green darken-2" style="margin-left:10px;" onclick="updateMissionCrew()">UPDATE CREW</button>
+  <b>Loaded mission.</b> Edit crew, passenger/cargo, or billing fields, then click <b>SAVE CHANGES</b>.
+  <button class="btn-small green darken-2" style="margin-left:10px;" onclick="updateMissionCrew()">SAVE CHANGES</button>
 </div>
 <div class="section-title">Leg Routing</div>
 <div class="row" style="margin-bottom:0">
@@ -211,6 +211,7 @@ font-weight: bold;
 <option value="0">0 Pax (Cargo/Empty)</option>
 <option value="1">1 Pax</option><option value="2">2 Pax</option><option value="3">3 Pax</option><option value="4">4 Pax</option><option value="5">5 Pax</option>
 </select>
+<button class="btn-small blue-grey darken-1" style="width:100%; margin-top:6px;" onclick="openQuickPassengerModal({ context: 'dispatch-draft' })">+ ADD NEW PASSENGER</button>
 <div id="paxContainer"></div>
 <button class="btn blue darken-4" style="width:100%; margin-top:15px;" onclick="addLeg()">ADD LEG TO MISSION</button>
 </div>
@@ -274,6 +275,116 @@ font-weight: bold;
 <div id="dispatchFuelCalcSummary" class="dispatch-modal-summary">Search an airport to preview route distance, flight time, and burn.</div>
 <div id="dispatchFuelCalcMap" class="dispatch-modal-map"></div>
 </div>
+</div>
+
+<div id="dispatchQuickPaxModal" class="dispatch-modal-overlay" onclick="if (event.target === this) closeDispatchQuickPaxModal()">
+  <div class="dispatch-modal-card" style="max-width:520px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+      <div class="section-title" style="margin:0; border:none; font-size:0.88rem;">Add New Passenger</div>
+      <button class="dispatch-mini-btn" onclick="closeDispatchQuickPaxModal()">&#x2715;</button>
+    </div>
+    <div class="row" style="margin-bottom:0;">
+      <div class="input-field col s12"><input id="dispatch-pax-name" type="text"><label class="active">Passenger Name</label></div>
+      <div class="input-field col s6"><input id="dispatch-pax-id-type" type="text" placeholder="CPF/Passport"><label class="active">ID Type</label></div>
+      <div class="input-field col s6"><input id="dispatch-pax-id-num" type="text"><label class="active">ID Number</label></div>
+      <div class="input-field col s6"><input id="dispatch-pax-weight" type="number" inputmode="decimal" step="0.1" min="1"><label class="active">Weight (kg)</label></div>
+      <div class="input-field col s6"><input id="dispatch-pax-dob" type="date"><label class="active">Date of Birth</label></div>
+      <div class="col s6" style="margin-top:4px;">
+        <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Gender</label>
+        <select id="dispatch-pax-gender" class="browser-default" style="margin-top:4px; border:1px solid #ddd;">
+          <option value="M">Male</option>
+          <option value="F">Female</option>
+          <option value="U" selected>Unknown</option>
+        </select>
+      </div>
+      <div class="input-field col s6"><input id="dispatch-pax-phone" type="text"><label class="active">Phone</label></div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:4px;">
+      <button type="button" class="btn grey lighten-2" style="color:#333;" onclick="closeDispatchQuickPaxModal()">Cancel</button>
+      <button id="dispatchQuickPaxSaveBtn" type="button" class="btn blue darken-3" onclick="saveDispatchQuickPassenger_()">Save Passenger</button>
+    </div>
+  </div>
+</div>
+
+<div id="dispatchLegPayloadModal" class="dispatch-modal-overlay" onclick="if (event.target === this) closeDispatchLegLoadModal()">
+  <div class="dispatch-modal-card" style="max-width:560px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+      <div class="section-title" style="margin:0; border:none; font-size:0.88rem;">Add Pax / Cargo To Leg</div>
+      <button class="dispatch-mini-btn" onclick="closeDispatchLegLoadModal()">&#x2715;</button>
+    </div>
+    <input id="dispatch-leg-load-idx" type="hidden">
+    <div class="row" style="margin-bottom:0;">
+      <div class="col s12" style="margin-bottom:10px;">
+        <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Entry Type</label>
+        <select id="dispatch-leg-load-kind" class="browser-default" onchange="onDispatchLegLoadKindChange_()" style="margin-top:4px; border:1px solid #ddd;">
+          <option value="passenger">Passenger</option>
+          <option value="freight">Freight / Cargo</option>
+        </select>
+      </div>
+
+      <div id="dispatch-leg-passenger-fields" class="col s12" style="padding:0;">
+        <div class="col s9" style="padding-left:0;">
+          <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Passenger</label>
+          <select id="dispatch-leg-pax-name" class="browser-default" onchange="onDispatchLegPaxPick_()" style="margin-top:4px; border:1px solid #ddd;"></select>
+        </div>
+        <div class="col s3" style="padding-right:0; display:flex; align-items:flex-end;">
+          <button type="button" class="btn-small blue-grey darken-1" style="width:100%;" onclick="openQuickPassengerModal({ context: 'dispatch-leg', updateLegPicker: true })">+ New</button>
+        </div>
+        <div class="input-field col s6" style="padding-left:0;"><input id="dispatch-leg-pax-weight" type="number" step="0.1" min="1"><label class="active">Weight (kg)</label></div>
+        <div class="input-field col s6" style="padding-right:0;"><input id="dispatch-leg-pax-cargo" type="number" step="0.1" min="0" value="0"><label class="active">Cargo (kg)</label></div>
+      </div>
+
+      <div id="dispatch-leg-freight-fields" class="col s12" style="display:none; padding:0;">
+        <div class="input-field col s12" style="padding:0;"><input id="dispatch-leg-freight-desc" type="text" placeholder="General Freight"><label class="active">Cargo Description</label></div>
+        <div class="input-field col s12" style="padding:0;"><input id="dispatch-leg-freight-kg" type="number" step="0.1" min="0" value="0"><label class="active">Cargo (kg)</label></div>
+      </div>
+
+      <div class="col s6" style="padding-left:0; margin-bottom:10px;">
+        <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Fund</label>
+        <select id="dispatch-leg-load-fund" class="browser-default" style="margin-top:4px; border:1px solid #ddd;"></select>
+      </div>
+      <div class="col s6" style="padding-right:0; margin-bottom:10px;">
+        <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Rate</label>
+        <select id="dispatch-leg-load-rate" class="browser-default" style="margin-top:4px; border:1px solid #ddd;"></select>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:6px;">
+      <button type="button" class="btn grey lighten-2" style="color:#333;" onclick="closeDispatchLegLoadModal()">Cancel</button>
+      <button type="button" class="btn blue darken-3" onclick="saveDispatchLegLoadEntry_()">Add To Leg</button>
+    </div>
+  </div>
+</div>
+
+<div id="dispatchEditPaxModal" class="dispatch-modal-overlay" onclick="if (event.target === this) closeEditPaxModal_()"> 
+  <div class="dispatch-modal-card" style="max-width:500px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+      <div class="section-title" style="margin:0; border:none; font-size:0.88rem;">Edit Passenger / Billing</div>
+      <button class="dispatch-mini-btn" onclick="closeEditPaxModal_()">&#x2715;</button>
+    </div>
+    <input type="hidden" id="edit-pax-leg-idx">
+    <input type="hidden" id="edit-pax-pax-idx">
+    <div id="edit-pax-name-row" style="margin-bottom:8px;">
+      <span style="font-size:0.8rem; color:#546e7a; font-weight:bold;">Passenger: </span>
+      <span id="edit-pax-name-label" style="font-weight:bold; font-size:0.9rem;"></span>
+    </div>
+    <div class="row" style="margin-bottom:0;">
+      <div class="input-field col s6" style="padding-left:0;"><input id="edit-pax-weight" type="number" step="0.1" min="1"><label class="active">Weight (kg)</label></div>
+      <div class="input-field col s6" style="padding-right:0;"><input id="edit-pax-cargo" type="number" step="0.1" min="0"><label class="active">Cargo (kg)</label></div>
+      <div class="col s6" style="padding-left:0; margin-bottom:10px;">
+        <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Fund</label>
+        <select id="edit-pax-fund" class="browser-default" style="margin-top:4px; border:1px solid #ddd;"></select>
+      </div>
+      <div class="col s6" style="padding-right:0; margin-bottom:10px;">
+        <label style="font-size:0.72rem; color:#546e7a; font-weight:bold;">Rate</label>
+        <select id="edit-pax-rate" class="browser-default" style="margin-top:4px; border:1px solid #ddd;"></select>
+      </div>
+      <div id="edit-pax-desc-row" class="input-field col s12" style="padding:0; display:none;"><input id="edit-pax-desc" type="text"><label class="active">Cargo Description</label></div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:4px;">
+      <button type="button" class="btn grey lighten-2" style="color:#333;" onclick="closeEditPaxModal_()">Cancel</button>
+      <button type="button" class="btn blue darken-3" onclick="saveEditPaxModal_()">Save Changes</button>
+    </div>
+  </div>
 </div>
 
 <!-- Flight Time Block Modal -->
@@ -442,6 +553,14 @@ function parseSyllabusRouteTokens(routeStr) {
   return normalized.split(',').map(s => s.trim()).filter(Boolean);
 }
 
+function parseSyllabusRunwayCheckoutTokens(rawCheckout) {
+  return String(rawCheckout || '')
+    .toUpperCase()
+    .split(/[;,]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 function parseRouteWaypointTokens(routeStr) {
   const raw = String(routeStr || '').trim().toUpperCase();
   if (!raw) return [];
@@ -566,6 +685,45 @@ function reverseRouteWaypointList(waypointString) {
     .join(', ');
 }
 
+function dispatchNormCode_(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function dispatchFindStoredRoute_(from, to) {
+  const origin = dispatchNormCode_(from);
+  const dest = dispatchNormCode_(to);
+  const routes = Array.isArray(appData && appData.routes) ? appData.routes : [];
+  let stdRoute = null;
+  let reverseRoute = null;
+
+  for (let i = 0; i < routes.length; i++) {
+    const r = routes[i] || {};
+    const ro = dispatchNormCode_(r.origin);
+    const rd = dispatchNormCode_(r.destination);
+    if (!stdRoute && ro === origin && rd === dest) stdRoute = r;
+    if (!reverseRoute && ro === dest && rd === origin) reverseRoute = r;
+    if (stdRoute && reverseRoute) break;
+  }
+
+  return { stdRoute, reverseRoute };
+}
+
+function dispatchRefreshDropdownData_(cb) {
+  if (!(window.google && google.script && google.script.run)) {
+    if (typeof cb === 'function') cb(false);
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function(data) {
+      if (data && !data.error) appData = Object.assign({}, appData || {}, data);
+      if (typeof cb === 'function') cb(true);
+    })
+    .withFailureHandler(function() {
+      if (typeof cb === 'function') cb(false);
+    })
+    .getDropdownData();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('fDate').valueAsDate = new Date();
 google.script.run
@@ -632,8 +790,9 @@ function dispatchBuildRoutePlan_(fromIcao, toIcao) {
   const to = String(toIcao || '').trim().toUpperCase();
   let routeText = [from, to].filter(Boolean).join(', ');
   let distance = (from && to) ? getDistance(from, to) : 0;
-  const stdRoute = appData.routes ? appData.routes.find(r => r.origin === from && r.destination === to) : null;
-  const reverseRoute = (!stdRoute && appData.routes) ? appData.routes.find(r => r.origin === to && r.destination === from) : null;
+  const routeHit = dispatchFindStoredRoute_(from, to);
+  const stdRoute = routeHit.stdRoute;
+  const reverseRoute = routeHit.reverseRoute;
   if (stdRoute) {
     routeText = buildRouteWithEndpoints(stdRoute.waypoint_list, from, to);
     distance = getRouteDistance(routeText);
@@ -868,6 +1027,262 @@ function addCargoRow() {
  `;
  cargoList.appendChild(div);
 }
+
+function dispatchSortPassengers_() {
+  if (!appData || !Array.isArray(appData.passengers)) return;
+  appData.passengers.sort(function(a, b) {
+    return String((a && a.name) || '').localeCompare(String((b && b.name) || ''));
+  });
+}
+
+function dispatchEnsurePassengerCached_(payload) {
+  if (!payload || !payload.name) return;
+  if (!appData.passengers) appData.passengers = [];
+  const key = String(payload.name || '').trim().toUpperCase();
+  if (!key) return;
+  const existingIdx = appData.passengers.findIndex(function(p) {
+    return String((p && p.name) || '').trim().toUpperCase() === key;
+  });
+  const next = {
+    name: String(payload.name || '').trim(),
+    weight: parseFloat(payload.weight) || 80,
+    gender: String(payload.gender || 'U').trim() || 'U',
+    dob: String(payload.dob || '').trim(),
+    phone: String(payload.phone || '').trim()
+  };
+  if (existingIdx >= 0) appData.passengers[existingIdx] = Object.assign({}, appData.passengers[existingIdx], next);
+  else appData.passengers.push(next);
+  dispatchSortPassengers_();
+}
+
+function dispatchPostPassengerCreateRefresh_(selectedName) {
+  dispatchSortPassengers_();
+  spawnPaxInputs();
+  try {
+    if (typeof window.refreshOfflineLoadTools === 'function') {
+      window.refreshOfflineLoadTools();
+      if (selectedName) {
+        const wbSel = document.getElementById('wb-add-pax-select');
+        if (wbSel) wbSel.value = selectedName;
+        if (typeof window.onWbPaxPick === 'function') window.onWbPaxPick();
+      }
+    }
+  } catch (e) {}
+  try {
+    if (typeof window.refreshDispatchLegLoadPassengerOptions_ === 'function') {
+      window.refreshDispatchLegLoadPassengerOptions_(selectedName || '');
+    }
+  } catch (e) {}
+}
+
+window.openQuickPassengerModal = function(opts) {
+  const modal = document.getElementById('dispatchQuickPaxModal');
+  if (!modal) return;
+  window._dispatchQuickPaxContext = Object.assign({}, opts || {});
+  ['dispatch-pax-name','dispatch-pax-id-type','dispatch-pax-id-num','dispatch-pax-weight','dispatch-pax-dob','dispatch-pax-phone'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const genderSel = document.getElementById('dispatch-pax-gender');
+  if (genderSel) genderSel.value = 'U';
+  const btn = document.getElementById('dispatchQuickPaxSaveBtn');
+  if (btn) btn.disabled = false;
+  modal.style.display = 'flex';
+  setTimeout(function() {
+    const first = document.getElementById('dispatch-pax-name');
+    if (first) first.focus();
+  }, 20);
+};
+
+function closeDispatchQuickPaxModal() {
+  const modal = document.getElementById('dispatchQuickPaxModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveDispatchQuickPassenger_() {
+  const data = {
+    name: String((document.getElementById('dispatch-pax-name') || {}).value || '').trim(),
+    id_type: String((document.getElementById('dispatch-pax-id-type') || {}).value || '').trim(),
+    id_num: String((document.getElementById('dispatch-pax-id-num') || {}).value || '').trim(),
+    dob: String((document.getElementById('dispatch-pax-dob') || {}).value || '').trim(),
+    weight: String((document.getElementById('dispatch-pax-weight') || {}).value || '').trim(),
+    gender: String((document.getElementById('dispatch-pax-gender') || {}).value || 'U').trim(),
+    phone: String((document.getElementById('dispatch-pax-phone') || {}).value || '').trim()
+  };
+
+  if (!data.name || !(parseFloat(data.weight) > 0)) {
+    M.toast({ html: 'Passenger name and valid weight are required.' });
+    return;
+  }
+
+  const saveBtn = document.getElementById('dispatchQuickPaxSaveBtn');
+  if (saveBtn) saveBtn.disabled = true;
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res || !res.success) {
+        M.toast({ html: 'Error: ' + ((res && res.error) || 'Could not save passenger') });
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+      }
+      dispatchEnsurePassengerCached_(data);
+      dispatchPostPassengerCreateRefresh_(data.name);
+      closeDispatchQuickPaxModal();
+      M.toast({ html: 'Passenger added and ready to use.' });
+      if (saveBtn) saveBtn.disabled = false;
+    })
+    .withFailureHandler(function(err) {
+      M.toast({ html: 'Error: ' + (err && err.message ? err.message : String(err || 'unknown')) });
+      if (saveBtn) saveBtn.disabled = false;
+    })
+    .savePassengerToDB(data);
+}
+
+function refreshDispatchLegLoadPassengerOptions_(selectedName) {
+  const paxSel = document.getElementById('dispatch-leg-pax-name');
+  if (!paxSel) return;
+  const passengers = Array.isArray(appData && appData.passengers) ? appData.passengers.slice() : [];
+  dispatchSortPassengers_();
+  paxSel.innerHTML = '<option value="">Select Passenger</option>' + passengers.map(function(p) {
+    const name = String((p && p.name) || '').trim();
+    const wt = Number((p && p.weight) || 80);
+    if (!name) return '';
+    return '<option value="' + name + '">' + name + ' (' + Math.round(wt) + 'kg)</option>';
+  }).join('');
+  if (selectedName) paxSel.value = selectedName;
+}
+
+function onDispatchLegPaxPick_() {
+  const paxSel = document.getElementById('dispatch-leg-pax-name');
+  const wt = document.getElementById('dispatch-leg-pax-weight');
+  if (!paxSel || !wt) return;
+  const selected = String(paxSel.value || '').trim().toUpperCase();
+  if (!selected) {
+    wt.value = '';
+    return;
+  }
+  const hit = (Array.isArray(appData && appData.passengers) ? appData.passengers : []).find(function(p) {
+    return String((p && p.name) || '').trim().toUpperCase() === selected;
+  });
+  wt.value = String(Number(hit && hit.weight || 80));
+}
+
+function refreshDispatchLegLoadFundingOptions_() {
+  const fundSel = document.getElementById('dispatch-leg-load-fund');
+  const rateSel = document.getElementById('dispatch-leg-load-rate');
+  if (fundSel) {
+    const funds = Array.isArray(appData && appData.funds) ? appData.funds : [];
+    fundSel.innerHTML = '<option value="">No Fund</option>' + funds.map(function(f) {
+      const id = String((f && (f.id || f.displayName)) || '').trim();
+      const label = String((f && (f.displayName || f.id)) || id).trim();
+      return '<option value="' + id + '">' + label + '</option>';
+    }).join('');
+  }
+  if (rateSel) {
+    const rates = Array.isArray(appData && appData.rates) ? appData.rates : ["1/5", "2/5", "1/2", "3/5", "4/5", "1/1"];
+    rateSel.innerHTML = '<option value="">Rate</option>' + rates.map(function(r) {
+      const val = String(r || '').trim();
+      return '<option value="' + val + '">' + val + '</option>';
+    }).join('');
+  }
+}
+
+function onDispatchLegLoadKindChange_() {
+  const kind = String((document.getElementById('dispatch-leg-load-kind') || {}).value || 'passenger');
+  const paxFields = document.getElementById('dispatch-leg-passenger-fields');
+  const freightFields = document.getElementById('dispatch-leg-freight-fields');
+  if (paxFields) paxFields.style.display = (kind === 'passenger') ? 'block' : 'none';
+  if (freightFields) freightFields.style.display = (kind === 'freight') ? 'block' : 'none';
+}
+
+function openDispatchLegLoadModal(legIdx) {
+  const leg = missionLegs[legIdx];
+  const modal = document.getElementById('dispatchLegPayloadModal');
+  if (!leg || !modal) return;
+  const idxEl = document.getElementById('dispatch-leg-load-idx');
+  if (idxEl) idxEl.value = String(legIdx);
+  const kindSel = document.getElementById('dispatch-leg-load-kind');
+  if (kindSel) kindSel.value = 'passenger';
+  refreshDispatchLegLoadPassengerOptions_('');
+  refreshDispatchLegLoadFundingOptions_();
+  const paxWeight = document.getElementById('dispatch-leg-pax-weight');
+  const paxCargo = document.getElementById('dispatch-leg-pax-cargo');
+  const freightDesc = document.getElementById('dispatch-leg-freight-desc');
+  const freightKg = document.getElementById('dispatch-leg-freight-kg');
+  if (paxWeight) paxWeight.value = '';
+  if (paxCargo) paxCargo.value = '0';
+  if (freightDesc) freightDesc.value = '';
+  if (freightKg) freightKg.value = '0';
+  onDispatchLegLoadKindChange_();
+  modal.style.display = 'flex';
+}
+
+function closeDispatchLegLoadModal() {
+  const modal = document.getElementById('dispatchLegPayloadModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveDispatchLegLoadEntry_() {
+  const idx = parseInt((document.getElementById('dispatch-leg-load-idx') || {}).value, 10);
+  const leg = missionLegs[idx];
+  if (!leg) return;
+  const kind = String((document.getElementById('dispatch-leg-load-kind') || {}).value || 'passenger');
+  const acft = appData.aircraft ? appData.aircraft.find(function(a) { return a.reg === document.getElementById('aircraft').value; }) : null;
+  const hourlyRate = Number(acft && acft.rate) || 0;
+  const fund = String((document.getElementById('dispatch-leg-load-fund') || {}).value || '').trim();
+  const rate = String((document.getElementById('dispatch-leg-load-rate') || {}).value || '').trim();
+
+  if (!Array.isArray(leg.pax)) leg.pax = [];
+
+  if (kind === 'passenger') {
+    const name = String((document.getElementById('dispatch-leg-pax-name') || {}).value || '').trim();
+    const weightInput = parseFloat((document.getElementById('dispatch-leg-pax-weight') || {}).value || '0');
+    const cargo = Math.max(0, parseFloat((document.getElementById('dispatch-leg-pax-cargo') || {}).value || '0') || 0);
+    if (!name) {
+      M.toast({ html: 'Select a passenger.' });
+      return;
+    }
+    const pData = (appData.passengers || []).find(function(p) { return String((p && p.name) || '').trim().toUpperCase() === name.toUpperCase(); }) || { weight: 80, gender: 'U', dob: '', phone: '' };
+    const finalWeight = weightInput > 0 ? weightInput : (Number(pData.weight) || 80);
+    leg.pax.push({
+      name: name,
+      weight: finalWeight,
+      cargo: cargo,
+      gender: String(pData.gender || 'U'),
+      category: getAgeCategory(pData.dob, document.getElementById('fDate').value),
+      fund: fund,
+      chargeRate: rate,
+      chargedAmount: getChargedAmount(rate, Number(leg.time) || 0, hourlyRate),
+      phone: String(pData.phone || ''),
+      description: ''
+    });
+  } else {
+    const desc = String((document.getElementById('dispatch-leg-freight-desc') || {}).value || '').trim() || 'General Freight';
+    const kg = Math.max(0, parseFloat((document.getElementById('dispatch-leg-freight-kg') || {}).value || '0') || 0);
+    if (!(kg > 0)) {
+      M.toast({ html: 'Enter a freight weight greater than 0.' });
+      return;
+    }
+    leg.pax.push({
+      name: 'FREIGHT',
+      weight: 0,
+      cargo: kg,
+      description: desc,
+      gender: 'U',
+      category: 'FREIGHT',
+      fund: fund,
+      chargeRate: rate,
+      chargedAmount: getChargedAmount(rate, Number(leg.time) || 0, hourlyRate),
+      phone: ''
+    });
+  }
+
+  refreshLegPayload(idx);
+  closeDispatchLegLoadModal();
+  calculateTotals();
+  M.toast({ html: 'Leg payload updated.' });
+}
+
 function calculateTotals() {
  const acft = appData.aircraft ? appData.aircraft.find(a => a.reg === document.getElementById('aircraft').value) : null;
  const pilot = appData.pilots ? appData.pilots.find(p => p.name === document.getElementById('pilot').value) : null;
@@ -964,7 +1379,22 @@ function calculateTotals() {
  let totalFlight = 0, totalDist = 0, groundTime = 0, anyWeightErr = false, totalCharged = 0;
  const pilotW = (Number(pilot ? (pilot.weight || pilot.Weight_KGS) : 90) || 90) + (Number(copilot ? (copilot.weight || copilot.Weight_KGS) : 0) || 0);
  const reserve = (Number(acft.burn) || 0) * (document.getElementById('resToggle').checked ? 1.5 : 1.0);
- const mtowCol = acft.reg.includes("550") ? "mtow550" : "mtow520";
+ const resolveAirportMtowLimit = function(airport, aircraft) {
+   const map = (airport && airport.mtowByModel && typeof airport.mtowByModel === 'object') ? airport.mtowByModel : {};
+   const keys = Object.keys(map);
+   if (!keys.length) return 9999;
+   const acftRef = String(
+     (aircraft && (aircraft.typeForPerformance || aircraft.aircraftType || aircraft.reg)) || ''
+   ).toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+   if (acftRef) {
+     const sorted = keys.slice().sort(function(a, b) { return String(b || '').length - String(a || '').length; });
+     const matched = sorted.find(function(k) { return acftRef.indexOf(String(k || '').toUpperCase()) >= 0; });
+     if (matched) return Number(map[matched] || 0) || 9999;
+   }
+   if (map.GENERIC) return Number(map.GENERIC || 0) || 9999;
+   const vals = keys.map(function(k) { return Number(map[k] || 0); }).filter(function(v) { return isFinite(v) && v > 0; });
+   return vals.length ? Math.max.apply(null, vals) : 9999;
+ };
 
  let maxLaunchFuel = 0, currentSegBurn = 0;
  missionLegs.forEach((l, idx) => {
@@ -1009,7 +1439,7 @@ function calculateTotals() {
 
    // Check MTOW vs Airport Limits
    const apt = findAirport(leg.from);
-   const aptLimit = apt ? (Number(apt[mtowCol]) || 9999) : 9999;
+  const aptLimit = resolveAirportMtowLimit(apt, acft);
    leg.limit = Math.min(Number(acft.mtow) || 9999, aptLimit);
    leg.limitType = (aptLimit < Number(acft.mtow)) ? "Airport Limit" : "Aircraft MTOW";
   
@@ -1100,38 +1530,37 @@ function addLeg() {
   const from = findAirport(fVal).icao;
   const to = findAirport(tVal).icao;
 
-  // --- START ROUTE LOGIC ---
-  // Look for a standard route between these two airports (including reverse direction)
-  const stdRoute = appData.routes ? appData.routes.find(r => r.origin === from && r.destination === to) : null;
-  const reverseRoute = (!stdRoute && appData.routes) ? appData.routes.find(r => r.origin === to && r.destination === from) : null;
-  
-  let dist, activeWaypoints;
-  if (stdRoute) {
-    activeWaypoints = buildRouteWithEndpoints(stdRoute.waypoint_list, from, to);
-    dist = getRouteDistance(activeWaypoints);
-  } else if (reverseRoute) {
-    activeWaypoints = buildRouteWithEndpoints(reverseRouteWaypointList(reverseRoute.waypoint_list), from, to);
-    dist = getRouteDistance(activeWaypoints);
-  } else {
-    dist = getDistance(from, to);
-    activeWaypoints = `${from}, ${to}`;
-  }
-  // --- END ROUTE LOGIC ---
+  const finalizeLegWithCurrentData = function() {
+    const routeHit = dispatchFindStoredRoute_(from, to);
+    const stdRoute = routeHit.stdRoute;
+    const reverseRoute = routeHit.reverseRoute;
 
-  const syl = appData.syllabus.find(s => s.code === document.getElementById('trainingCode').value);
-  const routeTokens = parseSyllabusRouteTokens(syl && syl.route);
-  let extra = parseFloat(document.getElementById('extraTime').value) || 0;
-  let time = (syl && syl.hours > 0) ? Number(syl.hours) + extra : (dist / Number(acft.speed)) + extra;
-  let fuel = (syl && syl.fuel > 0) ? Number(syl.fuel) + (extra * Number(acft.burn)) : (time * Number(acft.burn)) + 5;
-
-  if (routeTokens.length >= 2) {
-    const routeFrom = routeTokens[0];
-    const routeTo = routeTokens[routeTokens.length - 1];
-    if (findAirport(routeFrom) && findAirport(routeTo)) {
-      dist = getRouteDistance(routeTokens.join(', '));
-      activeWaypoints = routeTokens.join(', ');
+    let dist, activeWaypoints;
+    if (stdRoute) {
+      activeWaypoints = buildRouteWithEndpoints(stdRoute.waypoint_list, from, to);
+      dist = getRouteDistance(activeWaypoints);
+    } else if (reverseRoute) {
+      activeWaypoints = buildRouteWithEndpoints(reverseRouteWaypointList(reverseRoute.waypoint_list), from, to);
+      dist = getRouteDistance(activeWaypoints);
+    } else {
+      dist = getDistance(from, to);
+      activeWaypoints = `${from}, ${to}`;
     }
-  }
+
+    const syl = appData.syllabus.find(s => s.code === document.getElementById('trainingCode').value);
+    const routeTokens = parseSyllabusRouteTokens(syl && syl.route);
+    let extra = parseFloat(document.getElementById('extraTime').value) || 0;
+    let time = (syl && syl.hours > 0) ? Number(syl.hours) + extra : (dist / Number(acft.speed)) + extra;
+    let fuel = (syl && syl.fuel > 0) ? Number(syl.fuel) + (extra * Number(acft.burn)) : (time * Number(acft.burn)) + 5;
+
+    if (routeTokens.length >= 2) {
+      const routeFrom = routeTokens[0];
+      const routeTo = routeTokens[routeTokens.length - 1];
+      if (resolveLocation(routeFrom) && resolveLocation(routeTo)) {
+        dist = getRouteDistance(routeTokens.join(', '));
+        activeWaypoints = routeTokens.join(', ');
+      }
+    }
   
   let legPax = [];
   const pCount = parseInt(document.getElementById('paxCount').value) || 0;
@@ -1185,6 +1614,17 @@ function addLeg() {
   document.getElementById('from').value = to;
   document.getElementById('to').value = "";
   calculateTotals();
+  };
+
+  const routeHitNow = dispatchFindStoredRoute_(from, to);
+  if (!routeHitNow.stdRoute && !routeHitNow.reverseRoute && navigator.onLine) {
+    dispatchRefreshDropdownData_(function() {
+      finalizeLegWithCurrentData();
+    });
+    return;
+  }
+
+  finalizeLegWithCurrentData();
 }
 
 function renderTimeline() {
@@ -1248,6 +1688,9 @@ function renderTimeline() {
       </div>
 
       <div style="background:#f9f9f9; padding:5px; border-radius:4px;">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
+          <button class="dispatch-mini-btn" onclick="openDispatchLegLoadModal(${i})" title="Add passenger or freight">+ PAX/CARGO</button>
+        </div>
         ${l.pax.map((p, pi) => `
           <div class="pax-line" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;">
             <span>
@@ -1256,9 +1699,11 @@ function renderTimeline() {
               <small>(${p.fund || ''})</small>
               <span class="pax-tag" style="background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9;">Rate: ${p.chargeRate} (R$ ${(p.chargedAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
             </span>
-            <span>
+            <span style="display:flex; align-items:center; gap:6px;">
               <small>Cargo:</small>
               <input type="number" class="inline-cargo" value="${p.cargo}" onchange="updateCargo(${i}, ${pi}, this.value)"> <small>+ ${p.weight}kg</small>
+              <button class="dispatch-mini-btn" title="Edit billing" onclick="openEditPaxModal_(${i}, ${pi})" style="color:#1565c0;">&#9998;</button>
+              <button class="dispatch-mini-btn" title="Remove" onclick="removeDispatchPax_(${i}, ${pi})" style="color:#d32f2f;">&#x2715;</button>
             </span>
             ${p.description ? `<div style="width: 100%; font-size: 0.75rem; color: #666; font-style: italic; margin-top: 2px; padding-left: 8px; border-left: 2px solid #ddd;">↳ ${p.description}</div>` : ''}
           </div>
@@ -1270,11 +1715,15 @@ function renderTimeline() {
 
 function renderMissionList(missions) {
 const box = document.getElementById('missionList');
-if (!missions || missions.length === 0) {
+const visibleMissions = (Array.isArray(missions) ? missions : []).filter(function(m) {
+  const status = String((m && m.status) || '').trim().toUpperCase();
+  return !['FLOWN', 'COMPLETE', 'COMPLETED', 'CANCELLED'].includes(status);
+});
+if (!visibleMissions.length) {
 box.innerHTML = "<p style='padding:8px;'>No scheduled missions found.</p>";
 return;
 }
-box.innerHTML = missions.map(m => `
+box.innerHTML = visibleMissions.map(m => `
 <div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; transition: background 0.2s; position: relative;"
      onclick="loadDispatchMission('${m.id}')"
      onmouseover="this.style.background='#f0f7ff'"
@@ -1435,6 +1884,94 @@ function updateCargo(legIdx, paxIdx, value) {
  calculateTotals();
 }
 
+function removeDispatchPax_(legIdx, paxIdx) {
+  const leg = missionLegs[legIdx];
+  if (!leg || !leg.pax) return;
+  const entry = leg.pax[paxIdx];
+  const label = entry ? (entry.name === 'FREIGHT' ? 'freight entry' : entry.name) : 'this entry';
+  if (!confirm('Remove ' + label + ' from leg ' + (legIdx + 1) + '?')) return;
+  leg.pax.splice(paxIdx, 1);
+  refreshLegPayload(legIdx);
+  calculateTotals();
+}
+
+function openEditPaxModal_(legIdx, paxIdx) {
+  const leg = missionLegs[legIdx];
+  if (!leg || !leg.pax || !leg.pax[paxIdx]) return;
+  const p = leg.pax[paxIdx];
+  document.getElementById('edit-pax-leg-idx').value = String(legIdx);
+  document.getElementById('edit-pax-pax-idx').value = String(paxIdx);
+  document.getElementById('edit-pax-name-label').textContent = p.name;
+  document.getElementById('edit-pax-weight').value = String(p.weight || '');
+  document.getElementById('edit-pax-cargo').value = String(p.cargo || 0);
+
+  const isFreight = p.name === 'FREIGHT';
+  const descRow = document.getElementById('edit-pax-desc-row');
+  if (descRow) descRow.style.display = isFreight ? 'block' : 'none';
+  const descEl = document.getElementById('edit-pax-desc');
+  if (descEl) descEl.value = String(p.description || '');
+  const weightField = document.getElementById('edit-pax-weight');
+  if (weightField) weightField.closest && (weightField.closest('.input-field') || weightField).style.display = isFreight ? 'none' : 'block';
+
+  const fundSel = document.getElementById('edit-pax-fund');
+  const rateSel = document.getElementById('edit-pax-rate');
+  if (fundSel) {
+    const funds = Array.isArray(appData && appData.funds) ? appData.funds : [];
+    fundSel.innerHTML = '<option value="">No Fund</option>' + funds.map(function(f) {
+      const id = String((f && (f.id || f.displayName)) || '').trim();
+      const label = String((f && (f.displayName || f.id)) || id).trim();
+      return '<option value="' + id + '">' + label + '</option>';
+    }).join('');
+    fundSel.value = String(p.fund || '');
+  }
+  if (rateSel) {
+    const rates = Array.isArray(appData && appData.rates) ? appData.rates : ['1/5','2/5','1/2','3/5','4/5','1/1'];
+    rateSel.innerHTML = '<option value="">Rate</option>' + rates.map(function(r) {
+      const val = String(r || '').trim();
+      return '<option value="' + val + '">' + val + '</option>';
+    }).join('');
+    rateSel.value = String(p.chargeRate || '');
+  }
+
+  document.getElementById('dispatchEditPaxModal').style.display = 'flex';
+}
+
+function closeEditPaxModal_() {
+  const modal = document.getElementById('dispatchEditPaxModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveEditPaxModal_() {
+  const legIdx = parseInt(document.getElementById('edit-pax-leg-idx').value, 10);
+  const paxIdx = parseInt(document.getElementById('edit-pax-pax-idx').value, 10);
+  const leg = missionLegs[legIdx];
+  if (!leg || !leg.pax || !leg.pax[paxIdx]) return;
+  const p = leg.pax[paxIdx];
+  const acft = appData.aircraft ? appData.aircraft.find(function(a) { return a.reg === document.getElementById('aircraft').value; }) : null;
+  const hourlyRate = Number(acft && acft.rate) || 0;
+
+  if (p.name !== 'FREIGHT') {
+    const w = parseFloat(document.getElementById('edit-pax-weight').value);
+    if (w > 0) {
+      p.weight = w;
+      p.plannedWeight = w;
+    }
+  } else {
+    const descEl = document.getElementById('edit-pax-desc');
+    if (descEl) p.description = String(descEl.value || '').trim();
+  }
+  const cargo = parseFloat(document.getElementById('edit-pax-cargo').value);
+  p.cargo = isFinite(cargo) && cargo >= 0 ? cargo : 0;
+  p.fund = String((document.getElementById('edit-pax-fund') || {}).value || '').trim();
+  p.chargeRate = String((document.getElementById('edit-pax-rate') || {}).value || '').trim();
+  p.chargedAmount = getChargedAmount(p.chargeRate, Number(leg.time) || 0, hourlyRate);
+
+  closeEditPaxModal_();
+  refreshLegPayload(legIdx);
+  calculateTotals();
+  M.toast({ html: 'Billing updated.' });
+}
+
 function updateLegTakeoffFuel(idx, value, inputEl) {
  const leg = missionLegs[idx];
  if (!leg) return;
@@ -1479,13 +2016,13 @@ function updateMissionCrew() {
  };
  google.script.run
    .withSuccessHandler(function(res) {
-     M.toast({ html: 'Crew updated: ' + res });
-     if (btn) { btn.disabled = false; btn.innerText = 'UPDATE CREW'; }
+     M.toast({ html: 'Mission changes saved: ' + res });
+     if (btn) { btn.disabled = false; btn.innerText = 'SAVE CHANGES'; }
      google.script.run.withSuccessHandler(renderMissionList).getScheduledMissions();
    })
    .withFailureHandler(function(err) {
      M.toast({ html: 'Error: ' + err.message });
-     if (btn) { btn.disabled = false; btn.innerText = 'UPDATE CREW'; }
+     if (btn) { btn.disabled = false; btn.innerText = 'SAVE CHANGES'; }
    })
    .saveMission(mH);
 }
@@ -1639,6 +2176,11 @@ function finalizeMission() {
   });
 
   // 1. GATHER DATA (Using your specific IDs)
+  const selectedTrainingCode = String(document.getElementById('trainingCode')?.value || '').trim();
+  const selectedSyllabus = Array.isArray(appData && appData.syllabus)
+    ? appData.syllabus.find(s => String(s.code || '') === selectedTrainingCode)
+    : null;
+
   const mH = {
     date: document.getElementById('fDate').value,
     time: document.getElementById('fTime').value || "08:00", // Default if empty
@@ -1647,6 +2189,16 @@ function finalizeMission() {
     pilot: document.getElementById('pilot').value,
     copilot: document.getElementById('copilot').value,
     notes: document.getElementById('fNotes') ? document.getElementById('fNotes').value : "", 
+    training: selectedTrainingCode ? {
+      code: selectedTrainingCode,
+      description: String(selectedSyllabus && selectedSyllabus.description || ''),
+      requiredHours: Number(selectedSyllabus && selectedSyllabus.hours || 0),
+      plannedLandings: Number(selectedSyllabus && selectedSyllabus.plannedLandings || 0),
+      requiredFuel: Number(selectedSyllabus && selectedSyllabus.fuel || 0),
+      requiredBallast: Number(selectedSyllabus && selectedSyllabus.requiredBallast || 0),
+      route: String(selectedSyllabus && selectedSyllabus.route || ''),
+      runwayCheckout: parseSyllabusRunwayCheckoutTokens(selectedSyllabus && selectedSyllabus.runwayCheckout).join(',')
+    } : null,
     
     // THE LEGS (Now containing isFuelCacheStop and plannedCacheDraw)
     legs: missionLegs 

@@ -1,0 +1,30 @@
+TEST SCHEDULER DATA - 10 Staff Members for Testing
+================================================
+
+Copy-paste these into your staff/scheduler sheet. Adjust columns as needed.
+
+NAME                    EMAIL                           ROLE                    STATUS
+Sarah Mitchell          sarah.mitchell@company.com      Captain                 Active
+James Rodriguez         james.rodriguez@company.com     First Officer           Active
+Emily Chen              emily.chen@company.com          Flight Attendant        Active
+Marcus Johnson          marcus.johnson@company.com      Pilot (Check)           Active
+Jessica Williams        jessica.williams@company.com    Dispatcher              Active
+David Thompson          david.thompson@company.com      Maintenance Technician  Active
+Lisa Anderson           lisa.anderson@company.com       Crew Chief              Active
+Robert Martinez         robert.martinez@company.com     Captain (Relief)        Active
+Amanda Foster           amanda.foster@company.com       Flight Attendant        Active
+Christopher Lee         christopher.lee@company.com     Safety Officer          Active
+
+
+Individual rows (tab-separated, paste directly):
+
+Sarah Mitchell	sarah.mitchell@company.com	Captain	Active
+James Rodriguez	james.rodriguez@company.com	First Officer	Active
+Emily Chen	emily.chen@company.com	Flight Attendant	Active
+Marcus Johnson	marcus.johnson@company.com	Pilot (Check)	Active
+Jessica Williams	jessica.williams@company.com	Dispatcher	Active
+David Thompson	david.thompson@company.com	Maintenance Technician	Active
+Lisa Anderson	lisa.anderson@company.com	Crew Chief	Active
+Robert Martinez	robert.martinez@company.com	Captain (Relief)	Active
+Amanda Foster	amanda.foster@company.com	Flight Attendant	Active
+Christopher Lee	christopher.lee@company.com	Safety Officer	Active

@@ -257,8 +257,8 @@ function setupMaintenanceSchedulingSheets() {
 function setupChecksDatabase() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheetName = "DB_Checks";
-  const aircraftTypes = ["Cessna 172S", "Cessna U206/520", "Cessna U206/550", "Cessna U206 Amphib"];
-  const roles = ["Operational", "Instructor", "Student"];
+  const authScopes = ["RUNWAY", "AIRPORT"];
+  const statuses = ["ACTIVE", "PENDING", "SUSPENDED", "REVOKED", "EXPIRED"];
   
   // 1. Create or Clear the sheet
   let sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
@@ -266,13 +266,21 @@ function setupChecksDatabase() {
   
   // 2. Define Headers
   const headers = [
-    "Pilot_Email", 
-    "Aircraft_Type", 
-    "Role", 
-    "Date_of_Check", 
-    "Expiry_Date", 
-    "Instructor_Signoff", 
-    "Notes"
+    "Check_ID",
+    "Pilot_Name",
+    "Pilot_Email",
+    "Staff_ID",
+    "ICAO",
+    "Runway_Ident",
+    "Auth_Scope",
+    "Status",
+    "Date_Checked",
+    "Expiry_Date",
+    "Approved_By",
+    "Source",
+    "Notes",
+    "Created_At",
+    "Updated_At"
   ];
   
   // 3. Apply Styling to Headers
@@ -283,21 +291,19 @@ function setupChecksDatabase() {
     .setFontWeight("bold");
 
   // 4. Set Column Formats (Date columns)
-  sheet.getRange("D2:E").setNumberFormat("dd/mm/yyyy");
+  sheet.getRange("I2:J").setNumberFormat("dd/mm/yyyy");
 
   // 5. Add Dropdowns (Data Validation)
-  // Aircraft Type Dropdown
-  const acRule = SpreadsheetApp.newDataValidation().requireValueInList(aircraftTypes).build();
-  sheet.getRange("B2:B500").setDataValidation(acRule);
-  
-  // Role Dropdown
-  const roleRule = SpreadsheetApp.newDataValidation().requireValueInList(roles).build();
-  sheet.getRange("C2:C500").setDataValidation(roleRule);
+  const scopeRule = SpreadsheetApp.newDataValidation().requireValueInList(authScopes, true).build();
+  sheet.getRange("G2:G500").setDataValidation(scopeRule);
+
+  const statusRule = SpreadsheetApp.newDataValidation().requireValueInList(statuses, true).build();
+  sheet.getRange("H2:H500").setDataValidation(statusRule);
 
   // 6. Freeze Header Row
   sheet.setFrozenRows(1);
 
-  SpreadsheetApp.getUi().alert("DB_Checks created. Use this to log annual checks for each aircraft type.");
+  SpreadsheetApp.getUi().alert("DB_Checks created. Use one row per pilot/runway or airport authorization.");
 }
 function buildDispatchInfrastructure() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -413,8 +419,10 @@ function createDBPilotAuthorizations() {
 
   // Define headers
   const headers = [
+    'Authorization_ID',
     'Pilot_Name',
     'Pilot_Email',
+    'Staff_ID',
     'Aircraft_Type',
     'Role',
     'Authorization_Type',
@@ -423,7 +431,9 @@ function createDBPilotAuthorizations() {
     'Expiry_Date',
     'Instructor_Signoff',
     'Source',
-    'Notes'
+    'Notes',
+    'Created_At',
+    'Updated_At'
   ];
 
   // Write headers
@@ -449,19 +459,19 @@ function addAuthorizationValidations_(sheet) {
     .build();
 
   const authTypeRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['INITIAL', 'ANNUAL_PROFICIENCY', 'UPGRADE', 'REINSTATEMENT'], true)
+    .requireValueInList(['INITIAL', 'ANNUAL_PROFICIENCY', 'UPGRADE', 'REINSTATEMENT', 'LINE_CHECK'], true)
     .setAllowInvalid(false)
     .build();
 
   const statusRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['ACTIVE', 'SUSPENDED', 'REVOKED'], true)
+    .requireValueInList(['ACTIVE', 'PENDING', 'SUSPENDED', 'REVOKED', 'EXPIRED'], true)
     .setAllowInvalid(false)
     .build();
 
   // Apply rules to reasonable column ranges
-  sheet.getRange('D2:D').setDataValidation(roleRule);          // Role
-  sheet.getRange('E2:E').setDataValidation(authTypeRule);     // Authorization_Type
-  sheet.getRange('F2:F').setDataValidation(statusRule);       // Status
+  sheet.getRange('F2:F').setDataValidation(roleRule);          // Role
+  sheet.getRange('G2:G').setDataValidation(authTypeRule);     // Authorization_Type
+  sheet.getRange('H2:H').setDataValidation(statusRule);       // Status
 }
 
 function _donationEnsureSheet_(ss, sheetName, headers, tabColor, overwriteExisting) {

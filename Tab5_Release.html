@@ -358,6 +358,32 @@
     return from + ' → ' + to;
   }
 
+  function _releaseGetActiveLeg_(mission) {
+    const legs = Array.isArray(mission && mission.legs) ? mission.legs : [];
+    if (!legs.length) return {};
+
+    const activeId = String(
+      window.activeLegFlightId
+      || mission.activeLegFlightId
+      || (mission.meta && mission.meta.activeLegFlightId)
+      || ''
+    ).trim();
+
+    if (activeId) {
+      const found = legs.find(function(leg) {
+        return [leg && leg.flightLegId, leg && leg.flight_id, leg && leg.id].some(function(v) {
+          return String(v || '').trim() === activeId;
+        });
+      });
+      if (found) return found;
+    }
+
+    const pending = legs.find(function(leg) {
+      return String((leg && leg.logStatus) || 'PENDING').toUpperCase() !== 'COMPLETE';
+    });
+    return pending || legs[legs.length - 1] || legs[0] || {};
+  }
+
   window.openSafetyMatrixInfo = function() {
     const backdrop = document.getElementById('safety-matrix-modal-backdrop');
     if (!backdrop) return;
@@ -383,13 +409,29 @@
     }
   }
 
-  function _releaseGetRunwayContext(mission) {
+  function _releaseFmtDateLabel(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return 'N/A';
+    try {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch (e) {}
+    return raw.slice(0, 19).replace('T', ' ');
+  }
+
+  function _releaseGetRunwayContext(mission, leg) {
     const perf = window.performanceTab4 || {};
     const selected = perf.selectedRunway || (Array.isArray(perf.runways) ? perf.runways[Number(document.getElementById('perf-runway')?.value || 0)] : null) || null;
     const result = perf.lastPerformanceResult || {};
 
     const runwayLengthM = Math.round(Number(selected && selected.length || 0));
     const runwayWidthM = Math.round(Number(selected && selected.width || 0));
+    const officialLengthM = Math.round(Number(selected && selected.officialReference && selected.officialReference.lengthM || runwayLengthM || 0));
+    const officialWidthM = Math.round(Number(selected && selected.officialReference && selected.officialReference.widthM || runwayWidthM || 0));
+    const internalUpdatedAt = String(selected && selected.internalUpdatedAt || '').trim();
+    const internalUpdatedLabel = _releaseFmtDateLabel(internalUpdatedAt);
     const surface = String(selected && selected.surface || '').trim() || 'N/A';
     const elevationFt = Math.round(Number(selected && selected.elevation || 0));
     const slopePct = Number(selected && selected.slope || 0).toFixed(1);
@@ -418,8 +460,8 @@
     const windSpd = Math.round(Number(document.getElementById('perf-wind-speed')?.value || 0));
     const surfaceCondition = String(document.getElementById('perf-surface-condition')?.value || 'DRY');
 
-    const firstLeg = mission && mission.legs && mission.legs[0] ? mission.legs[0] : {};
-    const fromIcao = String(firstLeg.from || '').trim().toUpperCase();
+    const activeLeg = leg || _releaseGetActiveLeg_(mission);
+    const fromIcao = String(activeLeg.from || '').trim().toUpperCase();
     const acftReg = String(mission && mission.acft || '').trim().toUpperCase();
 
     const acftObj = (window.appData && Array.isArray(window.appData.aircraft))
@@ -430,10 +472,25 @@
     const aptObj = airports.find(a => String(a.icao || '').trim().toUpperCase() === fromIcao) || null;
 
     const acftTypeRef = String((acftObj && (acftObj.typeForPerformance || acftObj.aircraftType)) || '').toUpperCase();
-    const use550 = acftTypeRef.indexOf('550') >= 0;
-    const mtow520 = Math.round(Number(aptObj && aptObj.mtow520 || 0));
-    const mtow550 = Math.round(Number(aptObj && aptObj.mtow550 || 0));
-    const maxTakeoffWeight = use550 ? mtow550 : mtow520;
+    const mtowByModel = (aptObj && aptObj.mtowByModel && typeof aptObj.mtowByModel === 'object') ? aptObj.mtowByModel : {};
+    const mtowKeys = Object.keys(mtowByModel);
+
+    let mtowModelKey = '';
+    if (mtowKeys.length && acftTypeRef) {
+      const acftNorm = acftTypeRef.replace(/[^A-Z0-9]+/g, '_');
+      const sortedKeys = mtowKeys.slice().sort(function(a, b) { return String(b || '').length - String(a || '').length; });
+      mtowModelKey = sortedKeys.find(k => acftNorm.indexOf(String(k || '').toUpperCase()) >= 0) || '';
+    }
+    if (!mtowModelKey) {
+      if (mtowByModel.GENERIC) mtowModelKey = 'GENERIC';
+      else if (mtowKeys.length) mtowModelKey = mtowKeys[0];
+    }
+
+    let maxTakeoffWeight = Number(mtowByModel[mtowModelKey] || 0);
+    if (!(maxTakeoffWeight > 0)) {
+      const mtowVals = mtowKeys.map(k => Number(mtowByModel[k] || 0)).filter(v => isFinite(v) && v > 0);
+      if (mtowVals.length) maxTakeoffWeight = Math.max.apply(null, mtowVals);
+    }
 
     const pilotNotes = String((selected && selected.pilotNotes) || (aptObj && aptObj.pilotNotes) || '').trim();
     const airstripPhoto = String((selected && selected.airstripPhoto) || (aptObj && aptObj.airstripPhoto) || '').trim();
@@ -442,6 +499,10 @@
       runwayIdent: String(selected && selected.rwyIdent || 'N/A'),
       runwayLengthM: runwayLengthM,
       runwayWidthM: runwayWidthM,
+      officialRunwayLengthM: officialLengthM,
+      officialRunwayWidthM: officialWidthM,
+      internalUpdatedAt: internalUpdatedAt,
+      internalUpdatedLabel: internalUpdatedLabel,
       surface: surface,
       surfaceCondition: surfaceCondition,
       elevationFt: elevationFt,
@@ -457,8 +518,8 @@
       rollStopM: rollStopM,
       abortPointM: abortPointM,
       maxTakeoffWeight: maxTakeoffWeight,
-      mtow520: mtow520,
-      mtow550: mtow550,
+      mtowModelKey: mtowModelKey,
+      mtowByModel: mtowByModel,
       pilotNotes: pilotNotes,
       airstripPhoto: airstripPhoto
     };
@@ -497,13 +558,13 @@
     };
   }
 
-  function _releaseBuildMessage(mission, riskTotal, riskDetail) {
-    const firstLeg = mission && mission.legs && mission.legs[0] ? mission.legs[0] : {};
-    const flightId = firstLeg.flightLegId || mission.id || 'N/A';
-    const route = _releaseFlightRoute(firstLeg);
-    const flightPlan = _releaseResolveFlightPlan_(mission, firstLeg);
-    const pax = Array.isArray(firstLeg.pax)
-      ? firstLeg.pax.filter(p => String(p.name || '').toUpperCase() !== 'FREIGHT')
+  function _releaseBuildMessage(mission, riskTotal, riskDetail, leg) {
+    const activeLeg = leg || _releaseGetActiveLeg_(mission);
+    const flightId = (activeLeg && (activeLeg.flightLegId || activeLeg.flight_id || activeLeg.id)) || mission.id || 'N/A';
+    const route = _releaseFlightRoute(activeLeg);
+    const flightPlan = _releaseResolveFlightPlan_(mission, activeLeg);
+    const pax = Array.isArray(activeLeg.pax)
+      ? activeLeg.pax.filter(p => String(p.name || '').toUpperCase() !== 'FREIGHT')
       : [];
     const pob = 1 + (mission && mission.meta && mission.meta.copilot ? 1 : 0) + pax.length;
     const manifestLines = pax.length
@@ -615,14 +676,19 @@
       return;
     }
 
-    const firstLeg = mission.legs[0] || {};
-    const preview = _releaseBuildMessage(mission, 0, {});
-    const brief = _releaseGetRunwayContext(mission);
+    const activeLeg = _releaseGetActiveLeg_(mission);
+    const activeLegId = String((activeLeg && (activeLeg.flightLegId || activeLeg.flight_id || activeLeg.id)) || '').trim();
+    if (activeLegId) {
+      try { window.activeLegFlightId = activeLegId; } catch (e) {}
+    }
+    const preview = _releaseBuildMessage(mission, 0, {}, activeLeg);
+    const brief = _releaseGetRunwayContext(mission, activeLeg);
 
     window.releaseTab5State = {
       missionId: mission.id || '',
       flightId: preview.flightId,
-      flightLegId: firstLeg.flightLegId || '',
+      flightLegId: activeLegId,
+      activeLeg: activeLeg,
       selected: {},
       total: 0,
       mission: mission,
@@ -634,8 +700,8 @@
       <div class="release5-card">
         <div class="release5-subtitle">Runway Briefing</div>
         <div class="release5-grid">
-          <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • ${brief.runwayLengthM || 0}m × ${brief.runwayWidthM || 0}m</div>
-          <div class="release5-chip"><b>Cutdown Area:</b> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" style="height:30px; width:110px; margin-left:6px;"> <small style="color:#666; font-weight:500;" title="This data is critical because runway widths can change rapidly in jungle areas. Data entered here is pushed to official DB_Airports for future mission planning.">❓ Jungle widths vary</small></div>
+          <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • <span title="Internal measured runway dimensions">Internal ${brief.runwayLengthM || 0}m × ${brief.runwayWidthM || 0}m</span> • <span title="Official DB_Airports runway dimensions">Official ${brief.officialRunwayLengthM || 0}m × ${brief.officialRunwayWidthM || 0}m</span><br><small style="color:#546e7a; font-weight:600;">Internal date: ${brief.internalUpdatedLabel || 'N/A'}</small></div>
+          <div class="release5-chip"><b>Cutdown Area:</b> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" style="height:30px; width:110px; margin-left:6px;"> <small style="color:#666; font-weight:500;" title="This data is critical because runway widths can change rapidly in jungle areas. Data entered here is pushed to DB_Airports internal runway data after supervisor approval.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>
           <div class="release5-chip"><b>Surface:</b> ${brief.surface || 'N/A'} • ${String(brief.surfaceCondition || 'DRY').toUpperCase()}</div>
           <div class="release5-chip"><b>Wind:</b> ${brief.windDir || 0}° / ${brief.windSpd || 0}kt • H/T ${brief.headTailKts || 0}kt • XW ${brief.crosswindKts || 0}kt</div>
           <div class="release5-chip"><b>Abort:</b> ${brief.abortPointM || 0}m • TO ${brief.takeoffRollM || 0}m • TO+Stop Roll ${brief.rollStopM || 0}m</div>
@@ -704,7 +770,8 @@
     // Rebuild preview with live risk score
     const mission = window.releaseTab5State.mission;
     if (mission) {
-      const prev = _releaseBuildMessage(mission, info.total, window.releaseTab5State.selected);
+      const leg = window.releaseTab5State.activeLeg || _releaseGetActiveLeg_(mission);
+      const prev = _releaseBuildMessage(mission, info.total, window.releaseTab5State.selected, leg);
       window.releaseTab5State.currentMsg = prev;
       const previewEl = document.getElementById('release5-preview');
       if (previewEl) previewEl.innerHTML = prev.full.replace(/</g, '&lt;').replace(/\n/g, '<br>');
@@ -763,15 +830,16 @@
     }
 
     const mission = window.releaseTab5State.mission || window.currentBriefingMission || null;
-    const firstLeg = mission && mission.legs && mission.legs[0] ? mission.legs[0] : {};
+    const activeLeg = window.releaseTab5State.activeLeg || _releaseGetActiveLeg_(mission);
+    const activeLegId = String((activeLeg && (activeLeg.flightLegId || activeLeg.flight_id || activeLeg.id)) || '').trim();
     const wbCtx = _releaseGetWbSnapshot();
-    const runwayCtx = _releaseGetRunwayContext(mission || {});
+    const runwayCtx = _releaseGetRunwayContext(mission || {}, activeLeg);
     const msgObj = window.releaseTab5State.currentMsg || {};
 
     const payload = {
       missionId: window.releaseTab5State.missionId,
       flightId: window.releaseTab5State.flightId,
-      flightLegId: window.releaseTab5State.flightLegId || firstLeg.flightLegId || '',
+      flightLegId: window.releaseTab5State.flightLegId || activeLegId,
       riskTotal: score.total,
       riskDetail: window.releaseTab5State.selected,
       chatMessage: msgObj.full || '',
@@ -783,7 +851,7 @@
       missionId: window.releaseTab5State.missionId,
       flightId: window.releaseTab5State.flightId,
       flightLegId: payload.flightLegId,
-      icao: String(firstLeg.from || '').trim().toUpperCase(),
+      icao: String(activeLeg.from || '').trim().toUpperCase(),
       rwyIdent: String(runwayCtx.runwayIdent || '').trim().toUpperCase(),
       pilotName: String(mission && mission.pilot || '').trim(),
       pilotEmail: String(mission && mission.meta && mission.meta.pilotEmail || '').trim(),
@@ -802,7 +870,10 @@
         lengthM: Number(runwayCtx.runwayLengthM || 0),
         widthM: Number(runwayCtx.runwayWidthM || 0),
         surface: String(runwayCtx.surface || '').trim(),
-        headingDeg: Number(runwayCtx.heading || 0)
+        headingDeg: Number(runwayCtx.heading || 0),
+        maxTakeoffWeight: Number(runwayCtx.maxTakeoffWeight || 0),
+        mtowModelKey: String(runwayCtx.mtowModelKey || ''),
+        mtowByModel: (runwayCtx.mtowByModel && typeof runwayCtx.mtowByModel === 'object') ? runwayCtx.mtowByModel : {}
       }
     };
 
@@ -815,21 +886,34 @@
       // Update cached mission leg status → DEPARTED (persists offline)
       (function() {
         try {
-          var mid = String(window.releaseTab5State.missionId || '');
+          var mid = String(window.releaseTab5State.missionId || payload.missionId || (window.currentBriefingMission && window.currentBriefingMission.id) || '');
           if (!mid) return;
-          var key = 'mission_' + mid;
-          var cached = null;
-          try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
-          if (!cached || !Array.isArray(cached.legs)) return;
           var fid = String(payload.flightLegId || '');
-          var leg = cached.legs.find(function(l) { return String(l.flightLegId || '') === fid; });
-          if (!leg) return;
           var now = new Date().toISOString();
-          leg.logStatus = 'DEPARTED';
-          leg.bracesRelease = now;
-          localStorage.setItem(key, JSON.stringify(cached));
+
+          var writeKey = function(key) {
+            var cached = null;
+            try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+            if ((!cached || !Array.isArray(cached.legs)) && window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
+              cached = JSON.parse(JSON.stringify(window.currentBriefingMission));
+            }
+            if (!cached || !Array.isArray(cached.legs)) return;
+            var leg = cached.legs.find(function(l) {
+              return [l && l.flightLegId, l && l.flight_id, l && l.id].some(function(v) { return String(v || '') === fid; });
+            });
+            if (!leg) return;
+            leg.logStatus = 'DEPARTED';
+            leg.bracesRelease = now;
+            localStorage.setItem(key, JSON.stringify(cached));
+          };
+
+          writeKey('mission_' + mid);
+          writeKey('mba_cache_mission_' + mid);
+
           if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
-            var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l.flightLegId || '') === fid; });
+            var ml = (window.currentBriefingMission.legs || []).find(function(l) {
+              return [l && l.flightLegId, l && l.flight_id, l && l.id].some(function(v) { return String(v || '') === fid; });
+            });
             if (ml) { ml.logStatus = 'DEPARTED'; ml.bracesRelease = now; }
           }
         } catch (e) { console.warn('leg cache update (DEPARTED) failed', e); }
@@ -840,6 +924,7 @@
         btn.classList.add('released');
       }
       if (window.M) M.toast({ html: 'Brakes released. Flight is now In-Flight.', classes: 'green', displayLength: 6000 });
+      try { window.activeLegFlightId = String(payload.flightLegId || ''); } catch (e) {}
       switchTab(6);
     };
 

@@ -31,6 +31,11 @@
     <div class="step" onclick="switchTab(8)" id="step8">8. Log</div>
   </div>
 
+  <div id="lesson-link-bar" style="display:none; margin:6px 10px 0 10px; padding:8px 10px; border:1px solid #d0e3f7; background:#f3f9ff; border-radius:8px; align-items:center; justify-content:space-between; gap:10px;">
+    <div style="font-size:0.78rem; color:#0b5394; font-weight:800; text-transform:uppercase; letter-spacing:0.03em;">Plano de Aula Ativo: <span id="lesson-link-code" style="color:#263238; font-weight:900;">---</span></div>
+    <button type="button" class="btn blue darken-2" style="height:30px; line-height:30px; font-size:0.72rem; font-weight:800; padding:0 10px; border-radius:7px;" onclick="openLessonPlanModal_()">ABRIR PLANO / AVALIAÇÃO</button>
+  </div>
+
 <div id="main-container">
   <div id="tab1" class="app-tab active">
     <h5 style="margin-left: 10px; font-weight: 800; color: #0b5394;">MISSION DASHBOARD</h5>
@@ -110,6 +115,10 @@
         <i class="material-icons">gps_fixed</i>
         <span>Runway Survey</span>
       </div>
+      <div class="action-btn" onclick="tab1GuardedAction_('openWaterRunwaySurveyTool')">
+        <i class="material-icons">waves</i>
+        <span>Water Survey</span>
+      </div>
       <div class="action-btn" onclick="tab1GuardedAction_('openTab1Inclinometer')">
         <i class="material-icons">straighten</i>
         <span>Inclinometer</span>
@@ -155,6 +164,19 @@
     <div id="fuelList"></div> </div>
   <div class="modal-footer">
     <button type="button" class="btn-flat" onclick="closeFuelModals()">Close</button>
+  </div>
+</div>
+
+<div id="lesson-plan-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:12050; align-items:center; justify-content:center; padding:12px;">
+  <div style="width:100%; max-width:980px; max-height:92vh; overflow:auto; background:#fff; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,0.24);">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #eef1f4;">
+      <div>
+        <div style="font-size:1.02rem; font-weight:900; color:#0b5394;">Plano de Aula e Avaliação</div>
+        <div id="lesson-plan-subtitle" style="font-size:0.76rem; color:#607d8b; font-weight:700;">Sem aula ativa.</div>
+      </div>
+      <button type="button" class="btn-flat" style="font-weight:900;" onclick="closeLessonPlanModal_()">FECHAR</button>
+    </div>
+    <div id="lesson-plan-content" style="padding:12px 14px 16px 14px;"></div>
   </div>
 </div>
 <div id="modalFuelAdjust" class="modal">
@@ -332,27 +354,70 @@
     </div>
   </div>
 </div>
+
+<div id="duty-closeout-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10052; align-items:center; justify-content:center; padding:16px;">
+  <div style="width:100%; max-width:520px; background:#fff; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,0.24); overflow:hidden;">
+    <div style="padding:14px 16px 10px 16px; border-bottom:1px solid #eef1f4;">
+      <div style="font-size:1rem; font-weight:900; color:#0b5394;">Fechamento de Jornada</div>
+      <div style="font-size:0.78rem; color:#607d8b; font-weight:700;">Confirme os dados do dia e finalize sua jornada.</div>
+    </div>
+    <div style="padding:14px 16px 8px 16px;">
+      <div style="font-size:0.82rem; color:#455a64; font-weight:800; margin-bottom:8px;">Início informado: <span id="duty-closeout-start" style="color:#0b5394;">--:--</span></div>
+      <label style="display:block; font-size:0.74rem; font-weight:800; color:#0b5394; text-transform:uppercase; margin-bottom:4px;">Tempo de voo do dia (horas)</label>
+      <input id="duty-closeout-flight-hours" type="number" step="0.1" min="0" style="width:100%; height:40px; border:1px solid #cfd8dc; border-radius:8px; padding:0 10px; box-sizing:border-box; margin-bottom:10px;">
+
+      <label style="display:block; font-size:0.74rem; font-weight:800; color:#0b5394; text-transform:uppercase; margin-bottom:4px;">Resumo automático</label>
+      <textarea id="duty-closeout-summary" readonly style="width:100%; min-height:62px; border:1px solid #cfd8dc; border-radius:8px; padding:8px 10px; box-sizing:border-box; resize:vertical; background:#f7fbff; color:#37474f; margin-bottom:10px;"></textarea>
+
+      <label style="display:block; font-size:0.74rem; font-weight:800; color:#0b5394; text-transform:uppercase; margin-bottom:4px;">Descrição curta</label>
+      <textarea id="duty-closeout-desc" placeholder="Ex.: Voo humanitário, treinamento, translado" style="width:100%; min-height:68px; border:2px solid #1976d2; border-radius:8px; padding:8px 10px; box-sizing:border-box; resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; padding:12px 16px 16px 16px;">
+      <button id="duty-closeout-ignore" type="button" class="btn-flat" style="font-weight:800;">Ignorar</button>
+      <button id="duty-closeout-submit" type="button" class="btn blue darken-3" style="font-weight:800;">Encerrar jornada</button>
+    </div>
+  </div>
+</div>
+
+<div id="duty-geo-verify-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10053; align-items:center; justify-content:center; padding:16px;">
+  <div style="width:100%; max-width:560px; background:#fff; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,0.24); overflow:hidden;">
+    <div style="padding:14px 16px 10px 16px; border-bottom:1px solid #eef1f4;">
+      <div style="font-size:1rem; font-weight:900; color:#0b5394;">Verificação de Geofence</div>
+      <div style="font-size:0.78rem; color:#607d8b; font-weight:700;">Confira sua posição antes de confirmar a jornada.</div>
+    </div>
+    <div style="padding:12px 16px 8px 16px;">
+      <div id="duty-geo-verify-coords" style="font-size:0.76rem; color:#455a64; font-weight:700; margin-bottom:8px;"></div>
+      <div id="duty-geo-verify-map" style="height:220px; border:1px solid #d6e7ff; border-radius:8px;"></div>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; padding:12px 16px 16px 16px;">
+      <button id="duty-geo-verify-cancel" type="button" class="btn-flat" style="font-weight:800;">Cancelar</button>
+      <button id="duty-geo-verify-ok" type="button" class="btn blue darken-3" style="font-weight:800;">Confirmar posição</button>
+    </div>
+  </div>
+</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 
 <script>
     let currentTab = 1;
     let activeMission = null;
     let appData = {};
+    let _activeLessonContext = null;
     const PILOT_TAB_VERSIONS = Object.freeze({
       1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 101 }),
       2: Object.freeze({ shortLabel: 'Brief', fullLabel: 'Briefing', version: 180 }),
       3: Object.freeze({ shortLabel: 'W&B', fullLabel: 'Weight & Balance', version: 103 }),
       4: Object.freeze({ shortLabel: 'Perf', fullLabel: 'Performance', version: 104 }),
       5: Object.freeze({ shortLabel: 'Release', fullLabel: 'Release', version: 105 }),
-      6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 118 }),
+      6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 126 }),
       7: Object.freeze({ shortLabel: 'Arrv', fullLabel: 'Arrival', version: 107 }),
-      8: Object.freeze({ shortLabel: 'Log', fullLabel: 'Debrief Log', version: 108 })
+      8: Object.freeze({ shortLabel: 'Log', fullLabel: 'Debrief Log', version: 123 })
     });
     const OFFLINE_CACHE_KEYS = {
       DROPDOWN_DATA: 'mba_cache_dropdown_data_v1',
       SCHEDULED_MISSIONS: 'mba_cache_scheduled_missions_v1',
       PREFETCH_META: 'mba_cache_prefetch_meta_v1',
-      OUTBOX: 'mba_outbox_v1'
+      OUTBOX: 'mba_outbox_v1',
+      DUTY_PROMPT_STATE: 'mba_duty_prompt_state_v1'
     };
     const NEW_FLIGHT_URL = '';
     const WEB_APP_URL = <?!= JSON.stringify(typeof webAppUrl === 'string' ? webAppUrl : '') ?>;
@@ -425,6 +490,213 @@
       } catch (e) {
         return '';
       }
+    }
+
+    function _lessonSafeParseJson_(raw, fallback) {
+      try { return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
+    }
+
+    function _buildLessonContextFromMission_(mission) {
+      var training = mission && mission.meta ? mission.meta.training : null;
+      var code = String(training && training.code || '').trim();
+      if (!code) return null;
+      var syllabus = Array.isArray(appData && appData.syllabus) ? appData.syllabus : [];
+      var row = syllabus.find(function(s) { return String(s && s.code || '') === code; }) || null;
+      var plan = _lessonSafeParseJson_(row && row.lessonPlanJson, null);
+      var stops = [];
+      if (plan && Array.isArray(plan.stops)) {
+        stops = plan.stops;
+      } else if (row && row.plannedStopsJson) {
+        stops = _lessonSafeParseJson_(row.plannedStopsJson, []);
+      } else {
+        stops = String(training && training.route || '').split(',').map(function(s) {
+          var loc = String(s || '').trim().toUpperCase();
+          return loc ? { location: loc, landings: 0, touchAndGos: 0 } : null;
+        }).filter(Boolean);
+      }
+      var maneuvers = [];
+      if (plan && Array.isArray(plan.maneuvers)) maneuvers = plan.maneuvers.slice();
+      else if (row && row.maneuversJson) {
+        var mv = _lessonSafeParseJson_(row.maneuversJson, {});
+        maneuvers = Array.isArray(mv && mv.maneuvers) ? mv.maneuvers.slice() : [];
+      }
+      return {
+        code: code,
+        title: String((row && row.description) || (training && training.description) || code),
+        category: String((plan && plan.category) || ''),
+        routeCheckPrompt: String((plan && plan.routeCheckPrompt) || ''),
+        runwayCheckLocation: String((plan && plan.runwayCheckLocation) || ''),
+        externalLessonName: String((plan && plan.externalLessonName) || ''),
+        stops: stops,
+        maneuvers: maneuvers,
+        mission: mission || {}
+      };
+    }
+
+    function renderLessonLinkBar_() {
+      var bar = document.getElementById('lesson-link-bar');
+      var codeEl = document.getElementById('lesson-link-code');
+      if (!bar || !codeEl) return;
+      if (!_activeLessonContext || !_activeLessonContext.code) {
+        bar.style.display = 'none';
+        codeEl.textContent = '---';
+        return;
+      }
+      codeEl.textContent = _activeLessonContext.code;
+      bar.style.display = 'flex';
+    }
+
+    function loadActiveLessonContext_() {
+      if (!activeMission) {
+        _activeLessonContext = null;
+        renderLessonLinkBar_();
+        return;
+      }
+      fetchMissionDetails(activeMission, function(mission) {
+        _activeLessonContext = _buildLessonContextFromMission_(mission);
+        renderLessonLinkBar_();
+      }, function() {
+        _activeLessonContext = null;
+        renderLessonLinkBar_();
+      });
+    }
+
+    function _lessonRatingSelectHtml_(name) {
+      return '<select data-lesson-score="' + name + '" class="browser-default" style="height:30px; font-size:0.78rem;">'
+        + '<option value="">-</option>'
+        + '<option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>'
+        + '</select>';
+    }
+
+    function lessonStorageKey_() {
+      var ctx = _activeLessonContext || {};
+      var missionId = String(ctx.mission && ctx.mission.id || activeMission || '').trim();
+      var code = String(ctx.code || '').trim();
+      if (!missionId || !code) return '';
+      return 'mba_lesson_eval_' + missionId + '_' + code;
+    }
+
+    function lessonCollectEvaluation_() {
+      var key = lessonStorageKey_();
+      if (!key) return;
+      var payload = { scores: {}, notes: {} };
+      document.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
+        var k = String(sel.getAttribute('data-lesson-score') || '');
+        payload.scores[k] = String(sel.value || '');
+      });
+      document.querySelectorAll('.lesson-note-list').forEach(function(wrap, idx) {
+        var items = [];
+        wrap.querySelectorAll('[data-lesson-note-item]').forEach(function(div) {
+          items.push(String(div.textContent || '').replace(/^•\s*/, '').trim());
+        });
+        payload.notes[String(idx)] = items;
+      });
+      try { localStorage.setItem(key, JSON.stringify(payload)); } catch (e) {}
+    }
+
+    function lessonRestoreEvaluation_() {
+      var key = lessonStorageKey_();
+      if (!key) return;
+      var raw = '';
+      try { raw = localStorage.getItem(key) || ''; } catch (e) { raw = ''; }
+      if (!raw) return;
+      var parsed = _lessonSafeParseJson_(raw, null);
+      if (!parsed || typeof parsed !== 'object') return;
+      var scores = parsed.scores || {};
+      var notes = parsed.notes || {};
+      document.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
+        var k = String(sel.getAttribute('data-lesson-score') || '');
+        if (Object.prototype.hasOwnProperty.call(scores, k)) sel.value = String(scores[k] || '');
+      });
+      document.querySelectorAll('.lesson-note-list').forEach(function(wrap, idx) {
+        var keyIdx = String(idx);
+        var list = Array.isArray(notes[keyIdx]) ? notes[keyIdx] : [];
+        wrap.innerHTML = '';
+        list.forEach(function(text) {
+          var div = document.createElement('div');
+          div.style.fontSize = '0.74rem';
+          div.style.marginTop = '4px';
+          div.style.color = '#455a64';
+          div.textContent = '• ' + String(text || '');
+          div.setAttribute('data-lesson-note-item', '1');
+          wrap.appendChild(div);
+        });
+      });
+    }
+
+    function _lessonRenderGradeRows_(items, kind) {
+      if (!items || !items.length) return '<div style="font-size:0.82rem; color:#78909c; padding:6px 0;">Sem itens.</div>';
+      return '<table style="width:100%; border-collapse:collapse; font-size:0.79rem;">'
+        + '<thead><tr><th style="border:1px solid #e5edf5; background:#eff5fb; padding:6px; text-align:left;">#</th><th style="border:1px solid #e5edf5; background:#eff5fb; padding:6px; text-align:left;">' + (kind === 'landing' ? 'Ponto/Pousos' : 'Manobra') + '</th><th style="border:1px solid #e5edf5; background:#eff5fb; padding:6px; text-align:left;">Nota (1-4)</th><th style="border:1px solid #e5edf5; background:#eff5fb; padding:6px; text-align:left;">Notas</th></tr></thead>'
+        + '<tbody>' + items.map(function(item, idx) {
+          var label = kind === 'landing'
+            ? (String(item.location || '') + ' | Pousos: ' + Number(item.landings || 0) + ' | T&G: ' + Number(item.touchAndGos || 0))
+            : String(item || '');
+          return '<tr>'
+            + '<td style="border:1px solid #e5edf5; padding:6px;">' + (idx + 1) + '</td>'
+            + '<td style="border:1px solid #e5edf5; padding:6px;">' + label.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</td>'
+            + '<td style="border:1px solid #e5edf5; padding:6px; min-width:92px;">' + _lessonRatingSelectHtml_(kind + '-' + idx) + '</td>'
+            + '<td style="border:1px solid #e5edf5; padding:6px;"><button type="button" class="btn-flat" style="font-size:0.72rem; font-weight:800; padding:0 6px;" onclick="lessonAddInlineNote_(this)">+ NOTA</button><div class="lesson-note-list"></div></td>'
+            + '</tr>';
+        }).join('') + '</tbody></table>';
+    }
+
+    function openLessonPlanModal_() {
+      if (!_activeLessonContext) {
+        if (window.M) M.toast({ html: 'Nenhum plano de aula ativo nesta missão.', classes: 'orange' });
+        return;
+      }
+      var ctx = _activeLessonContext;
+      var modal = document.getElementById('lesson-plan-modal');
+      var sub = document.getElementById('lesson-plan-subtitle');
+      var content = document.getElementById('lesson-plan-content');
+      if (!modal || !sub || !content) return;
+
+      var mission = ctx.mission || {};
+      var meta = mission.meta || {};
+      var firstLeg = (mission.legs && mission.legs[0]) || {};
+      sub.textContent = String(ctx.code || '') + ' • ' + String(ctx.title || 'Plano de Aula');
+      content.innerHTML = ''
+        + '<div style="font-size:0.8rem; line-height:1.6; color:#37474f; margin-bottom:10px;">'
+        + '<b>Data:</b> ' + String(meta.date || mission.date || '') + ' &nbsp; <b>Matrícula:</b> ' + String(meta.acft || mission.acft || '') + ' &nbsp; <b>Piloto:</b> ' + String(meta.pilot || mission.pilot || '') + ' &nbsp; <b>Instrutor:</b> ' + String(meta.copilot || '')
+        + '<br><b>Rota:</b> ' + String(firstLeg.route || (ctx.stops || []).map(function(s){ return s.location; }).join(' -> '))
+        + (ctx.externalLessonName ? ('<br><b>Ref. Externa:</b> ' + String(ctx.externalLessonName)) : '')
+        + (ctx.routeCheckPrompt ? ('<br><b>Rota Check:</b> ' + String(ctx.routeCheckPrompt)) : '')
+        + (ctx.runwayCheckLocation ? ('<br><b>Pista Check:</b> ' + String(ctx.runwayCheckLocation)) : '')
+        + '</div>'
+        + '<h6 style="margin:8px 0 6px 0; color:#0b5394; font-weight:900;">Avaliação de Pousos</h6>'
+        + _lessonRenderGradeRows_(ctx.stops || [], 'landing')
+        + '<h6 style="margin:12px 0 6px 0; color:#0b5394; font-weight:900;">Avaliação de Manobras</h6>'
+        + _lessonRenderGradeRows_(ctx.maneuvers || [], 'maneuver');
+
+      content.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
+        sel.addEventListener('change', lessonCollectEvaluation_);
+      });
+      lessonRestoreEvaluation_();
+
+      modal.style.display = 'flex';
+    }
+
+    function closeLessonPlanModal_() {
+      var modal = document.getElementById('lesson-plan-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function lessonAddInlineNote_(btn) {
+      var wrap = btn && btn.parentElement ? btn.parentElement.querySelector('.lesson-note-list') : null;
+      if (!wrap) return;
+      var text = prompt('Digite a observação:');
+      if (text == null) return;
+      var safe = String(text || '').trim();
+      if (!safe) return;
+      var div = document.createElement('div');
+      div.style.fontSize = '0.74rem';
+      div.style.marginTop = '4px';
+      div.style.color = '#455a64';
+      div.textContent = '• ' + safe;
+      div.setAttribute('data-lesson-note-item', '1');
+      wrap.appendChild(div);
+      lessonCollectEvaluation_();
     }
 
     function _pilotBestBaseUrl_() {
@@ -507,6 +779,12 @@
     const OFFLINE_CACHE_STALE_MS = 24 * 60 * 60 * 1000;
     const OFFLINE_ENVELOPE_STALE_MS = 30 * 24 * 60 * 60 * 1000;
     const OFFLINE_CACHE_MAX_MISSIONS = 60;
+    let _dutyPromptTimer = null;
+    let _dutyPromptBusy = false;
+    let _dutyGeoVerifyMap = null;
+    let _dutyGeoVerifyCurrentMarker = null;
+    let _dutyGeoVerifyTargetMarker = null;
+    let _dutyGeoVerifyCircle = null;
     const FLIGHTAPP_DIALOG_STATE = {
       resolver: null,
       mode: 'alert'
@@ -605,6 +883,547 @@
     window.flightAppPrompt = function(message, defaultValue, options) {
       return _flightAppOpenDialog('prompt', message, { ...(options || {}), defaultValue: defaultValue });
     };
+
+    function _dutyGetCachedPromptState_() {
+      const v = cacheGet(OFFLINE_CACHE_KEYS.DUTY_PROMPT_STATE);
+      return (v && typeof v === 'object') ? v : {};
+    }
+
+    function _dutySetCachedPromptState_(state) {
+      const next = (state && typeof state === 'object') ? state : {};
+      cacheSet(OFFLINE_CACHE_KEYS.DUTY_PROMPT_STATE, next);
+    }
+
+    function _dutyNowBsb_() {
+      const now = new Date();
+      const ymd = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+      const hh = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Sao_Paulo', hour12: false, hour: '2-digit' }).format(now));
+      const mm = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Sao_Paulo', hour12: false, minute: '2-digit' }).format(now));
+      const hhmm = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+      return { ymd: ymd, hour: hh, minute: mm, hhmm: hhmm };
+    }
+
+    function _dutyResolvePilotName_() {
+      const current = window.currentBriefingMission;
+      if (current && String(current.pilot || '').trim()) return String(current.pilot || '').trim();
+
+      const missions = cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || [];
+      if (activeMission) {
+        const selected = missions.find(function(m) { return String(m && m.id || '') === String(activeMission || ''); });
+        if (selected && String(selected.pilot || '').trim()) return String(selected.pilot || '').trim();
+      }
+
+      const nonTbd = missions.find(function(m) {
+        const p = String((m && m.pilot) || '').trim();
+        const up = p.toUpperCase();
+        return p && up !== 'PILOT TBD' && up !== 'TBD' && up !== 'UNASSIGNED';
+      });
+      if (nonTbd) return String(nonTbd.pilot || '').trim();
+      return '';
+    }
+
+    function _dutyGetConfig_(snapshot) {
+      return (snapshot && snapshot.dutyConfig && typeof snapshot.dutyConfig === 'object') ? snapshot.dutyConfig : {};
+    }
+
+    function _dutyGetGeofenceRadiusKm_(snapshot) {
+      const cfg = _dutyGetConfig_(snapshot);
+      const raw = String(cfg.DUTY_GEOFENCE_RADIUS_KM || '').trim().replace(',', '.');
+      const parsed = Number(raw);
+      return (isFinite(parsed) && parsed > 0) ? parsed : 8;
+    }
+
+    function _dutyParseGeofenceLine_(lineRaw) {
+      const line = String(lineRaw || '').trim();
+      if (!line) return null;
+
+      const hemiPair = line.match(/^(.+?[NSns])\s*[,;|\/]\s*(.+?[EWew])$/);
+      if (hemiPair) {
+        const latH = _parseCoordinate(hemiPair[1]);
+        const lonH = _parseCoordinate(hemiPair[2]);
+        if (isFinite(latH) && isFinite(lonH)) return { lat: latH, lon: lonH };
+      }
+
+      const parts = line.split(/\s*[;|]\s*/).filter(Boolean);
+      if (parts.length === 2) {
+        const latS = _parseCoordinate(parts[0]);
+        const lonS = _parseCoordinate(parts[1]);
+        if (isFinite(latS) && isFinite(lonS)) return { lat: latS, lon: lonS };
+      }
+
+      const commaPair = line.match(/^\s*([+\-]?\d+(?:[\.,]\d+)?)\s*,\s*([+\-]?\d+(?:[\.,]\d+)?)\s*$/);
+      if (commaPair) {
+        const latC = _parseCoordinate(commaPair[1]);
+        const lonC = _parseCoordinate(commaPair[2]);
+        if (isFinite(latC) && isFinite(lonC)) return { lat: latC, lon: lonC };
+      }
+
+      const nums = line.match(/[+\-]?\d+(?:[\.,]\d+)?/g) || [];
+      if (nums.length === 2) {
+        const latN = _parseCoordinate(nums[0]);
+        const lonN = _parseCoordinate(nums[1]);
+        if (isFinite(latN) && isFinite(lonN)) return { lat: latN, lon: lonN };
+      }
+
+      return null;
+    }
+
+    function _dutyParseGeofencePoints_(snapshot) {
+      const cfg = _dutyGetConfig_(snapshot);
+      const raw = String(cfg.DUTY_GEOFENCE_COORDS || cfg.DUTY_HOME_AIRPORTS || '').trim();
+      if (!raw) return [];
+      const lines = raw.split(/\r?\n+/).map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+      const points = [];
+      lines.forEach(function(line, idx) {
+        const parsed = _dutyParseGeofenceLine_(line);
+        if (!parsed) return;
+        if (!isFinite(parsed.lat) || !isFinite(parsed.lon)) return;
+        if (parsed.lat < -90 || parsed.lat > 90 || parsed.lon < -180 || parsed.lon > 180) return;
+        points.push({
+          lat: parsed.lat,
+          lon: parsed.lon,
+          label: 'Ponto ' + (idx + 1)
+        });
+      });
+      return points;
+    }
+
+    function _dutyDistanceKm_(lat1, lon1, lat2, lon2) {
+      const nm = _offfltHaversineNm(lat1, lon1, lat2, lon2);
+      return isFinite(nm) ? (nm * 1.852) : NaN;
+    }
+
+    function _dutyGetPositionContext_(snapshot) {
+      return new Promise(function(resolve) {
+        const points = _dutyParseGeofencePoints_(snapshot);
+        const radiusKm = _dutyGetGeofenceRadiusKm_(snapshot);
+        const base = {
+          hasFence: points.length > 0,
+          points: points,
+          radiusKm: radiusKm,
+          available: false,
+          inFence: points.length === 0,
+          hint: ''
+        };
+
+        if (!points.length) {
+          resolve(base);
+          return;
+        }
+
+        if (!(navigator && navigator.geolocation)) {
+          resolve(Object.assign({}, base, { hint: 'Geolocalização indisponível para validar geofence.' }));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          const c = pos && pos.coords ? pos.coords : {};
+          const lat = Number(c.latitude);
+          const lon = Number(c.longitude);
+          if (!isFinite(lat) || !isFinite(lon)) {
+            resolve(Object.assign({}, base, { hint: 'Posição inválida para validar geofence.' }));
+            return;
+          }
+
+          let nearest = null;
+          points.forEach(function(point) {
+            const distKm = _dutyDistanceKm_(lat, lon, point.lat, point.lon);
+            if (!isFinite(distKm)) return;
+            if (!nearest || distKm < nearest.distKm) {
+              nearest = { point: point, distKm: distKm };
+            }
+          });
+
+          const inFence = !!(nearest && nearest.distKm <= radiusKm);
+          const hint = nearest
+            ? ('Distância até geofence: ' + nearest.distKm.toFixed(2) + ' km (raio ' + radiusKm.toFixed(1) + ' km).')
+            : 'Não foi possível calcular distância até a geofence.';
+          resolve(Object.assign({}, base, {
+            available: true,
+            lat: lat,
+            lon: lon,
+            nearest: nearest,
+            inFence: inFence,
+            hint: hint
+          }));
+        }, function() {
+          resolve(Object.assign({}, base, { hint: 'Permissão de localização negada ou indisponível.' }));
+        }, {
+          enableHighAccuracy: false,
+          timeout: 7000,
+          maximumAge: 10 * 60 * 1000
+        });
+      });
+    }
+
+    function _dutyGeoVerifyElements_() {
+      return {
+        overlay: document.getElementById('duty-geo-verify-overlay'),
+        map: document.getElementById('duty-geo-verify-map'),
+        coords: document.getElementById('duty-geo-verify-coords'),
+        ok: document.getElementById('duty-geo-verify-ok'),
+        cancel: document.getElementById('duty-geo-verify-cancel')
+      };
+    }
+
+    function _dutyGeoRenderVerifyMap_(geo) {
+      const els = _dutyGeoVerifyElements_();
+      if (!els.map || !geo || !geo.nearest || !isFinite(geo.lat) || !isFinite(geo.lon)) return;
+
+      _wpEnsureLeaflet(function() {
+        if (!_dutyGeoVerifyMap) {
+          _dutyGeoVerifyMap = L.map('duty-geo-verify-map', { zoomControl: true, attributionControl: false });
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16, minZoom: 2 }).addTo(_dutyGeoVerifyMap);
+        }
+
+        if (_dutyGeoVerifyCurrentMarker) {
+          try { _dutyGeoVerifyMap.removeLayer(_dutyGeoVerifyCurrentMarker); } catch (e) {}
+          _dutyGeoVerifyCurrentMarker = null;
+        }
+        if (_dutyGeoVerifyTargetMarker) {
+          try { _dutyGeoVerifyMap.removeLayer(_dutyGeoVerifyTargetMarker); } catch (e) {}
+          _dutyGeoVerifyTargetMarker = null;
+        }
+        if (_dutyGeoVerifyCircle) {
+          try { _dutyGeoVerifyMap.removeLayer(_dutyGeoVerifyCircle); } catch (e) {}
+          _dutyGeoVerifyCircle = null;
+        }
+
+        _dutyGeoVerifyCurrentMarker = L.marker([geo.lat, geo.lon]).bindTooltip('Sua posição').addTo(_dutyGeoVerifyMap);
+        _dutyGeoVerifyTargetMarker = L.marker([geo.nearest.point.lat, geo.nearest.point.lon]).bindTooltip('Centro geofence').addTo(_dutyGeoVerifyMap);
+        _dutyGeoVerifyCircle = L.circle([geo.nearest.point.lat, geo.nearest.point.lon], {
+          radius: Number(geo.radiusKm || 0) * 1000,
+          color: '#1976d2',
+          weight: 2,
+          fillColor: '#90caf9',
+          fillOpacity: 0.2
+        }).addTo(_dutyGeoVerifyMap);
+
+        const bounds = L.latLngBounds([
+          [geo.lat, geo.lon],
+          [geo.nearest.point.lat, geo.nearest.point.lon]
+        ]);
+        _dutyGeoVerifyMap.fitBounds(bounds.pad(0.6));
+        setTimeout(function() { if (_dutyGeoVerifyMap) _dutyGeoVerifyMap.invalidateSize(); }, 40);
+      });
+    }
+
+    function _dutyOpenGeoVerifyModal_(geo) {
+      return new Promise(function(resolve) {
+        const els = _dutyGeoVerifyElements_();
+        if (!els.overlay || !els.ok || !els.cancel || !els.coords) {
+          resolve(true);
+          return;
+        }
+
+        const nearest = geo && geo.nearest ? geo.nearest : null;
+        const distText = nearest ? nearest.distKm.toFixed(2) : '--';
+        const radiusText = isFinite(geo && geo.radiusKm) ? Number(geo.radiusKm).toFixed(1) : '--';
+        els.coords.textContent = 'Atual: ' + Number(geo.lat).toFixed(6) + ', ' + Number(geo.lon).toFixed(6)
+          + ' | Centro: ' + Number(nearest && nearest.point.lat || 0).toFixed(6) + ', ' + Number(nearest && nearest.point.lon || 0).toFixed(6)
+          + ' | Distância: ' + distText + ' km de ' + radiusText + ' km';
+
+        els.overlay.style.display = 'flex';
+        _dutyGeoRenderVerifyMap_(geo);
+
+        const close = function(ok) {
+          els.overlay.style.display = 'none';
+          els.ok.onclick = null;
+          els.cancel.onclick = null;
+          els.overlay.onclick = null;
+          resolve(!!ok);
+        };
+
+        els.ok.onclick = function() { close(true); };
+        els.cancel.onclick = function() { close(false); };
+        els.overlay.onclick = function(ev) {
+          if (ev.target === els.overlay) close(false);
+        };
+      });
+    }
+
+    function _dutySavePayload_(payload, doneCb) {
+      runOrQueueServerAction({
+        method: 'savePilotDutyReport',
+        args: [payload],
+        label: 'Jornada'
+      }, {
+        onSuccess: function() {
+          if (typeof doneCb === 'function') doneCb(true);
+        },
+        onQueued: function() {
+          if (window.M) M.toast({ html: 'Offline: jornada enfileirada para sincronizar', classes: 'orange' });
+          if (typeof doneCb === 'function') doneCb(true);
+        },
+        onFailure: function(err) {
+          if (window.M) M.toast({ html: 'Falha ao salvar jornada', classes: 'red' });
+          console.error('savePilotDutyReport failed', err);
+          if (typeof doneCb === 'function') doneCb(false);
+        }
+      });
+    }
+
+    async function _dutyPromptMorningStart_(ctx, snapshot, geo) {
+      const now = _dutyNowBsb_();
+      const pilot = ctx.pilotName;
+
+      if (geo && geo.hasFence) {
+        if (!geo.available) {
+          return { prompted: false, blocked: 'location-unavailable', message: geo.hint || 'Sem localização para validar geofence.' };
+        }
+        if (!geo.inFence) {
+          return { prompted: false, blocked: 'outside-geofence', message: geo.hint || 'Fora da geofence configurada.' };
+        }
+        const verified = await _dutyOpenGeoVerifyModal_(geo);
+        if (!verified) {
+          return { prompted: false, blocked: 'map-cancel', message: 'Verificação de posição cancelada.' };
+        }
+      }
+
+      const msg = [
+        'Iniciar jornada de trabalho agora?',
+        '',
+        'Piloto: ' + pilot,
+        'Horário sugerido: ' + now.hhmm + ' BSB',
+        (geo && geo.hasFence) ? (geo.hint || 'Geofence validada por coordenadas.') : 'Dica: você também pode confirmar pelo horário padrão das 08:00.'
+      ].join('\n');
+
+      const ok = await window.flightAppConfirm(msg, {
+        title: 'Jornada Diária',
+        okText: 'Iniciar',
+        cancelText: 'Ignorar'
+      });
+
+      if (!ok) {
+        _dutySavePayload_({
+          pilotName: pilot,
+          dateYmd: ctx.dateYmd,
+          status: 'DUTY_MORNING_IGNORED',
+          ignoredMorning: true,
+          summaryText: 'Prompt matinal ignorado'
+        }, function() {
+          const cache = _dutyGetCachedPromptState_();
+          cache[ctx.dateYmd] = Object.assign({}, cache[ctx.dateYmd] || {}, { morningPrompted: true });
+          _dutySetCachedPromptState_(cache);
+        });
+        return { prompted: true };
+      }
+
+      const entered = await window.flightAppPrompt('Informe o horário de início da jornada (HH:MM):', now.hhmm, {
+        title: 'Jornada Diária',
+        okText: 'Salvar',
+        cancelText: 'Cancelar',
+        inputType: 'text',
+        inputMode: 'numeric'
+      });
+
+      const start = String(entered || '').trim();
+      const valid = /^(\d{1,2}):(\d{2})$/.test(start);
+      if (!valid) {
+        if (window.M) M.toast({ html: 'Horário inválido. Use HH:MM', classes: 'orange' });
+        return { prompted: true };
+      }
+
+      _dutySavePayload_({
+        pilotName: pilot,
+        dateYmd: ctx.dateYmd,
+        status: 'DUTY_OPEN',
+        startTime: start,
+        summaryText: 'Jornada iniciada às ' + start
+      }, function(okSave) {
+        if (okSave && window.M) M.toast({ html: 'Jornada iniciada às ' + start, classes: 'green' });
+        const cache = _dutyGetCachedPromptState_();
+        cache[ctx.dateYmd] = Object.assign({}, cache[ctx.dateYmd] || {}, { morningPrompted: true });
+        _dutySetCachedPromptState_(cache);
+      });
+      return { prompted: true };
+    }
+
+    function _dutyCloseoutElements_() {
+      return {
+        overlay: document.getElementById('duty-closeout-overlay'),
+        start: document.getElementById('duty-closeout-start'),
+        flightHours: document.getElementById('duty-closeout-flight-hours'),
+        summary: document.getElementById('duty-closeout-summary'),
+        desc: document.getElementById('duty-closeout-desc'),
+        submit: document.getElementById('duty-closeout-submit'),
+        ignore: document.getElementById('duty-closeout-ignore')
+      };
+    }
+
+    function _dutyOpenCloseoutModal_(ctx, snapshot) {
+      return new Promise(function(resolve) {
+        const els = _dutyCloseoutElements_();
+        if (!els.overlay || !els.start || !els.flightHours || !els.summary || !els.desc || !els.submit || !els.ignore) {
+          resolve({ action: 'ignore' });
+          return;
+        }
+
+        const auto = (snapshot && snapshot.autofill && typeof snapshot.autofill === 'object') ? snapshot.autofill : {};
+        const entry = (snapshot && snapshot.entry && typeof snapshot.entry === 'object') ? snapshot.entry : {};
+        const start = String(entry.startTime || '').trim() || '--:--';
+        const defaultHours = (entry.flightHours !== '' && entry.flightHours != null)
+          ? String(entry.flightHours)
+          : String(Number(auto.totalFlightHours || 0).toFixed(1));
+
+        els.start.textContent = start;
+        els.flightHours.value = defaultHours;
+        els.summary.value = String(auto.summaryLine || 'Sem voos registrados no dia');
+        els.desc.value = String(entry.description || auto.summaryLine || '');
+        els.overlay.style.display = 'flex';
+
+        const cleanup = function(result) {
+          els.overlay.style.display = 'none';
+          els.submit.onclick = null;
+          els.ignore.onclick = null;
+          els.overlay.onclick = null;
+          resolve(result);
+        };
+
+        els.submit.onclick = function() {
+          cleanup({
+            action: 'submit',
+            flightHours: String(els.flightHours.value || '').trim(),
+            summaryText: String(els.summary.value || '').trim(),
+            description: String(els.desc.value || '').trim()
+          });
+        };
+        els.ignore.onclick = function() {
+          cleanup({ action: 'ignore' });
+        };
+        els.overlay.onclick = function(ev) {
+          if (ev.target === els.overlay) cleanup({ action: 'ignore' });
+        };
+      });
+    }
+
+    async function _dutyPromptEveningClose_(ctx, snapshot, geo) {
+      if (geo && geo.hasFence) {
+        if (!geo.available) {
+          return { prompted: false, blocked: 'location-unavailable', message: geo.hint || 'Sem localização para validar geofence.' };
+        }
+        if (!geo.inFence) {
+          return { prompted: false, blocked: 'outside-geofence', message: geo.hint || 'Fora da geofence configurada.' };
+        }
+      }
+
+      const res = await _dutyOpenCloseoutModal_(ctx, snapshot);
+      const cache = _dutyGetCachedPromptState_();
+      cache[ctx.dateYmd] = Object.assign({}, cache[ctx.dateYmd] || {}, { eveningPrompted: true });
+      _dutySetCachedPromptState_(cache);
+
+      if (!res || res.action !== 'submit') {
+        _dutySavePayload_({
+          pilotName: ctx.pilotName,
+          dateYmd: ctx.dateYmd,
+          status: 'DUTY_EVENING_IGNORED',
+          startTime: String(snapshot && snapshot.entry && snapshot.entry.startTime || '').trim(),
+          ignoredEvening: true,
+          summaryText: 'Prompt de encerramento ignorado'
+        });
+        return { prompted: true };
+      }
+
+      const now = _dutyNowBsb_();
+      const flightHours = Number(String(res.flightHours || '').replace(',', '.'));
+      _dutySavePayload_({
+        pilotName: ctx.pilotName,
+        dateYmd: ctx.dateYmd,
+        status: 'DUTY_CLOSED',
+        startTime: String(snapshot && snapshot.entry && snapshot.entry.startTime || '').trim(),
+        endTime: now.hhmm,
+        flightHours: isFinite(flightHours) ? flightHours : '',
+        summaryText: res.summaryText,
+        description: res.description,
+        autoSummary: (snapshot && snapshot.autofill) ? snapshot.autofill : {}
+      }, function(okSave) {
+        if (okSave && window.M) {
+          M.toast({ html: 'Jornada encerrada às ' + now.hhmm, classes: 'green' });
+        }
+      });
+      return { prompted: true };
+    }
+
+    function _dutyWarnGeofenceOnce_(ymd, key, message) {
+      const cache = _dutyGetCachedPromptState_();
+      const todayState = (cache[ymd] && typeof cache[ymd] === 'object') ? cache[ymd] : {};
+      if (todayState[key]) return;
+      todayState[key] = true;
+      cache[ymd] = todayState;
+      _dutySetCachedPromptState_(cache);
+      if (window.M && message) M.toast({ html: message, classes: 'orange' });
+    }
+
+    function _dutyCanRunByTime_(mode, now) {
+      if (!now) return false;
+      if (mode === 'morning') return now.hour >= 8 && now.hour <= 11;
+      if (mode === 'evening') return now.hour >= 17 && now.hour <= 23;
+      return false;
+    }
+
+    function _dutyCheckPrompts_() {
+      if (_dutyPromptBusy) return;
+      _dutyPromptBusy = true;
+
+      const now = _dutyNowBsb_();
+      const pilotName = _dutyResolvePilotName_();
+      if (!pilotName) {
+        _dutyPromptBusy = false;
+        return;
+      }
+
+      const cache = _dutyGetCachedPromptState_();
+      const todayState = (cache[now.ymd] && typeof cache[now.ymd] === 'object') ? cache[now.ymd] : {};
+      const context = { pilotName: pilotName, dateYmd: now.ymd };
+
+      const finish = function() {
+        _dutyPromptBusy = false;
+      };
+
+      if (!(window.google && google.script && google.script.run)) {
+        finish();
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(async function(snapshot) {
+          try {
+            if (!snapshot || snapshot.success !== true) { finish(); return; }
+            const geo = await _dutyGetPositionContext_(snapshot);
+
+            if (_dutyCanRunByTime_('morning', now) && snapshot.shouldMorningPrompt && !todayState.morningPrompted) {
+              const morningRes = await _dutyPromptMorningStart_(context, snapshot, geo);
+              if (morningRes && morningRes.blocked) {
+                _dutyWarnGeofenceOnce_(context.dateYmd, 'morningGeofenceWarned', morningRes.message || 'Geofence não validada para prompt matinal.');
+              }
+              finish();
+              return;
+            }
+
+            if (_dutyCanRunByTime_('evening', now) && snapshot.shouldEveningPrompt && !todayState.eveningPrompted) {
+              const eveningRes = await _dutyPromptEveningClose_(context, snapshot, geo);
+              if (eveningRes && eveningRes.blocked) {
+                _dutyWarnGeofenceOnce_(context.dateYmd, 'eveningGeofenceWarned', eveningRes.message || 'Geofence não validada para prompt de encerramento.');
+              }
+              finish();
+              return;
+            }
+          } catch (e) {
+            console.error('Duty prompt flow failed', e);
+          }
+          finish();
+        })
+        .withFailureHandler(function(err) {
+          console.warn('getPilotDutyPromptSnapshot failed', err);
+          finish();
+        })
+        .getPilotDutyPromptSnapshot(pilotName, now.ymd);
+    }
+
+    function initDutyPromptScheduler_() {
+      if (_dutyPromptTimer) clearInterval(_dutyPromptTimer);
+      _dutyPromptTimer = setInterval(_dutyCheckPrompts_, 60000);
+      setTimeout(_dutyCheckPrompts_, 3500);
+    }
 
     function cacheSet(key, value) {
       const envelope = {
@@ -1519,6 +2338,8 @@
               window.currentBriefingMission = mission;
               prefetchWbForMission(mission, false);
               prefetchPerformanceForMission(mission, false);
+              _activeLessonContext = _buildLessonContextFromMission_(mission);
+              renderLessonLinkBar_();
             }
             if (typeof onSuccess === 'function') onSuccess(mission);
           })
@@ -1527,6 +2348,8 @@
             if (cachedMission) {
               M.toast({ html: 'Server unavailable. Loaded cached mission.', classes: 'orange' });
               window.currentBriefingMission = cachedMission;
+              _activeLessonContext = _buildLessonContextFromMission_(cachedMission);
+              renderLessonLinkBar_();
               if (typeof onSuccess === 'function') onSuccess(cachedMission);
               return;
             }
@@ -1539,6 +2362,8 @@
       const cachedMission = cacheGet(missionCacheKey(id));
       if (cachedMission) {
         window.currentBriefingMission = cachedMission;
+        _activeLessonContext = _buildLessonContextFromMission_(cachedMission);
+        renderLessonLinkBar_();
         if (typeof onSuccess === 'function') onSuccess(cachedMission);
         return;
       }
@@ -2213,8 +3038,23 @@
       const estGroundTime = 0.5;
       const estDuty = useTime > 0 ? (1.0 + useTime + estGroundTime + 0.75) : 0;
 
-      const mtowCol = (acftObj && String(acftObj.reg || '').toUpperCase().indexOf('550') >= 0) ? 'mtow550' : 'mtow520';
-      const aptLimit = fromAirport ? (Number(fromAirport[mtowCol]) || 9999) : 9999;
+      const resolveAirportMtowLimit = function(airport, aircraft) {
+        const map = (airport && airport.mtowByModel && typeof airport.mtowByModel === 'object') ? airport.mtowByModel : {};
+        const keys = Object.keys(map);
+        if (!keys.length) return 9999;
+        const acftRef = String(
+          (aircraft && (aircraft.typeForPerformance || aircraft.aircraftType || aircraft.reg)) || ''
+        ).toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+        if (acftRef) {
+          const sorted = keys.slice().sort(function(a, b) { return String(b || '').length - String(a || '').length; });
+          const matched = sorted.find(function(k) { return acftRef.indexOf(String(k || '').toUpperCase()) >= 0; });
+          if (matched) return Number(map[matched] || 0) || 9999;
+        }
+        if (map.GENERIC) return Number(map.GENERIC || 0) || 9999;
+        const vals = keys.map(function(k) { return Number(map[k] || 0); }).filter(function(v) { return isFinite(v) && v > 0; });
+        return vals.length ? Math.max.apply(null, vals) : 9999;
+      };
+      const aptLimit = resolveAirportMtowLimit(fromAirport, acftObj);
       const acftMtow = acftObj ? (Number(acftObj.mtow || acftObj.MTOW || 9999) || 9999) : 9999;
       const takeoffLimitKg = Math.min(acftMtow, aptLimit);
       const limitType = aptLimit < acftMtow ? 'Airport Limit' : 'Aircraft MTOW';
@@ -2566,6 +3406,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       pruneMissionCache(OFFLINE_CACHE_MAX_MISSIONS);
       renderPilotTabVersions_();
+      renderLessonLinkBar_();
       initPilotDispatchClocks_();
       updateConnectivityBanner();
       updateOfflineCacheStatus();
@@ -2573,6 +3414,7 @@
       updateNewFlightButtonState();
       updateOfflineFlightButtonState();
       ensureEnvelopeCacheOnStartup();
+      initDutyPromptScheduler_();
       window.addEventListener('online', updateConnectivityBanner);
       window.addEventListener('offline', updateConnectivityBanner);
       window.addEventListener('online', function() {
@@ -2592,11 +3434,20 @@
         updateOfflineFlightButtonState();
       });
       setTimeout(loadInitialData, 100);
+
+      var lpModal = document.getElementById('lesson-plan-modal');
+      if (lpModal) {
+        lpModal.addEventListener('click', function(ev) {
+          if (ev.target === lpModal) closeLessonPlanModal_();
+        });
+      }
     });
 
     window.addEventListener('beforeunload', function() {
       if (_pilotClockTimer) clearInterval(_pilotClockTimer);
       _pilotClockTimer = null;
+      if (_dutyPromptTimer) clearInterval(_dutyPromptTimer);
+      _dutyPromptTimer = null;
     });
 
     function loadInitialData() {
@@ -3087,6 +3938,14 @@
 
       if (currentTab === 3 && tabNum > 3 && typeof window.tab3ValidateBeforeProceed === 'function') {
         if (!window.tab3ValidateBeforeProceed()) return;
+        // Persist Tab 3 W&B automatically so Flight Detail always has saved wb payload.
+        if (typeof window.saveWBLog === 'function') {
+          try {
+            window.saveWBLog({ silent: true });
+          } catch (wbSaveErr) {
+            console.warn('Auto-save W&B on tab transition failed', wbSaveErr);
+          }
+        }
       }
 
       if (tabNum === 5 && window.releaseTab5Hidden) {
@@ -3222,12 +4081,13 @@
           // --- UPDATED LOGIC HERE ---
           // Check if status exists and is "APPROVED" (case insensitive)
           const statusRaw = String(m.status || '').toUpperCase();
+          const isFlown = statusRaw === 'FLOWN' || statusRaw === 'COMPLETE' || statusRaw === 'COMPLETED';
           const isApproved = statusRaw === 'APPROVED';
           const isOfflineDraft = statusRaw === 'DRAFT_OFFLINE';
-          const isLoadable = isApproved || isOfflineDraft;
+          const isLoadable = isApproved || isOfflineDraft || isFlown;
           
-          const statusText = isApproved ? 'APPROVED' : (isOfflineDraft ? 'OFFLINE FLIGHT' : 'PENDING');
-          const statusClass = isApproved ? 'text-approved' : 'text-pending';
+          const statusText = isFlown ? 'FLOWN' : (isApproved ? 'APPROVED' : (isOfflineDraft ? 'OFFLINE FLIGHT' : 'PENDING'));
+          const statusClass = isFlown ? 'text-flown' : (isApproved ? 'text-approved' : 'text-pending');
 
           return `
             <div class="mission-row" id="row-${m.id}" data-loadable="${isLoadable ? '1' : '0'}" data-status="${statusRaw}" onclick="selectMission('${m.id}')" style="${isLoadable ? '' : 'opacity:0.7;'}">
@@ -3292,6 +4152,7 @@
       document.querySelectorAll('.mission-row').forEach(row => row.classList.remove('selected'));
       if (selectedRow) selectedRow.classList.add('selected');
       activeMission = id;
+      loadActiveLessonContext_();
       checkMissionLegality(id);
       M.toast({ html: 'Selected: ' + id, displayLength: 1500 });
     }
@@ -3328,22 +4189,29 @@
       acftArea.innerHTML = `<div class="center" style="padding:18px;"><div class="preloader-wrapper small active"><div class="spinner-layer spinner-blue-only"><div class="circle-clipper left"><div class="circle"></div></div></div></div><p class="grey-text" style="margin:8px 0 0 0;">Checking aircraft status...</p></div>`;
 
       fetchMissionDetails(missionId, mission => {
+        try {
           console.log('checkMissionLegality mission:', mission);
-          console.log('appData.aircraft count:', appData && appData.aircraft ? appData.aircraft.length : 0);
-          if (!mission || !appData.aircraft) {
-            acftArea.innerHTML = `<div class="card-panel orange-text">Unable to load mission or aircraft data. (Check server logs)</div>`;
+          const liveAppData = (window.appData && typeof window.appData === 'object') ? window.appData : appData;
+          const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+          console.log('appData.aircraft count:', liveAppData && liveAppData.aircraft ? liveAppData.aircraft.length : 0);
+          const acftList = (liveAppData && Array.isArray(liveAppData.aircraft) && liveAppData.aircraft.length)
+            ? liveAppData.aircraft
+            : (Array.isArray(cachedDropdown.aircraft) ? cachedDropdown.aircraft : []);
+          const missionAcft = String((mission && mission.acft) || '').trim().toUpperCase();
+          if (!mission || !acftList.length || !missionAcft) {
+            acftArea.innerHTML = `<div class="card-panel orange-text">Offline: mission or aircraft cache is incomplete. Re-sync when online.</div>`;
             return;
           }
-        
-        // Find the aircraft in our local database
-        const acft = appData.aircraft.find(a => 
-          a.reg.toString().trim().toUpperCase() === mission.acft.toString().trim().toUpperCase()
-        );
-        
-        if (!acft) {
-          acftArea.innerHTML = `<div class="card-panel red-text">Aircraft ${mission.acft} not found in database.</div>`;
-          return;
-        }
+
+          // Find the aircraft in our local database
+          const acft = acftList.find(function(a) {
+            return String((a && a.reg) || '').trim().toUpperCase() === missionAcft;
+          });
+
+          if (!acft) {
+            acftArea.innerHTML = `<div class="card-panel red-text">Aircraft ${missionAcft} not found in database.</div>`;
+            return;
+          }
 
         // GROUNDED LOGIC
         const isGrounded = acft.techStatus === "GROUNDED";
@@ -3353,9 +4221,10 @@
 
         // SQUAWK LOGIC (Parsing the JSON)
         let squawkHtml = '<p class="green-text" style="font-size:0.9rem;">✅ No open squawks</p>';
-        if (acft.openSquawks.trim() !== "") {
+        const openSquawksRaw = String((acft && acft.openSquawks) || '').trim();
+        if (openSquawksRaw !== "") {
           try {
-            const squawks = JSON.parse(acft.openSquawks);
+            const squawks = JSON.parse(openSquawksRaw);
             const openStatuses = ['OPEN', 'DEFERRED_50_HOUR', 'DEFERRED_100_HOUR', 'DEFERRED_TO_DATE'];
             const visible = Array.isArray(squawks) ? squawks.filter(s => openStatuses.includes(String((s && s.status) || '').trim().toUpperCase())) : [];
             if (visible.length) {
@@ -3377,9 +4246,16 @@
               }).join('');
             }
           } catch (e) {
-            squawkHtml = `<div class="orange-text">⚠️ ${acft.openSquawks}</div>`;
+            squawkHtml = `<div class="orange-text">⚠️ ${openSquawksRaw}</div>`;
           }
         }
+
+        const currentTach = parseFloat(acft.currentTach);
+        const nextDue = parseFloat(acft.nextDue);
+        const hoursToInsp = parseFloat(acft.hoursToInsp);
+        const tachText = isFinite(currentTach) ? currentTach.toFixed(1) : '—';
+        const nextDueText = isFinite(nextDue) ? nextDue.toFixed(1) : '—';
+        const hrsText = isFinite(hoursToInsp) ? hoursToInsp.toFixed(1) : '—';
 
         // RENDER THE UI
         acftArea.innerHTML = `
@@ -3394,15 +4270,15 @@
             <div class="row" style="margin-bottom:0; background: #f5f5f5; border-radius: 4px; padding: 10px 0;">
               <div class="col s4 center">
                 <small style="display:block; color:#666;">TACH</small>
-                <b>${acft.currentTach.toFixed(1)}</b>
+                <b>${tachText}</b>
               </div>
               <div class="col s4 center">
                 <small style="display:block; color:#666;">NEXT DUE</small>
-                <b>${acft.nextDue.toFixed(1)}</b>
+                <b>${nextDueText}</b>
               </div>
               <div class="col s4 center">
                 <small style="display:block; color:#666;">REMAINING</small>
-                <b class="${acft.hoursToInsp < 10 ? 'red-text' : ''}">${acft.hoursToInsp.toFixed(1)}</b>
+                <b class="${isFinite(hoursToInsp) && hoursToInsp < 10 ? 'red-text' : ''}">${hrsText}</b>
               </div>
             </div>
 
@@ -3412,10 +4288,14 @@
             </div>
           </div>
         `;
+        } catch (e) {
+          console.error('checkMissionLegality render failed', e);
+          acftArea.innerHTML = `<div class="card-panel orange-text">Offline data parse issue. Continue with cached mission and re-sync when online.</div>`;
+        }
         }, err => {
           console.error('getMissionById failed', err);
-          acftArea.innerHTML = `<div class="card-panel red-text">Error loading mission: ${err && err.message ? err.message : String(err)}</div>`;
-          M.toast({ html: 'Error loading mission details', classes: 'red' });
+          acftArea.innerHTML = `<div class="card-panel orange-text">Offline mission detail unavailable. Continue with cached data if needed.</div>`;
+          M.toast({ html: 'Mission details unavailable offline', classes: 'orange' });
         });
     }
 
@@ -4156,7 +5036,7 @@
         }
       };
 
-      if (window.currentBriefingMission && window.currentBriefingMission.id === missionId) {
+      if (window.currentBriefingMission && String(window.currentBriefingMission.id || '').trim() === String(missionId || '').trim()) {
         runSetup(window.currentBriefingMission);
         return;
       }
@@ -4796,6 +5676,123 @@
     }
   </style>
 
+  <div id="water-rwysurvey-modal" style="display:none; position:fixed; inset:0; z-index:10055; background:rgba(0,0,0,0.55); overflow:auto; padding:8px;">
+    <div class="rwyhc-shell" style="max-width:980px; margin:10px auto; background:#fff; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.28); overflow:hidden;">
+      <div class="rwyhc-header" style="background:#00695c; color:#fff; padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div>
+          <div class="rwyhc-title" style="font-size:1rem; font-weight:900; letter-spacing:1px;">WATER RUNWAY SURVEY</div>
+          <div class="rwyhc-sub" style="font-size:0.78rem; opacity:0.85;">Straight-line capture for water strips</div>
+        </div>
+        <button onclick="closeWaterRunwaySurveyTool()" style="border:none; background:rgba(255,255,255,0.2); color:#fff; font-weight:900; cursor:pointer; border-radius:6px; padding:6px 10px;">✕</button>
+      </div>
+
+      <div style="padding:10px; display:grid; gap:10px;">
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:8px;">
+          <div>
+            <label>Airport ICAO</label>
+            <input id="water-rwy-icao" type="text" placeholder="Type ICAO" oninput="waterRwyRefreshRunwayOptions()" />
+          </div>
+          <div>
+            <label>Existing Water Runway</label>
+            <select id="water-rwy-existing" class="browser-default" onchange="waterRwyApplyExistingSelection()"></select>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="btn teal darken-2" onclick="waterRwyToggleCreatePanel()">CREATE NEW WATER RUNWAY</button>
+          <span id="water-rwy-create-status" style="font-size:0.78rem; color:#546e7a;">Pick existing runway or create a new one.</span>
+        </div>
+
+        <div id="water-rwy-create-panel" style="display:none; border:1px solid #b2dfdb; border-radius:8px; padding:10px; background:#f2fbfa;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+            <div>
+              <label>Pilot runway name</label>
+              <input id="water-rwy-name" type="text" placeholder="Ex: Araca" oninput="waterRwyRenderAutoName()" />
+            </div>
+            <div>
+              <label>Pair orientation</label>
+              <select id="water-rwy-pair" class="browser-default"></select>
+            </div>
+            <div>
+              <label>Elevation (ft)</label>
+              <input id="water-rwy-elevation" type="number" inputmode="numeric" min="0" placeholder="Optional" />
+            </div>
+          </div>
+          <div style="margin-top:6px; font-size:0.78rem; color:#004d40;">Auto name: <b id="water-rwy-auto-name">W-</b></div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+            <button class="btn blue-grey darken-2" onclick="waterRwyMarkMidpointHere()">MARK HERE (MIDPOINT)</button>
+            <div id="water-rwy-midpoint" style="font-size:0.78rem; color:#455a64;">Midpoint: not marked</div>
+            <button class="btn green darken-2" onclick="waterRwySaveInitialRunway()">SAVE INITIAL INFO</button>
+          </div>
+        </div>
+
+        <div style="border:1px solid #c8e6c9; border-radius:8px; padding:10px; background:#f8fff8; display:grid; gap:8px;">
+          <div style="font-size:0.76rem; font-weight:900; color:#1b5e20; letter-spacing:0.4px;">STRAIGHT-LINE CAPTURE</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div>
+              <label>Measure from runway</label>
+              <select id="water-rwy-direction" class="browser-default"></select>
+            </div>
+            <div style="display:flex; align-items:end; gap:8px; flex-wrap:wrap;">
+              <button id="water-rwy-gps-toggle" class="btn blue darken-2" onclick="waterRwyToggleMeasuring()">START MEASURING</button>
+              <button class="btn red darken-2" onclick="waterRwyStopAndStoreLength()">END</button>
+            </div>
+          </div>
+          <div id="water-rwy-live" style="font-size:0.78rem; color:#455a64;">GPS idle.</div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr auto auto; gap:8px; align-items:end;">
+            <div>
+              <label>Angle (deg)</label>
+              <input id="water-rwy-angle-input" type="number" step="0.1" inputmode="decimal" placeholder="Angle" />
+            </div>
+            <div>
+              <label>Angle note</label>
+              <input id="water-rwy-angle-note" type="text" placeholder="Optional" />
+            </div>
+            <button class="btn teal darken-2" onclick="rwyInclinometerOpenStandaloneTab_('water-rwy-angle-input', 'Salvar angulo')">OPEN CAMERA</button>
+            <button class="btn orange darken-2" onclick="waterRwyTapMeasureAngle()">TAP TO MEASURE ANGLE</button>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <button class="btn blue-grey darken-2" onclick="waterRwyPickAnglePhoto()">CAPTURE ANGLE PHOTO</button>
+            <div id="water-rwy-angle-photo-status" style="font-size:0.76rem; color:#546e7a;">No angle photo selected.</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end;">
+            <div>
+              <label>Feature type</label>
+              <select id="water-rwy-feature-type" class="browser-default">
+                <option value="rock">Rock</option>
+                <option value="tree">Tree</option>
+                <option value="log">Log</option>
+                <option value="dock">Dock</option>
+                <option value="house">House</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label>Feature note</label>
+              <input id="water-rwy-feature-note" type="text" placeholder="Optional" />
+            </div>
+            <button class="btn light-blue darken-2" onclick="waterRwyAddFeatureAtCurrent()">ADD FEATURE</button>
+          </div>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button class="btn blue-grey" onclick="openWaterRunwayPreview()">PREVIEW</button>
+            <span id="water-rwy-summary" style="font-size:0.78rem; color:#455a64;">Angles: 0 · Features: 0</span>
+          </div>
+
+          <textarea id="water-rwy-notes" placeholder="Survey notes" style="border:1px solid #ddd; border-radius:6px; min-height:74px; padding:8px;"></textarea>
+          <div id="water-rwy-angle-list" style="font-size:0.8rem; color:#555;">No angles captured.</div>
+          <div id="water-rwy-feature-list" style="font-size:0.8rem; color:#555;">No features captured.</div>
+          <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button class="btn-flat" onclick="closeWaterRunwaySurveyTool()">Cancel</button>
+            <button class="btn green darken-3" id="water-rwy-submit" onclick="submitWaterRunwaySurvey()">SUBMIT FOR REVIEW</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="rwysurvey-modal" style="display:none; position:fixed; inset:0; z-index:10060; background:rgba(0,0,0,0.55); overflow:auto; padding:8px;">
     <div class="rwyhc-shell" style="max-width:980px; margin:10px auto; background:#fff; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.28); overflow:hidden;">
       <div class="rwyhc-header" style="background:#1565c0; color:#fff; padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
@@ -5022,6 +6019,7 @@
   <input id="rwysurvey-photo-capture-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="onRunwaySurveyPhotoInputChange(this, 'camera')" />
   <input id="rwysurvey-photo-library-input" type="file" accept="image/*" multiple style="display:none" onchange="onRunwaySurveyPhotoInputChange(this, 'library')" />
   <input id="rwysurvey-obstacle-photo-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="onRunwaySurveyObstaclePhotoInputChange(this)" />
+  <input id="water-rwy-angle-photo-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="onWaterRwyAnglePhotoInputChange(this)" />
 
   <!-- Photo options action sheet -->
   <div id="rwysurvey-photo-sheet" style="display:none; position:fixed; inset:0; z-index:20000; background:rgba(0,0,0,0.45);" onclick="if(event.target===this)closeRunwaySurveyPhotoSheet();">
@@ -5521,12 +6519,760 @@
     if (window.M) M.toast({ html: 'Ângulo salvo: ' + angle.toFixed(1) + '°', classes: 'green' });
   }
 
+  window.waterRunwaySurveyState = {
+    icao: '',
+    selectedPair: '',
+    selectedDirection: '',
+    waterName: '',
+    elevationFt: null,
+    midpoint: null,
+    created: false,
+    gps: { watchId: null, tracking: false, current: null, points: [], startFix: null, lastProjectedDistanceM: 0 },
+    headingDeg: 0,
+    measuredLengthM: 0,
+    captures: [],
+    features: [],
+    pendingAnglePhoto: null,
+    notes: '',
+    sourceRunwayRow: null
+  };
+
+  function _waterRwyResetState_() {
+    window.waterRunwaySurveyState = {
+      icao: '',
+      selectedPair: '',
+      selectedDirection: '',
+      waterName: '',
+      elevationFt: null,
+      midpoint: null,
+      created: false,
+      gps: { watchId: null, tracking: false, current: null, points: [], startFix: null, lastProjectedDistanceM: 0 },
+      headingDeg: 0,
+      measuredLengthM: 0,
+      captures: [],
+      features: [],
+      pendingAnglePhoto: null,
+      notes: '',
+      sourceRunwayRow: null
+    };
+  }
+
+  function _waterRwyRunwayPairs_() {
+    const out = [];
+    for (let n = 1; n <= 18; n++) {
+      const a = String(n).padStart(2, '0');
+      const b = String(n + 18).padStart(2, '0');
+      out.push(a + '/' + b);
+    }
+    return out;
+  }
+
+  function _waterRwyReciprocal_(ident) {
+    const num = parseInt(String(ident || '').replace(/\D+/g, ''), 10);
+    if (!isFinite(num) || num < 1 || num > 36) return '';
+    return String((((num + 18 - 1) % 36) + 1)).padStart(2, '0');
+  }
+
+  function _waterRwyPairFromIdent_(ident) {
+    const a = String(ident || '').trim().toUpperCase().replace(/^RWY\s*/i, '').replace(/[^0-9]/g, '');
+    if (!a) return '';
+    const main = String(parseInt(a, 10) || '').padStart(2, '0');
+    if (!main || main === '00') return '';
+    const b = _waterRwyReciprocal_(main);
+    if (!b) return '';
+    return [main, b].sort(function(x, y) { return x.localeCompare(y); }).join('/');
+  }
+
+  function _waterRwyDirectionOptionsFromPair_(pair) {
+    const p = String(pair || '').trim().toUpperCase();
+    if (!p) return [];
+    return p.split('/').map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+  }
+
+  function _waterRwyHeadingFromDirection_(ident) {
+    const num = parseInt(String(ident || '').replace(/\D+/g, ''), 10);
+    if (!isFinite(num) || num < 1 || num > 36) return 0;
+    return num * 10;
+  }
+
+  function _waterRwySurfaceText_(row) {
+    return String(row && (row.runwaySurfaceActual || row.surface || row.runwaySurfaceCondition || '') || '').trim().toUpperCase();
+  }
+
+  function _waterRwyIsWaterRow_(row) {
+    const s = _waterRwySurfaceText_(row);
+    return /WATER|SEAPLANE|LAGO|LAKE|RIVER|RIO|AGUA/.test(s);
+  }
+
+  function _waterRwyRowsForIcao_(icao) {
+    const rows = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const target = String(icao || '').trim().toUpperCase();
+    return rows.filter(function(r) {
+      const rowIcao = String(r && (r.airportICAO || r.icao || r.ICAO) || '').trim().toUpperCase();
+      return rowIcao === target;
+    });
+  }
+
+  function _waterRwyUniqueIcaos_() {
+    const rows = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const seen = {};
+    rows.forEach(function(r) {
+      const icao = String(r && (r.airportICAO || r.icao || r.ICAO) || '').trim().toUpperCase();
+      if (icao) seen[icao] = true;
+    });
+    return Object.keys(seen).sort();
+  }
+
+  function _waterRwyAutoName_(rawName) {
+    const cleaned = String(rawName || '').trim().replace(/\s+/g, '-').replace(/[^A-Za-z0-9\-]/g, '').toUpperCase();
+    return 'W-' + (cleaned || 'UNNAMED');
+  }
+
+  function openWaterRunwaySurveyTool() {
+    const modal = document.getElementById('water-rwysurvey-modal');
+    if (!modal) return;
+    _waterRwyResetState_();
+    modal.style.display = 'block';
+
+    const icaos = _waterRwyUniqueIcaos_();
+    const icaoInput = document.getElementById('water-rwy-icao');
+    if (icaoInput) icaoInput.value = icaos.length ? icaos[0] : '';
+    waterRwyRenderAutoName();
+    waterRwyInitPairOptions();
+    waterRwyRefreshRunwayOptions();
+    waterRwySetAnglePhotoStatus_('No angle photo selected.');
+    waterRwyRenderLists();
+  }
+
+  function closeWaterRunwaySurveyTool() {
+    waterRwyStopGps(true);
+    const modal = document.getElementById('water-rwysurvey-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function waterRwyInitPairOptions() {
+    const sel = document.getElementById('water-rwy-pair');
+    if (!sel) return;
+    const pairs = _waterRwyRunwayPairs_();
+    sel.innerHTML = '';
+    pairs.forEach(function(p) {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      sel.appendChild(opt);
+    });
+    sel.value = pairs[0] || '';
+  }
+
+  function waterRwyRenderAutoName() {
+    const raw = String((document.getElementById('water-rwy-name') || {}).value || '').trim();
+    const auto = _waterRwyAutoName_(raw);
+    const el = document.getElementById('water-rwy-auto-name');
+    if (el) el.textContent = auto;
+    waterRunwaySurveyState.waterName = auto;
+  }
+
+  function waterRwyToggleCreatePanel() {
+    const panel = document.getElementById('water-rwy-create-panel');
+    if (!panel) return;
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function waterRwyRefreshRunwayOptions() {
+    const icao = String((document.getElementById('water-rwy-icao') || {}).value || '').trim().toUpperCase();
+    waterRunwaySurveyState.icao = icao;
+    const rows = _waterRwyRowsForIcao_(icao).filter(_waterRwyIsWaterRow_);
+    const pairMap = {};
+    rows.forEach(function(r) {
+      const ident = String(r && (r.runwayIdent || r.rwyIdent || '') || '').trim().toUpperCase();
+      const pair = _waterRwyPairFromIdent_(ident) || ident;
+      if (!pair) return;
+      if (!pairMap[pair]) pairMap[pair] = r;
+    });
+
+    const sel = document.getElementById('water-rwy-existing');
+    if (!sel) return;
+    sel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = rows.length ? '-- Select existing water runway --' : '-- No water runways found --';
+    sel.appendChild(ph);
+    Object.keys(pairMap).sort().forEach(function(pair) {
+      const opt = document.createElement('option');
+      opt.value = pair;
+      opt.textContent = pair;
+      sel.appendChild(opt);
+    });
+    sel.value = '';
+    waterRwyApplyDirectionOptions('');
+  }
+
+  function waterRwyApplyExistingSelection() {
+    const pair = String((document.getElementById('water-rwy-existing') || {}).value || '').trim().toUpperCase();
+    if (!pair) return;
+    waterRunwaySurveyState.selectedPair = pair;
+    waterRunwaySurveyState.created = true;
+    waterRwyApplyDirectionOptions(pair);
+    const status = document.getElementById('water-rwy-create-status');
+    if (status) status.textContent = 'Using existing water runway pair ' + pair + '.';
+  }
+
+  function waterRwyApplyDirectionOptions(pair) {
+    const dirSel = document.getElementById('water-rwy-direction');
+    if (!dirSel) return;
+    const dirs = _waterRwyDirectionOptionsFromPair_(pair);
+    dirSel.innerHTML = '';
+    dirs.forEach(function(d) {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = d;
+      dirSel.appendChild(opt);
+    });
+    const first = dirs[0] || '';
+    dirSel.value = first;
+    waterRunwaySurveyState.selectedDirection = first;
+    waterRunwaySurveyState.headingDeg = _waterRwyHeadingFromDirection_(first);
+  }
+
+  function waterRwyMarkMidpointHere() {
+    if (!navigator.geolocation) {
+      if (window.M) M.toast({ html: 'Geolocation not available', classes: 'red' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      const c = pos && pos.coords ? pos.coords : null;
+      if (!c) return;
+      waterRunwaySurveyState.midpoint = {
+        lat: Number(c.latitude || 0),
+        lon: Number(c.longitude || 0),
+        acc: Number(c.accuracy || 9999),
+        markedAt: new Date().toISOString()
+      };
+      const el = document.getElementById('water-rwy-midpoint');
+      if (el) {
+        el.textContent = 'Midpoint: ' + waterRunwaySurveyState.midpoint.lat.toFixed(6) + ', ' + waterRunwaySurveyState.midpoint.lon.toFixed(6)
+          + ' (±' + Math.round(waterRunwaySurveyState.midpoint.acc) + 'm)';
+      }
+      if (window.M) M.toast({ html: 'Midpoint marked', classes: 'green' });
+    }, function(err) {
+      if (window.M) M.toast({ html: 'GPS error: ' + (err && err.message ? err.message : 'unknown'), classes: 'red' });
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 });
+  }
+
+  function waterRwySaveInitialRunway() {
+    const st = waterRunwaySurveyState;
+    const icao = String((document.getElementById('water-rwy-icao') || {}).value || '').trim().toUpperCase();
+    const pair = String((document.getElementById('water-rwy-pair') || {}).value || '').trim().toUpperCase();
+    const elevRaw = (document.getElementById('water-rwy-elevation') || {}).value;
+    const elevationFt = elevRaw === '' ? null : Number(elevRaw);
+    waterRwyRenderAutoName();
+    if (!icao) {
+      if (window.M) M.toast({ html: 'ICAO is required', classes: 'orange' });
+      return;
+    }
+    if (!pair) {
+      if (window.M) M.toast({ html: 'Runway pair is required', classes: 'orange' });
+      return;
+    }
+    if (!st.midpoint || !isFinite(st.midpoint.lat) || !isFinite(st.midpoint.lon)) {
+      if (window.M) M.toast({ html: 'Mark midpoint first', classes: 'orange' });
+      return;
+    }
+
+    window.runOrQueueServerAction({
+      method: 'addWaterRunwayToDatabase',
+      args: [{
+        icao: icao,
+        runwayPair: pair,
+        waterName: st.waterName,
+        elevationFt: isFinite(elevationFt) ? elevationFt : null,
+        midpointLat: st.midpoint.lat,
+        midpointLon: st.midpoint.lon
+      }],
+      label: 'Create water runway ' + icao + ' ' + pair
+    }, {
+      onSuccess: function(resp) {
+        if (!resp || !resp.success) {
+          if (window.M) M.toast({ html: (resp && resp.error) ? resp.error : 'Failed to save runway', classes: 'red' });
+          return;
+        }
+        st.icao = icao;
+        st.selectedPair = pair;
+        st.created = true;
+        st.elevationFt = isFinite(elevationFt) ? elevationFt : null;
+        waterRwyApplyDirectionOptions(pair);
+        waterRwyPushLocalAirportRows_(icao, pair, st.waterName, st.elevationFt, st.midpoint);
+        waterRwyRefreshRunwayOptions();
+        const status = document.getElementById('water-rwy-create-status');
+        if (status) status.textContent = 'Saved ' + pair + ' for ' + icao + '. Start measuring.';
+        if (window.M) M.toast({ html: 'Initial water runway saved', classes: 'green' });
+      },
+      onQueued: function() {
+        st.icao = icao;
+        st.selectedPair = pair;
+        st.created = true;
+        st.elevationFt = isFinite(elevationFt) ? elevationFt : null;
+        waterRwyApplyDirectionOptions(pair);
+        if (window.M) M.toast({ html: 'Offline: runway creation queued', classes: 'orange' });
+      },
+      onFailure: function(err) {
+        if (window.M) M.toast({ html: 'Create failed: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+      }
+    });
+  }
+
+  function waterRwyPushLocalAirportRows_(icao, pair, waterName, elevationFt, midpoint) {
+    if (!window.appData) window.appData = {};
+    if (!Array.isArray(window.appData.airports)) window.appData.airports = [];
+    const dirs = _waterRwyDirectionOptionsFromPair_(pair);
+    dirs.forEach(function(ident) {
+      const exists = window.appData.airports.some(function(r) {
+        const rowIcao = String(r && (r.airportICAO || r.icao || r.ICAO) || '').trim().toUpperCase();
+        const rowRwy = String(r && (r.runwayIdent || r.rwyIdent || '') || '').trim().toUpperCase();
+        return rowIcao === icao && rowRwy === ident;
+      });
+      if (exists) return;
+      window.appData.airports.push({
+        airportICAO: icao,
+        icao: icao,
+        runwayIdent: ident,
+        runwayHeading: _waterRwyHeadingFromDirection_(ident),
+        runwaySurfaceActual: 'WATER',
+        elevationFt: elevationFt,
+        lat: midpoint && midpoint.lat,
+        lon: midpoint && midpoint.lon,
+        nome: waterName
+      });
+    });
+  }
+
+  function _waterRwyDistanceMeters_(a, b) {
+    return _rwySurveyDistanceMetersBetween_(a, b);
+  }
+
+  function _waterRwyProjectedDistance_(startFix, currentFix, headingDeg) {
+    if (!startFix || !currentFix) return 0;
+    const latRad = _rwySurveyDeg2Rad_(Number(startFix.lat || 0));
+    const north = (Number(currentFix.lat || 0) - Number(startFix.lat || 0)) * 111320;
+    const east = (Number(currentFix.lon || 0) - Number(startFix.lon || 0)) * 111320 * Math.max(Math.cos(latRad), 0.2);
+    const br = _rwySurveyDeg2Rad_(Number(headingDeg || 0));
+    const ux = Math.sin(br);
+    const uy = Math.cos(br);
+    return Math.max(0, (east * ux) + (north * uy));
+  }
+
+  function waterRwyStartGps() {
+    const st = waterRunwaySurveyState;
+    if (!st.created && !st.selectedPair) {
+      if (window.M) M.toast({ html: 'Pick existing or create runway first', classes: 'orange' });
+      return;
+    }
+    st.selectedDirection = String((document.getElementById('water-rwy-direction') || {}).value || st.selectedDirection || '').trim().toUpperCase();
+    st.headingDeg = _waterRwyHeadingFromDirection_(st.selectedDirection);
+    if (!st.headingDeg) {
+      if (window.M) M.toast({ html: 'Select measurement runway direction', classes: 'orange' });
+      return;
+    }
+    if (!navigator.geolocation) {
+      if (window.M) M.toast({ html: 'Geolocation not available', classes: 'red' });
+      return;
+    }
+    if (st.gps.watchId != null && navigator.geolocation) navigator.geolocation.clearWatch(st.gps.watchId);
+    st.gps.watchId = navigator.geolocation.watchPosition(function(pos) {
+      const c = pos && pos.coords ? pos.coords : null;
+      if (!c) return;
+      const fix = {
+        lat: Number(c.latitude || 0),
+        lon: Number(c.longitude || 0),
+        acc: Number(c.accuracy || 9999),
+        ts: Date.now()
+      };
+      st.gps.current = fix;
+      st.gps.points.push(fix);
+      if (!st.gps.startFix) st.gps.startFix = fix;
+      st.gps.lastProjectedDistanceM = Math.round(_waterRwyProjectedDistance_(st.gps.startFix, fix, st.headingDeg));
+      const live = document.getElementById('water-rwy-live');
+      if (live) {
+        live.textContent = 'Tracking ' + st.selectedDirection + ' · distance ' + st.gps.lastProjectedDistanceM + 'm · acc ±' + Math.round(fix.acc) + 'm';
+      }
+    }, function(err) {
+      if (window.M) M.toast({ html: 'GPS error: ' + (err && err.message ? err.message : 'unknown'), classes: 'red' });
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 });
+    st.gps.tracking = true;
+    const btn = document.getElementById('water-rwy-gps-toggle');
+    if (btn) btn.textContent = 'MEASURING...';
+    const live = document.getElementById('water-rwy-live');
+    if (live) live.textContent = 'GPS started. Taxi straight and tap angle capture.';
+  }
+
+  function waterRwyStopGps(hard) {
+    const st = waterRunwaySurveyState;
+    if (st.gps.watchId != null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(st.gps.watchId);
+      st.gps.watchId = null;
+    }
+    st.gps.tracking = false;
+    if (hard) {
+      st.gps.current = null;
+      st.gps.points = [];
+      st.gps.startFix = null;
+      st.gps.lastProjectedDistanceM = 0;
+    }
+    const btn = document.getElementById('water-rwy-gps-toggle');
+    if (btn) btn.textContent = 'START MEASURING';
+  }
+
+  function waterRwyToggleMeasuring() {
+    if (waterRunwaySurveyState.gps.tracking) {
+      waterRwyStopGps(false);
+      const live = document.getElementById('water-rwy-live');
+      if (live) live.textContent = 'GPS paused.';
+      return;
+    }
+    waterRwyStartGps();
+  }
+
+  function waterRwyStopAndStoreLength() {
+    const st = waterRunwaySurveyState;
+    st.measuredLengthM = Math.max(st.measuredLengthM, Number(st.gps.lastProjectedDistanceM || 0));
+    waterRwyStopGps(false);
+    const live = document.getElementById('water-rwy-live');
+    if (live) live.textContent = 'Run ended at ' + Math.round(st.measuredLengthM || 0) + 'm.';
+  }
+
+  function waterRwyTapMeasureAngle() {
+    const st = waterRunwaySurveyState;
+    if (!st.gps.tracking || !st.gps.current || !st.gps.startFix) {
+      if (window.M) M.toast({ html: 'Start measuring first', classes: 'orange' });
+      return;
+    }
+    const dist = Math.round(Number(st.gps.lastProjectedDistanceM || 0));
+    if (!st.captures.length && dist < 200) {
+      if (window.M) M.toast({ html: 'First angle capture needs at least 200m from start', classes: 'orange' });
+      return;
+    }
+    let angle = Number((document.getElementById('water-rwy-angle-input') || {}).value);
+    if (!isFinite(angle)) {
+      const promptRaw = window.prompt('Enter obstacle angle in degrees');
+      angle = Number(promptRaw);
+    }
+    if (!isFinite(angle)) {
+      if (window.M) M.toast({ html: 'Angle is required', classes: 'orange' });
+      return;
+    }
+    const note = String((document.getElementById('water-rwy-angle-note') || {}).value || '').trim();
+    st.captures.push({
+      distanceM: dist,
+      angleDeg: Number(angle.toFixed(1)),
+      note: note,
+      photo: st.pendingAnglePhoto,
+      lat: Number(st.gps.current.lat || 0),
+      lon: Number(st.gps.current.lon || 0),
+      ts: new Date().toISOString()
+    });
+    st.pendingAnglePhoto = null;
+    waterRwySetAnglePhotoStatus_('No angle photo selected.');
+    const angleInput = document.getElementById('water-rwy-angle-input');
+    const angleNote = document.getElementById('water-rwy-angle-note');
+    if (angleInput) angleInput.value = '';
+    if (angleNote) angleNote.value = '';
+    waterRwyRenderLists();
+    if (window.M) M.toast({ html: 'Angle captured at ' + dist + 'm', classes: 'green' });
+  }
+
+  function waterRwyAddFeatureAtCurrent() {
+    const st = waterRunwaySurveyState;
+    if (!st.gps.current) {
+      if (window.M) M.toast({ html: 'No GPS fix yet', classes: 'orange' });
+      return;
+    }
+    const type = String((document.getElementById('water-rwy-feature-type') || {}).value || 'other').trim();
+    const note = String((document.getElementById('water-rwy-feature-note') || {}).value || '').trim();
+    st.features.push({
+      type: type,
+      note: note,
+      distanceM: Math.round(Number(st.gps.lastProjectedDistanceM || 0)),
+      fromThreshold: String(st.selectedDirection || '').trim(),
+      gps: { lat: Number(st.gps.current.lat || 0), lon: Number(st.gps.current.lon || 0), acc: Number(st.gps.current.acc || 9999) },
+      capturedAt: new Date().toISOString()
+    });
+    const noteEl = document.getElementById('water-rwy-feature-note');
+    if (noteEl) noteEl.value = '';
+    waterRwyRenderLists();
+    if (window.M) M.toast({ html: 'Feature added', classes: 'green' });
+  }
+
+  function waterRwyRenderLists() {
+    const st = waterRunwaySurveyState;
+    const angleEl = document.getElementById('water-rwy-angle-list');
+    const featEl = document.getElementById('water-rwy-feature-list');
+    const sumEl = document.getElementById('water-rwy-summary');
+    if (sumEl) sumEl.textContent = 'Angles: ' + st.captures.length + ' · Features: ' + st.features.length;
+
+    if (angleEl) {
+      if (!st.captures.length) {
+        angleEl.textContent = 'No angles captured.';
+      } else {
+        angleEl.innerHTML = st.captures.map(function(c, i) {
+          return '<div style="padding:4px 0; border-bottom:1px solid #eceff1;">#' + (i + 1) + ' · ' + c.distanceM + 'm · ' + c.angleDeg + '°' + (c.note ? ' · ' + c.note : '') + '</div>';
+        }).join('');
+      }
+    }
+
+    if (featEl) {
+      if (!st.features.length) {
+        featEl.textContent = 'No features captured.';
+      } else {
+        featEl.innerHTML = st.features.map(function(f, i) {
+          return '<div style="padding:4px 0; border-bottom:1px solid #eceff1;">#' + (i + 1) + ' · ' + String(f.type || '') + ' · ' + String(f.distanceM || 0) + 'm' + (f.note ? ' · ' + f.note : '') + '</div>';
+        }).join('');
+      }
+    }
+  }
+
+  function waterRwySetAnglePhotoStatus_(text) {
+    const el = document.getElementById('water-rwy-angle-photo-status');
+    if (el) el.textContent = String(text || 'No angle photo selected.');
+  }
+
+  function waterRwyPickAnglePhoto() {
+    const st = waterRunwaySurveyState;
+    if (!st.icao) {
+      if (window.M) M.toast({ html: 'Set ICAO first', classes: 'orange' });
+      return;
+    }
+    const input = document.getElementById('water-rwy-angle-photo-input');
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+  }
+
+  function onWaterRwyAnglePhotoInputChange(input) {
+    try {
+      const file = input && input.files && input.files[0] ? input.files[0] : null;
+      if (!file) return;
+      waterRwyUploadAnglePhoto_(file);
+    } finally {
+      if (input) input.value = '';
+    }
+  }
+
+  async function waterRwyUploadAnglePhoto_(file) {
+    const st = waterRunwaySurveyState;
+    const icao = String(st.icao || '').trim().toUpperCase();
+    const rwyIdent = String(st.selectedDirection || '').trim().toUpperCase();
+    if (!icao) return;
+    waterRwySetAnglePhotoStatus_('Uploading photo...');
+    try {
+      const rawDataUrl = await _rwySurveyReadFileAsDataUrl_(file);
+      const compressedDataUrl = await _rwySurveyShrinkImageDataUrl_(rawDataUrl);
+      const parts = compressedDataUrl.split(',');
+      if (parts.length < 2) throw new Error('Invalid image data');
+      const header = parts[0] || '';
+      const mimeMatch = header.match(/data:([^;]+);base64/i);
+      const mimeType = (mimeMatch && mimeMatch[1]) ? mimeMatch[1] : 'image/jpeg';
+      const base64Data = parts[1];
+      const ts = new Date();
+      const stamp = ts.toISOString().replace(/[.:]/g, '-');
+      const fileName = _rwySurveyPhotoSafeName_(icao + '_' + String(rwyIdent || 'WTRWY') + '_ANGLE_' + stamp + '_' + (file.name || 'photo.jpg'));
+
+      window.runOrQueueServerAction({
+        method: 'uploadRunwaySurveyPhoto',
+        args: [{
+          icao: icao,
+          rwyIdent: rwyIdent,
+          fileName: fileName,
+          mimeType: mimeType,
+          base64Data: base64Data,
+          source: 'water_angle',
+          takenAt: ts.toISOString()
+        }],
+        label: 'Water runway angle photo ' + icao + ' ' + rwyIdent
+      }, {
+        onSuccess: function(resp) {
+          st.pendingAnglePhoto = {
+            name: fileName,
+            status: 'uploaded',
+            fileId: resp && resp.fileId ? String(resp.fileId) : '',
+            url: resp && resp.url ? String(resp.url) : '',
+            source: 'water_angle',
+            takenAt: ts.toISOString()
+          };
+          waterRwySetAnglePhotoStatus_('Photo ready: ' + fileName);
+          if (window.M) M.toast({ html: 'Angle photo uploaded', classes: 'green' });
+        },
+        onQueued: function() {
+          st.pendingAnglePhoto = {
+            name: fileName,
+            status: 'queued',
+            fileId: '',
+            url: '',
+            source: 'water_angle',
+            takenAt: ts.toISOString()
+          };
+          waterRwySetAnglePhotoStatus_('Photo queued offline: ' + fileName);
+          if (window.M) M.toast({ html: 'Offline: angle photo queued', classes: 'orange' });
+        },
+        onFailure: function(err) {
+          st.pendingAnglePhoto = null;
+          waterRwySetAnglePhotoStatus_('Photo upload failed');
+          if (window.M) M.toast({ html: 'Angle photo upload failed: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+        }
+      });
+    } catch (e) {
+      st.pendingAnglePhoto = null;
+      waterRwySetAnglePhotoStatus_('Photo upload failed');
+      if (window.M) M.toast({ html: 'Angle photo error: ' + (e && e.message ? e.message : String(e)), classes: 'red' });
+    }
+  }
+
+  function openWaterRunwayPreview() {
+    const st = waterRunwaySurveyState;
+    const existing = document.getElementById('water-rwy-preview-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'water-rwy-preview-modal';
+    modal.style.cssText = 'position:fixed; inset:0; z-index:10270; background:rgba(0,0,0,0.66); display:flex; align-items:center; justify-content:center; padding:12px;';
+    const card = document.createElement('div');
+    card.style.cssText = 'width:min(720px,100%); max-height:90vh; overflow:auto; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35);';
+    card.innerHTML = ''
+      + '<div style="display:flex; justify-content:space-between; align-items:center; background:#00695c; color:#fff; padding:10px 12px;">'
+      + '<div><div style="font-weight:900;">Water Runway Preview</div><div style="font-size:0.78rem; opacity:0.88;">' + String(st.icao || '--') + ' · ' + String(st.selectedPair || '--') + '</div></div>'
+      + '<button onclick="this.closest(\'#water-rwy-preview-modal\').remove()" style="border:none; background:rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:6px 10px;">✕</button>'
+      + '</div>'
+      + '<div style="padding:12px; display:grid; gap:10px;">'
+      + '<div style="font-size:0.85rem;"><b>Direction:</b> ' + String(st.selectedDirection || '--') + ' · <b>Measured length:</b> ' + Math.round(Number(st.measuredLengthM || st.gps.lastProjectedDistanceM || 0)) + 'm</div>'
+      + '<div style="font-size:0.85rem;"><b>Angles:</b> ' + st.captures.length + ' · <b>Features:</b> ' + st.features.length + '</div>'
+      + '<pre style="margin:0; max-height:360px; overflow:auto; background:#f5f7fa; border:1px solid #e0e6ed; border-radius:8px; padding:10px; font-size:0.73rem;">'
+      + JSON.stringify({
+        icao: st.icao,
+        runwayPair: st.selectedPair,
+        direction: st.selectedDirection,
+        midpoint: st.midpoint,
+        measuredLengthM: Math.round(Number(st.measuredLengthM || st.gps.lastProjectedDistanceM || 0)),
+        captures: st.captures,
+        features: st.features,
+        notes: String((document.getElementById('water-rwy-notes') || {}).value || '')
+      }, null, 2)
+      + '</pre>'
+      + '</div>';
+    modal.appendChild(card);
+    modal.onclick = function(ev) { if (ev.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  function submitWaterRunwaySurvey() {
+    const st = waterRunwaySurveyState;
+    const icao = String((document.getElementById('water-rwy-icao') || {}).value || st.icao || '').trim().toUpperCase();
+    const direction = String((document.getElementById('water-rwy-direction') || {}).value || st.selectedDirection || '').trim().toUpperCase();
+    const pair = String(st.selectedPair || (document.getElementById('water-rwy-existing') || {}).value || '').trim().toUpperCase();
+    const notes = String((document.getElementById('water-rwy-notes') || {}).value || '').trim();
+    const measuredLengthM = Math.round(Number(st.measuredLengthM || st.gps.lastProjectedDistanceM || 0));
+
+    if (!icao || !direction) {
+      if (window.M) M.toast({ html: 'ICAO and direction are required', classes: 'orange' });
+      return;
+    }
+    if (measuredLengthM <= 0) {
+      if (window.M) M.toast({ html: 'Measure runway first', classes: 'orange' });
+      return;
+    }
+
+    const startFix = st.gps.startFix || st.midpoint || null;
+    const endFix = st.gps.current || null;
+    const btn = document.getElementById('water-rwy-submit');
+    if (btn) { btn.disabled = true; btn.textContent = 'SUBMITTING...'; }
+
+    const payload = {
+      icao: icao,
+      rwyIdent: direction,
+      pilotName: String((window.currentBriefingMission && window.currentBriefingMission.pilot) || 'Unknown Pilot'),
+      pilotEmail: String((window.currentBriefingMission && window.currentBriefingMission.meta && window.currentBriefingMission.meta.pilotEmail) || ''),
+      notes: notes,
+      features: st.features,
+      survey: {
+        mode: 'WATER_STRAIGHT',
+        runwayPair: pair,
+        runwayWaterName: st.waterName,
+        lengthM: measuredLengthM,
+        widthM: 0,
+        surface: 'WATER',
+        elevationFt: st.elevationFt,
+        features: st.features,
+        markers: st.features.map(function(f) {
+          return { label: f.type, distanceM: f.distanceM, fromThreshold: f.fromThreshold, gps: f.gps, notes: f.note || '' };
+        }),
+        obstacleAngles50m: st.captures,
+        obstacles: st.captures,
+        slopeSegments: [],
+        axis: { headingDeg: _waterRwyHeadingFromDirection_(direction), lengthM: measuredLengthM },
+        thresholds: {
+          a: startFix ? { ident: direction, lat: Number(startFix.lat || 0), lon: Number(startFix.lon || 0) } : {},
+          b: endFix ? { ident: _waterRwyReciprocal_(direction), lat: Number(endFix.lat || 0), lon: Number(endFix.lon || 0) } : {}
+        },
+        midpoint: st.midpoint,
+        perimeterTrace: Array.isArray(st.gps.points) ? st.gps.points : [],
+        notes: notes,
+        gpsSummary: {
+          points: Array.isArray(st.gps.points) ? st.gps.points.length : 0,
+          lastProjectedDistanceM: Number(st.gps.lastProjectedDistanceM || 0),
+          measuredLengthM: measuredLengthM
+        }
+      },
+      official: {
+        lengthM: measuredLengthM,
+        widthM: 0,
+        surface: 'WATER',
+        headingDeg: _waterRwyHeadingFromDirection_(direction)
+      },
+      captureSummary: {
+        pointCount: Array.isArray(st.gps.points) ? st.gps.points.length : 0,
+        anglesCaptured: st.captures.length,
+        featuresCaptured: st.features.length,
+        measuredLengthM: measuredLengthM
+      },
+      deviceInfo: {
+        userAgent: String(navigator.userAgent || ''),
+        platform: String(navigator.platform || ''),
+        submittedAt: new Date().toISOString(),
+        source: 'water_runway_tool'
+      }
+    };
+
+    window.runOrQueueServerAction({
+      method: 'submitRunwaySurvey',
+      args: [payload],
+      label: 'Water runway survey ' + icao + ' ' + direction
+    }, {
+      onSuccess: function(resp) {
+        if (btn) { btn.disabled = false; btn.textContent = 'SUBMIT FOR REVIEW'; }
+        if (resp && resp.success) {
+          if (window.M) M.toast({ html: 'Water runway survey submitted', classes: 'green' });
+          closeWaterRunwaySurveyTool();
+        } else if (window.M) {
+          M.toast({ html: (resp && resp.error) ? resp.error : 'Submit failed', classes: 'red' });
+        }
+      },
+      onQueued: function() {
+        if (btn) { btn.disabled = false; btn.textContent = 'SUBMIT FOR REVIEW'; }
+        if (window.M) M.toast({ html: 'Offline: water survey queued', classes: 'orange' });
+        closeWaterRunwaySurveyTool();
+      },
+      onFailure: function(err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'SUBMIT FOR REVIEW'; }
+        if (window.M) M.toast({ html: 'Submit failed: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+      }
+    });
+  }
+
   window.runwaySurveyToolState = {
     icao: '',
     rwyIdent: '',
     runway: null,
     surfaceOptions: [],
     official: null,
+    internalUpdatedAt: '',
     headingDeg: 0,
     lengthM: 0,
     startThresholdIdent: '',
@@ -6724,6 +8470,7 @@
       runwaySurveyToolState.headingDeg = 0;
       runwaySurveyToolState.lengthM = 0;
       runwaySurveyToolState.official = { lengthM: 0, widthM: 0, surface: '', headingDeg: 0 };
+      runwaySurveyToolState.internalUpdatedAt = '';
       runwaySurveyToolState.photos = [];
       runwaySurveyToolState.perimeter = _rwySurveyPerimeterDefaults_();
       runwaySurveyToolState.capture = _rwySurveyCaptureDefaults_();
@@ -6769,6 +8516,10 @@
     }
     if (Array.isArray(known)) known = { features: known };
     const officialRef = known && known.officialReference ? known.officialReference : {};
+    const verifiedOperational = known && known.verifiedOperational && typeof known.verifiedOperational === 'object' ? known.verifiedOperational : {};
+    const verifiedSurvey = known && known.verifiedSurvey && typeof known.verifiedSurvey === 'object' ? known.verifiedSurvey : {};
+    const currentVersion = known && known.currentSurveyVersion && typeof known.currentSurveyVersion === 'object' ? known.currentSurveyVersion : {};
+    runwaySurveyToolState.internalUpdatedAt = String(currentVersion.publishedAt || verifiedSurvey.capturedAt || known.updatedAt || '').trim();
     runwaySurveyToolState.official = {
       lengthM: _rwySurveyToNumber_(officialRef.lengthM || runwaySurveyToolState.lengthM),
       widthM: _rwySurveyToNumber_(officialRef.widthM || row && (row.runwayWidth || row.width)),
@@ -6799,7 +8550,10 @@
     const srfSel = document.getElementById('rwysurvey-surface');
     if (srfSel) srfSel.value = '';
     const cutdownEl = document.getElementById('rwysurvey-cutdown');
-    if (cutdownEl) cutdownEl.value = '';
+    if (cutdownEl) {
+      const savedCutdown = Number(verifiedOperational.cutdownAreaM || known.cutdownAreaM || 0);
+      cutdownEl.value = (isFinite(savedCutdown) && savedCutdown >= 0) ? String(Math.round(savedCutdown)) : '';
+    }
     const widthObsEl = document.getElementById('rwysurvey-width-obs-list');
     if (widthObsEl) widthObsEl.textContent = '';
     clearRunwaySurveyTrace();
@@ -6814,10 +8568,20 @@
 
     const officialEl = document.getElementById('rwysurvey-official');
     if (officialEl) {
+      const internalLen = Math.round(Number(verifiedOperational.lengthM || runwaySurveyToolState.lengthM || 0)) || 0;
+      const internalWid = Math.round(Number(verifiedOperational.widthM || row && (row.runwayWidth || row.width) || 0)) || 0;
+      const internalSurface = String(verifiedOperational.surface || row && (row.runwaySurfaceActual || row.surface) || '').trim() || '-';
+      const internalStamp = String(runwaySurveyToolState.internalUpdatedAt || '').trim();
+      const internalDateLabel = internalStamp ? internalStamp.slice(0, 16).replace('T', ' ') + 'Z' : 'N/A';
       officialEl.innerHTML = '<b>Official runway reference:</b> '
         + (Math.round(runwaySurveyToolState.official.lengthM) || 0) + 'm length, '
         + (Math.round(runwaySurveyToolState.official.widthM) || 0) + 'm width, '
-        + (runwaySurveyToolState.official.surface || '-');
+        + (runwaySurveyToolState.official.surface || '-')
+        + '<br><b>Internal reference:</b> '
+        + internalLen + 'm length, '
+        + internalWid + 'm width, '
+        + internalSurface
+        + ' · date ' + internalDateLabel;
     }
 
     renderRunwaySurveyFeatureList();
@@ -8244,8 +10008,10 @@
 
     const summary = document.createElement('div');
     summary.style.cssText = 'display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;';
+    const internalStamp = String(state.internalUpdatedAt || '').trim();
+    const internalDateLabel = internalStamp ? internalStamp.slice(0, 16).replace('T', ' ') + 'Z' : 'N/A';
     summary.innerHTML = ''
-      + '<div style="border:1px solid #dbe7f3; border-radius:8px; padding:8px; background:#f7fbff; font-size:0.84rem;"><b style="color:#0b5394;">Surveyed</b><br>' + runwayLengthM + 'm × ' + runwayWidthM + 'm' + (surfaceValue ? ' • ' + surfaceValue : '') + (cutdownValue ? ' • cutdown ' + cutdownValue + 'm' : '') + '</div>'
+      + '<div style="border:1px solid #dbe7f3; border-radius:8px; padding:8px; background:#f7fbff; font-size:0.84rem;"><b style="color:#0b5394;">Internal/Surveyed</b><br>' + runwayLengthM + 'm × ' + runwayWidthM + 'm' + (surfaceValue ? ' • ' + surfaceValue : '') + (cutdownValue ? ' • cutdown ' + cutdownValue + 'm' : '') + '<br><span style="font-size:0.76rem; color:#607d8b;">Internal date: ' + internalDateLabel + '</span></div>'
       + '<div style="border:1px solid #e0e0e0; border-radius:8px; padding:8px; background:#fafafa; font-size:0.84rem;"><b style="color:#555;">Official</b><br>' + Math.round(Number(state.official && state.official.lengthM || 0)) + 'm × ' + Math.round(Number(state.official && state.official.widthM || 0)) + 'm' + (state.official && state.official.surface ? ' • ' + state.official.surface : '') + '</div>';
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

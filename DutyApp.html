@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Registro de Horas</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #fff;
+      --ink: #1e2b33;
+      --muted: #61737d;
+      --line: #d8e2ea;
+      --brand: #0b5394;
+      --ok: #2e7d32;
+      --warn: #ef6c00;
+      --bad: #c62828;
+      --shadow: 0 8px 24px rgba(16, 43, 57, 0.1);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, sans-serif;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: 1.3rem;
+      color: var(--brand);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .banner {
+      display: none;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .banner.show { display: block; }
+    .banner.info { background: #e3f2fd; border-color: #bbdefb; color: var(--brand); }
+    .banner.ok { background: #e8f5e9; border-color: #c8e6c9; color: var(--ok); }
+    .banner.warn { background: #fff3e0; border-color: #ffe0b2; color: var(--warn); }
+    .banner.bad { background: #ffebee; border-color: #ffcdd2; color: var(--bad); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .meta-grid,
+    .row,
+    .btn-row {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .meta-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f9fbfd;
+      padding: 8px;
+    }
+
+    .meta-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .meta-value {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .field { margin-bottom: 10px; }
+
+    .field label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.74rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 7px 9px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .field textarea { min-height: 72px; resize: vertical; }
+
+    .readonly {
+      background: #f3f6f9 !important;
+      color: #455a64 !important;
+    }
+
+    .shift {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f9fbfd;
+      padding: 9px;
+      margin-bottom: 8px;
+    }
+
+    .shift-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .shift-title {
+      font-size: 0.76rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+
+    .field-lock {
+      position: relative;
+    }
+
+    .field-lock .lock-icon {
+      display: none;
+      position: absolute;
+      right: 10px;
+      top: 31px;
+      font-size: 0.92rem;
+      color: #607d8b;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .field-lock.locked input {
+      background: #e9ecef !important;
+      color: #666 !important;
+      border: 1.5px solid #adb5bd !important;
+      pointer-events: none;
+      padding-right: 30px;
+    }
+
+    .field-lock.locked .lock-icon {
+      display: inline;
+    }
+
+    .field-lock.unlocked-override input {
+      background: #fff3cd !important;
+      border: 2px solid #f9a825 !important;
+      color: #5d4037 !important;
+      pointer-events: auto;
+      padding-right: 30px;
+    }
+
+    button.primary,
+    button.secondary,
+    button.warn {
+      min-height: 40px;
+      border: none;
+      border-radius: 9px;
+      font-weight: 800;
+      font-size: 0.83rem;
+      cursor: pointer;
+      padding: 0 10px;
+    }
+
+    button.primary { background: var(--brand); color: #fff; }
+    button.secondary { background: #eceff1; color: #37474f; }
+    button.warn { background: var(--warn); color: #fff; }
+
+    .registry-list { display: grid; gap: 8px; }
+
+    .registry {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px;
+      background: #fff;
+    }
+
+    .registry-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .registry-title {
+      font-size: 0.85rem;
+      font-weight: 900;
+      color: var(--brand);
+    }
+
+    .registry-sub {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .pill.ok { color: var(--ok); border-color: #a5d6a7; background: #e8f5e9; }
+    .pill.warn { color: var(--warn); border-color: #ffcc80; background: #fff3e0; }
+    .pill.bad { color: var(--bad); border-color: #ef9a9a; background: #ffebee; }
+
+    .empty {
+      color: var(--muted);
+      font-size: 0.84rem;
+      padding: 10px;
+      text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: 9px;
+      background: #fbfdff;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 10050;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .modal {
+      width: min(720px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+      padding: 12px;
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 0.92rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+
+    .close-x {
+      border: none;
+      background: #eceff1;
+      color: #37474f;
+      border-radius: 8px;
+      min-width: 34px;
+      height: 34px;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    @media (max-width: 680px) {
+      .meta-grid,
+      .row,
+      .btn-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Registro de Horas</h1>
+    <div id="duty-banner" class="banner"></div>
+
+    <section class="card">
+      <div class="meta-grid">
+        <div class="meta-item">
+          <div class="meta-label">Piloto Ativo</div>
+          <div id="active-pilot" class="meta-value">Carregando...</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Date</div>
+          <div id="active-date-label" class="meta-value">--</div>
+        </div>
+      </div>
+
+      <div class="field" id="pilot-select-wrap" style="display:none; margin-top:8px;">
+        <label for="pilot-select">Selecionar Piloto</label>
+        <select id="pilot-select"></select>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="field">
+        <label for="department">Departamento</label>
+        <select id="department">
+          <option value="">Selecione...</option>
+          <option value="Escola">Escola</option>
+          <option value="Operações">Operações</option>
+          <option value="Taxi-Aereo">Taxi-Aereo</option>
+          <option value="Oficina">Oficina</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="flight-hours">Tempo de voo</label>
+        <input id="flight-hours" type="text" class="readonly" readonly>
+      </div>
+
+      <div class="field">
+        <label for="description">Descricao</label>
+        <textarea id="description" placeholder="Auto preenchida com os voos do dia. Adicione info extra se necessario."></textarea>
+      </div>
+
+      <div style="margin-bottom:8px; font-size:0.74rem; font-weight:900; text-transform:uppercase; color:#0b5394;">Shifts do dia</div>
+      <div id="shift-list"></div>
+
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="warn" type="button" onclick="dutyCloseCurrentAndAddShift(false)">Fechar fim e abrir novo inicio</button>
+      </div>
+
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="primary" type="button" onclick="dutyFinalizeDay(false)">Encerrar dia</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div style="margin-bottom:8px; font-size:0.82rem; font-weight:900; text-transform:uppercase; color:#0b5394;">Ultimos registros</div>
+      <div id="recent-list" class="registry-list"></div>
+    </section>
+  </div>
+
+  <div id="edit-overlay" class="overlay" onclick="if(event.target===this) dutyCloseEditModal()">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 class="modal-title" id="edit-title">Editar registro</h3>
+        <button class="close-x" type="button" onclick="dutyCloseEditModal()">X</button>
+      </div>
+
+      <div class="field">
+        <label for="edit-department">Departamento</label>
+        <select id="edit-department">
+          <option value="">Selecione...</option>
+          <option value="Escola">Escola</option>
+          <option value="Operações">Operações</option>
+          <option value="Taxi-Aereo">Taxi-Aereo</option>
+          <option value="Oficina">Oficina</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="edit-flight-hours">Tempo de voo</label>
+        <input id="edit-flight-hours" type="text" class="readonly" readonly>
+      </div>
+
+      <div class="field">
+        <label for="edit-description">Descricao</label>
+        <textarea id="edit-description"></textarea>
+      </div>
+
+      <div style="margin-bottom:8px; font-size:0.74rem; font-weight:900; text-transform:uppercase; color:#0b5394;">Shifts</div>
+      <div id="edit-shift-list"></div>
+
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="secondary" type="button" onclick="dutyAddShift(true)">Adicionar shift</button>
+        <button class="warn" type="button" onclick="dutyCloseCurrentAndAddShift(true)">Fechar fim e abrir novo inicio</button>
+      </div>
+
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="primary" type="button" onclick="dutyFinalizeDay(true)">Salvar edicao</button>
+        <button class="secondary" type="button" onclick="dutyCloseEditModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dutyState = {
+      canManageAll: false,
+      selectedPilotName: '',
+      selectedDateYmd: '',
+      currentUser: null,
+      staff: [],
+      snapshot: null,
+      logs: [],
+      shifts: [],
+      editingDateYmd: '',
+      editingShifts: [],
+      loading: false
+    };
+
+    function dutySetBanner(text, tone) {
+      const el = document.getElementById('duty-banner');
+      if (!el) return;
+      const msg = String(text || '').trim();
+      if (!msg) {
+        el.className = 'banner';
+        el.textContent = '';
+        return;
+      }
+      el.className = 'banner show ' + String(tone || 'info');
+      el.textContent = msg;
+    }
+
+    function dutyNowBsb() {
+      const now = new Date();
+      const ymd = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(now);
+      const hh = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Sao_Paulo', hour12: false, hour: '2-digit'
+      }).format(now);
+      const mm = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Sao_Paulo', hour12: false, minute: '2-digit'
+      }).format(now);
+      return { ymd: ymd, hhmm: String(hh) + ':' + String(mm) };
+    }
+
+    function dutyFormatDatePt(dateYmd) {
+      const ymd = String(dateYmd || '').trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return '--';
+      const p = ymd.split('-');
+      const months = [
+        '', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+      ];
+      const monthName = months[Number(p[1])] || '';
+      if (!monthName) return ymd;
+      return p[2] + '-' + monthName + '-' + p[0];
+    }
+
+    function dutyEscape(text) {
+      return String(text == null ? '' : text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function dutySetLoading(on) {
+      dutyState.loading = !!on;
+      document.querySelectorAll('button').forEach(function(btn) {
+        btn.disabled = !!on;
+      });
+    }
+
+    function dutyCallServer(methodName, payload) {
+      return new Promise(function(resolve, reject) {
+        if (!(window.google && google.script && google.script.run)) {
+          reject(new Error('google.script.run indisponivel'));
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res == null) {
+              reject(new Error('Resposta vazia do servidor'));
+              return;
+            }
+            resolve(res);
+          })
+          .withFailureHandler(function(err) {
+            reject(err instanceof Error ? err : new Error(err && err.message ? err.message : String(err)));
+          })[methodName](payload);
+      });
+    }
+
+    function dutyCleanNoFlightText(text) {
+      const t = String(text || '').trim();
+      if (!t) return '';
+      const low = t.toLowerCase();
+      if (low.indexOf('sem voos registrados') >= 0 || low.indexOf('sem voo registrado') >= 0) return '';
+      return t;
+    }
+
+    function dutyDepartmentFromDescription(text) {
+      const raw = String(text || '').trim();
+      const m = raw.match(/^Departamento:\s*(.+)$/im);
+      return m ? String(m[1] || '').trim() : '';
+    }
+
+    function dutyDescriptionWithoutDepartment(text) {
+      return String(text || '').replace(/^Departamento:\s*.+$/gim, '').replace(/^\s+|\s+$/g, '');
+    }
+
+    function dutyJoinDescriptionWithDepartment(baseDescription, department) {
+      const desc = String(baseDescription || '').trim();
+      const dept = String(department || '').trim();
+      if (!dept) return desc;
+      if (!desc) return 'Departamento: ' + dept;
+      return 'Departamento: ' + dept + '\n' + desc;
+    }
+
+    function dutyPilotDisplayName() {
+      const selected = String(dutyState.selectedPilotName || '').trim();
+      const emailLike = selected.indexOf('@') >= 0 ? selected.toLowerCase() : '';
+
+      if (selected && selected.indexOf('@') < 0) return selected;
+
+      const currentName = String(dutyState.currentUser && dutyState.currentUser.staffName || '').trim();
+      if (currentName) {
+        const currentEmail = String(dutyState.currentUser && dutyState.currentUser.email || '').trim().toLowerCase();
+        if (!emailLike || (currentEmail && currentEmail === emailLike)) return currentName;
+      }
+
+      const staffMatch = (dutyState.staff || []).find(function(item) {
+        return String(item.email || '').trim().toLowerCase() === emailLike;
+      }) || null;
+      if (staffMatch && String(staffMatch.staffName || '').trim()) return String(staffMatch.staffName || '').trim();
+
+      return selected || 'Sem piloto';
+    }
+
+    function dutyStatusTone(statusText) {
+      const status = String(statusText || '').toUpperCase();
+      if (status.indexOf('CLOSE') >= 0) return 'ok';
+      if (status.indexOf('OPEN') >= 0) return 'warn';
+      if (status.indexOf('IGNORE') >= 0) return 'bad';
+      return 'warn';
+    }
+
+    function dutyApplyHeader() {
+      const pilotEl = document.getElementById('active-pilot');
+      const dateLabel = document.getElementById('active-date-label');
+      if (pilotEl) pilotEl.textContent = dutyPilotDisplayName();
+      if (dateLabel) dateLabel.textContent = dutyFormatDatePt(dutyState.selectedDateYmd);
+    }
+
+    function dutyBindPilotSelector() {
+      const wrap = document.getElementById('pilot-select-wrap');
+      const select = document.getElementById('pilot-select');
+      if (!wrap || !select) return;
+
+      if (!dutyState.canManageAll) {
+        wrap.style.display = 'none';
+        return;
+      }
+
+      wrap.style.display = 'block';
+      const opts = (dutyState.staff || []).map(function(item) {
+        const name = String(item.staffName || '').trim();
+        const email = String(item.email || '').trim();
+        const value = name || email;
+        const label = name ? (name + (email ? ' (' + email + ')' : '')) : email;
+        return { value: value, label: label };
+      }).filter(function(o) { return !!o.value; });
+
+      select.innerHTML = opts.map(function(opt) {
+        const selected = String(opt.value || '') === String(dutyState.selectedPilotName || '') ? ' selected' : '';
+        return '<option value="' + dutyEscape(opt.value) + '"' + selected + '>' + dutyEscape(opt.label) + '</option>';
+      }).join('');
+    }
+
+    function dutyParseShiftsFromRows(rows) {
+      return (rows || []).map(function(row) {
+        return {
+          rowNumber: Number(row.rowNumber || 0),
+          startTime: String(row.startTime || '').trim(),
+          endTime: String(row.endTime || '').trim(),
+          status: String(row.status || '').trim(),
+          lockedStart: !!String(row.startTime || '').trim(),
+          lockedEnd: !!String(row.endTime || '').trim(),
+          unlockedStart: false,
+          unlockedEnd: false
+        };
+      });
+    }
+
+    function dutyAutofillDescription(snapshot, existingRows) {
+      const auto = snapshot && snapshot.autofill && typeof snapshot.autofill === 'object' ? snapshot.autofill : {};
+      const autoLine = dutyCleanNoFlightText(String(auto.summaryLine || '').trim());
+      const existingLine = (existingRows || []).map(function(r) {
+        return String(r.description || r.summaryText || '').trim();
+      }).filter(Boolean).join(' | ');
+      return dutyCleanNoFlightText(existingLine || autoLine);
+    }
+
+    function dutyBuildFieldLockHtml(scope, index, kind, value, locked, unlocked) {
+      const inputId = scope + '-shift-' + index + '-' + kind;
+      const lockId = scope + '-shift-' + index + '-lock-' + kind;
+      let lockClass = 'field-lock';
+      if (locked && !unlocked) lockClass += ' locked';
+      if (unlocked) lockClass += ' unlocked-override';
+      return ''
+        + '<div class="field ' + lockClass + '" id="' + scope + '-field-' + index + '-' + kind + '">'
+        + '  <label>' + (kind === 'start' ? 'Inicio' : 'Fim') + '</label>'
+        + '  <input id="' + inputId + '" type="time" value="' + dutyEscape(value || '') + '" ' + (locked && !unlocked ? 'readonly' : '') + '>'
+        + '  <span class="lock-icon" id="' + lockId + '" title="Campo bloqueado. Toque para sobrescrever." onclick="dutyToggleLock(\'' + scope + '\',' + index + ',\'' + kind + '\')">' + (unlocked ? '🔓' : '🔒') + '</span>'
+        + '</div>';
+    }
+
+    function dutyRenderShiftList(isEdit) {
+      const scope = isEdit ? 'edit' : 'main';
+      const list = isEdit ? dutyState.editingShifts : dutyState.shifts;
+      const host = document.getElementById(isEdit ? 'edit-shift-list' : 'shift-list');
+      if (!host) return;
+
+      if (!list.length) {
+        host.innerHTML = '<div class="empty">Sem shifts.</div>';
+        return;
+      }
+
+      host.innerHTML = list.map(function(shift, index) {
+        return ''
+          + '<div class="shift">'
+          + '  <div class="shift-head">'
+          + '    <div class="shift-title">Shift ' + (index + 1) + '</div>'
+          + '    <button class="secondary" type="button" onclick="dutyRemoveShift(' + index + ',' + (isEdit ? 'true' : 'false') + ')" style="min-height:30px;">Remover</button>'
+          + '  </div>'
+          + '  <div class="row">'
+          + dutyBuildFieldLockHtml(scope, index, 'start', shift.startTime, shift.lockedStart, shift.unlockedStart)
+          + dutyBuildFieldLockHtml(scope, index, 'end', shift.endTime, shift.lockedEnd, shift.unlockedEnd)
+          + '  </div>'
+          + '</div>';
+      }).join('');
+    }
+
+    function dutyToggleLock(scope, index, kind) {
+      const list = scope === 'edit' ? dutyState.editingShifts : dutyState.shifts;
+      const shift = list[index];
+      if (!shift) return;
+      const lockedKey = kind === 'start' ? 'lockedStart' : 'lockedEnd';
+      const unlockedKey = kind === 'start' ? 'unlockedStart' : 'unlockedEnd';
+      if (!shift[lockedKey]) return;
+      shift[unlockedKey] = true;
+      dutyRenderShiftList(scope === 'edit');
+    }
+
+    function dutyReadShiftList(isEdit) {
+      const scope = isEdit ? 'edit' : 'main';
+      const list = isEdit ? dutyState.editingShifts : dutyState.shifts;
+      return list.map(function(shift, index) {
+        const startEl = document.getElementById(scope + '-shift-' + index + '-start');
+        const endEl = document.getElementById(scope + '-shift-' + index + '-end');
+        return {
+          rowNumber: Number(shift.rowNumber || 0),
+          startTime: String(startEl && startEl.value || '').trim(),
+          endTime: String(endEl && endEl.value || '').trim(),
+          status: String(shift.status || '').trim()
+        };
+      }).filter(function(shift) {
+        return !!shift.startTime || !!shift.endTime;
+      });
+    }
+
+    function dutyAddShift(isEdit) {
+      const list = isEdit ? dutyState.editingShifts : dutyState.shifts;
+      list.push({
+        rowNumber: 0,
+        startTime: '',
+        endTime: '',
+        status: 'DUTY_OPEN',
+        lockedStart: false,
+        lockedEnd: false,
+        unlockedStart: false,
+        unlockedEnd: false
+      });
+      dutyRenderShiftList(!!isEdit);
+    }
+
+    function dutyRemoveShift(index, isEdit) {
+      const list = isEdit ? dutyState.editingShifts : dutyState.shifts;
+      if (list.length <= 1) {
+        dutySetBanner('Mantenha pelo menos um shift.', 'warn');
+        return;
+      }
+      list.splice(index, 1);
+      dutyRenderShiftList(!!isEdit);
+    }
+
+    function dutyCloseCurrentAndAddShift(isEdit) {
+      const list = isEdit ? dutyState.editingShifts : dutyState.shifts;
+      if (!list.length) {
+        dutyAddShift(isEdit);
+        return;
+      }
+      const now = dutyNowBsb().hhmm;
+      const last = list[list.length - 1];
+      if (!last.startTime) {
+        last.startTime = now;
+        last.lockedStart = true;
+      }
+      if (!last.endTime) {
+        last.endTime = now;
+        last.lockedEnd = true;
+      }
+      dutyAddShift(isEdit);
+      dutyRenderShiftList(!!isEdit);
+    }
+
+    function dutyRenderRecentRegistries() {
+      const host = document.getElementById('recent-list');
+      if (!host) return;
+
+      const rows = Array.isArray(dutyState.logs) ? dutyState.logs.slice() : [];
+      if (!rows.length) {
+        host.innerHTML = '<div class="empty">Sem registros recentes.</div>';
+        return;
+      }
+
+      const grouped = {};
+      rows.forEach(function(row) {
+        const key = String(row.dateYmd || '').trim();
+        if (!key) return;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(row);
+      });
+
+      const keys = Object.keys(grouped).sort(function(a, b) {
+        return String(b).localeCompare(String(a));
+      }).slice(0, 15);
+
+      host.innerHTML = keys.map(function(dateKey) {
+        const dayRows = grouped[dateKey].slice().sort(function(a, b) {
+          return Number(a.rowNumber || 0) - Number(b.rowNumber || 0);
+        });
+        const shiftCount = dayRows.length;
+        const topStatus = String(dayRows[dayRows.length - 1].status || '').trim();
+        const tone = dutyStatusTone(topStatus);
+        const start = String(dayRows[0].startTime || '--');
+        const end = String(dayRows[dayRows.length - 1].endTime || '--');
+        return ''
+          + '<div class="registry">'
+          + '  <div class="registry-head">'
+          + '    <div>'
+          + '      <div class="registry-title">' + dutyEscape(dutyFormatDatePt(dateKey)) + '</div>'
+          + '      <div class="registry-sub">Shifts: ' + shiftCount + ' | Inicio: ' + dutyEscape(start) + ' | Fim: ' + dutyEscape(end) + '</div>'
+          + '    </div>'
+          + '    <div class="pill ' + tone + '">' + dutyEscape(topStatus || 'status') + '</div>'
+          + '  </div>'
+          + '  <div class="btn-row">'
+          + '    <button class="secondary" type="button" onclick="dutyOpenEditModal(\'' + dutyEscape(dateKey) + '\')">Editar</button>'
+          + '  </div>'
+          + '</div>';
+      }).join('');
+    }
+
+    function dutyApplyMainFormFromBootstrap() {
+      const snapshot = dutyState.snapshot || {};
+      const auto = snapshot && snapshot.autofill && typeof snapshot.autofill === 'object' ? snapshot.autofill : {};
+      const entry = snapshot && snapshot.entry && typeof snapshot.entry === 'object' ? snapshot.entry : {};
+
+      const dayRows = (dutyState.logs || []).filter(function(row) {
+        return String(row.dateYmd || '') === String(dutyState.selectedDateYmd || '');
+      }).sort(function(a, b) {
+        return Number(a.rowNumber || 0) - Number(b.rowNumber || 0);
+      });
+
+      dutyState.shifts = dutyParseShiftsFromRows(dayRows);
+      if (!dutyState.shifts.length && entry && (entry.startTime || entry.endTime)) {
+        dutyState.shifts = dutyParseShiftsFromRows([{
+          rowNumber: entry.sourceRow,
+          startTime: entry.startTime,
+          endTime: entry.endTime,
+          status: entry.status
+        }]);
+      }
+      if (!dutyState.shifts.length) {
+        dutyState.shifts = [{
+          rowNumber: 0,
+          startTime: '',
+          endTime: '',
+          status: 'DUTY_OPEN',
+          lockedStart: false,
+          lockedEnd: false,
+          unlockedStart: false,
+          unlockedEnd: false
+        }];
+      }
+
+      const totalHours = Number(auto.totalFlightHours || 0);
+      document.getElementById('flight-hours').value = isFinite(totalHours) ? totalHours.toFixed(1).replace('.', ',') : '0,0';
+
+      const mergedDescription = dutyAutofillDescription(snapshot, dayRows);
+      document.getElementById('department').value = dutyDepartmentFromDescription(mergedDescription);
+      document.getElementById('description').value = dutyDescriptionWithoutDepartment(mergedDescription);
+      dutyRenderShiftList(false);
+    }
+
+    async function dutyLoadBootstrap() {
+      try {
+        dutySetLoading(true);
+        dutySetBanner('Carregando registro de horas...', 'info');
+        const res = await dutyCallServer('getDutyAppBootstrap', {
+          pilotName: dutyState.selectedPilotName,
+          dateYmd: dutyState.selectedDateYmd
+        });
+        if (!res || res.success !== true) {
+          throw new Error(res && res.error ? res.error : 'Falha ao carregar dados');
+        }
+
+        dutyState.canManageAll = !!res.canManageAll;
+        dutyState.selectedPilotName = String(res.selectedPilotName || '').trim();
+        dutyState.selectedDateYmd = String(res.dateYmd || dutyNowBsb().ymd).trim();
+        dutyState.currentUser = res.currentUser || null;
+        dutyState.staff = Array.isArray(res.staff) ? res.staff : [];
+        dutyState.snapshot = res.snapshot || null;
+        dutyState.logs = Array.isArray(res.logs) ? res.logs : [];
+
+        dutyApplyHeader();
+        dutyBindPilotSelector();
+        dutyApplyMainFormFromBootstrap();
+        dutyRenderRecentRegistries();
+        dutySetBanner('Pronto.', 'ok');
+      } catch (err) {
+        dutySetBanner(err && err.message ? err.message : String(err), 'bad');
+      } finally {
+        dutySetLoading(false);
+      }
+    }
+
+    function dutyValidateShifts(shifts) {
+      if (!shifts.length) return 'Adicione pelo menos um shift.';
+      for (let i = 0; i < shifts.length; i++) {
+        const s = shifts[i];
+        if (!s.startTime && !s.endTime) return 'Shift ' + (i + 1) + ' vazio.';
+        if (!s.startTime) return 'Shift ' + (i + 1) + ' sem inicio.';
+      }
+      return '';
+    }
+
+    function dutyPayloadForShift(shift, description, department, isEdit) {
+      const status = shift.endTime ? 'DUTY_CLOSED' : 'DUTY_OPEN';
+      const mergedDescription = dutyJoinDescriptionWithDepartment(description, department);
+      const payload = {
+        pilotName: dutyState.selectedPilotName,
+        dateYmd: isEdit ? dutyState.editingDateYmd : dutyState.selectedDateYmd,
+        status: status,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        summaryText: mergedDescription,
+        description: mergedDescription,
+        flightHours: '',
+        autoSummary: dutyState.snapshot && dutyState.snapshot.autofill ? dutyState.snapshot.autofill : {}
+      };
+      if (shift.rowNumber >= 2) payload.rowNumber = shift.rowNumber;
+      return payload;
+    }
+
+    async function dutySaveShiftPayload(payload) {
+      if (payload.rowNumber >= 2) return dutyCallServer('updateDutyAppLog', payload);
+      return dutyCallServer('saveDutyAppEntry', payload);
+    }
+
+    async function dutyFinalizeDay(isEdit) {
+      try {
+        dutySetLoading(true);
+        const shifts = dutyReadShiftList(!!isEdit);
+        const err = dutyValidateShifts(shifts);
+        if (err) {
+          dutySetBanner(err, 'warn');
+          return;
+        }
+
+        const descriptionEl = document.getElementById(isEdit ? 'edit-description' : 'description');
+        const departmentEl = document.getElementById(isEdit ? 'edit-department' : 'department');
+        const description = String(descriptionEl && descriptionEl.value || '').trim();
+        const department = String(departmentEl && departmentEl.value || '').trim();
+
+        for (let i = 0; i < shifts.length; i++) {
+          const payload = dutyPayloadForShift(shifts[i], description, department, !!isEdit);
+          const res = await dutySaveShiftPayload(payload);
+          if (!res || res.success !== true) {
+            throw new Error(res && res.error ? res.error : 'Falha ao salvar shift ' + (i + 1));
+          }
+        }
+
+        dutySetBanner(isEdit ? 'Edicao salva.' : 'Dia encerrado e salvo.', 'ok');
+        if (isEdit) dutyCloseEditModal();
+        await dutyLoadBootstrap();
+      } catch (err) {
+        dutySetBanner(err && err.message ? err.message : String(err), 'bad');
+      } finally {
+        dutySetLoading(false);
+      }
+    }
+
+    function dutyOpenEditModal(dateYmd) {
+      const targetDate = String(dateYmd || '').trim();
+      const rows = (dutyState.logs || []).filter(function(row) {
+        return String(row.dateYmd || '') === targetDate;
+      }).sort(function(a, b) {
+        return Number(a.rowNumber || 0) - Number(b.rowNumber || 0);
+      });
+
+      dutyState.editingDateYmd = targetDate;
+      dutyState.editingShifts = dutyParseShiftsFromRows(rows);
+      if (!dutyState.editingShifts.length) {
+        dutyState.editingShifts = [{
+          rowNumber: 0,
+          startTime: '',
+          endTime: '',
+          status: 'DUTY_OPEN',
+          lockedStart: false,
+          lockedEnd: false,
+          unlockedStart: false,
+          unlockedEnd: false
+        }];
+      }
+
+      const mergedDescription = dutyAutofillDescription(dutyState.snapshot, rows);
+      const title = document.getElementById('edit-title');
+      const editHours = document.getElementById('edit-flight-hours');
+      const editDesc = document.getElementById('edit-description');
+      const editDept = document.getElementById('edit-department');
+
+      if (title) title.textContent = 'Editar registro - ' + dutyFormatDatePt(targetDate);
+      if (editHours) editHours.value = document.getElementById('flight-hours').value || '';
+      if (editDesc) editDesc.value = dutyDescriptionWithoutDepartment(mergedDescription);
+      if (editDept) editDept.value = dutyDepartmentFromDescription(mergedDescription);
+
+      dutyRenderShiftList(true);
+      const overlay = document.getElementById('edit-overlay');
+      if (overlay) overlay.style.display = 'flex';
+    }
+
+    function dutyCloseEditModal() {
+      const overlay = document.getElementById('edit-overlay');
+      if (overlay) overlay.style.display = 'none';
+      dutyState.editingDateYmd = '';
+      dutyState.editingShifts = [];
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      dutyState.selectedDateYmd = dutyNowBsb().ymd;
+
+      const pilotSelect = document.getElementById('pilot-select');
+      if (pilotSelect) {
+        pilotSelect.addEventListener('change', function() {
+          dutyState.selectedPilotName = String(this.value || '').trim();
+          dutyLoadBootstrap();
+        });
+      }
+
+      dutyLoadBootstrap();
+    });
+  </script>
+</body>
+</html>

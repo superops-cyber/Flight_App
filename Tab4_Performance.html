@@ -1006,6 +1006,8 @@
         headingDeg: headingDeg,
         length: drawLengthM,
         width: drawWidthM,
+        cutdownAreaM: _perfCalcNum(verifiedOp.cutdownAreaM, _perfCalcNum(knownObj.cutdownAreaM, _perfCalcNum(knownObj.clearway, 0))),
+        internalUpdatedAt: String((knownObj.currentSurveyVersion && knownObj.currentSurveyVersion.publishedAt) || (knownObj.verifiedSurvey && knownObj.verifiedSurvey.capturedAt) || knownObj.updatedAt || '').trim(),
         slope: slope,
         elevation: _perfCalcNum(r.elevationFt, 0),
         surface: drawSurface,

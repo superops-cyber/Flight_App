@@ -1045,6 +1045,7 @@
           <div class="wb-field wb-field--passenger">
             <div class="wb-field-label">Passenger</div>
             <select id="wb-add-pax-select" class="browser-default" onchange="window.onWbPaxPick()"></select>
+            <button class="wb-btn secondary" type="button" style="margin-top:6px;" onclick="window.openQuickPassengerModal && window.openQuickPassengerModal({ context: 'tab3' })">+ New Passenger</button>
           </div>
           <div class="wb-field wb-field--weight">
             <div class="wb-field-label">Weight kg</div>
@@ -4011,7 +4012,9 @@ window.renderCargoPodDiagram = function() {
 /**
  * Save W&B to LOG_Flights
  */
-window.saveWBLog = function() {
+window.saveWBLog = function(options) {
+  const opts = (options && typeof options === 'object') ? options : {};
+  const silent = !!opts.silent;
   const wb = window.calculateWB();
   const envelope = wbNormalizeEnvelope_(window.wbData.envelopeData);
   if (envelope.length < 3) {
@@ -4046,14 +4049,14 @@ window.saveWBLog = function() {
     }, {
       onSuccess: function(resp) {
         console.log('W&B saved successfully', resp);
-        if (window.M) M.toast({ html: 'Weight & Balance saved to LOG_Flights', classes: 'green' });
+        if (!silent && window.M) M.toast({ html: 'Weight & Balance saved to LOG_Flights', classes: 'green' });
       },
       onQueued: function() {
-        if (window.M) M.toast({ html: 'Offline: W&B save queued for sync', classes: 'orange' });
+        if (!silent && window.M) M.toast({ html: 'Offline: W&B save queued for sync', classes: 'orange' });
       },
       onFailure: function(err) {
         console.error('Save failed', err);
-        if (window.M) M.toast({ html: 'Failed to save W&B — check console', classes: 'red' });
+        if (!silent && window.M) M.toast({ html: 'Failed to save W&B — check console', classes: 'red' });
       }
     });
     return;
@@ -4061,7 +4064,7 @@ window.saveWBLog = function() {
 
   if (!window.google || !google.script || !google.script.run) {
     console.log('W&B Payload (local):', wbPayload);
-    if (window.M) M.toast({ html: 'Local: W&B payload logged to console', classes: 'orange' });
+    if (!silent && window.M) M.toast({ html: 'Local: W&B payload logged to console', classes: 'orange' });
     return;
   }
 

@@ -2141,26 +2141,40 @@
         // Update cached mission leg status → COMPLETE (persists offline)
         (function() {
           try {
-            var mid = String(window.arrival7.missionId || '');
+            var mid = String(window.arrival7.missionId || payload.missionId || (window.currentBriefingMission && window.currentBriefingMission.id) || '');
             if (!mid) return;
-            var key = 'mission_' + mid;
-            var cached = null;
-            try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
-            if (!cached || !Array.isArray(cached.legs)) return;
             var fid = String(payload.flightLegId || '');
-            var leg = cached.legs.find(function(l) { return String(l.flightLegId || '') === fid; });
-            if (!leg) return;
             var now = new Date().toISOString();
-            leg.logStatus = 'COMPLETE';
-            leg.onBlocks = now;
-            localStorage.setItem(key, JSON.stringify(cached));
+
+            var writeKey = function(key) {
+              var cached = null;
+              try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+              if ((!cached || !Array.isArray(cached.legs)) && window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
+                cached = JSON.parse(JSON.stringify(window.currentBriefingMission));
+              }
+              if (!cached || !Array.isArray(cached.legs)) return;
+              var leg = cached.legs.find(function(l) {
+                return [l && l.flightLegId, l && l.flight_id, l && l.id].some(function(v) { return String(v || '') === fid; });
+              });
+              if (!leg) return;
+              leg.logStatus = 'COMPLETE';
+              leg.onBlocks = now;
+              localStorage.setItem(key, JSON.stringify(cached));
+            };
+
+            writeKey('mission_' + mid);
+            writeKey('mba_cache_mission_' + mid);
+
             if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
-              var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l.flightLegId || '') === fid; });
+              var ml = (window.currentBriefingMission.legs || []).find(function(l) {
+                return [l && l.flightLegId, l && l.flight_id, l && l.id].some(function(v) { return String(v || '') === fid; });
+              });
               if (ml) { ml.logStatus = 'COMPLETE'; ml.onBlocks = now; }
             }
           } catch (e) { console.warn('leg cache update (COMPLETE) failed', e); }
         })();
         if (window.M) M.toast({html:'On Blocks recorded', classes:'green'});
+        try { window.activeLegFlightId = String(payload.flightLegId || ''); } catch (e) {}
         if (typeof window.switchTab === 'function') window.switchTab(8);
       };
 

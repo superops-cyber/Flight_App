@@ -1,3 +1,4 @@
+<!-- Tab 8 Debrief v123 -->
 <style>
   #debrief-container { max-width: 860px; margin: 0 auto; }
   #debrief-content {
@@ -40,7 +41,7 @@
 
   .meter-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     margin-top: 6px;
   }
@@ -54,6 +55,7 @@
   .meter-field {
     display: flex;
     flex-direction: column;
+    min-width: 0;
   }
 
   .meter-field label {
@@ -94,27 +96,16 @@
     align-items: center;
   }
 
-  .meter-field.meter-fuel-used .meter-value {
-    width: 100%;
-  }
-
   .meter-field.meter-fuel-start {
-    width: 80%;
+    width: 50%;
     justify-self: start;
   }
 
-  .meter-field.meter-fuel-used {
-    padding-left: 10px;
-  }
-
-  @media (max-width: 700px) {
-    .meter-field.meter-fuel-start {
-      width: 100%;
-    }
-
-    .meter-field.meter-fuel-used {
-      padding-left: 0;
-    }
+  .meter-inline-note {
+    margin-top: 8px;
+    font-size: 0.84rem;
+    color: #455a64;
+    font-weight: 700;
   }
 
   .debr8-keypad-input {
@@ -135,6 +126,9 @@
     background-color: #f0f4f8;
     border-radius: 4px;
     border-left: 3px solid #0b5394;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease;
+    user-select: none;
   }
 
   .event-box label {
@@ -165,12 +159,12 @@
     height: 36px;
   }
 
-  .event-box.readonly {
+  .event-box.verified {
     background-color: #e8f5e9;
     border-left-color: #2e7d32;
   }
 
-  .event-box.readonly .event-time-display {
+  .event-box.verified .event-time-display {
     color: #2e7d32;
   }
 
@@ -183,28 +177,18 @@
     color: #1565c0;
   }
 
-  .debr8-verify-row {
-    margin-top: 8px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+  /* Keep auto-only boxes (brakes release / on blocks) green once verified. */
+  .event-box.auto-only.verified {
+    background-color: #e8f5e9;
+    border-left-color: #2e7d32;
   }
 
-  .debr8-check-btn {
-    height: 36px;
-    border: 1px solid #b0bec5;
-    border-radius: 6px;
-    background: #eceff1;
-    color: #546e7a;
-    font-size: 0.76rem;
-    font-weight: 800;
-    cursor: pointer;
+  .event-box.auto-only.verified .event-time-display {
+    color: #2e7d32;
   }
 
-  .debr8-check-btn.checked {
-    background: #e8f5e9;
-    border-color: #2e7d32;
-    color: #1b5e20;
+  .event-box .event-time-input {
+    display: none;
   }
 
   .summary-row {
@@ -310,6 +294,137 @@
     min-width: 34px;
     padding: 0 8px;
   }
+
+  /* Landing log */
+  .debr8-landing-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .debr8-landing-row {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    background: #f0f4f8;
+    border-left: 3px solid #0b5394;
+    border-radius: 4px;
+    padding: 7px 8px;
+  }
+  .debr8-landing-row.tng { border-left-color: #e65100; }
+
+  .debr8-landing-seq { font-weight: 900; font-size: 0.78rem; color: #0b5394; }
+
+  .debr8-landing-info { font-size: 0.88rem; color: #333; line-height: 1.4; }
+
+  .debr8-landing-type {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #0b5394;
+    color: white;
+    display: inline-block;
+  }
+  .debr8-landing-row.tng .debr8-landing-type { background: #e65100; }
+
+  .debr8-landing-del {
+    background: #c62828;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .debr8-landing-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+  .debr8-ldg-btn {
+    height: 36px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .debr8-ldg-btn.add { background: #1976d2; color: white; }
+  .debr8-ldg-btn.verify { background: #2e7d32; color: white; }
+  .debr8-ldg-btn.verified { background: #e8f5e9; color: #2e7d32; border: 2px solid #2e7d32; }
+
+  .debr8-ldg-counts { margin-top: 8px; font-size: 0.84rem; font-weight: 700; color: #455a64; }
+
+  /* Add-landing modal */
+  #debr8-add-ldg-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .debr8-add-ldg-box {
+    background: white;
+    border-radius: 10px;
+    padding: 18px;
+    width: 320px;
+    max-width: 95vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+  .debr8-add-ldg-box h5 {
+    margin: 0 0 14px 0;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #0b5394;
+    text-transform: uppercase;
+  }
+  .debr8-add-ldg-field { margin-bottom: 12px; }
+  .debr8-add-ldg-field label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #0b5394;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .debr8-add-ldg-input {
+    width: 100%;
+    height: 38px;
+    padding: 6px 8px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+  }
+  .debr8-add-ldg-select {
+    width: 100%;
+    height: 38px;
+    padding: 6px 8px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    background: white;
+  }
+  .debr8-ldg-suggest-list {
+    max-height: 130px;
+    overflow-y: auto;
+    border: 1px solid #bbb;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+  }
+  .debr8-ldg-suggest-item {
+    padding: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #eee;
+  }
+  .debr8-ldg-suggest-item:hover { background: #e3f2fd; }
+  .debr8-add-ldg-footer { display: flex; gap: 8px; margin-top: 14px; }
 </style>
 
 <div id="debrief-container"></div>
@@ -325,34 +440,89 @@ window.debrief8 = {
   logData: null
 };
 
+const DEBR8_ENABLE_CLICK_VERIFY = true;
+
 function _debr8FindActiveLeg_(mission) {
   const legs = Array.isArray(mission && mission.legs) ? mission.legs : [];
   if (!legs.length) return null;
   const activeId = String(window.activeLegFlightId || '').trim();
   if (activeId) {
-    const found = legs.find(function(l) { return String(l && l.flightLegId || '').trim() === activeId; });
+    const found = legs.find(function(l) {
+      return [l && l.flightLegId, l && l.flight_id, l && l.id].some(function(v) {
+        return String(v || '').trim() === activeId;
+      });
+    });
     if (found) return found;
   }
+  const mostRecentTouched = legs
+    .map(function(leg) {
+      const stamps = [
+        leg && leg.onBlocks,
+        leg && leg.brakesApplied,
+        leg && leg.bracesRelease,
+        leg && leg.brakesRelease,
+        leg && leg.brakesAppliedTime,
+        leg && leg.brakesReleaseTime
+      ].map(function(v) {
+        const ts = new Date(v || '').getTime();
+        return isNaN(ts) ? 0 : ts;
+      });
+      return { leg: leg, stamp: Math.max.apply(null, stamps) };
+    })
+    .sort(function(a, b) { return b.stamp - a.stamp; })[0];
+  if (mostRecentTouched && mostRecentTouched.stamp > 0) return mostRecentTouched.leg;
   const pending = legs.find(function(l) { return String(l && l.logStatus || 'PENDING') !== 'COMPLETE'; });
   return pending || legs[legs.length - 1] || legs[0];
+}
+
+function _debr8ReadCachedMission_(mission) {
+  // NOTE: PilotApp caches as 'mba_cache_mission_XXX'; Tabs 5/7 write to 'mission_XXX'.
+  // The in-memory mission passed here already has Tab 5/7 updates applied live,
+  // so prefer it over any disk cache. We only upgrade from cache if the passed
+  // mission is missing the leg timing data AND a cache copy has it.
+  try {
+    const missionId = String((mission && mission.id) || '').trim();
+    if (!missionId) return mission;
+    const _hasTimings = function(m) {
+      if (!Array.isArray(m && m.legs)) return false;
+      return m.legs.some(function(l) { return l && (l.bracesRelease || l.brakesRelease || l.onBlocks || l.airborne || l.airborneTime); });
+    };
+    if (_hasTimings(mission)) return mission;
+    // In-memory mission lacks timings — check both cache key formats
+    var cached = null;
+    try { cached = JSON.parse(localStorage.getItem('mission_' + missionId) || 'null'); } catch (e) {}
+    if (cached && Array.isArray(cached.legs) && _hasTimings(cached)) return cached;
+    try { cached = JSON.parse(localStorage.getItem('mba_cache_mission_' + missionId) || 'null'); } catch (e) {}
+    if (cached && Array.isArray(cached.legs) && _hasTimings(cached)) return cached;
+    return mission;
+  } catch (e) {
+    return mission;
+  }
 }
 
 function _debr8NormTime_(v) {
   const raw = String(v || '').trim();
   if (!raw) return '';
+  
   const m = raw.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
   if (m) {
     const hh = String(Math.max(0, Math.min(23, Number(m[1] || 0)))).padStart(2, '0');
     const mm = String(Math.max(0, Math.min(59, Number(m[2] || 0)))).padStart(2, '0');
-    const ss = String(Math.max(0, Math.min(59, Number(m[3] || 0)))).padStart(2, '0');
-    return `${hh}:${mm}:${ss}`;
+    return `${hh}:${mm}`;
   }
+  
   const d = new Date(raw);
   if (!isNaN(d.getTime())) {
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
-    return `${hh}:${mm}:${ss}`;
+    // Debrief ops are in BSB local time; avoid UTC shifts that inflate leg durations.
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Sao_Paulo',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit'
+    }).formatToParts(d);
+    const hh = String((parts.find(function(p) { return p.type === 'hour'; }) || {}).value || '00').padStart(2, '0');
+    const mm = String((parts.find(function(p) { return p.type === 'minute'; }) || {}).value || '00').padStart(2, '0');
+    return `${hh}:${mm}`;
   }
   return raw;
 }
@@ -491,22 +661,111 @@ function _debr8SquawksToTextarea_(raw) {
     .join('\n');
 }
 
+function _debr8IsTrainingMission_(mission, leg) {
+  const missionType = String((mission && mission.meta && mission.meta.type) || '').toUpperCase();
+  if (missionType.indexOf('TRAIN') >= 0) return true;
+  const trainingCode = String((leg && leg.training && leg.training.code) || '').trim();
+  return !!trainingCode;
+}
+
+function _debr8SplitRunwayCheckout_(raw) {
+  return String(raw || '')
+    .toUpperCase()
+    .split(/[;,]+/)
+    .map(function(s) { return String(s || '').trim(); })
+    .filter(Boolean);
+}
+
+function _debr8ResolveTimelineTime_() {
+  for (let i = 0; i < arguments.length; i++) {
+    const raw = arguments[i];
+    if (raw == null) continue;
+    const text = String(raw).trim();
+    if (!text) continue;
+    const normalized = _debr8NormTime_(raw);
+    if (String(normalized || '').trim()) return normalized;
+  }
+  return '';
+}
+
 function _debr8Render_(mission, leg, logData) {
   window.debrief8.mission = mission;
   window.debrief8.activeLeg = leg;
-  window.debrief8.flightLegId = String(leg && leg.flightLegId || mission.id || '');
+  window.debrief8.flightLegId = String(
+    (leg && (leg.flightLegId || leg.flight_id || leg.id)) ||
+    window.activeLegFlightId ||
+    (mission && mission.activeLegFlightId) ||
+    mission.id ||
+    ''
+  );
   window.debrief8.startTach = _debr8ResolveStartTach_(mission, leg, logData);
   window.debrief8.fuelStart = _debr8ResolveFuelStart_(mission, leg, logData);
   window.debrief8.logData = logData || null;
+  const actualLoad = (function(raw) {
+    try {
+      return raw ? JSON.parse(String(raw)) : {};
+    } catch (e) {
+      return {};
+    }
+  })((logData && logData.actualLoadJSON) || '');
+  const savedDebrief = (actualLoad && actualLoad.debrief) || {};
 
   window.debrief8.traccarData = {
-    brakesRelease: _debr8NormTime_((logData && logData.brakesRelease) || leg?.bracesRelease || leg?.brakesReleaseTime || ''),
-    airborne: _debr8NormTime_((logData && logData.airborne) || leg?.airborne || leg?.airborneTime || ''),
-    landed: _debr8NormTime_((logData && logData.landed) || leg?.landed || leg?.onBlocks || leg?.landedTime || ''),
-    onBlocks: _debr8NormTime_((logData && logData.onBlocks) || (logData && logData.brakesApplied) || leg?.onBlocks || leg?.brakesAppliedTime || ''),
+    brakesRelease: _debr8ResolveTimelineTime_(
+      logData && logData.brakesRelease,
+      leg?.brakesRelease,
+      leg?.bracesRelease,
+      leg?.brakesReleaseTime,
+      leg?.released,
+      mission?.brakesRelease
+    ),
+    airborne: _debr8ResolveTimelineTime_(
+      logData && logData.airborne,
+      leg?.airborne,
+      leg?.airborneTime,
+      mission?.airborne
+    ),
+    landed: _debr8ResolveTimelineTime_(
+      logData && logData.landed,
+      leg?.landed,
+      leg?.landedTime,
+      leg?.onBlocks,
+      leg?.brakesApplied,
+      mission?.landed
+    ),
+    onBlocks: _debr8ResolveTimelineTime_(
+      logData && logData.onBlocks,
+      logData && logData.brakesApplied,
+      leg?.onBlocks,
+      leg?.brakesApplied,
+      leg?.brakesAppliedTime,
+      mission?.onBlocks
+    ),
     numLdgs: Number((logData && logData.numLdgs) || leg?.numLdgs || 1) || 1,
-    numTouchAndGos: Number((logData && logData.numTouchAndGos) || leg?.numTouchAndGos || 0) || 0
+    numTouchAndGos: Number((logData && logData.numTouchAndGos) || leg?.numTouchAndGos || savedDebrief.numTouchAndGos || 0) || 0,
+    nightLdgs: Number(savedDebrief.nightLdgs || leg?.nightLdgs || 0) || 0,
+    nightHrs: Number(savedDebrief.nightHrs || leg?.nightHrs || 0) || 0,
+    ifrHrs: Number(savedDebrief.ifrHrs || leg?.ifrHrs || 0) || 0,
+    dualRecvd: Number(savedDebrief.dualRecvd || leg?.dualRecvd || 0) || 0,
+    dualGiven: Number(savedDebrief.dualGiven || leg?.dualGiven || 0) || 0
   };
+  window.debrief8.timelineVerify = {
+    brakesRelease: false,
+    airborne: false,
+    landed: false,
+    onBlocks: false,
+    nightLdgs: false,
+    nightHrs: false,
+    ifrHrs: false,
+    dualRecvd: false,
+    dualGiven: false
+  };
+  window.debrief8.timelineTapState = {};
+  window.debrief8.landingLog = (function() {
+    var raw = logData && logData.landingLog;
+    return Array.isArray(raw) ? raw.slice() : [];
+  })();
+  window.debrief8.landingLogVerified = false;
   const squawkItems = _debr8SquawkList_(logData && logData.squawks);
 
   const container = document.getElementById('debrief-container');
@@ -535,83 +794,86 @@ function _debr8Render_(mission, leg, logData) {
           <label>Fuel End (L) *</label>
           <input type="text" id="debr8_fuelEnd" inputmode="decimal" readonly onclick="window.debr8OpenNumeric_('debr8_fuelEnd','FUEL END L',{ decimal:true, maxLen:6, onApply:window.calculateFuelUsed })" placeholder="Tap for keypad" class="debrief-required debr8-keypad-input" value="${String((logData && logData.fuelEnd) || '')}" />
         </div>
-        <div class="meter-field meter-fuel-used">
-          <label>Fuel Used (L)</label>
-          <div class="meter-value" id="debr8_fuelUsed">—</div>
-        </div>
       </div>
+      <div class="meter-inline-note">Fuel Used: <span id="debr8_fuelUsed">—</span></div>
     </div>
 
     <div class="debrief-card">
       <h4>Flight Event Timeline</h4>
-      <p class="debrief-note">Brakes Release and On Blocks are automated. Airborne and Landed remain pilot-verifiable if auto data is unavailable.</p>
+      <p class="debrief-note">Tap once to verify any box. Double-tap any box to edit it or fill it manually if auto data is missing.</p>
       <div class="event-grid">
-        <div class="event-box auto-only">
+        <div class="event-box auto-only" id="debr8_brakesReleaseBox" onclick="window.debr8TimelineTap_('brakesRelease')">
           <label>Brakes Release (from button)</label>
           <div class="event-time-display" id="debr8_brakesRelease">
             ${window.debrief8.traccarData.brakesRelease || '—'}
           </div>
+          <input type="text" id="debr8_brakesReleaseInput" class="event-time-input debr8-keypad-input" placeholder="Double-tap to edit" readonly value="${window.debrief8.traccarData.brakesRelease || ''}" />
         </div>
 
-        <div class="event-box ${window.debrief8.traccarData.airborne ? 'readonly' : ''}">
+        <div class="event-box" id="debr8_airborneBox" onclick="window.debr8TimelineTap_('airborne')">
           <label>Airborne (pilot verify) *</label>
           <div class="event-time-display" id="debr8_airborneDisplay">
             ${window.debrief8.traccarData.airborne || '—'}
           </div>
-          <input type="text" id="debr8_airborne" class="event-time-input" placeholder="HH:MM:SS" value="${window.debrief8.traccarData.airborne || ''}" />
+          <input type="text" id="debr8_airborne" class="event-time-input debr8-keypad-input" placeholder="Double-tap to edit" readonly value="${window.debrief8.traccarData.airborne || ''}" />
         </div>
 
-        <div class="event-box ${window.debrief8.traccarData.landed ? 'readonly' : ''}">
+        <div class="event-box" id="debr8_landedBox" onclick="window.debr8TimelineTap_('landed')">
           <label>Landed (pilot verify) *</label>
           <div class="event-time-display" id="debr8_landedDisplay">
             ${window.debrief8.traccarData.landed || '—'}
           </div>
-          <input type="text" id="debr8_landed" class="event-time-input" placeholder="HH:MM:SS" value="${window.debrief8.traccarData.landed || ''}" />
+          <input type="text" id="debr8_landed" class="event-time-input debr8-keypad-input" placeholder="Double-tap to edit" readonly value="${window.debrief8.traccarData.landed || ''}" />
         </div>
 
-        <div class="event-box auto-only">
+        <div class="event-box auto-only" id="debr8_onBlocksBox" onclick="window.debr8TimelineTap_('onBlocks')">
           <label>On Blocks (automated)</label>
           <div class="event-time-display" id="debr8_onBlocksDisplay">${window.debrief8.traccarData.onBlocks || '—'}</div>
+          <input type="text" id="debr8_onBlocks" class="event-time-input debr8-keypad-input" placeholder="Double-tap to edit" readonly value="${window.debrief8.traccarData.onBlocks || ''}" />
         </div>
 
-        <div class="event-box">
-          <label>Total Ldgs</label>
-          <div class="event-time-display" id="debr8_numLdgsDisplay">
-            ${window.debrief8.traccarData.numLdgs || 1}
-          </div>
-          <input type="text" id="debr8_numLdgs" class="event-time-input debr8-keypad-input" inputmode="numeric" readonly onclick="window.debr8OpenNumeric_('debr8_numLdgs','TOTAL LANDINGS',{ decimal:false, maxLen:3 })" value="${window.debrief8.traccarData.numLdgs || 1}" />
-        </div>
-
-        <div class="event-box">
+        <div class="event-box" id="debr8_nightLdgsBox" onclick="window.debr8TimelineTap_('nightLdgs')">
           <label>Night Ldgs</label>
-          <div class="event-time-display" id="debr8_nightLdgsDisplay">0</div>
-          <input type="text" id="debr8_nightLdgs" class="event-time-input debr8-keypad-input" inputmode="numeric" readonly onclick="window.debr8OpenNumeric_('debr8_nightLdgs','NIGHT LANDINGS',{ decimal:false, maxLen:3 })" value="0" />
+          <div class="event-time-display" id="debr8_nightLdgsDisplay">${window.debrief8.traccarData.nightLdgs || 0}</div>
+          <input type="text" id="debr8_nightLdgs" class="event-time-input debr8-keypad-input" inputmode="numeric" readonly value="${window.debrief8.traccarData.nightLdgs || 0}" />
         </div>
 
-        <div class="event-box">
-          <label>T&G Count</label>
-          <div class="event-time-display">${window.debrief8.traccarData.numTouchAndGos || 0}</div>
-          <input type="text" id="debr8_numTg" class="event-time-input debr8-keypad-input" inputmode="numeric" readonly onclick="window.debr8OpenNumeric_('debr8_numTg','TOUCH AND GO COUNT',{ decimal:false, maxLen:3 })" value="${window.debrief8.traccarData.numTouchAndGos || 0}" />
-        </div>
-
-        <div class="event-box">
+        <div class="event-box" id="debr8_nightHrsBox" onclick="window.debr8TimelineTap_('nightHrs')">
           <label>Night Hrs</label>
-          <div class="event-time-display" id="debr8_nightHrsDisplay">0.0</div>
-          <input type="text" id="debr8_nightHrs" class="event-time-input debr8-keypad-input" inputmode="decimal" readonly onclick="window.debr8OpenNumeric_('debr8_nightHrs','NIGHT HOURS',{ decimal:true, maxLen:4 })" value="0" />
+          <div class="event-time-display" id="debr8_nightHrsDisplay">${window.debrief8.traccarData.nightHrs || 0}</div>
+          <input type="text" id="debr8_nightHrs" class="event-time-input debr8-keypad-input" inputmode="decimal" readonly value="${window.debrief8.traccarData.nightHrs || 0}" />
         </div>
 
-        <div class="event-box">
+        <div class="event-box" id="debr8_ifrHrsBox" onclick="window.debr8TimelineTap_('ifrHrs')">
           <label>IFR Hrs</label>
-          <div class="event-time-display" id="debr8_ifrHrsDisplay">0.0</div>
-          <input type="text" id="debr8_ifrHrs" class="event-time-input debr8-keypad-input" inputmode="decimal" readonly onclick="window.debr8OpenNumeric_('debr8_ifrHrs','IFR HOURS',{ decimal:true, maxLen:4 })" value="0" />
+          <div class="event-time-display" id="debr8_ifrHrsDisplay">${window.debrief8.traccarData.ifrHrs || 0}</div>
+          <input type="text" id="debr8_ifrHrs" class="event-time-input debr8-keypad-input" inputmode="decimal" readonly value="${window.debrief8.traccarData.ifrHrs || 0}" />
+        </div>
+
+        <div class="event-box" id="debr8_dualRecvdBox" onclick="window.debr8TimelineTap_('dualRecvd')">
+          <label>Dual Recvd (Student)</label>
+          <div class="event-time-display" id="debr8_dualRecvdDisplay">${window.debrief8.traccarData.dualRecvd || 0}</div>
+          <input type="text" id="debr8_dualRecvd" class="event-time-input debr8-keypad-input" inputmode="decimal" readonly value="${window.debrief8.traccarData.dualRecvd || 0}" />
+        </div>
+
+        <div class="event-box" id="debr8_dualGivenBox" onclick="window.debr8TimelineTap_('dualGiven')">
+          <label>Dual Given (Instructor)</label>
+          <div class="event-time-display" id="debr8_dualGivenDisplay">${window.debrief8.traccarData.dualGiven || 0}</div>
+          <input type="text" id="debr8_dualGiven" class="event-time-input debr8-keypad-input" inputmode="decimal" readonly value="${window.debrief8.traccarData.dualGiven || 0}" />
         </div>
       </div>
-      <div class="debr8-verify-row">
-        <button type="button" class="debr8-check-btn" data-check="brakes" onclick="window.debr8ToggleCheck_(this)">☐ Verify Brakes Release</button>
-        <button type="button" class="debr8-check-btn" data-check="airborne" onclick="window.debr8ToggleCheck_(this)">☐ Verify Airborne</button>
-        <button type="button" class="debr8-check-btn" data-check="landed" onclick="window.debr8ToggleCheck_(this)">☐ Verify Landed</button>
-        <button type="button" class="debr8-check-btn" data-check="onblocks" onclick="window.debr8ToggleCheck_(this)">☐ Verify On Blocks</button>
+      <p class="debrief-note">All nine timeline boxes and the landing log must be verified before submit.</p>
+    </div>
+
+    <div class="debrief-card" id="debr8-landing-card">
+      <h4>Landings &amp; Touch-and-Goes</h4>
+      <p class="debrief-note">Log each landing detected or performed. Tap ✓ Verify when the list is complete and correct.</p>
+      <div id="debr8-landing-log-list" class="debr8-landing-list"></div>
+      <div class="debr8-landing-actions">
+        <button class="debr8-ldg-btn add" type="button" onclick="window.debr8AddLandingOpen_()">+ Add</button>
+        <button class="debr8-ldg-btn verify" id="debr8-ldg-verify-btn" type="button" onclick="window.debr8VerifyLandingLog_()">✓ Verify</button>
       </div>
+      <div id="debr8-ldg-counts" class="debr8-ldg-counts"></div>
     </div>
 
     <div class="debrief-card">
@@ -645,6 +907,28 @@ function _debr8Render_(mission, leg, logData) {
       </div>
     </div>
 
+    ${_debr8IsTrainingMission_(mission, leg) ? (function() {
+      var tCode = String((leg && leg.training && leg.training.code) || '').trim();
+      var checkoutRaw = String((leg && leg.training && leg.training.runwayCheckout) || '').trim();
+      var checkoutList = _debr8SplitRunwayCheckout_(checkoutRaw);
+      var rows = checkoutList.map(function(icao, idx) {
+        return '<div class="debr8-checkout-row" data-icao="' + _debr8Esc_(icao) + '" style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:6px;">'
+          + '<div><b>' + _debr8Esc_(icao) + '</b></div>'
+          + '<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="debr8_checkout_ok_' + idx + '"> Success</label>'
+          + '<label style="display:flex;align-items:center;gap:4px;">Landings <input id="debr8_checkout_ldg_' + idx + '" type="number" min="0" step="1" value="0" style="width:64px;height:28px;padding:4px;"></label>'
+          + '</div>';
+      }).join('');
+      return '<div class="debrief-card" id="debr8-training-card">'
+        + '<h4>Training Flight Outcome</h4>'
+        + '<input type="hidden" id="debr8_trainingCode" value="' + _debr8Esc_(tCode) + '">'
+        + '<label style="display:block;margin-bottom:6px;font-weight:700;color:#0b5394;">Flight Result *</label>'
+        + '<select id="debr8_trainingFlightResult" class="browser-default" style="max-width:260px;margin-bottom:8px;">'
+        + '<option value="">Select result</option><option value="PASS">PASS</option><option value="FAIL">FAIL</option>'
+        + '</select>'
+        + (rows ? ('<label style="display:block;margin:8px 0 6px 0;font-weight:700;color:#0b5394;">Runway Checkout Results</label>' + rows) : '<p class="debrief-note">No runway checkout items on syllabus for this training code.</p>')
+        + '</div>';
+    })() : ''}
+
     </div>
 
   </div>
@@ -652,9 +936,12 @@ function _debr8Render_(mission, leg, logData) {
 
   _debr8RenderSquawkRows_(squawkItems);
   window.calculateFuelUsed();
+  _debr8TimelineKeys_().forEach(function(key) { window.debr8SyncTimelineField_(key); });
+  _debr8RenderLandingLog_();
 }
 
 window.setupDebriefTab = function(mission) {
+  mission = _debr8ReadCachedMission_(mission);
   if (!mission || !mission.legs || mission.legs.length === 0) {
     document.getElementById('debrief-container').innerHTML = "<p style='padding:20px; color:red;'>No mission data found.</p>";
     return;
@@ -666,7 +953,13 @@ window.setupDebriefTab = function(mission) {
     return;
   }
 
-  const flightLegId = String(leg.flightLegId || mission.id || '');
+  const flightLegId = String(
+    (leg && (leg.flightLegId || leg.flight_id || leg.id)) ||
+    window.activeLegFlightId ||
+    (mission && mission.activeLegFlightId) ||
+    mission.id ||
+    ''
+  );
   if (window.google && google.script && google.script.run) {
     google.script.run
       .withSuccessHandler(function(logData) {
@@ -699,12 +992,14 @@ window.debr8OpenNumeric_ = function(inputId, label, opts) {
   const input = document.getElementById(inputId);
   if (!input) return;
   const o = opts || {};
+  const timeMode = !!o.timeMode;
 
   if (typeof window.briefOpenKeypad_ === 'function' && document.getElementById('brief-keypad-modal')) {
     window.briefOpenKeypad_(input, label || 'Entry', {
-      decimal: !!o.decimal,
+      decimal: timeMode ? false : !!o.decimal,
       maxLen: Number(o.maxLen || 8),
       onApply: function() {
+        if (timeMode) window.debr8FormatTimeInput_(inputId);
         if (typeof o.onApply === 'function') o.onApply();
       }
     });
@@ -717,6 +1012,7 @@ window.debr8OpenNumeric_ = function(inputId, label, opts) {
       allowSign: false,
       clearOnOpen: false,
       onCommit: function() {
+        if (timeMode) window.debr8FormatTimeInput_(inputId);
         if (typeof o.onApply === 'function') o.onApply();
       }
     });
@@ -727,51 +1023,350 @@ window.debr8OpenNumeric_ = function(inputId, label, opts) {
   input.focus();
 };
 
-window.debr8ToggleCheck_ = function(btn) {
-  if (!btn) return;
-  btn.classList.toggle('checked');
-  btn.textContent = (btn.classList.contains('checked') ? '☑ ' : '☐ ') + btn.textContent.replace(/^☐\s|^☑\s/, '');
+window.debr8FormatTimeInput_ = function(inputId) {
+  var input = document.getElementById(inputId);
+  if (!input) return;
+  var val = String(input.value || '').trim();
+  var digits = val.replace(/\D/g, '');
+  if (digits.length === 3) digits = '0' + digits;
+  if (digits.length === 4) {
+    var h = digits.substring(0, 2);
+    var m = digits.substring(2, 4);
+    h = String(Math.max(0, Math.min(23, Number(h)))).padStart(2, '0');
+    m = String(Math.max(0, Math.min(59, Number(m)))).padStart(2, '0');
+    input.value = h + ':' + m;
+  }
+};
+
+function _debr8TimelineKeys_() {
+  return ['brakesRelease', 'airborne', 'landed', 'onBlocks', 'nightLdgs', 'nightHrs', 'ifrHrs', 'dualRecvd', 'dualGiven'];
+}
+
+function _debr8TimelineMeta_(key) {
+  const map = {
+    brakesRelease: { boxId: 'debr8_brakesReleaseBox', inputId: 'debr8_brakesReleaseInput', displayId: 'debr8_brakesRelease', label: 'BRAKES RELEASE', opts: { timeMode: true, maxLen: 4 } },
+    airborne: { boxId: 'debr8_airborneBox', inputId: 'debr8_airborne', displayId: 'debr8_airborneDisplay', label: 'AIRBORNE', opts: { timeMode: true, maxLen: 4 } },
+    landed: { boxId: 'debr8_landedBox', inputId: 'debr8_landed', displayId: 'debr8_landedDisplay', label: 'LANDED', opts: { timeMode: true, maxLen: 4 } },
+    onBlocks: { boxId: 'debr8_onBlocksBox', inputId: 'debr8_onBlocks', displayId: 'debr8_onBlocksDisplay', label: 'ON BLOCKS', opts: { timeMode: true, maxLen: 4 } },
+    nightLdgs: { boxId: 'debr8_nightLdgsBox', inputId: 'debr8_nightLdgs', displayId: 'debr8_nightLdgsDisplay', label: 'NIGHT LANDINGS', opts: { decimal: false, maxLen: 3 } },
+    nightHrs: { boxId: 'debr8_nightHrsBox', inputId: 'debr8_nightHrs', displayId: 'debr8_nightHrsDisplay', label: 'NIGHT HOURS', opts: { decimal: true, maxLen: 4 } },
+    ifrHrs: { boxId: 'debr8_ifrHrsBox', inputId: 'debr8_ifrHrs', displayId: 'debr8_ifrHrsDisplay', label: 'IFR HOURS', opts: { decimal: true, maxLen: 4 } },
+    dualRecvd: { boxId: 'debr8_dualRecvdBox', inputId: 'debr8_dualRecvd', displayId: 'debr8_dualRecvdDisplay', label: 'DUAL RECVD (STUDENT)', opts: { decimal: true, maxLen: 4 } },
+    dualGiven: { boxId: 'debr8_dualGivenBox', inputId: 'debr8_dualGiven', displayId: 'debr8_dualGivenDisplay', label: 'DUAL GIVEN (INSTRUCTOR)', opts: { decimal: true, maxLen: 4 } }
+  };
+  return map[key] || null;
+}
+
+function _debr8TimelineRawValue_(key) {
+  const meta = _debr8TimelineMeta_(key);
+  if (!meta) return '';
+  const input = document.getElementById(meta.inputId);
+  const display = document.getElementById(meta.displayId);
+  const inputVal = String(input && input.value || '').trim();
+  if (inputVal) return inputVal;
+  const cacheVal = String(window.debrief8 && window.debrief8.traccarData && window.debrief8.traccarData[key] || '').trim();
+  if (cacheVal) return cacheVal;
+  const displayVal = String(display && display.textContent || '').trim();
+  if (displayVal && displayVal !== '—') return displayVal;
+  return '';
+}
+
+function _debr8TimelineHasValue_(key) {
+  const meta = _debr8TimelineMeta_(key);
+  if (!meta) return false;
+  const raw = _debr8TimelineRawValue_(key);
+  if (!raw) return false;
+  if (meta.opts && meta.opts.timeMode) return /^(\d{2}):(\d{2})$/.test(_debr8NormTime_(raw));
+  return true;
+}
+
+window.debr8SyncTimelineField_ = function(key) {
+  const meta = _debr8TimelineMeta_(key);
+  if (!meta) return;
+  const input = document.getElementById(meta.inputId);
+  const display = document.getElementById(meta.displayId);
+  if (!input || !display) return;
+  let value = _debr8TimelineRawValue_(key);
+  if (meta.opts && meta.opts.timeMode) value = _debr8NormTime_(value);
+  input.value = value;
+  display.textContent = value || '—';
+  if (window.debrief8 && window.debrief8.traccarData) window.debrief8.traccarData[key] = value;
+};
+
+window.debr8SetTimelineVerified_ = function(key, verified) {
+  const meta = _debr8TimelineMeta_(key);
+  if (!meta) return;
+  window.debrief8.timelineVerify = window.debrief8.timelineVerify || {};
+  window.debrief8.timelineVerify[key] = !!verified;
+  const box = document.getElementById(meta.boxId);
+  if (box) box.classList.toggle('verified', !!verified);
+};
+
+window.debr8OpenTimelineEditor_ = function(key) {
+  const meta = _debr8TimelineMeta_(key);
+  if (!meta) return;
+  window.debr8SetTimelineVerified_(key, false);
+  window.debr8OpenNumeric_(meta.inputId, meta.label, Object.assign({}, meta.opts, {
+    onApply: function() {
+      window.debr8SyncTimelineField_(key);
+      window.debr8SetTimelineVerified_(key, true);
+    }
+  }));
+};
+
+window.debr8TimelineTap_ = function(key) {
+  if (!DEBR8_ENABLE_CLICK_VERIFY) return;
+  const meta = _debr8TimelineMeta_(key);
+  if (!meta) return;
+  const taps = window.debrief8.timelineTapState = window.debrief8.timelineTapState || {};
+  const pending = taps[key];
+  if (pending) {
+    clearTimeout(pending.timer);
+    delete taps[key];
+    window.debr8OpenTimelineEditor_(key);
+    return;
+  }
+
+  taps[key] = {
+    timer: setTimeout(function() {
+      delete taps[key];
+      window.debr8SyncTimelineField_(key);
+      if (!_debr8TimelineHasValue_(key)) {
+        if (window.M) M.toast({ html: 'No value yet — double tap to enter it', classes: 'orange' });
+        return;
+      }
+      window.debr8SetTimelineVerified_(key, true);
+    }, 220)
+  };
 };
 
 function _debr8AllChecksValid_() {
-  const checks = Array.from(document.querySelectorAll('.debr8-check-btn'));
-  return checks.length > 0 && checks.every(function(btn) { return btn.classList.contains('checked'); });
+  if (!DEBR8_ENABLE_CLICK_VERIFY) return true;
+  var tv = window.debrief8 && window.debrief8.timelineVerify;
+  if (!tv) return false;
+  var timelineOk = _debr8TimelineKeys_().every(function(key) {
+    return !!tv[key] && _debr8TimelineHasValue_(key);
+  });
+  return timelineOk && !!window.debrief8.landingLogVerified;
 }
+
+// ── Landing Log ────────────────────────────────────────────────────────────
+
+function _debr8RenderLandingLog_() {
+  var list = window.debrief8.landingLog || [];
+  var container = document.getElementById('debr8-landing-log-list');
+  var countsEl = document.getElementById('debr8-ldg-counts');
+  if (!container) return;
+
+  if (!list.length) {
+    container.innerHTML = '<p class="debrief-note" style="margin:6px 0;">No landings logged yet.</p>';
+  } else {
+    container.innerHTML = list.map(function(entry, idx) {
+      var isTng = String(entry.type || '').toUpperCase() === 'TNG';
+      var typeLabel = isTng ? 'Touch &amp; Go' : 'Full Landing';
+      var loc = _debr8Esc_(entry.icao || entry.locDesc || '—');
+      var name = entry.name ? (' &mdash; ' + _debr8Esc_(entry.name)) : '';
+      var timeStr = entry.timeZ ? (_debr8Esc_(entry.timeZ) + 'Z') : '—';
+      return '<div class="debr8-landing-row' + (isTng ? ' tng' : '') + '">'
+        + '<span class="debr8-landing-seq">#' + (idx + 1) + '</span>'
+        + '<div class="debr8-landing-info">'
+        + '<span class="debr8-landing-type">' + typeLabel + '</span>'
+        + ' <b>' + loc + '</b>' + name
+        + '<br><span style="font-size:0.8rem;color:#607d8b;">Detected ' + timeStr + '</span>'
+        + '</div>'
+        + '<button class="debr8-landing-del" type="button" title="Delete" onclick="window.debr8DeleteLanding_(' + idx + ')">&#8722;</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  if (countsEl) {
+    var totalLdgs = list.length;
+    var tngCount = list.filter(function(e) { return String(e.type || '').toUpperCase() === 'TNG'; }).length;
+    var fullCount = totalLdgs - tngCount;
+    countsEl.textContent = totalLdgs
+      ? ('Total: ' + totalLdgs + ' landing' + (totalLdgs !== 1 ? 's' : '') + '  ·  ' + fullCount + ' full  ·  ' + tngCount + ' T&G')
+      : '';
+  }
+
+  var verifyBtn = document.getElementById('debr8-ldg-verify-btn');
+  if (verifyBtn) {
+    var isVerified = !!(window.debrief8.landingLogVerified);
+    verifyBtn.className = 'debr8-ldg-btn ' + (isVerified ? 'verified' : 'verify');
+    verifyBtn.textContent = isVerified ? '\u2713 Verified' : '\u2713 Verify';
+  }
+}
+
+window.debr8DeleteLanding_ = function(idx) {
+  var list = window.debrief8.landingLog || [];
+  list.splice(idx, 1);
+  window.debrief8.landingLog = list;
+  window.debrief8.landingLogVerified = false;
+  _debr8RenderLandingLog_();
+};
+
+window.debr8AddLandingOpen_ = function() {
+  if (document.getElementById('debr8-add-ldg-overlay')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'debr8-add-ldg-overlay';
+  overlay.innerHTML = '<div class="debr8-add-ldg-box">'
+    + '<h5>Add Landing</h5>'
+    + '<div class="debr8-add-ldg-field">'
+    + '<label>Time (UTC) — HH:MM or HHMM</label>'
+    + '<input id="debr8-ldg-time-in" class="debr8-add-ldg-input" type="text" inputmode="numeric" placeholder="e.g. 1100 or 11:00">'
+    + '</div>'
+    + '<div class="debr8-add-ldg-field">'
+    + '<label>Airport / Location</label>'
+    + '<input id="debr8-ldg-airport-in" class="debr8-add-ldg-input" type="text" autocomplete="off" placeholder="ICAO, name, or free description">'
+    + '<div id="debr8-ldg-suggest-list" class="debr8-ldg-suggest-list" style="display:none;"></div>'
+    + '</div>'
+    + '<div class="debr8-add-ldg-field">'
+    + '<label>Landing Type</label>'
+    + '<select id="debr8-ldg-type-in" class="debr8-add-ldg-select">'
+    + '<option value="FULL">Full Landing</option>'
+    + '<option value="TNG">Touch and Go</option>'
+    + '</select>'
+    + '</div>'
+    + '<div class="debr8-add-ldg-footer">'
+    + '<button class="debr8-ldg-btn add" type="button" onclick="window.debr8AddLandingConfirm_()">Add Landing</button>'
+    + '<button class="debr8-ldg-btn" style="background:#9e9e9e;color:white;" type="button" onclick="window.debr8AddLandingCancel_()">Cancel</button>'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(overlay);
+
+  var airportInput = document.getElementById('debr8-ldg-airport-in');
+  var suggestEl = document.getElementById('debr8-ldg-suggest-list');
+  airportInput.addEventListener('input', function() {
+    var q = String(this.value || '').trim().toUpperCase();
+    if (q.length < 2) { suggestEl.style.display = 'none'; return; }
+    var airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    var matches = airports.filter(function(a) {
+      var code = String(a && (a.icao || a.code || a.iata) || '').toUpperCase();
+      var name = String(a && (a.name || a.city) || '').toUpperCase();
+      return code.indexOf(q) >= 0 || name.indexOf(q) >= 0;
+    }).slice(0, 8);
+    if (!matches.length) { suggestEl.style.display = 'none'; return; }
+    suggestEl.style.display = 'block';
+    suggestEl.innerHTML = matches.map(function(a) {
+      var code = String(a && (a.icao || a.code || a.iata) || '').toUpperCase();
+      var name = String(a && (a.name || a.city) || '');
+      return '<div class="debr8-ldg-suggest-item" data-code="' + _debr8Esc_(code) + '" data-name="' + _debr8Esc_(name) + '">'
+        + '<b>' + _debr8Esc_(code) + '</b> \u2014 ' + _debr8Esc_(name)
+        + '</div>';
+    }).join('');
+    suggestEl.querySelectorAll('.debr8-ldg-suggest-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        airportInput.dataset.selectedCode = this.getAttribute('data-code');
+        airportInput.dataset.selectedName = this.getAttribute('data-name');
+        airportInput.value = this.getAttribute('data-code') + ' \u2014 ' + this.getAttribute('data-name');
+        suggestEl.style.display = 'none';
+      });
+    });
+  });
+};
+
+window.debr8AddLandingCancel_ = function() {
+  var overlay = document.getElementById('debr8-add-ldg-overlay');
+  if (overlay) overlay.remove();
+};
+
+window.debr8AddLandingConfirm_ = function() {
+  var timeRaw = String(((document.getElementById('debr8-ldg-time-in') || {}).value) || '').trim();
+  var airportInput = document.getElementById('debr8-ldg-airport-in');
+  var airportRaw = String((airportInput || {}).value || '').trim();
+  var typeVal = String(((document.getElementById('debr8-ldg-type-in') || {}).value) || 'FULL').toUpperCase();
+
+  if (!airportRaw) {
+    if (window.M) M.toast({ html: 'Enter an airport or location', classes: 'orange' });
+    return;
+  }
+
+  var timeFormatted = '';
+  var digits = timeRaw.replace(/\D/g, '');
+  if (digits.length === 3) digits = '0' + digits;
+  if (digits.length >= 4) {
+    var h = digits.substring(0, 2);
+    var m = digits.substring(2, 4);
+    h = String(Math.max(0, Math.min(23, Number(h)))).padStart(2, '0');
+    m = String(Math.max(0, Math.min(59, Number(m)))).padStart(2, '0');
+    timeFormatted = h + ':' + m;
+  }
+
+  var selectedCode = String((airportInput && airportInput.dataset && airportInput.dataset.selectedCode) || '').trim().toUpperCase();
+  var selectedName = String((airportInput && airportInput.dataset && airportInput.dataset.selectedName) || '').trim();
+  var icao = '';
+  var name = '';
+  var locDesc = '';
+
+  if (selectedCode) {
+    icao = selectedCode;
+    name = selectedName;
+  } else {
+    locDesc = airportRaw;
+    if (/^[A-Z]{4}$/i.test(airportRaw.trim())) {
+      icao = airportRaw.trim().toUpperCase();
+    }
+  }
+
+  var entry = {
+    timeZ: timeFormatted,
+    icao: icao,
+    name: name,
+    locDesc: locDesc || icao,
+    type: typeVal
+  };
+
+  window.debrief8.landingLog = window.debrief8.landingLog || [];
+  window.debrief8.landingLog.push(entry);
+  window.debrief8.landingLogVerified = false;
+  _debr8RenderLandingLog_();
+  window.debr8AddLandingCancel_();
+};
+
+window.debr8VerifyLandingLog_ = function() {
+  window.debrief8.landingLogVerified = true;
+  _debr8RenderLandingLog_();
+};
+
+// ── End Landing Log ──────────────────────────────────────────────────────────
 
 window.submitDebriefLog = function() {
   try {
     const isTimeLike = function(v) {
       const t = String(v || '').trim();
       if (!t) return false;
-      return /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.test(t);
+      return /^(\d{2}):(\d{2})$/.test(t);
     };
     const normalizeTime = function(v) {
       const t = String(v || '').trim();
-      const m = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      const m = t.match(/^(\d{2}):(\d{2})$/);
       if (!m) return t;
       const hh = String(Math.max(0, Math.min(23, Number(m[1] || 0)))).padStart(2, '0');
       const mm = String(Math.max(0, Math.min(59, Number(m[2] || 0)))).padStart(2, '0');
-      const ss = String(Math.max(0, Math.min(59, Number(m[3] || 0)))).padStart(2, '0');
-      return `${hh}:${mm}:${ss}`;
+      return `${hh}:${mm}`;
     };
 
     const endTach = String(document.getElementById('debr8_endTach')?.value || '').trim();
     const fuelEndRaw = String(document.getElementById('debr8_fuelEnd')?.value || '').trim();
     const fuelEnd = fuelEndRaw === '' ? NaN : parseFloat(fuelEndRaw);
+    const brakesReleaseRaw = document.getElementById('debr8_brakesReleaseInput')?.value || window.debrief8.traccarData.brakesRelease || '';
     const airborneRaw = document.getElementById('debr8_airborne')?.value || '';
     const landedRaw = document.getElementById('debr8_landed')?.value || window.debrief8.traccarData.landed || window.debrief8.traccarData.onBlocks || '';
-    const brakesAppliedRaw = window.debrief8.traccarData.onBlocks || '';
-    const numLdgs = Math.max(1, parseInt(document.getElementById('debr8_numLdgs')?.value, 10) || 1);
+    const brakesAppliedRaw = document.getElementById('debr8_onBlocks')?.value || window.debrief8.traccarData.onBlocks || '';
+    const _landingLog = window.debrief8.landingLog || [];
+    const numLdgs = Math.max(0, _landingLog.length);
+    const numTouchAndGos = _landingLog.filter(function(e) { return String(e.type || '').toUpperCase() === 'TNG'; }).length;
     const nightLdgs = Math.max(0, parseInt(document.getElementById('debr8_nightLdgs')?.value, 10) || 0);
     const nightHrs = Math.max(0, parseFloat(document.getElementById('debr8_nightHrs')?.value) || 0);
     const ifrHrs = Math.max(0, parseFloat(document.getElementById('debr8_ifrHrs')?.value) || 0);
-    const numTouchAndGos = Math.max(0, parseInt(document.getElementById('debr8_numTg')?.value, 10) || 0);
+    const dualRecvd = Math.max(0, parseFloat(document.getElementById('debr8_dualRecvd')?.value) || 0);
+    const dualGiven = Math.max(0, parseFloat(document.getElementById('debr8_dualGiven')?.value) || 0);
     const squawks = Array.from(document.querySelectorAll('#debr8-squawk-list .debr8-squawk-input'))
       .map(function(el) { return String(el && el.value || '').trim(); })
       .map(function(s) { return String(s || '').trim(); })
       .filter(Boolean)
       .join(', ');
 
+    const brakesRelease = normalizeTime(brakesReleaseRaw);
     const airborne = normalizeTime(airborneRaw);
     const landed = normalizeTime(landedRaw);
     const brakesApplied = normalizeTime(brakesAppliedRaw);
@@ -789,20 +1384,20 @@ window.submitDebriefLog = function() {
     }
 
     if (!isTimeLike(airborne) || !isTimeLike(landed)) {
-      if (window.M) M.toast({ html: 'Airborne and Landed must be HH:MM or HH:MM:SS', classes: 'orange' });
+      if (window.M) M.toast({ html: 'Airborne and Landed must be HH:MM (or 4 digits like 1134)', classes: 'orange' });
       return;
     }
 
     if (!_debr8AllChecksValid_()) {
-      if (window.M) M.toast({ html: 'Verify all auto values before submitting', classes: 'orange' });
+      if (window.M) M.toast({ html: 'Verify all nine timeline boxes and the landing log before submitting', classes: 'orange' });
       return;
     }
 
     const totalTime = (function() {
       const parseSec = function(t) {
-        const m = String(t || '').match(/^(\d{2}):(\d{2}):(\d{2})$/);
+        const m = String(t || '').match(/^(\d{2}):(\d{2})$/);
         if (!m) return null;
-        return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+        return Number(m[1]) * 3600 + Number(m[2]) * 60;
       };
       const a = parseSec(airborne);
       const l = parseSec(landed);
@@ -811,15 +1406,50 @@ window.submitDebriefLog = function() {
       if (d < 0) d += 24 * 3600;
       const hh = String(Math.floor(d / 3600)).padStart(2, '0');
       const mm = String(Math.floor((d % 3600) / 60)).padStart(2, '0');
-      const ss = String(d % 60).padStart(2, '0');
-      return `${hh}:${mm}:${ss}`;
+      return `${hh}:${mm}`;
     })();
+
+    const trainingCard = document.getElementById('debr8-training-card');
+    let trainingDebrief = null;
+    if (trainingCard) {
+      const trainingCode = String(document.getElementById('debr8_trainingCode')?.value || '').trim();
+      const flightResult = String(document.getElementById('debr8_trainingFlightResult')?.value || '').trim().toUpperCase();
+      if (flightResult !== 'PASS' && flightResult !== 'FAIL') {
+        if (window.M) M.toast({ html: 'Select training flight result (PASS or FAIL)', classes: 'orange' });
+        return;
+      }
+
+      const runwayChecks = Array.from(document.querySelectorAll('.debr8-checkout-row')).map(function(row) {
+        const icao = String(row.getAttribute('data-icao') || '').trim().toUpperCase();
+        const okInput = row.querySelector('input[id^="debr8_checkout_ok_"]');
+        const ldgInput = row.querySelector('input[id^="debr8_checkout_ldg_"]');
+        const successful = !!(okInput && okInput.checked);
+        const landings = Math.max(0, parseInt(ldgInput && ldgInput.value, 10) || 0);
+        return { icao: icao, successful: successful, landings: landings };
+      });
+
+      const invalidCheckout = runwayChecks.some(function(rc) { return rc.successful && rc.landings <= 0; });
+      if (invalidCheckout) {
+        if (window.M) M.toast({ html: 'For successful runway checkouts, enter landings > 0', classes: 'orange' });
+        return;
+      }
+
+      trainingDebrief = {
+        isTrainingFlight: true,
+        trainingCode: trainingCode,
+        flightResult: flightResult,
+        runwayChecks: runwayChecks
+      };
+    }
 
     const payload = {
       flightLegId: window.debrief8.flightLegId,
+      missionId: String(window.debrief8 && window.debrief8.mission && window.debrief8.mission.id || ''),
+      pilotName: String(window.debrief8 && window.debrief8.mission && window.debrief8.mission.pilot || ''),
       endTach: endTach,
       fuelEnd: fuelEnd,
       fuelUsed: fuelUsed,
+      brakesRelease: brakesRelease,
       airborne: airborne,
       landed: landed,
       brakesApplied: brakesApplied,
@@ -830,12 +1460,70 @@ window.submitDebriefLog = function() {
       numTouchAndGos: numTouchAndGos,
       squawks: squawks,
       totalTime: totalTime,
+      dualRecvd: dualRecvd,
+      dualGiven: dualGiven,
+      landingLog: _landingLog,
+      trainingDebrief: trainingDebrief,
       debriefAt: new Date().toISOString()
     };
 
+    const updateLocalAircraftTach_ = function(endTachValue) {
+      const tachNum = parseFloat(endTachValue);
+      if (!isFinite(tachNum)) return;
+      const mission = (window.debrief8 && window.debrief8.mission && typeof window.debrief8.mission === 'object')
+        ? window.debrief8.mission
+        : null;
+      const reg = String(mission && mission.acft || '').trim().toUpperCase();
+      if (!reg) return;
+
+      const patchAircraftList = function(list) {
+        if (!Array.isArray(list)) return false;
+        const acft = list.find(function(a) {
+          return String(a && a.reg || '').trim().toUpperCase() === reg;
+        });
+        if (!acft) return false;
+        acft.currentTach = tachNum;
+        const nextDue = parseFloat(acft.nextDue);
+        if (isFinite(nextDue)) {
+          acft.hoursToInsp = parseFloat((nextDue - tachNum).toFixed(1));
+        }
+        return true;
+      };
+
+      try {
+        if (window.appData && patchAircraftList(window.appData.aircraft)) {
+          window.appData = window.appData;
+        }
+      } catch (e) {}
+
+      try {
+        if (typeof appData !== 'undefined' && appData && patchAircraftList(appData.aircraft)) {
+          appData = appData;
+        }
+      } catch (eApp) {}
+
+      try {
+        if (typeof window.cacheGet === 'function' && typeof window.cacheSet === 'function' && window.OFFLINE_CACHE_KEYS && window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA) {
+          const cached = window.cacheGet(window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+          if (patchAircraftList(cached.aircraft)) {
+            window.cacheSet(window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA, cached);
+          }
+        }
+      } catch (e2) {}
+    };
+
     const onDebriefDone = function() {
+      updateLocalAircraftTach_(payload.endTach);
       if (window.M) M.toast({ html: 'Mission debrief complete', classes: 'green' });
       switchTab(1);
+      try {
+        var refreshFn = (typeof window.checkMissionLegality === 'function')
+          ? window.checkMissionLegality
+          : (typeof checkMissionLegality === 'function' ? checkMissionLegality : null);
+        if (window.activeMission && typeof refreshFn === 'function') {
+          setTimeout(function() { refreshFn(window.activeMission); }, 220);
+        }
+      } catch (refreshErr) {}
     };
 
     if (typeof window.runOrQueueServerAction === 'function') {

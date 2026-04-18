@@ -1,0 +1,45 @@
+TEST DATA FOR DB_PILOTS - 10 Staff Members
+==========================================
+
+Tab-separated format. Copy headers first, then paste each row below.
+
+HEADERS:
+Pilot_Name	CPF	Date of Birth	CANAC	Email	Weight_KGS	MNTE_Validity	MNAF_Validity	IFR_Validity	INVA_Validity	Medical_Expiry	A	Medical Status	STAFF_ID	ACTIVE	PRIMARY_ROLE	STAFF_ROLES_JSON	CAN_EDIT_DISCREPANCIES	CAN_APPROVE_DEFERMENTS	CAN_EDIT_MAINTENANCE	CAN_FLIGHT_FOLLOW	CAN_COORDINATE_FLIGHTS	CAN_MANAGE_STOCKROOM	CAN_INSTRUCT	CAN_INSPECT	COMPLETED_COURSES_JSON	QUALIFICATIONS_JSON	LAST_TRAINING_SYNC_AT	NOTES
+
+ROW 1 - Captain + Instructor:
+Sarah Mitchell	123.456.789-00	1985-03-15	CANAC001	sarah.mitchell@company.com	72	2026-12-31	2026-12-31	2026-12-31	2026-12-31	2026-06-30		Valid	PL001	Y	Captain	["Captain","Instructor"]	Y	Y	N	Y	Y	N	Y	N	["CPL","INSTRUMENT"]	["Captain","Instructor","IFR"]	2026-04-13	Senior captain with 20 years experience
+
+ROW 2 - First Officer:
+James Rodriguez	234.567.890-11	1988-07-22	CANAC002	james.rodriguez@company.com	78	2026-10-31	2026-10-31	2026-10-31	N/A	2026-05-15		Valid	PL002	Y	First Officer	["First Officer"]	N	N	N	Y	N	N	N	N	["CPL"]	["First Officer","Multi-Engine"]	2026-04-13	1000+ hours
+
+ROW 3 - First Officer + Check Pilot:
+Emily Chen	345.678.901-22	1987-11-08	CANAC003	emily.chen@company.com	65	2026-08-15	2026-08-15	2026-08-15	2026-08-15	2026-07-20		Valid	PL003	Y	First Officer	["First Officer","Check Pilot"]	Y	Y	N	Y	Y	N	N	Y	["CPL","IRI"]	["First Officer","Check Pilot","IFR"]	2026-04-13	Examiner qualified
+
+ROW 4 - Captain:
+Marcus Johnson	456.789.012-33	1980-01-30	CANAC004	marcus.johnson@company.com	80	2025-06-30	2025-06-30	2025-12-31	2025-12-31	2026-03-10		Expired (pending renewal)	PL004	Y	Captain	["Captain"]	Y	Y	N	Y	Y	, N	Y	N	["CPL"]	["Captain","IFR","Expired"]	2026-01-20	Medical expiry soon - test alert
+
+ROW 5 - First Officer + Dispatcher:
+Jessica Williams	567.890.123-44	1990-05-17	CANAC005	jessica.williams@company.com	68	2026-11-30	2026-11-30	2026-11-30	N/A	2026-08-25		Valid	PL005	Y	First Officer	["First Officer","Dispatcher"]	N	N	Y	Y	Y	Y	N	N	["CPL"]	["First Officer","Dispatch"]	2026-04-13	Cross-trained dispatcher
+
+ROW 6 - Captain + Check Pilot + Instructor:
+David Thompson	678.901.234-55	1982-09-12	CANAC006	david.thompson@company.com	75	2027-01-31	2027-01-31	2027-01-31	2027-01-31	2026-11-30		Valid	PL006	Y	Captain	["Captain","Check Pilot","Instructor"]	Y	Y	N	Y	Y	N	Y	Y	["CPL","IRI","MEI"]	["Captain","Check Pilot","Instructor","IFR"]	2026-04-13	Most qualified staff member
+
+ROW 7 - First Officer:
+Lisa Anderson	789.012.345-66	1992-04-25	CANAC007	lisa.anderson@company.com	62	2026-09-15	2026-09-15	N/A	N/A	2026-04-30		Valid	PL007	Y	First Officer	["First Officer"]	N	N	N	Y	N	N	N	N	["CPL"]	["First Officer","VFR"]	2026-04-12	VFR only, IFR in progress
+
+ROW 8 - Captain:
+Robert Martinez	890.123.456-77	1984-02-14	CANAC008	robert.martinez@company.com	82	2026-07-31	2026-07-31	2026-07-31	2026-07-31	2026-09-20		Valid	PL008	Y	Captain	["Captain"]	Y	Y	N	Y	Y	Y	N	N	["CPL"]	["Captain","IFR","Aircraft Maintenance"]	2026-04-13	Maintenance-qualified
+
+ROW 9 - First Officer + Instructor:
+Amanda Foster	901.234.567-88	1989-08-03	CANAC008	amanda.foster@company.com	70	2026-12-31	2026-12-31	2026-12-31	N/A	2026-10-15		Valid	PL009	Y	First Officer	["First Officer","Instructor"]	Y	N	N	Y	N	N	Y	N	["CPL","FI"]	["First Officer","Instructor","IFR"]	2026-04-13	Type-rating instructor
+
+ROW 10 - Captain + Check Pilot:
+Christopher Lee	012.345.678-99	1981-12-07	CANAC010	christopher.lee@company.com	76	2026-05-15	2026-05-15	2026-06-30	2026-06-30	2026-12-01		Valid	PL010	Y	Captain	["Captain","Check Pilot"]	Y	Y	Y	Y	Y	Y	N	Y	["CPL","IRI"]	["Captain","Check Pilot","IFR","Maintenance"]	2026-04-13	Fleet captain
+
+PASTE INSTRUCTIONS:
+1. Copy all 10 rows (rows 1-10) above
+2. Go to Google Sheet → DB_Pilots tab
+3. Row 2 onwards (row 1 has headers)
+4. Paste starting at A2 (Pilot_Name column)
+5. Note: Some validity dates are in the past to test expiry warnings
+6. Some staff have multiple roles in STAFF_ROLES_JSON (JSON array format)

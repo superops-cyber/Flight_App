@@ -1,5 +1,5 @@
 <style>
-  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v118 ===== */
+  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v122 ===== */
 
   #enroute6-wrap {
     background:
@@ -636,7 +636,7 @@
 <div id="enroute6-wrap">
   <div class="enroute6-panel">
     <span id="enroute-gs-badge" class="gs-badge"></span>
-    <div style="font-size:10px;color:#666;text-align:right;margin-bottom:2px;">Tab6 Build: v115</div>
+    <div style="font-size:10px;color:#666;text-align:right;margin-bottom:2px;">Tab6 Build: v122</div>
 
     <div class="enroute-card">
       <div class="roll-tool-row">
@@ -694,6 +694,7 @@
             <th>Dist</th>
             <th>ETE</th>
             <th>ETA</th>
+            <th>ATA</th>
             <th>Fuel</th>
             <th>Fuel Used</th>
             <th></th>
@@ -706,6 +707,12 @@
         <input id="enroute-add-fix" placeholder="+ ADD waypoint (from DB_Airports / DB_Waypoints)">
         <button class="mini-btn" onclick="addWaypointFromInput()">ADD</button>
         <div id="enroute-suggest-list" class="suggest-list" style="display:none;"></div>
+      </div>
+
+      <div class="wp-add-row" style="margin-top:6px;">
+        <input id="enroute-divert-fix" placeholder="DIRECT TO any ICAO / waypoint / airport name">
+        <button class="mini-btn" onclick="directToTypedFix()">DIRECT TO</button>
+        <div id="enroute-divert-suggest-list" class="suggest-list" style="display:none;"></div>
       </div>
     </div>
   </div>
@@ -742,7 +749,15 @@
     mapReady: false,
     mapLoadedOnce: false,
     tileTemplate: '',
-    autoPassThresholdNm: 1.5,
+    autoPassThresholdNm: 0.8,
+    autoPassTrack: {
+      idx: -1,
+      armed: false,
+      armRadiusNm: 0.8,
+      bestDistNm: 999,
+      lastDistNm: 999,
+      armedAtTs: 0
+    },
     takeoffRoll: {
       active: false,
       startLat: null,
@@ -762,7 +777,7 @@
     }
     ,diag: []
   };
-    window.enroute6.autoLog = { enabled: false, state: 'GROUND', prevGsKts: 0, aboveTs: 0, belowTs: 0, brakesReleaseFired: false, airborneConfirmed: false, promptShown: false };
+    window.enroute6.autoLog = { enabled: false, state: 'GROUND', prevGsKts: 0, aboveTs: 0, belowTs: 0, brakesReleaseFired: false, airborneConfirmed: false, promptShown: false, landedFired: false, touchAndGoCount: 0, airborneConfirmKts: 40, landedThresholdKts: 30, onBlocksPromptMs: 45000 };
     window.enroute6.directToLayer = null;
     window.enroute6.hideDirectToLine = false;
   window.enroute6.dbAirportLayer = null;
@@ -791,10 +806,10 @@
     }
 
   function _enrouteFmtHhmm(dateObj) {
-    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '--:--';
-    const hh = String(dateObj.getHours()).padStart(2, '0');
-    const mm = String(dateObj.getMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '--:--Z';
+    const hh = String(dateObj.getUTCHours()).padStart(2, '0');
+    const mm = String(dateObj.getUTCMinutes()).padStart(2, '0');
+    return `${hh}:${mm}Z`;
   }
 
   function _enrouteFmtBsbHhmm_(dateObj) {
@@ -851,6 +866,66 @@
   function _enrouteDefaultVrForAircraft_(acftObj) {
     return 0;
   }
+
+  function _enrouteDefaultConfig_() {
+    return {
+      autoPassThresholdNm: 0.8,
+      airborneConfirmKts: 40,
+      landedThresholdKts: 30,
+      onBlocksPromptSec: 45
+    };
+  }
+
+  function _enrouteReadConfig_() {
+    var defaults = _enrouteDefaultConfig_();
+    var cfg = {};
+    try {
+      cfg = JSON.parse(localStorage.getItem('enrouteConfigV1') || '{}') || {};
+    } catch (e) {
+      cfg = {};
+    }
+    return {
+      autoPassThresholdNm: Math.max(0.5, Number(cfg.autoPassThresholdNm || defaults.autoPassThresholdNm)),
+      airborneConfirmKts: Math.max(15, Number(cfg.airborneConfirmKts || defaults.airborneConfirmKts)),
+      landedThresholdKts: Math.max(10, Number(cfg.landedThresholdKts || defaults.landedThresholdKts)),
+      onBlocksPromptSec: Math.max(10, Number(cfg.onBlocksPromptSec || defaults.onBlocksPromptSec))
+    };
+  }
+
+  function _enrouteApplyConfig_(cfg, updateInputs) {
+    var c = cfg || _enrouteReadConfig_();
+    window.enroute6.autoPassThresholdNm = Number(c.autoPassThresholdNm || 0.8);
+    window.enroute6.autoLog = window.enroute6.autoLog || {};
+    window.enroute6.autoLog.airborneConfirmKts = Number(c.airborneConfirmKts || 40);
+    window.enroute6.autoLog.landedThresholdKts = Number(c.landedThresholdKts || 30);
+    window.enroute6.autoLog.onBlocksPromptMs = Math.round(Number(c.onBlocksPromptSec || 45) * 1000);
+
+    if (updateInputs !== false) {
+      var ap = document.getElementById('enroute-config-autopass'); if (ap) ap.value = String(window.enroute6.autoPassThresholdNm);
+      var ac = document.getElementById('enroute-config-airborne-kts'); if (ac) ac.value = String(window.enroute6.autoLog.airborneConfirmKts);
+      var lk = document.getElementById('enroute-config-landed-kts'); if (lk) lk.value = String(window.enroute6.autoLog.landedThresholdKts);
+      var ob = document.getElementById('enroute-config-onblocks-sec'); if (ob) ob.value = String(Math.round(window.enroute6.autoLog.onBlocksPromptMs / 1000));
+    }
+  }
+
+  window.saveEnrouteConfig = function() {
+    var cfg = {
+      autoPassThresholdNm: Math.max(0.5, Number((document.getElementById('enroute-config-autopass') || {}).value || 0.8)),
+      airborneConfirmKts: Math.max(15, Number((document.getElementById('enroute-config-airborne-kts') || {}).value || 40)),
+      landedThresholdKts: Math.max(10, Number((document.getElementById('enroute-config-landed-kts') || {}).value || 30)),
+      onBlocksPromptSec: Math.max(10, Number((document.getElementById('enroute-config-onblocks-sec') || {}).value || 45))
+    };
+    localStorage.setItem('enrouteConfigV1', JSON.stringify(cfg));
+    _enrouteApplyConfig_(cfg, true);
+    if (window.M) M.toast({ html: 'Enroute config saved', classes: 'green', displayLength: 2500 });
+  };
+
+  window.resetEnrouteConfig = function() {
+    var cfg = _enrouteDefaultConfig_();
+    localStorage.setItem('enrouteConfigV1', JSON.stringify(cfg));
+    _enrouteApplyConfig_(cfg, true);
+    if (window.M) M.toast({ html: 'Enroute config reset to defaults', classes: 'blue', displayLength: 2500 });
+  };
 
   function _enrouteResolveVrFromAircraft_(acftObj, flapSetting) {
     var flapRaw = Number(flapSetting || 0);
@@ -985,8 +1060,7 @@
 
     if (gsEl) {
       var gsNow = Number(window.enroute6 && window.enroute6.gsKts || 0);
-      var gsDisplay = r.vrHit ? Number(r.gsAtVrKts || 0) : gsNow;
-      gsEl.textContent = Number(gsDisplay || 0).toFixed(1) + ' kts';
+      gsEl.textContent = Number(gsNow || 0).toFixed(1) + ' kts';
     }
 
     // Distance display: freeze once Vr hit
@@ -1065,6 +1139,26 @@
     var flapSetting = _enrouteGetSelectedFlapSetting_();
     var acftObj = _enrouteFindMissionAircraft_();
     var vr = _enrouteResolveVrFromAircraft_(acftObj, flapSetting);
+
+    // Arm auto-log automatically when roll measurement starts so landing time is captured reliably.
+    var al = window.enroute6 && window.enroute6.autoLog;
+    if (al && !al.enabled) {
+      al.enabled = true;
+      al.state = 'GROUND';
+      al.prevGsKts = Number(window.enroute6 && window.enroute6.gsKts || 0);
+      al.aboveTs = 0;
+      al.belowTs = 0;
+      al.brakesReleaseFired = false;
+      al.airborneConfirmed = false;
+      al.promptShown = false;
+      al.landedFired = false;
+      al.touchAndGoCount = 0;
+      _autoLogUpdateChip();
+      var autoBtn = document.getElementById('autolog-toggle-btn');
+      if (autoBtn) autoBtn.textContent = 'DISABLE';
+      if (window.M) M.toast({ html: 'Auto-log armed with Start Roll', classes: 'blue darken-2', displayLength: 3500 });
+    }
+
     window.enroute6.takeoffRoll = {
       active: true,
       startLat: lat,
@@ -1126,6 +1220,29 @@
             distanceAtVrM: Math.round(Number(r.distanceAtVrNm || 0) * 1852),
             maxGsKts: Number((r.maxGsKts || 0).toFixed(1))
           });
+          // Write airborne timestamp to leg cache so Tab 8 can prefill it
+          (function() {
+            try {
+              var fid = String(window.enroute6 && window.enroute6.flightLegId || '');
+              var mid = String(window.enroute6 && window.enroute6.missionId || '');
+              if (!fid || !mid) return;
+              ['mission_' + mid, 'mba_cache_mission_' + mid].forEach(function(ck) {
+                var c = null;
+                try { c = JSON.parse(localStorage.getItem(ck)); } catch (_) {}
+                if (!c || !Array.isArray(c.legs)) return;
+                var leg = c.legs.find(function(l) { return String(l && l.flightLegId || '') === fid; });
+                if (!leg) return;
+                if (leg.airborne) return; // already set by auto-log
+                leg.airborne = r.vrHitAtTs;
+                leg.airborneTime = r.vrHitAtTs;
+                localStorage.setItem(ck, JSON.stringify(c));
+              });
+              if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
+                var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l && l.flightLegId || '') === fid; });
+                if (ml && !ml.airborne) { ml.airborne = r.vrHitAtTs; ml.airborneTime = r.vrHitAtTs; }
+              }
+            } catch (_) {}
+          })();
         }
         if (window.M) {
           M.toast({
@@ -1185,11 +1302,53 @@
     if (!coord) return;
 
     const dist = _enrouteDistNm(e.lat, e.lon, coord.lat, coord.lon);
-    if (dist <= Number(e.autoPassThresholdNm || 1.5)) {
-      markWaypointPassed(nextIdx, { auto: true, distanceNm: dist });
-      _enrouteDiag(`AUTO-PASS ${nextWp.fix} dist=${dist.toFixed(1)}nm`);
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    const gs = Math.max(0, Number(e.gsKts || 0));
+    const speedAdjustedArmNm = Math.max(0.55, Math.min(1.0, Number(e.autoPassThresholdNm || 0.8) + (gs / 250)));
+    const nowTs = Date.now();
+
+    e.autoPassTrack = e.autoPassTrack || {
+      idx: -1,
+      armed: false,
+      armRadiusNm: speedAdjustedArmNm,
+      bestDistNm: 999,
+      lastDistNm: 999,
+      armedAtTs: 0
+    };
+
+    if (Number(e.autoPassTrack.idx) !== Number(nextIdx)) {
+      e.autoPassTrack = {
+        idx: nextIdx,
+        armed: false,
+        armRadiusNm: speedAdjustedArmNm,
+        bestDistNm: dist,
+        lastDistNm: dist,
+        armedAtTs: 0
+      };
+      return;
     }
+
+    e.autoPassTrack.armRadiusNm = speedAdjustedArmNm;
+    e.autoPassTrack.bestDistNm = Math.min(Number(e.autoPassTrack.bestDistNm || 999), dist);
+
+    if (!e.autoPassTrack.armed && dist <= speedAdjustedArmNm) {
+      e.autoPassTrack.armed = true;
+      e.autoPassTrack.armedAtTs = nowTs;
+    }
+
+    if (e.autoPassTrack.armed) {
+      const movedAway = dist > (Number(e.autoPassTrack.lastDistNm || dist) + 0.12);
+      const behindClosest = dist > (Number(e.autoPassTrack.bestDistNm || dist) + 0.25);
+      const stableTrack = (nowTs - Number(e.autoPassTrack.armedAtTs || nowTs)) >= 4000;
+      if (stableTrack && movedAway && behindClosest) {
+        markWaypointPassed(nextIdx, { auto: true, distanceNm: dist });
+        _enrouteDiag(`AUTO-PASS ${nextWp.fix} arm=${speedAdjustedArmNm.toFixed(2)} best=${Number(e.autoPassTrack.bestDistNm || dist).toFixed(2)} now=${dist.toFixed(2)}nm`);
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        e.autoPassTrack = { idx: -1, armed: false, armRadiusNm: 0.8, bestDistNm: 999, lastDistNm: 999, armedAtTs: 0 };
+        return;
+      }
+    }
+
+    e.autoPassTrack.lastDistNm = dist;
   }
 
   function _enrouteUpdateOffCourseBanner(xtkNm) {
@@ -1282,14 +1441,37 @@
   // ----------- Position update (hooks Phase 2 in) -----------
 
   function _enrouteSetPosition(lat, lon, speedAny, sourceLabel) {
+    if (!_enrouteValidLatLon_(lat, lon)) {
+      _enrouteDiag('Ignored invalid position sample lat=' + String(lat) + ' lon=' + String(lon));
+      return;
+    }
+
+    const prevLat = Number(window.enroute6.lat);
+    const prevLon = Number(window.enroute6.lon);
+    const prevTs = Number(window.enroute6.lastUpdateTs || 0);
+    const nowTs = Date.now();
+
+    const rawGsKts = Number(_enrouteKtsFrom(speedAny).toFixed(1));
+    let derivedGsKts = 0;
+    if (isFinite(prevLat) && isFinite(prevLon) && prevTs > 0 && nowTs > prevTs) {
+      const dtSec = (nowTs - prevTs) / 1000;
+      if (dtSec >= 1 && dtSec <= 30) {
+        const segNm = _enrouteDistNm(prevLat, prevLon, Number(lat), Number(lon));
+        if (isFinite(segNm) && segNm >= 0) {
+          derivedGsKts = Number(((segNm / dtSec) * 3600).toFixed(1));
+        }
+      }
+    }
+
     window.enroute6.lat = Number(lat);
     window.enroute6.lon = Number(lon);
-    window.enroute6.gsKts = Number(_enrouteKtsFrom(speedAny).toFixed(1));
-    window.enroute6.lastUpdateTs = Date.now();
+    window.enroute6.gsKts = (rawGsKts > 1) ? rawGsKts : derivedGsKts;
+    window.enroute6.lastUpdateTs = nowTs;
     _enrouteUpdateHeader();
     _enrouteRefreshAircraftMarker();
     _enroutePulseGs();
     _enrouteUpdateTakeoffRoll_();
+    _autoLogTick(window.enroute6.gsKts);
     _enrouteAutoProgress();
     _enrouteRefreshDirectLayer();
     _enrouteMaybeRefreshDbLayers();
@@ -1377,11 +1559,13 @@
           chip.textContent = '⚙ AUTO-LOG: OFF';
           return;
         }
+        var landedThreshold = Number(al.landedThresholdKts || 30);
+        var landingLabel = '🛬 LANDED' + (al.touchAndGoCount ? ' (T&G ×' + al.touchAndGoCount + ')' : '') + ' — ON BLOCKS? (< ' + landedThreshold + ' kts)';
         var labels = {
           GROUND:   ['autolog-ground',   '⏸ GROUND'],
           ROLLING:  ['autolog-rolling',  '🔴 ROLLING — BRAKES RELEASED'],
           AIRBORNE: ['autolog-airborne', '✈ AIRBORNE'],
-          LANDING:  ['autolog-landing',  '🛬 SLOWING — ON BLOCKS?'],
+          LANDING:  ['autolog-landing',  landingLabel],
           LOCKED:   ['autolog-locked',   '✓ LEG COMPLETE']
         };
         var entry = labels[al.state] || ['autolog-off', '? ' + al.state];
@@ -1406,7 +1590,7 @@
           } else if (legStatus === 'DEPARTED') {
             al.state = 'AIRBORNE'; al.airborneConfirmed = true; al.brakesReleaseFired = true;
           } else {
-            al.state = 'GROUND'; al.brakesReleaseFired = false; al.airborneConfirmed = false;
+            al.state = 'GROUND'; al.brakesReleaseFired = false; al.airborneConfirmed = false; al.landedFired = false; al.touchAndGoCount = 0;
           }
         }
         _autoLogUpdateChip();
@@ -1459,8 +1643,125 @@
       }
 
       function _autoLogFireAirborne() {
-        _enrouteDiag('AUTO-LOG: AIRBORNE confirmed at 40 kts — ' + new Date().toISOString());
+        var ts = new Date().toISOString();
+        _enrouteDiag('AUTO-LOG: AIRBORNE confirmed at 40 kts — ' + ts);
         if (window.M) M.toast({ html: '✈ Airborne confirmed (40 kts)', classes: 'green darken-2', displayLength: 5000 });
+        var fid = String(window.enroute6 && window.enroute6.flightLegId || '');
+        var mid = String(window.enroute6 && window.enroute6.missionId || '');
+
+        // Keep both mission cache families in sync so Tab 8 can prefill while offline.
+        (function() {
+          try {
+            if (!mid || !fid) return;
+            ['mission_' + mid, 'mba_cache_mission_' + mid].forEach(function(key) {
+              var cached = null;
+              try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+              if (!cached || !Array.isArray(cached.legs)) return;
+              var leg = cached.legs.find(function(l) { return String(l && l.flightLegId || '') === fid; });
+              if (!leg) return;
+              leg.airborne = ts;
+              if (!leg.logStatus || leg.logStatus === 'PENDING') leg.logStatus = 'DEPARTED';
+              localStorage.setItem(key, JSON.stringify(cached));
+            });
+            if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
+              var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l && l.flightLegId || '') === fid; });
+              if (ml) {
+                ml.airborne = ts;
+                if (!ml.logStatus || ml.logStatus === 'PENDING') ml.logStatus = 'DEPARTED';
+              }
+            }
+          } catch (e) { console.warn('autoLog airborne cache update failed', e); }
+        })();
+
+        if (fid && typeof window.runOrQueueServerAction === 'function') {
+          window.runOrQueueServerAction(
+            { method: 'recordAirborne', args: [{ flightLegId: fid, airborne: ts }], label: 'Airborne' },
+            {
+              onSuccess: function() { _enrouteDiag('AUTO-LOG: recordAirborne synced'); },
+              onQueued:  function() { _enrouteDiag('AUTO-LOG: recordAirborne queued offline'); },
+              onFailure: function(e) { _enrouteDiag('AUTO-LOG: recordAirborne error: ' + e); }
+            }
+          );
+        }
+      }
+
+      function _autoLogFireLanded() {
+        var ts = new Date().toISOString();
+        var al = window.enroute6.autoLog || {};
+        var landedThreshold = Number(al.landedThresholdKts || 30);
+        _enrouteDiag('AUTO-LOG: LANDED — GS < ' + landedThreshold + ' kts — ' + ts);
+        if (window.M) M.toast({ html: '🛬 Landed (GS < ' + landedThreshold + ' kts)', classes: 'orange darken-2', displayLength: 5000 });
+        var fid = String(window.enroute6 && window.enroute6.flightLegId || '');
+        var mid = String(window.enroute6 && window.enroute6.missionId || '');
+
+        // Persist LANDED immediately to local cache for Tab 8 timeline autofill.
+        (function() {
+          try {
+            if (!mid || !fid) return;
+            ['mission_' + mid, 'mba_cache_mission_' + mid].forEach(function(key) {
+              var cached = null;
+              try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+              if (!cached || !Array.isArray(cached.legs)) return;
+              var leg = cached.legs.find(function(l) { return String(l && l.flightLegId || '') === fid; });
+              if (!leg) return;
+              leg.landed = ts;
+              localStorage.setItem(key, JSON.stringify(cached));
+            });
+            if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
+              var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l && l.flightLegId || '') === fid; });
+              if (ml) ml.landed = ts;
+            }
+          } catch (e) { console.warn('autoLog landed cache update failed', e); }
+        })();
+
+        if (fid && typeof window.runOrQueueServerAction === 'function') {
+          window.runOrQueueServerAction(
+            { method: 'recordLanded', args: [{ flightLegId: fid, landed: ts }], label: 'Landed' },
+            {
+              onSuccess: function() { _enrouteDiag('AUTO-LOG: recordLanded synced'); },
+              onQueued:  function() { _enrouteDiag('AUTO-LOG: recordLanded queued offline'); },
+              onFailure: function(e) { _enrouteDiag('AUTO-LOG: recordLanded error: ' + e); }
+            }
+          );
+        }
+      }
+
+      function _autoLogFireTouchAndGo(count) {
+        var fid = String(window.enroute6 && window.enroute6.flightLegId || '');
+        var mid = String(window.enroute6 && window.enroute6.missionId || '');
+        _enrouteDiag('AUTO-LOG: touch-and-go #' + count);
+        if (window.M) M.toast({ html: '↩ Touch-and-go #' + count + ' detected', classes: 'orange darken-2', displayLength: 5000 });
+
+        // Write to localStorage leg cache so Tab8 pre-fills correctly offline
+        (function() {
+          try {
+            if (!mid) return;
+            var key = 'mission_' + mid;
+            var cached = null;
+            try { cached = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+            if (!cached || !Array.isArray(cached.legs)) return;
+            var leg = cached.legs.find(function(l) { return String(l.flightLegId || '') === fid; });
+            if (!leg) return;
+            leg.numTouchAndGos = count;
+            leg.numLdgs = count + 1;  // T&Gs + expected final
+            localStorage.setItem(key, JSON.stringify(cached));
+            if (window.currentBriefingMission && String(window.currentBriefingMission.id || '') === mid) {
+              var ml = (window.currentBriefingMission.legs || []).find(function(l) { return String(l.flightLegId || '') === fid; });
+              if (ml) { ml.numTouchAndGos = count; ml.numLdgs = count + 1; }
+            }
+          } catch(e) { console.warn('autoLog T&G cache update failed', e); }
+        })();
+
+        if (fid && typeof window.runOrQueueServerAction === 'function') {
+          window.runOrQueueServerAction(
+            { method: 'recordTouchAndGo', args: [{ flightLegId: fid, touchAndGoCount: count }], label: 'Touch-and-go #' + count },
+            {
+              onSuccess: function() { _enrouteDiag('AUTO-LOG: recordTouchAndGo synced (#' + count + ')'); },
+              onQueued:  function() { _enrouteDiag('AUTO-LOG: recordTouchAndGo queued offline (#' + count + ')'); },
+              onFailure: function(e) { _enrouteDiag('AUTO-LOG: recordTouchAndGo error: ' + e); }
+            }
+          );
+        }
       }
 
       window._autoLogConfirmOnBlocks = function(confirmed) {
@@ -1500,9 +1801,11 @@
       };
 
       function _autoLogPromptOnBlocks() {
+        var al = window.enroute6.autoLog || {};
+        var landedThreshold = Number(al.landedThresholdKts || 30);
         _enrouteDiag('AUTO-LOG: on-blocks prompt shown');
         if (window.M) {
-          var html = '<span style="margin-right:8px;">🛬 On blocks? Speed <35 kts for 45s</span>'
+          var html = '<span style="margin-right:8px;">🛬 On blocks? Speed <' + landedThreshold + ' kts for 45s</span>'
             + '<button class="btn btn-flat toast-action" onclick="window._autoLogConfirmOnBlocks(true)" style="color:#a5d6a7;font-weight:800;">ON BLOCKS</button>'
             + '<button class="btn btn-flat toast-action" onclick="window._autoLogConfirmOnBlocks(false)" style="color:#ef9a9a;">DISMISS</button>';
           M.toast({ html: html, displayLength: 30000, classes: 'blue-grey darken-4' });
@@ -1512,6 +1815,9 @@
       function _autoLogTick(gsKts) {
         var al = window.enroute6.autoLog;
         if (!al || !al.enabled) return;
+        var airborneConfirmKts = Number(al.airborneConfirmKts || 40);
+        var landedThresholdKts = Number(al.landedThresholdKts || 30);
+        var onBlocksPromptMs = Number(al.onBlocksPromptMs || 45000);
         var now = Date.now();
         var prev = al.prevGsKts;
         al.prevGsKts = gsKts;
@@ -1536,22 +1842,26 @@
           if (gsKts < 5) {
             al.state = 'GROUND'; al.aboveTs = 0;
             _enrouteDiag('AUTO-LOG: roll aborted (speed < 5 kts)');
-          } else if (gsKts >= 40) {
+          } else if (gsKts >= airborneConfirmKts || (window.enroute6 && window.enroute6.takeoffRoll && window.enroute6.takeoffRoll.vrHit)) {
             if (!al.aboveTs) al.aboveTs = now;
-            if ((now - al.aboveTs) >= 8000 && !al.airborneConfirmed) {
+            if ((now - al.aboveTs) >= 4000 && !al.airborneConfirmed) {
               al.airborneConfirmed = true; al.state = 'AIRBORNE'; _autoLogFireAirborne();
             }
           } else {
             al.aboveTs = 0;
           }
         } else if (al.state === 'AIRBORNE') {
-          if (gsKts < 35) { if (!al.belowTs) al.belowTs = now; al.state = 'LANDING'; }
+          if (gsKts < landedThresholdKts) {
+            if (!al.belowTs) al.belowTs = now;
+            al.state = 'LANDING';
+            if (!al.landedFired) { al.landedFired = true; _autoLogFireLanded(); }
+          }
         } else if (al.state === 'LANDING') {
-          if (gsKts >= 40) {
-            al.state = 'AIRBORNE'; al.belowTs = 0; al.promptShown = false;
-            _enrouteDiag('AUTO-LOG: touch-and-go / go-around');
-            if (window.M) M.toast({ html: '↩ Touch-and-go / go-around detected', classes: 'orange darken-2', displayLength: 5000 });
-          } else if ((now - al.belowTs) >= 45000 && !al.promptShown) {
+          if (gsKts >= airborneConfirmKts) {
+            al.state = 'AIRBORNE'; al.belowTs = 0; al.promptShown = false; al.landedFired = false;
+            al.touchAndGoCount = (al.touchAndGoCount || 0) + 1;
+            _autoLogFireTouchAndGo(al.touchAndGoCount);
+          } else if ((now - al.belowTs) >= onBlocksPromptMs && !al.promptShown) {
             al.promptShown = true; _autoLogPromptOnBlocks();
           }
         }
@@ -1565,7 +1875,7 @@
       window.directToWaypoint = function(tgtIdx) {
         var e = window.enroute6;
         var wps = e.waypoints;
-        if (!wps || tgtIdx <= 0 || tgtIdx >= wps.length) return;
+        if (!wps || tgtIdx < 0 || tgtIdx >= wps.length) return;
         var tgtFix = wps[tgtIdx].fix;
         var bypassTs = _enrouteFmtHhmm(new Date());
         for (var i = e.passedIndex + 1; i < tgtIdx; i++) {
@@ -1856,9 +2166,9 @@
 
   function _offlinePackDefaults(scope) {
     if (String(scope || 'base').toLowerCase() === 'route') {
-      return { minZoom: 6, maxZoom: 9, label: 'Route pack' };
+      return { minZoom: 7, maxZoom: 10, label: 'Route pack' };
     }
-    return { minZoom: 5, maxZoom: 8, label: 'Airport coverage pack' };
+    return { minZoom: 6, maxZoom: 9, label: 'Airport coverage pack' };
   }
 
   function _packDateLabel(isoDate) {
@@ -2251,6 +2561,15 @@
     setTimeout(refresh, 420);
   }
 
+  function _enrouteAircraftDivIcon() {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">'
+      + '<circle cx="14" cy="14" r="12.5" fill="#1b1f2a" stroke="#90caf9" stroke-width="1.6"/>'
+      + '<path d="M14 5.2 L15.2 9.4 L22.6 11.1 L22.6 13.3 L16.1 13.1 L16.8 16.8 L20 18.6 L20 20.6 L15.6 19.4 L14 23 L12.4 19.4 L8 20.6 L8 18.6 L11.2 16.8 L11.9 13.1 L5.4 13.3 L5.4 11.1 L12.8 9.4 Z" fill="#e3f2fd" stroke="#0d47a1" stroke-width="0.8"/>'
+      + '<circle cx="14" cy="14" r="1.4" fill="#42a5f5"/>'
+      + '</svg>';
+    return window.L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
+  }
+
   function _enrouteRefreshAircraftMarker() {
     if (!window.enroute6.mapObj || !window.L) return;
     const lat = Number(window.enroute6.lat);
@@ -2258,17 +2577,34 @@
     if (!isFinite(lat) || !isFinite(lon)) return;
 
     if (!window.enroute6.aircraftLayer) {
-      window.enroute6.aircraftLayer = window.L.circleMarker([lat, lon], {
-        radius: 8,
-        color: '#1a237e',
-        fillColor: '#3949ab',
-        fillOpacity: 0.95,
-        weight: 2
+      window.enroute6.aircraftLayer = window.L.marker([lat, lon], {
+        icon: _enrouteAircraftDivIcon(),
+        zIndexOffset: 1000
       }).addTo(window.enroute6.mapObj);
       window.enroute6.aircraftLayer.bindTooltip('Aircraft', { direction: 'top', offset: [0, -8] });
       return;
     }
     window.enroute6.aircraftLayer.setLatLng([lat, lon]);
+  }
+
+  function _enrouteValidLatLon_(lat, lon) {
+    return isFinite(Number(lat)) && isFinite(Number(lon))
+      && Math.abs(Number(lat)) <= 90
+      && Math.abs(Number(lon)) <= 180
+      && !(Math.abs(Number(lat)) < 0.25 && Math.abs(Number(lon)) < 0.25);
+  }
+
+  function _enrouteInitialCenter_() {
+    const e = window.enroute6 || {};
+    const lat = Number(e.lat);
+    const lon = Number(e.lon);
+    if (_enrouteValidLatLon_(lat, lon)) return { lat: lat, lon: lon, zoom: 10 };
+
+    const pts = _enrouteWaypointPoints();
+    if (pts && pts.length) {
+      return { lat: Number(pts[0].lat), lon: Number(pts[0].lon), zoom: 8 };
+    }
+    return { lat: -14.235, lon: -51.925, zoom: 5 };
   }
 
   function _enrouteInitMap() {
@@ -2281,11 +2617,12 @@
 
         if (!window.enroute6.mapObj) {
           try {
+            const c = _enrouteInitialCenter_();
             window.enroute6.mapObj = window.L.map('enroute-leaflet-map', {
               zoomControl: true,
               attributionControl: true,
               preferCanvas: false
-            }).setView([-14.235, -51.925], 4);
+            }).setView([c.lat, c.lon], c.zoom);
             _enrouteDiag('Map object created successfully');
           } catch (mapErr) {
             _enrouteDiag('Failed to create map object: ' + String(mapErr.message));
@@ -2299,6 +2636,10 @@
         _enrouteRefreshDbLayers();
         _enrouteRefreshRouteLayer();
         _enrouteRefreshAircraftMarker();
+        if (_enrouteValidLatLon_(window.enroute6.lat, window.enroute6.lon)) {
+          window.enroute6.mapObj.setView([Number(window.enroute6.lat), Number(window.enroute6.lon)], Math.max(window.enroute6.mapObj.getZoom(), 10));
+          window.enroute6.mapLoadedOnce = true;
+        }
         _enrouteInvalidateMapSize_(true);
 
         if (!window.enroute6.resizeBound) {
@@ -2468,8 +2809,8 @@
     }
     const lat = Number(window.enroute6.lat);
     const lon = Number(window.enroute6.lon);
-    if (isFinite(lat) && isFinite(lon)) {
-      window.enroute6.mapObj.setView([lat, lon], Math.max(window.enroute6.mapObj.getZoom(), 9));
+    if (_enrouteValidLatLon_(lat, lon)) {
+      window.enroute6.mapObj.setView([lat, lon], Math.max(window.enroute6.mapObj.getZoom(), 10));
       _enrouteInvalidateMapSize_(false);
       return;
     }
@@ -2971,15 +3312,17 @@
     }
     const gs = Number(window.enroute6.gsKts || 0);
     const now = new Date();
+    const startIdx = Math.max(0, Number(window.enroute6.passedIndex || -1) + 1);
     let cumulativeMin = 0;
 
     window.enroute6.waypoints.forEach((wp, idx) => {
       const dist = Number(wp.distNm || 0);
-      const ete = (gs > 0) ? Math.max(1, Math.round((dist / gs) * 60)) : 0;
-      cumulativeMin += ete;
+      const shouldCompute = idx >= startIdx;
+      const ete = (gs > 0 && shouldCompute) ? Math.max(1, Math.round((dist / gs) * 60)) : 0;
+      if (shouldCompute) cumulativeMin += ete;
       const etaDate = new Date(now.getTime() + cumulativeMin * 60000);
       wp.eteMin = ete;
-      wp.eta = gs > 0 ? _enrouteFmtHhmm(etaDate) : '--:--';
+      wp.eta = (gs > 0 && shouldCompute) ? _enrouteFmtHhmm(etaDate) : '--:--';
     });
 
     renderEnrouteWaypointRows();
@@ -3031,9 +3374,13 @@
   window.markWaypointPassed = function(idx, options) {
     options = options || {};
     if (!window.enroute6.waypoints[idx]) return;
+    const isTakeoffWaypoint = Number(idx) === 0;
+    const isDestinationWaypoint = Number(idx) === window.enroute6.waypoints.length - 1;
     const wasPassed = idx <= Number(window.enroute6.passedIndex || -1) || !!window.enroute6.waypoints[idx].passedAt;
     window.enroute6.passedIndex = Math.max(window.enroute6.passedIndex, idx);
-    window.enroute6.waypoints[idx].passedAt = _enrouteFmtHhmm(new Date());
+    const ata = _enrouteFmtHhmm(new Date());
+    window.enroute6.waypoints[idx].passedAt = ata;
+    window.enroute6.waypoints[idx].ata = ata;
     if (Number(window.enroute6.directToTargetIdx) === idx) {
       window.enroute6.directToTargetIdx = null;
       window.enroute6.hideDirectToLine = true;
@@ -3049,8 +3396,10 @@
     _updateFuelSummary();
     updatePositionReportDraft();
     if (!wasPassed) {
-      _enrouteHandleStationPass_(idx);
-      if (window.M) M.toast({ html: `✔ Passed ${window.enroute6.waypoints[idx].fix}`, classes: 'green', displayLength: 3500 });
+      if (!isTakeoffWaypoint && !isDestinationWaypoint) {
+        _enrouteHandleStationPass_(idx);
+        if (window.M) M.toast({ html: `✔ Passed ${window.enroute6.waypoints[idx].fix}`, classes: 'green', displayLength: 3500 });
+      }
     }
   };
 
@@ -3069,16 +3418,13 @@
       const canDelete = idx > 0 && idx < waypoints.length - 1;
       const legEte = wp.eteMin ? (wp.eteMin + 'm') : '--';
       const legClass = passed ? ' passed' : (bypassed ? ' bypassed' : '');
+      const ataDisplay = wp.passedAt || wp.ata || wp.bypassedAt || '--:--Z';
       const passedHtml = wp.passedAt
         ? ('<br><small>Passed ' + wp.passedAt + '</small>')
         : (wp.bypassedAt ? ('<br><small style="color:#bbb;">Bypassed ' + wp.bypassedAt + '</small>') : '');
       const passBtn = passed || bypassed ? '' : ('<button class="wp-pass-btn" onclick="markWaypointPassed(' + idx + ')">PASS</button>');
       const delBtn = (canDelete && !passed && !bypassed) ? ('<button class="wp-del-btn" onclick="deleteWaypoint(' + idx + ')">x</button>') : '';
-      // DIRECT button: show for any waypoint ahead of next that has a known fix  
-      const canDirect = !passed && !bypassed && idx > (window.enroute6.passedIndex + 1);
-      const directBtn = canDirect ? ('<button class="wp-direct-btn" onclick="directToWaypoint(' + idx + ')">⇒ DIRECT</button>') : '';
-      // SKIP button: show for the "next" waypoint only (manual waypoint advance)
-      const skipBtn = isNext && !bypassed ? ('<button class="wp-pass-btn" onclick="markWaypointPassed(' + idx + ')" title="Skip to next waypoint" style="background:#7b1fa2;">SKIP</button>') : '';
+      const directBtn = ('<button class="wp-direct-btn" onclick="directToWaypoint(' + idx + ')">⇒ DIRECT</button>');
 
       if (idx > 0) {
         const distIsUnknown = wp.distNm === null || wp.distNm === undefined;
@@ -3090,7 +3436,7 @@
           + '<td class="hdg-cell"><b>' + (wp.hdg || '--') + '</b></td>'
           + '<td class="dist-cell">' + distDisplay + '</td>'
           + '<td><b>' + legEte + '</b></td>'
-          + '<td colspan="4"></td>'
+            + '<td colspan="5"></td>'
           + '</tr>';
       }
 
@@ -3103,9 +3449,10 @@
         + '<td>' + fixLabel + passedHtml + '</td>'
         + '<td colspan="3"></td>'
         + '<td>' + (wp.eta || '--:--') + '</td>'
+        + '<td>' + ataDisplay + '</td>'
         + '<td style="font-size:0.65rem;">' + _enrouteFuelCellHtml_(idx, isNext) + '</td>'
         + '<td>' + (wp.fuelUsedL ? ('<span class="fuel-used-badge">' + Math.round(Number(wp.fuelUsedL || 0)) + 'L</span>') : '--') + '</td>'
-        + '<td>' + (passed ? '' : (isNext ? skipBtn : (directBtn || passBtn))) + delBtn + '</td>'
+        + '<td>' + directBtn + passBtn + delBtn + '</td>'
         + '</tr>';
     }
 
@@ -3295,11 +3642,17 @@
     const list = [];
     airports.forEach(a => {
       const fix = String(a.icao || '').toUpperCase();
-      if (fix && fix.indexOf(q) >= 0) list.push({ fix: fix, type: 'APT' });
+      const name = String(a.nome || a.name || '').trim();
+      const codeHit = fix && fix.indexOf(q) >= 0;
+      const nameHit = name && String(name).toUpperCase().indexOf(q) >= 0;
+      if (codeHit || nameHit) list.push({ fix: fix, type: 'APT', label: name || fix });
     });
     waypoints.forEach(w => {
-      const fix = String(w.wp_id || '').toUpperCase();
-      if (fix && fix.indexOf(q) >= 0) list.push({ fix: fix, type: 'WP' });
+      const fix = String(w.wp_id || w.WP_ID || w.ident || '').toUpperCase();
+      const name = String(w.name || w.nome || w.label || '').trim();
+      const codeHit = fix && fix.indexOf(q) >= 0;
+      const nameHit = name && String(name).toUpperCase().indexOf(q) >= 0;
+      if (codeHit || nameHit) list.push({ fix: fix, type: 'WP', label: name || fix });
     });
 
     const seen = {};
@@ -3310,8 +3663,8 @@
     }).slice(0, 10);
   }
 
-  function renderSuggestionList(items) {
-    const box = document.getElementById('enroute-suggest-list');
+  function _renderSuggestionList(boxId, pickerFnName, items) {
+    const box = document.getElementById(boxId);
     if (!box) return;
 
     if (!items || !items.length) {
@@ -3320,8 +3673,16 @@
       return;
     }
 
-    box.innerHTML = items.map(it => `<div class="suggest-item" onclick="pickWaypointSuggestion('${it.fix.replace(/'/g, "\\'")}')">${it.fix} <small style="color:#888;">${it.type}</small></div>`).join('');
+    box.innerHTML = items.map(it => `<div class="suggest-item" onclick="${pickerFnName}('${it.fix.replace(/'/g, "\\'")}')">${it.fix} <small style="color:#888;">${it.type}${it.label && it.label !== it.fix ? (' • ' + it.label) : ''}</small></div>`).join('');
     box.style.display = 'block';
+  }
+
+  function renderSuggestionList(items) {
+    _renderSuggestionList('enroute-suggest-list', 'pickWaypointSuggestion', items);
+  }
+
+  function renderDiversionSuggestionList(items) {
+    _renderSuggestionList('enroute-divert-suggest-list', 'pickDiversionSuggestion', items);
   }
 
   window.pickWaypointSuggestion = function(fix) {
@@ -3329,6 +3690,52 @@
     if (input) input.value = fix;
     renderSuggestionList([]);
   };
+
+  window.pickDiversionSuggestion = function(fix) {
+    const input = document.getElementById('enroute-divert-fix');
+    if (input) input.value = fix;
+    renderDiversionSuggestionList([]);
+    window.directToTypedFix();
+  };
+
+  function _resolveFixFromQuery(raw) {
+    const q = String(raw || '').trim().toUpperCase();
+    if (!q) return { fix: '', matches: [] };
+
+    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const waypoints = (window.appData && Array.isArray(window.appData.waypoints)) ? window.appData.waypoints : [];
+    const candidates = [];
+
+    airports.forEach(function(a) {
+      const fix = String(a.icao || '').trim().toUpperCase();
+      const name = String(a.nome || a.name || '').trim().toUpperCase();
+      if (!fix) return;
+      const exact = (fix === q || name === q);
+      const partial = (fix.indexOf(q) >= 0 || (name && name.indexOf(q) >= 0));
+      if (exact || partial) candidates.push({ fix: fix, type: 'APT', score: exact ? 100 : (fix.indexOf(q) === 0 ? 80 : 60) });
+    });
+
+    waypoints.forEach(function(w) {
+      const fix = String(w.wp_id || w.WP_ID || w.ident || '').trim().toUpperCase();
+      const name = String(w.name || w.nome || w.label || '').trim().toUpperCase();
+      if (!fix) return;
+      const exact = (fix === q || name === q);
+      const partial = (fix.indexOf(q) >= 0 || (name && name.indexOf(q) >= 0));
+      if (exact || partial) candidates.push({ fix: fix, type: 'WP', score: exact ? 100 : (fix.indexOf(q) === 0 ? 80 : 60) });
+    });
+
+    const uniq = [];
+    const seen = {};
+    candidates.sort(function(a, b) { return Number(b.score || 0) - Number(a.score || 0); });
+    candidates.forEach(function(c) {
+      if (!seen[c.fix]) {
+        seen[c.fix] = true;
+        uniq.push(c);
+      }
+    });
+
+    return { fix: uniq.length === 1 ? uniq[0].fix : '', matches: uniq };
+  }
 
   window.addWaypointFromInput = function() {
     const input = document.getElementById('enroute-add-fix');
@@ -3367,6 +3774,62 @@
     _calculateHeadings(window.enroute6.waypoints);
     recalcWaypointsFromGs();
     if (window.M) M.toast({ html: `Added ${fix}`, classes: 'green' });
+  };
+
+  function _enrouteDirectToFix(fix) {
+    const targetFix = String(fix || '').trim().toUpperCase();
+    if (!targetFix) return false;
+    if (!window.enroute6 || !Array.isArray(window.enroute6.waypoints) || !window.enroute6.waypoints.length) return false;
+
+    let idx = window.enroute6.waypoints.findIndex(function(wp) {
+      return String(wp && wp.fix || '').trim().toUpperCase() === targetFix;
+    });
+
+    if (idx < 0) {
+      const insertIdx = Math.max(1, window.enroute6.waypoints.length - 1);
+      window.enroute6.waypoints.splice(insertIdx, 0, {
+        id: `${Date.now()}-${targetFix}`,
+        fix: targetFix,
+        distNm: 0,
+        hdg: '--',
+        eteMin: 0,
+        eta: '--:--',
+        passedAt: ''
+      });
+      _recalculateWaypointDistances(window.enroute6.waypoints);
+      _calculateHeadings(window.enroute6.waypoints);
+      idx = insertIdx;
+    }
+
+    window.directToWaypoint(idx);
+    return true;
+  }
+
+  window.directToTypedFix = function() {
+    const input = document.getElementById('enroute-divert-fix');
+    const raw = String(input && input.value || '').trim();
+    if (!raw) {
+      if (window.M) M.toast({ html: 'Type ICAO / waypoint / airport name first', classes: 'orange' });
+      return;
+    }
+
+    const hit = _resolveFixFromQuery(raw);
+    if (hit.fix) {
+      const ok = _enrouteDirectToFix(hit.fix);
+      if (ok) {
+        if (input) input.value = '';
+        renderDiversionSuggestionList([]);
+      }
+      return;
+    }
+
+    if (Array.isArray(hit.matches) && hit.matches.length > 1) {
+      renderDiversionSuggestionList(hit.matches.map(function(m) { return { fix: m.fix, type: m.type, label: m.fix }; }));
+      if (window.M) M.toast({ html: 'Multiple matches. Pick one from list.', classes: 'orange' });
+      return;
+    }
+
+    if (window.M) M.toast({ html: 'Fix not found in airports/waypoints data', classes: 'orange' });
   };
 
   window.deleteWaypoint = function(idx) {
@@ -3504,11 +3967,14 @@
   window.__setupEnrouteTabImpl = function(mission) {
     if (!mission || !mission.legs || !mission.legs.length) return;
 
-    const activeLegId = String(window.activeLegFlightId || '').trim();
+    const activeLegId = String(window.activeLegFlightId || mission.activeLegFlightId || (mission.meta && mission.meta.activeLegFlightId) || '').trim();
     const selectedLeg = activeLegId
       ? ((mission.legs || []).find(function(leg) { return String(leg && leg.flightLegId || '').trim() === activeLegId; }) || null)
       : null;
-    const fallbackLeg = (mission.legs || []).find(function(leg) {
+    const pendingLeg = (mission.legs || []).find(function(leg) {
+      return String((leg && leg.logStatus) || 'PENDING').toUpperCase() === 'PENDING';
+    }) || null;
+    const fallbackLeg = pendingLeg || (mission.legs || []).find(function(leg) {
       return String((leg && leg.logStatus) || 'PENDING').toUpperCase() !== 'COMPLETE';
     }) || mission.legs[0] || {};
 
@@ -3563,6 +4029,20 @@
           legWaypoints = noteTokens;
           if (!legFrom && noteTokens.length) legFrom = noteTokens[0];
           if (!legTo && noteTokens.length > 1) legTo = noteTokens[noteTokens.length - 1];
+        }
+      }
+    }
+
+    // Offline scheduler can persist a compact route token like "SSRM-SJMH-PALIMIU-SBBV".
+    // Expand it before waypoint rendering so each fix appears in the table.
+    if (Array.isArray(legWaypoints) && legWaypoints.length === 1) {
+      var compact = String(legWaypoints[0] || '').trim().toUpperCase();
+      if (compact.indexOf('-') >= 0) {
+        var compactTokens = compact.split('-').map(function(s) { return String(s || '').trim().toUpperCase(); }).filter(Boolean);
+        if (compactTokens.length >= 2) {
+          if (!legFrom || legFrom === 'ORIG') legFrom = compactTokens[0];
+          if (!legTo || legTo === 'DEST') legTo = compactTokens[compactTokens.length - 1];
+          legWaypoints = compactTokens;
         }
       }
     }
@@ -3660,6 +4140,31 @@
         flightLegId: flightLegId,
         waypoints: _buildInitialWaypoints(seededRoute),
         passedIndex: -1,
+        takeoffRoll: {
+          active: false,
+          startLat: null,
+          startLon: null,
+          prevLat: null,
+          prevLon: null,
+          distanceNm: 0,
+          startTs: null,
+          maxGsKts: 0,
+          flapSetting: 0,
+          vrKts: 0,
+          vrHit: false,
+          vrHitAtTs: null,
+          gsAtVrKts: 0,
+          distanceAtVrNm: 0,
+          saveSent: false
+        },
+        autoPassTrack: {
+          idx: -1,
+          armed: false,
+          armRadiusNm: 0.8,
+          bestDistNm: 999,
+          lastDistNm: 999,
+          armedAtTs: 0
+        },
         hideDirectToLine: false,
         transferRateLpm: transferRate > 0 ? transferRate : 0.8,
         fuel: _applyActiveMainPreference(_totalFuel(actualFuel) > 0 ? actualFuel : (_fuelFromBriefSnapshot() || {
@@ -3675,13 +4180,24 @@
       const storedTemplate = String(localStorage.getItem('enrouteTileTemplate') || '');
       window.enroute6.tileTemplate = storedTemplate || _enrouteDefaultTileTemplate();
 
-      // Restore threshold settings
-      const storedAutoPass = Number(localStorage.getItem('enrouteAutoPassNm') || 0);
-      if (storedAutoPass > 0) {
-        window.enroute6.autoPassThresholdNm = storedAutoPass;
-        const apEl = document.getElementById('enroute-autopass-nm');
-        if (apEl) apEl.value = storedAutoPass;
-      }
+      // Reset auto-log runtime state at each leg initialization while preserving configured thresholds.
+      var cfg = _enrouteReadConfig_();
+      window.enroute6.autoLog = {
+        enabled: false,
+        state: 'GROUND',
+        prevGsKts: Number(window.enroute6.gsKts || 0),
+        aboveTs: 0,
+        belowTs: 0,
+        brakesReleaseFired: false,
+        airborneConfirmed: false,
+        promptShown: false,
+        landedFired: false,
+        touchAndGoCount: 0,
+        airborneConfirmKts: Number(cfg.airborneConfirmKts || 40),
+        landedThresholdKts: Number(cfg.landedThresholdKts || 30),
+        onBlocksPromptMs: Math.round(Number(cfg.onBlocksPromptSec || 45) * 1000)
+      };
+      _enrouteApplyConfig_(cfg, true);
 
       if (endpointEl && !endpointEl.value) {
         endpointEl.value = String(localStorage.getItem('traccarEndpoint') || '');
@@ -3696,6 +4212,17 @@
           if (e.key === 'Enter') addWaypointFromInput();
         });
         addInput.dataset.bound = '1';
+      }
+
+      const divertInput = document.getElementById('enroute-divert-fix');
+      if (divertInput && divertInput.dataset.bound !== '1') {
+        divertInput.addEventListener('input', function() {
+          renderDiversionSuggestionList(_buildWaypointSuggestions(this.value));
+        });
+        divertInput.addEventListener('keydown', function(ev) {
+          if (ev.key === 'Enter') window.directToTypedFix();
+        });
+        divertInput.dataset.bound = '1';
       }
 
       renderFuelStrip();

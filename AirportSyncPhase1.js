@@ -376,8 +376,7 @@ function runAirportSyncPhase1_(cfg) {
   let idx = buildAirportColumnIndex_(dbHeaders, tempHeaders);
   const protectedCols = buildProtectedColumnIndexSet_(dbHeaders, [
     'SURFACE_ACTUAL',
-    'MTOW_LIMIT_206_520',
-    'MTOW_LIMIT_206_550',
+    'MTOW_BY_MODEL',
     'SLOPE_PERCENT',
     'ONE_WAY',
     'PILOT_NOTES',

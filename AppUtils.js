@@ -6,6 +6,7 @@ const APP_SHEETS = {
   PASSENGERS: 'DB_Passengers',
   DISPATCH: 'DB_Dispatch',
   PILOTS: 'DB_Pilots',
+  PILOT_AUTHORIZATIONS: 'DB_Pilot_Authorizations',
   FUNDS: 'DB_Funds',
   CHECKS: 'DB_Checks',
   AUDIT: 'LOG_Audit',
@@ -17,6 +18,7 @@ const APP_SHEETS = {
   LOG_FLIGHTS: 'LOG_Flights',
   AIRFRAMES: 'REF_Airframes',
   ENVELOPES: 'REF_Envelopes',
+  AIRCRAFT_DOCS: 'DB_Aircraft_Docs',
   FUEL_LOGS: 'DB_Fuel_Logs',
   FUEL_CACHES: 'DB_Fuel_Caches',
   FLIGHT_BLOCKS: 'DB_Flight_Blocks',
@@ -42,7 +44,15 @@ const APP_SHEETS = {
   SCHED_LOCKS: 'SCHED_Assignment_Locks',
   SCHED_ALERTS: 'SCHED_Alerts',
   SCHED_PUBLISH_LOG: 'SCHED_Publish_Log',
-  SCHED_AVAILABILITY: 'SCHED_Staff_Availability'
+  SCHED_AVAILABILITY: 'SCHED_Staff_Availability',
+  FORM1_RESPONSES: 'Respostas ao formulário 1',
+  FORM2_RESPONSES: 'Form Responses 2',
+  FORM3_RESPONSES: 'Form Responses 3',
+  FORM1_SPREADSHEET_ID: '1cGgfm9A8GYUvVEv4jv7ZIn-ilRqpFkZhpd2aEsh0x2Y',
+  FORM2_SPREADSHEET_ID: '1RVK-sbIvuQex7tgpCwVW1yYT0cKD1w4LQRxd4bOW640',
+  FORM3_SPREADSHEET_ID: '1kc_SJAitPgTgfZUo09tuhLJKG-qo_b1TTCNZSAmgnf0',
+  LIABILITY_RELEASES: 'DB_Liability_Releases',
+  FORM_IMPORT_LOG: 'DB_Form_Import_Log'
 };
 
 const DISPATCH_COL = {
@@ -106,6 +116,7 @@ const LOG_FLIGHT_COL = {
   LANDED: 22,
   BRAKES_APPLIED: 23,
   ACTUAL_TO_ROLL: 24,
+  NUM_TOUCH_AND_GOS: 25,
   ON_BLOCKS: 23
 };
 

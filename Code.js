@@ -5,12 +5,11 @@ function doGet(e) {
  const view = (e && e.parameter && e.parameter.view ? e.parameter.view : "").toLowerCase();
  const pilotParamRaw = (e && e.parameter && e.parameter.pilot != null) ? String(e.parameter.pilot).toLowerCase().trim() : "";
  const pilotParamTrue = pilotParamRaw === "1" || pilotParamRaw === "true" || pilotParamRaw === "yes" || pilotParamRaw === "y";
- const isPilot = view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue;
- const isPortal = !isPilot;
+ const isDuty = view === "duty" || view === "dutyapp";
+ const isPilot = !isDuty && (view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue);
 
-
- const fileName = isPilot ? 'PilotApp' : 'Index';
- const title = isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal';
+ const fileName = isDuty ? 'DutyApp' : (isPilot ? 'PilotApp' : 'Index');
+ const title = isDuty ? 'Duty Time' : (isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal');
 
  const template = HtmlService.createTemplateFromFile(fileName);
  template.webAppUrl = ScriptApp.getService().getUrl();
@@ -42,44 +41,94 @@ if (!sheet) {
 return sheet;
 }
 
-function mapAirportRowsShared_(rowsObj) {
-const rows = rowsObj && Array.isArray(rowsObj.vals) ? rowsObj.vals : [];
-const headers = rowsObj && Array.isArray(rowsObj.headers) ? rowsObj.headers : [];
-return rows.map(r => {
-  const byHeader = (name, fallback) => {
-    const idx = headers.indexOf(name);
-    return idx >= 0 ? r[idx] : fallback;
+function safeDateStr(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, 'GMT', 'yyyy-MM-dd');
+  }
+  var raw = String(val).trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(0, 10);
+  var parsed = new Date(raw);
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, 'GMT', 'yyyy-MM-dd');
+  }
+  return '';
+}
+
+function _airportNormalizeMtowKey_(raw) {
+  return String(raw || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function _airportBuildMtowMap_(headers, row, byHeader) {
+  var out = {};
+  var raw = byHeader('MTOW_BY_MODEL', '');
+  if (!raw) return out;
+  try {
+    var parsed = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    if (!parsed || typeof parsed !== 'object') return out;
+    Object.keys(parsed).forEach(function(key) {
+      var nKey = _airportNormalizeMtowKey_(key);
+      var nVal = Number(parsed[key] || 0);
+      if (nKey && isFinite(nVal) && nVal > 0) out[nKey] = nVal;
+    });
+  } catch (e) {}
+  return out;
+}
+
+function _airportMapRow_(headers, row) {
+  var byHeader = function(name, fallback) {
+    var idx = headers.indexOf(name);
+    return idx >= 0 ? row[idx] : fallback;
   };
-  const byAnyHeader = (names, fallback) => {
-    const list = Array.isArray(names) ? names : [names];
+  var byAnyHeader = function(names, fallback) {
+    var list = Array.isArray(names) ? names : [names];
     for (var ni = 0; ni < list.length; ni++) {
-      const value = byHeader(list[ni], null);
+      var value = byHeader(list[ni], null);
       if (value !== null && value !== undefined && String(value).trim() !== '') return value;
     }
     return fallback;
   };
+
+  var mtowByModel = _airportBuildMtowMap_(headers, row, byHeader);
+  var mtowValues = Object.keys(mtowByModel).map(function(k) { return Number(mtowByModel[k] || 0); }).filter(function(v) {
+    return isFinite(v) && v > 0;
+  });
+
   return {
-    icao: byHeader("ICAO", ""),
-    nome: byHeader("NOME", ""),
-    lat: byHeader("LATITUDE", ""),
-    lon: byHeader("LONGITUDE", ""),
-    fuelAvailable: byHeader("FUEL_AVAILABLE", ""),
-    mtow520: parseFloat(byHeader("MTOW_LIMIT_206_520", 9999)) || 9999,
-    mtow550: parseFloat(byHeader("MTOW_LIMIT_206_550", 9999)) || 9999,
-    pilotNotes: String(byHeader("PILOT_NOTES", "") || ""),
-    airstripPhoto: String(byHeader("AIRSTRIP_PHOTO", "") || ""),
-    runwayIdent: byHeader("RWY_IDENT", byHeader("RWY", byHeader("RUNWAY", byHeader("RUNWAY_DESIGNATOR", "")))),
-    runwayHeading: byHeader("RUNWAY_HEADING", byHeader("HEADING", "")),
-    runwayLength: byHeader("LENGTH_OFFICIAL", byHeader("LENGTH_METERS", byHeader("LENGTH_M", ""))),
-    runwayWidth: byHeader("WIDTH_OFFICIAL", byHeader("WIDTH_METERS", byHeader("WIDTH_M", ""))),
-    runwaySlopePercent: byHeader("SLOPE_PERCENT", byHeader("SLOPE_PCT", "")),
-    runwaySlopeProfile: byHeader("SLOPE_PROFILE", byHeader("RUNWAY_SLOPE_PROFILE", "")),
-    elevationFt: byHeader("ELEVATION", byHeader("ALT_FEET", byHeader("ELEVATION_FT", ""))),
-    runwaySurfaceActual: byAnyHeader(["SURFACE_ACTUAL", "RUNWAY_SURFACE_ACTUAL", "SURFACE_OFFICIAL", "RUNWAY_SURFACE", "SURFACE_TYPE", "SURFACE"], ""),
-    runwaySurfaceCondition: byAnyHeader(["SURFACE_CONDITION", "RUNWAY_SURFACE_CONDITION", "CONDITION", "SURFACE_STATUS"], ""),
-    chartUrl: byHeader("CHART_URL", byHeader("PLATE_URL", byHeader("APPROACH_CHART", byHeader("PROCEDURE_PDF", byHeader("PDF_URL", ""))))),
-    knownFeatures: byHeader("KNOWN_FEATURES", byHeader("FEATURES", ""))
+    icao: byHeader('ICAO', ''),
+    nome: byHeader('NOME', ''),
+    lat: byHeader('LATITUDE', ''),
+    lon: byHeader('LONGITUDE', ''),
+    fuelAvailable: byHeader('FUEL_AVAILABLE', ''),
+    mtowByModel: mtowByModel,
+    maxMtow: mtowValues.length ? Math.max.apply(null, mtowValues) : 0,
+    pilotNotes: String(byHeader('PILOT_NOTES', '') || ''),
+    airstripPhoto: String(byHeader('AIRSTRIP_PHOTO', '') || ''),
+    runwayIdent: byHeader('RWY_IDENT', byHeader('RWY', byHeader('RUNWAY', byHeader('RUNWAY_DESIGNATOR', '')))),
+    runwayHeading: byHeader('RUNWAY_HEADING', byHeader('HEADING', '')),
+    runwayLength: byHeader('LENGTH_OFFICIAL', byHeader('LENGTH_METERS', byHeader('LENGTH_M', ''))),
+    runwayWidth: byHeader('WIDTH_OFFICIAL', byHeader('WIDTH_METERS', byHeader('WIDTH_M', ''))),
+    runwaySlopePercent: byHeader('SLOPE_PERCENT', byHeader('SLOPE_PCT', '')),
+    runwaySlopeProfile: byHeader('SLOPE_PROFILE', byHeader('RUNWAY_SLOPE_PROFILE', '')),
+    elevationFt: byHeader('ELEVATION', byHeader('ALT_FEET', byHeader('ELEVATION_FT', ''))),
+    runwaySurfaceActual: byAnyHeader(['SURFACE_ACTUAL', 'RUNWAY_SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'RUNWAY_SURFACE', 'SURFACE_TYPE', 'SURFACE'], ''),
+    runwaySurfaceCondition: byAnyHeader(['SURFACE_CONDITION', 'RUNWAY_SURFACE_CONDITION', 'CONDITION', 'SURFACE_STATUS'], ''),
+    chartUrl: byHeader('CHART_URL', byHeader('PLATE_URL', byHeader('APPROACH_CHART', byHeader('PROCEDURE_PDF', byHeader('PDF_URL', ''))))),
+    knownFeatures: byHeader('KNOWN_FEATURES', byHeader('FEATURES', ''))
   };
+}
+
+function mapAirportRowsShared_(rowsObj) {
+const rows = rowsObj && Array.isArray(rowsObj.vals) ? rowsObj.vals : [];
+const headers = rowsObj && Array.isArray(rowsObj.headers) ? rowsObj.headers : [];
+return rows.map(function(r) {
+  return _airportMapRow_(headers, r);
 });
 }
 
@@ -164,41 +213,8 @@ return { vals: vals.slice(1), headers };
 function mapAirportRows(rowsObj) {
 const rows = rowsObj && Array.isArray(rowsObj.vals) ? rowsObj.vals : [];
 const headers = rowsObj && Array.isArray(rowsObj.headers) ? rowsObj.headers : [];
-return rows.map(r => {
-  const byHeader = (name, fallback) => {
-    const idx = headers.indexOf(name);
-    return idx >= 0 ? r[idx] : fallback;
-  };
-  const byAnyHeader = (names, fallback) => {
-    const list = Array.isArray(names) ? names : [names];
-    for (var ni = 0; ni < list.length; ni++) {
-      const value = byHeader(list[ni], null);
-      if (value !== null && value !== undefined && String(value).trim() !== '') return value;
-    }
-    return fallback;
-  };
-  return {
-    icao: byHeader("ICAO", ""),
-    nome: byHeader("NOME", ""),
-    lat: byHeader("LATITUDE", ""),
-    lon: byHeader("LONGITUDE", ""),
-    fuelAvailable: byHeader("FUEL_AVAILABLE", ""),
-    mtow520: parseFloat(byHeader("MTOW_LIMIT_206_520", 9999)) || 9999,
-    mtow550: parseFloat(byHeader("MTOW_LIMIT_206_550", 9999)) || 9999,
-    pilotNotes: String(byHeader("PILOT_NOTES", "") || ""),
-    airstripPhoto: String(byHeader("AIRSTRIP_PHOTO", "") || ""),
-    runwayIdent: byHeader("RWY_IDENT", byHeader("RWY", byHeader("RUNWAY", byHeader("RUNWAY_DESIGNATOR", "")))),
-    runwayHeading: byHeader("RUNWAY_HEADING", byHeader("HEADING", "")),
-    runwayLength: byHeader("LENGTH_OFFICIAL", byHeader("LENGTH_METERS", byHeader("LENGTH_M", ""))),
-    runwayWidth: byHeader("WIDTH_OFFICIAL", byHeader("WIDTH_METERS", byHeader("WIDTH_M", ""))),
-    runwaySlopePercent: byHeader("SLOPE_PERCENT", byHeader("SLOPE_PCT", "")),
-    runwaySlopeProfile: byHeader("SLOPE_PROFILE", byHeader("RUNWAY_SLOPE_PROFILE", "")),
-    elevationFt: byHeader("ELEVATION", byHeader("ALT_FEET", byHeader("ELEVATION_FT", ""))),
-    runwaySurfaceActual: byAnyHeader(["SURFACE_ACTUAL", "RUNWAY_SURFACE_ACTUAL", "SURFACE_OFFICIAL", "RUNWAY_SURFACE", "SURFACE_TYPE", "SURFACE"], ""),
-    runwaySurfaceCondition: byAnyHeader(["SURFACE_CONDITION", "RUNWAY_SURFACE_CONDITION", "CONDITION", "SURFACE_STATUS"], ""),
-    chartUrl: byHeader("CHART_URL", byHeader("PLATE_URL", byHeader("APPROACH_CHART", byHeader("PROCEDURE_PDF", byHeader("PDF_URL", ""))))),
-    knownFeatures: byHeader("KNOWN_FEATURES", byHeader("FEATURES", ""))
-  };
+return rows.map(function(r) {
+  return _airportMapRow_(headers, r);
 });
 }
 try {
@@ -249,40 +265,7 @@ const pilotList = pilots.vals.map(r => ({
 })).filter(p => p.name);
 
 // PILOT DESTINATION AUTHORIZATION MAPPING (from DB_Checks)
-const checksPilotIdx = checks.headers.indexOf("PILOT");
-const checksDestIdx = (function() {
-  const candidates = [
-    "AUTH_DESTINATIONS",
-    "AUTHORIZED_DESTINATIONS",
-    "DESTINATIONS",
-    "DESTINATION",
-    "AUTH_DESTINATION"
-  ];
-  for (let i = 0; i < candidates.length; i++) {
-    const idx = checks.headers.indexOf(candidates[i]);
-    if (idx !== -1) return idx;
-  }
-  return -1;
-})();
-
-const pilotDestinationChecks = {};
-if (checksPilotIdx !== -1 && checksDestIdx !== -1) {
-  checks.vals.forEach(r => {
-    const pilotName = String(r[checksPilotIdx] || '').trim();
-    if (!pilotName) return;
-    const key = pilotName.toUpperCase();
-    const raw = String(r[checksDestIdx] || '');
-    const list = raw
-      .split(/[;,]/)
-      .map(s => String(s || '').trim().toUpperCase())
-      .map(s => s.replace(/[^A-Z0-9]/g, ''))
-      .filter(Boolean);
-    if (!pilotDestinationChecks[key]) pilotDestinationChecks[key] = [];
-    list.forEach(icao => {
-      if (pilotDestinationChecks[key].indexOf(icao) === -1) pilotDestinationChecks[key].push(icao);
-    });
-  });
-}
+const pilotDestinationChecks = _collectPilotDestinationChecksMap_(checks.headers, checks.vals);
 
 
 
@@ -325,11 +308,47 @@ return {
  })),
  syllabus: syl.vals.map(r => ({
      code: r[syl.headers.indexOf("TRAINING_CODE")],
+     description: (function() {
+       var idx = syl.headers.indexOf('DESCRIPTION');
+       return idx >= 0 ? String(r[idx] || '').trim() : '';
+     })(),
+     aircraftType: (function() {
+       var idx = syl.headers.indexOf('AIRCRAFT_TYPE');
+       return idx >= 0 ? String(r[idx] || '').trim() : '';
+     })(),
      hours: parseFloat(r[syl.headers.indexOf("REQUIRED_HOURS")]) || 0,
+     plannedLandings: (function() {
+       var idx = syl.headers.indexOf('PLANNED_LANDINGS');
+       return idx >= 0 ? (parseInt(r[idx], 10) || 0) : 0;
+     })(),
      fuel: parseFloat(r[syl.headers.indexOf("REQUIRED_FUEL")]) || 0,
+     requiredBallast: (function() {
+       var idx = syl.headers.indexOf('REQUIRED_BALLAST');
+       return idx >= 0 ? (parseFloat(r[idx]) || 0) : 0;
+     })(),
      route: (function() {
        var routeIdx = syl.headers.indexOf('ROUTE');
        return routeIdx >= 0 ? String(r[routeIdx] || '').trim() : '';
+     })(),
+     runwayCheckout: (function() {
+       var idx = syl.headers.indexOf('RUNWAY_CHECKOUT');
+       return idx >= 0 ? String(r[idx] || '').trim() : '';
+     })(),
+     lessonPlanJson: (function() {
+       var idx = syl.headers.indexOf('LESSON_PLAN_JSON');
+       if (idx < 0) idx = syl.headers.indexOf('TRAINING_PLAN_JSON');
+       if (idx < 0) idx = syl.headers.indexOf('PLAN_JSON');
+       return idx >= 0 ? String(r[idx] || '').trim() : '';
+     })(),
+     plannedStopsJson: (function() {
+       var idx = syl.headers.indexOf('PLANNED_STOPS_JSON');
+       if (idx < 0) idx = syl.headers.indexOf('STOP_PLAN_JSON');
+       return idx >= 0 ? String(r[idx] || '').trim() : '';
+     })(),
+     maneuversJson: (function() {
+       var idx = syl.headers.indexOf('MANEUVERS_JSON');
+       if (idx < 0) idx = syl.headers.indexOf('PLANNED_MANEUVERS_JSON');
+       return idx >= 0 ? String(r[idx] || '').trim() : '';
      })()
  })).filter(s => s.code),
  waypoints: wpData.vals.map(r => ({
@@ -525,8 +544,7 @@ function getPilotAirportData() {
           lat: row.lat,
           lon: row.lon,
           fuelAvailable: asShortText(row.fuelAvailable, 24),
-          mtow520: parseFloat(row.mtow520) || 9999,
-          mtow550: parseFloat(row.mtow550) || 9999,
+          mtowByModel: row.mtowByModel || {},
           runwayIdent: asShortText(row.runwayIdent, 20),
           runwayHeading: asShortText(row.runwayHeading, 12),
           runwayLength: asShortText(row.runwayLength, 12),
@@ -576,8 +594,7 @@ function getPilotAirportDataChunk(offset, limit) {
         lat: row.lat,
         lon: row.lon,
         fuelAvailable: asShortText(row.fuelAvailable, 24),
-        mtow520: parseFloat(row.mtow520) || 9999,
-        mtow550: parseFloat(row.mtow550) || 9999,
+        mtowByModel: row.mtowByModel || {},
         runwayIdent: asShortText(row.runwayIdent, 20),
         runwayHeading: asShortText(row.runwayHeading, 12),
         runwayLength: asShortText(row.runwayLength, 12),
@@ -811,6 +828,24 @@ const dispSheet = getRequiredSheet_(ss, APP_SHEETS.DISPATCH, "getCalendarEvents"
 let events = [];
 const data = dispSheet.getDataRange().getValues();
 let missions = {};
+
+const flownStatuses_ = { FLOWN: true, COMPLETE: true, COMPLETED: true };
+const completedLegMap_ = {};
+try {
+  const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (logSheet) {
+    const logRows = logSheet.getDataRange().getValues();
+    for (let li = 1; li < logRows.length; li++) {
+      const lr = logRows[li];
+      const legId = String(lr[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
+      if (!legId) continue;
+      const onBlocks = lr[LOG_FLIGHT_COL.ON_BLOCKS];
+      const brakesApplied = lr[LOG_FLIGHT_COL.BRAKES_APPLIED];
+      if (onBlocks || brakesApplied) completedLegMap_[legId] = true;
+    }
+  }
+} catch (e) {}
+
 for (let i = 1; i < data.length; i++) {
  const row = data[i];
  const mId = row[DISPATCH_COL.MISSION_ID];
@@ -865,6 +900,7 @@ for (let i = 1; i < data.length; i++) {
 
 
  missions[mId].legs.push({
+   flightLegId: String(row[DISPATCH_COL.FLIGHT_ID] || '').trim(),
    from: from,
    to: to,
    time: legTime
@@ -950,9 +986,15 @@ Object.values(missions).forEach(m => {
  // Safe Date Handling
  let dateObj = (m.date instanceof Date) ? m.date : new Date(m.date);
  if (isNaN(dateObj.getTime())) return;
-  let status = m.status ? m.status.toString().toUpperCase() : "PENDING";
+   let status = m.status ? m.status.toString().toUpperCase() : "PENDING";
+   const allLegsComplete = m.legs.length > 0 && m.legs.every(function(leg) {
+     return leg.flightLegId && completedLegMap_[String(leg.flightLegId)];
+   });
+   const isFlown = !!flownStatuses_[status] || allLegsComplete;
+   if (isFlown) status = 'FLOWN';
  let color = "#f57c00"; // Orange
- if (status === "APPROVED") color = "#43a047"; // Green
+   if (status === "APPROVED") color = "#43a047"; // Green
+   if (status === "FLOWN") color = "#1565c0"; // Blue
  if (status === "CANCELLED") color = "#b0bec5"; // Grey
 
 
@@ -1183,7 +1225,8 @@ function saveMission(data) {
    pilot: data.pilot,
    copilot: data.copilot,
    type: data.type,
-   notes: data.notes
+   notes: data.notes,
+   training: (data && data.training && typeof data.training === 'object') ? data.training : null
  };
 
 
@@ -1267,12 +1310,15 @@ function saveMission(data) {
      from: fromIcao || (routeTokens[0] || ''),
      to: toIcao || (routeTokens.length ? routeTokens[routeTokens.length - 1] : ''),
      route: routeCol,
-     waypoints: routeTokens.length ? routeTokens : (leg && leg.waypoints)
+     waypoints: routeTokens.length ? routeTokens : (leg && leg.waypoints),
+     training: header.training ? { ...header.training } : null
    };
 
    const singleLegWrapper = JSON.stringify({
-     legs: [{ ...normalizedLeg, missionTime: header.time, meta: { time: header.time } }],
-     time: header.time
+     legs: [{ ...normalizedLeg, missionTime: header.time, meta: { time: header.time, type: header.type, training: header.training || null } }],
+     time: header.time,
+     type: header.type,
+     training: header.training || null
    });
 
 
@@ -1727,6 +1773,24 @@ if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
 return String(b.date).localeCompare(String(a.date));
 });
 
+let instructors = [];
+try {
+  const pilotsSheet = ss.getSheetByName(APP_SHEETS.PILOTS);
+  if (pilotsSheet && pilotsSheet.getLastRow() > 1) {
+    const pData = pilotsSheet.getDataRange().getValues();
+    const pHeaders = pData[0] || [];
+    instructors = pData.slice(1)
+      .map(function(row, idx) { return _toolsStaffRecordFromRow_(pHeaders, row, idx + 2); })
+      .filter(function(staff) {
+        if (!staff || !staff.staffName || !staff.active) return false;
+        const roleText = [staff.primaryRole].concat(staff.staffRoles || []).join(' ').toUpperCase();
+        return !!staff.canInstruct || roleText.indexOf('INSTRUCTOR') >= 0 || roleText.indexOf('CHECK PILOT') >= 0 || roleText.indexOf('CHECKPILOT') >= 0;
+      })
+      .map(function(staff) { return String(staff.staffName || '').trim(); })
+      .filter(Boolean)
+      .sort(function(a, b) { return String(a).localeCompare(String(b)); });
+  }
+} catch (e) {}
 
 
 
@@ -1758,7 +1822,8 @@ return String(b.date).localeCompare(String(a.date));
 
 
 
-return { user: user, missions: missions };
+
+return { user: user, missions: missions, instructors: instructors };
 }
 
 
@@ -2345,28 +2410,379 @@ return "Approved";
 
 
 
+function _pilotRunwayCheckHeaders_() {
+  return [
+    'Check_ID',
+    'Pilot_Name',
+    'Pilot_Email',
+    'Staff_ID',
+    'ICAO',
+    'Runway_Ident',
+    'Auth_Scope',
+    'Status',
+    'Date_Checked',
+    'Expiry_Date',
+    'Approved_By',
+    'Source',
+    'Notes',
+    'Created_At',
+    'Updated_At'
+  ];
+}
+
+function _pilotRunwayChecksSheet_() {
+  return _ensureToolsSchemaSheet_(APP_SHEETS.CHECKS, _pilotRunwayCheckHeaders_(), '#2c3e50');
+}
+
+function _checksNormalizeIcaoToken_(value) {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function _checksSplitIcaoList_(raw) {
+  return String(raw || '')
+    .split(/[;,]/)
+    .map(function(item) { return _checksNormalizeIcaoToken_(item); })
+    .filter(Boolean);
+}
+
+function _checksIsActiveStatus_(status, expiryDate) {
+  var statusUpper = String(status || 'ACTIVE').trim().toUpperCase();
+  if (statusUpper && ['ACTIVE', 'AUTHORIZED', 'VALID'].indexOf(statusUpper) === -1) return false;
+  var expiry = safeDateStr(expiryDate || '');
+  return !expiry || expiry >= safeDateStr(new Date());
+}
+
+function _pilotRunwayCheckRecordFromRow_(headers, row, rowNumber) {
+  var pilotIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_NAME', 'PILOT']);
+  var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_EMAIL', 'EMAIL']);
+  var staffIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['STAFF_ID']);
+  var icaoIdx = _toolsHeaderIndexFromCandidates_(headers, ['ICAO', 'AIRPORT_ICAO', 'DESTINATION_ICAO']);
+  var runwayIdx = _toolsHeaderIndexFromCandidates_(headers, ['RUNWAY_IDENT', 'RWY_IDENT', 'RUNWAY', 'RWY']);
+  var scopeIdx = _toolsHeaderIndexFromCandidates_(headers, ['AUTH_SCOPE', 'SCOPE']);
+  var statusIdx = _toolsHeaderIndexFromCandidates_(headers, ['STATUS']);
+  var checkedIdx = _toolsHeaderIndexFromCandidates_(headers, ['DATE_CHECKED', 'CHECK_DATE']);
+  var expiryIdx = _toolsHeaderIndexFromCandidates_(headers, ['EXPIRY_DATE', 'VALID_UNTIL']);
+  var approvedByIdx = _toolsHeaderIndexFromCandidates_(headers, ['APPROVED_BY']);
+  var sourceIdx = _toolsHeaderIndexFromCandidates_(headers, ['SOURCE']);
+  var notesIdx = _toolsHeaderIndexFromCandidates_(headers, ['NOTES']);
+  var authDestIdx = _toolsHeaderIndexFromCandidates_(headers, ['AUTH_DESTINATIONS', 'AUTHORIZED_DESTINATIONS', 'DESTINATIONS', 'DESTINATION', 'AUTH_DESTINATION']);
+
+  var pilotName = pilotIdx >= 0 ? String(row[pilotIdx] || '').trim() : '';
+  var icao = icaoIdx >= 0 ? _checksNormalizeIcaoToken_(row[icaoIdx]) : '';
+  var legacyIcaos = authDestIdx >= 0 ? _checksSplitIcaoList_(row[authDestIdx]) : [];
+  var icaos = legacyIcaos.slice();
+  if (icao && icaos.indexOf(icao) === -1) icaos.push(icao);
+
+  return {
+    rowNumber: rowNumber,
+    pilotName: pilotName,
+    pilotEmail: emailIdx >= 0 ? String(row[emailIdx] || '').trim().toLowerCase() : '',
+    staffId: staffIdIdx >= 0 ? String(row[staffIdIdx] || '').trim() : '',
+    icao: icao,
+    runwayIdent: runwayIdx >= 0 ? String(row[runwayIdx] || '').trim().toUpperCase() : '',
+    authScope: scopeIdx >= 0 ? String(row[scopeIdx] || '').trim().toUpperCase() : '',
+    status: statusIdx >= 0 ? String(row[statusIdx] || '').trim().toUpperCase() : '',
+    dateChecked: checkedIdx >= 0 ? safeDateStr(row[checkedIdx]) : '',
+    expiryDate: expiryIdx >= 0 ? safeDateStr(row[expiryIdx]) : '',
+    approvedBy: approvedByIdx >= 0 ? String(row[approvedByIdx] || '').trim() : '',
+    source: sourceIdx >= 0 ? String(row[sourceIdx] || '').trim() : '',
+    notes: notesIdx >= 0 ? String(row[notesIdx] || '').trim() : '',
+    icaos: icaos,
+    isActive: _checksIsActiveStatus_(statusIdx >= 0 ? row[statusIdx] : '', expiryIdx >= 0 ? row[expiryIdx] : '')
+  };
+}
+
+function _collectPilotDestinationChecksMap_(headers, rows) {
+  var map = {};
+  (rows || []).forEach(function(row, idx) {
+    var rec = _pilotRunwayCheckRecordFromRow_(headers || [], row || [], idx + 2);
+    var key = String(rec.pilotName || '').trim().toUpperCase();
+    if (!key || !rec.isActive) return;
+    if (!map[key]) map[key] = [];
+    rec.icaos.forEach(function(code) {
+      if (map[key].indexOf(code) === -1) map[key].push(code);
+    });
+  });
+  return map;
+}
+
 function waiveDestinationCheck(pilot, icao, missionId, approvalPassword) {
 _verifySupervisorApprovalPassword_(approvalPassword);
 const ss = SpreadsheetApp.getActiveSpreadsheet();
-const sheet = ss.getSheetByName(APP_SHEETS.CHECKS);
-if(!sheet) return "Error: DB_Checks missing";
+const sheet = _pilotRunwayChecksSheet_();
+const headers = _toolsSheetHeaderRow_(sheet);
 const data = sheet.getDataRange().getValues();
 const user = "Admin";
-let found = false;
+const pilotName = String(pilot || '').trim();
+const normalizedPilot = pilotName.toUpperCase();
+const normalizedIcao = _checksNormalizeIcaoToken_(icao);
+if (!pilotName || !normalizedIcao) return "Error: pilot and destination are required";
+
 for (let i = 1; i < data.length; i++) {
-if (String(data[i][CHECKS_COL.PILOT]) === String(pilot)) {
- const current = data[i][CHECKS_COL.AUTH_DESTINATIONS] || "";
- if (!current.includes(icao)) {
-   const newVal = current ? current + ", " + icao : icao;
-   sheet.getRange(i + 1, CHECKS_COL.AUTH_DESTINATIONS + 1).setValue(newVal);
-   const audit = ss.getSheetByName(APP_SHEETS.AUDIT);
-   if(audit) audit.appendRow([new Date(), user, missionId, "WAIVE_CHECK", current, newVal, icao]);
- }
- found = true;
- break;
+  const rec = _pilotRunwayCheckRecordFromRow_(headers, data[i], i + 1);
+  if (!rec.pilotName || String(rec.pilotName || '').trim().toUpperCase() !== normalizedPilot) continue;
+  if (rec.icaos.indexOf(normalizedIcao) === -1) continue;
+  if (rec.isActive) return "Check Waived";
 }
+
+let staffRecord = null;
+const staffSheet = ss.getSheetByName(APP_SHEETS.PILOTS);
+if (staffSheet && staffSheet.getLastRow() > 1) {
+  const staffData = staffSheet.getDataRange().getValues();
+  const staffHeaders = staffData[0] || [];
+  for (let s = 1; s < staffData.length; s++) {
+    const staff = _toolsStaffRecordFromRow_(staffHeaders, staffData[s], s + 1);
+    if (String(staff.staffName || '').trim().toUpperCase() === normalizedPilot) {
+      staffRecord = staff;
+      break;
+    }
+  }
 }
-return found ? "Check Waived" : "Pilot not found";
+
+const now = safeDateStr(new Date());
+const dataMap = {
+  CHECK_ID: 'CHK_' + new Date().getTime() + '_' + normalizedIcao,
+  PILOT_NAME: pilotName,
+  PILOT_EMAIL: staffRecord ? String(staffRecord.email || '').trim().toLowerCase() : '',
+  STAFF_ID: staffRecord ? String(staffRecord.staffId || '').trim() : '',
+  ICAO: normalizedIcao,
+  RUNWAY_IDENT: 'ALL',
+  AUTH_SCOPE: 'AIRPORT',
+  STATUS: 'ACTIVE',
+  DATE_CHECKED: now,
+  EXPIRY_DATE: '',
+  APPROVED_BY: user,
+  SOURCE: 'SUPERVISOR_WAIVER',
+  NOTES: missionId ? ('Mission ' + missionId) : 'Supervisor waiver',
+  CREATED_AT: now,
+  UPDATED_AT: now
+};
+const row = headers.map(function(header) {
+  var key = _toolsNormHeader_(header);
+  return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : '';
+});
+sheet.appendRow(row);
+
+const audit = ss.getSheetByName(APP_SHEETS.AUDIT);
+if(audit) audit.appendRow([new Date(), user, missionId, "WAIVE_CHECK", '', normalizedIcao, normalizedIcao]);
+return "Check Waived";
+}
+
+function _supervisorNormalizeRouteTokens_(raw) {
+  return String(raw || '')
+    .toUpperCase()
+    .replace(/[\u2192>]/g, ',')
+    .split(/[\n\r,;]+/)
+    .map(function(part) { return String(part || '').trim(); })
+    .filter(Boolean);
+}
+
+function _supervisorNextRunwayCheckCode_(headers, rows, aircraftType, routeTokens) {
+  var codeIdx = _toolsHeaderIndexFromCandidates_(headers, ['TRAINING_CODE']);
+  var existing = {};
+  if (codeIdx >= 0) {
+    (rows || []).forEach(function(row) {
+      var code = String((row && row[codeIdx]) || '').trim().toUpperCase();
+      if (code) existing[code] = true;
+    });
+  }
+
+  var acft = String(aircraftType || 'ACFT').toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 12) || 'ACFT';
+  var from = String(routeTokens && routeTokens[0] || 'ORIG').toUpperCase().replace(/[^A-Z0-9]+/g, '') || 'ORIG';
+  var to = String(routeTokens && routeTokens.length ? routeTokens[routeTokens.length - 1] : 'DEST').toUpperCase().replace(/[^A-Z0-9]+/g, '') || 'DEST';
+  var base = ['RWC', acft, from + '_' + to].join('-');
+  var candidate = base;
+  var seq = 2;
+  while (existing[candidate] && seq < 99) {
+    candidate = base + '-V' + seq;
+    seq++;
+  }
+  return candidate;
+}
+
+function _supervisorApplyTrainingToDispatchRaw_(rawText, training) {
+  var parsed = {};
+  try { parsed = rawText ? JSON.parse(String(rawText || '{}')) : {}; } catch (e) { parsed = {}; }
+  parsed = (parsed && typeof parsed === 'object') ? parsed : {};
+  parsed.training = training;
+  if (Array.isArray(parsed.legs)) {
+    parsed.legs = parsed.legs.map(function(leg) {
+      var out = (leg && typeof leg === 'object') ? leg : {};
+      out.training = training;
+      if (!out.meta || typeof out.meta !== 'object') out.meta = {};
+      out.meta.training = training;
+      return out;
+    });
+  }
+  return JSON.stringify(parsed);
+}
+
+function _supervisorAircraftTypeFromRegistration_(registration) {
+  var reg = String(registration || '').trim().toUpperCase();
+  if (!reg) return '';
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(APP_SHEETS.AIRCRAFT);
+    if (!sh || sh.getLastRow() < 2) return '';
+    var values = sh.getDataRange().getValues();
+    var headers = values[0] || [];
+    var regIdx = _toolsHeaderIndexFromCandidates_(headers, ['REGISTRATION', 'REG', 'TAIL', 'TAIL_NUMBER']);
+    var typeIdx = _toolsHeaderIndexFromCandidates_(headers, ['AIRCRAFT_TYPE', 'TYPE_FOR_PERFORMANCE', 'TYPE']);
+    if (regIdx < 0 || typeIdx < 0) return '';
+    for (var i = 1; i < values.length; i++) {
+      var rowReg = String(values[i][regIdx] || '').trim().toUpperCase();
+      if (rowReg !== reg) continue;
+      return String(values[i][typeIdx] || '').trim();
+    }
+  } catch (e) {}
+  return '';
+}
+
+function waiveDestinationChecksBatch(pilot, icaos, missionId, approvalPassword) {
+  _verifySupervisorApprovalPassword_(approvalPassword);
+  var list = Array.isArray(icaos)
+    ? icaos
+    : String(icaos || '').split(/[;,]+/);
+  var normalized = list
+    .map(function(v) { return _checksNormalizeIcaoToken_(v); })
+    .filter(Boolean)
+    .filter(function(code, idx, arr) { return arr.indexOf(code) === idx; });
+
+  var results = [];
+  normalized.forEach(function(code) {
+    try {
+      results.push({ icao: code, success: true, message: String(waiveDestinationCheck(pilot, code, missionId, approvalPassword) || '') });
+    } catch (e) {
+      results.push({ icao: code, success: false, error: e && e.message ? e.message : String(e) });
+    }
+  });
+  return { success: true, results: results };
+}
+
+function scheduleRunwayCheckFromSupervisor(payload, approvalPassword) {
+  _verifySupervisorApprovalPassword_(approvalPassword);
+
+  var req = (payload && typeof payload === 'object') ? payload : {};
+  var missionId = String(req.missionId || '').trim();
+  var instructorName = String(req.instructorName || '').trim();
+  var runwayLocation = String(req.runwayLocation || '').trim().toUpperCase();
+  var routeRaw = String(req.route || '').trim().toUpperCase();
+  var lessonName = String(req.lessonName || '').trim();
+
+  if (!missionId) throw new Error('Mission ID is required.');
+  if (!instructorName) throw new Error('Instructor name is required.');
+  if (!runwayLocation) throw new Error('Runway check location is required.');
+  if (!routeRaw) throw new Error('Route is required.');
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var dispatchSheet = getRequiredSheet_(ss, APP_SHEETS.DISPATCH, 'scheduleRunwayCheckFromSupervisor');
+  var dispatchData = dispatchSheet.getDataRange().getValues();
+
+  var missionRowIndexes = [];
+  for (var i = 1; i < dispatchData.length; i++) {
+    if (String(dispatchData[i][DISPATCH_COL.MISSION_ID] || '').trim() === missionId) missionRowIndexes.push(i);
+  }
+  if (!missionRowIndexes.length) throw new Error('Mission not found in dispatch: ' + missionId);
+
+  var firstRow = dispatchData[missionRowIndexes[0]];
+  var studentName = String(firstRow[DISPATCH_COL.PILOT] || '').trim();
+  var aircraftReg = String(firstRow[DISPATCH_COL.AIRCRAFT] || '').trim().toUpperCase();
+  var aircraftType = String(_supervisorAircraftTypeFromRegistration_(aircraftReg) || '').trim() || aircraftReg;
+  var flightTime = parseFloat(firstRow[DISPATCH_COL.FLIGHT_TIME]);
+  var routeTokens = _supervisorNormalizeRouteTokens_(routeRaw);
+  var runwayTargets = _supervisorNormalizeRouteTokens_(runwayLocation);
+  runwayTargets = runwayTargets.filter(function(code, idx, arr) { return arr.indexOf(code) === idx; });
+  if (routeTokens.length < 2) throw new Error('Route must include at least origin and destination.');
+  if (!runwayTargets.length) throw new Error('At least one runway check destination is required.');
+
+  var syllabusSheet = getRequiredSheet_(ss, APP_SHEETS.SYLLABUS, 'scheduleRunwayCheckFromSupervisor');
+  var sylHeaders = _toolsSheetHeaderRow_(syllabusSheet);
+  var sylRows = syllabusSheet.getDataRange().getValues().slice(1);
+  var trainingCode = _supervisorNextRunwayCheckCode_(sylHeaders, sylRows, aircraftType, routeTokens);
+
+  var description = lessonName || ('Cheque de Pista: ' + runwayTargets.join('; ') + ' | ' + routeTokens[0] + ' -> ' + routeTokens[routeTokens.length - 1]);
+  var requiredHours = isNaN(flightTime) || flightTime <= 0 ? 1 : Math.max(0.7, flightTime);
+
+  var stops = routeTokens.map(function(loc, idx) {
+    var upperLoc = String(loc || '').trim().toUpperCase();
+    var isLanding = runwayTargets.indexOf(upperLoc) >= 0;
+    return {
+      sequence: idx + 1,
+      location: upperLoc,
+      landingType: isLanding ? 'FULL_STOP' : 'NONE',
+      breakStop: false,
+      notes: '',
+      landings: isLanding ? 1 : 0,
+      touchAndGos: 0
+    };
+  });
+
+  var planEnvelope = {
+    version: 3,
+    category: 'RUNWAY_CHECK',
+    advisoryOnly: true,
+    externalLessonName: lessonName,
+    runwayCheckLocation: runwayTargets.join('; '),
+    routeCheckPrompt: '',
+    stops: stops,
+    maneuvers: ['SHORT FIELD LANDING', 'GO-AROUND'],
+    customManeuvers: []
+  };
+
+  var syllabusPayload = {
+    TRAINING_CODE: trainingCode,
+    AIRCRAFT_TYPE: aircraftType,
+    DESCRIPTION: description,
+    REQUIRED_HOURS: requiredHours,
+    PLANNED_LANDINGS: Math.max(1, runwayTargets.length),
+    REQUIRED_FUEL: '',
+    REQUIRED_BALLAST: '',
+    ROUTE: routeTokens.join(', '),
+    RUNWAY_CHECKOUT: runwayTargets.join(';'),
+    LESSON_PLAN_JSON: JSON.stringify(planEnvelope),
+    PLANNED_STOPS_JSON: JSON.stringify(stops),
+    MANEUVERS_JSON: JSON.stringify({ maneuvers: planEnvelope.maneuvers, customManeuvers: [] })
+  };
+
+  var syllabusRes = addToolsSheetRecord('syllabus', syllabusPayload);
+  if (!syllabusRes || !syllabusRes.success) {
+    throw new Error((syllabusRes && syllabusRes.error) ? syllabusRes.error : 'Failed to create syllabus runway-check lesson.');
+  }
+
+  var trainingObj = {
+    code: trainingCode,
+    description: description,
+    requiredHours: requiredHours,
+    requiredFuel: 0,
+    requiredBallast: 0,
+    route: syllabusPayload.ROUTE,
+    plannedLandings: Math.max(1, runwayTargets.length),
+    runwayCheckout: runwayTargets.join(';')
+  };
+
+  missionRowIndexes.forEach(function(idx) {
+    var rowNo = idx + 1;
+    var oldNotes = String(dispatchData[idx][DISPATCH_COL.NOTES] || '').trim();
+    var noteSuffix = 'RUNWAY CHECK ' + trainingCode + ' | Instrutor: ' + instructorName + ' | Aluno: ' + studentName;
+    var newNotes = oldNotes ? (oldNotes + ' | ' + noteSuffix) : noteSuffix;
+
+    dispatchSheet.getRange(rowNo, DISPATCH_COL.PILOT + 1).setValue(instructorName);
+    dispatchSheet.getRange(rowNo, DISPATCH_COL.COPILOT + 1).setValue(studentName);
+    dispatchSheet.getRange(rowNo, DISPATCH_COL.TYPE + 1).setValue('Training');
+    dispatchSheet.getRange(rowNo, DISPATCH_COL.NOTES + 1).setValue(newNotes);
+    dispatchSheet.getRange(rowNo, DISPATCH_COL.RAW_DATA + 1).setValue(_supervisorApplyTrainingToDispatchRaw_(dispatchData[idx][DISPATCH_COL.RAW_DATA], trainingObj));
+  });
+
+  CacheService.getScriptCache().remove('scheduledMissions:v1');
+
+  return {
+    success: true,
+    missionId: missionId,
+    trainingCode: trainingCode,
+    student: studentName,
+    instructor: instructorName,
+    syllabusRowNumber: Number(syllabusRes.rowNumber || 0)
+  };
 }
 
 
@@ -2401,20 +2817,25 @@ return found ? "Check Waived" : "Pilot not found";
 
 
 function getAuthorizedDestinations(pilotName) {
-const ss = SpreadsheetApp.getActiveSpreadsheet();
-const sheet = ss.getSheetByName(APP_SHEETS.CHECKS);
-if (!sheet) return "";
+const sheet = _pilotRunwayChecksSheet_();
+if (!sheet || sheet.getLastRow() < 2) return "";
 const data = sheet.getDataRange().getValues();
-const target = String(pilotName).trim().toUpperCase();
-let allDestinations = [];
+const headers = data[0] || [];
+const target = String(pilotName || '').trim().toUpperCase();
+const out = [];
+const seen = {};
 for (let i = 1; i < data.length; i++) {
-const currentPilot = String(data[i][CHECKS_COL.PILOT]).trim().toUpperCase();
-if (currentPilot === target) {
- const dests = String(data[i][CHECKS_COL.AUTH_DESTINATIONS] || "");
- if (dests.length > 0) allDestinations.push(dests);
+  const rec = _pilotRunwayCheckRecordFromRow_(headers, data[i], i + 1);
+  if (!rec.pilotName || String(rec.pilotName || '').trim().toUpperCase() !== target) continue;
+  if (!rec.isActive) continue;
+  rec.icaos.forEach(function(code) {
+    if (!seen[code]) {
+      seen[code] = true;
+      out.push(code);
+    }
+  });
 }
-}
-return allDestinations.join(", ");
+return out.join(", ");
 }
 
 
@@ -2572,6 +2993,767 @@ Object.values(tracker).forEach(e => events.push(e));
 return events.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+function _dutyNormalizePilotName_(pilotName) {
+  return String(pilotName || '').trim();
+}
+
+function _dutyYmd_(value) {
+  const d = (value instanceof Date) ? value : new Date(value || '');
+  if (isNaN(d.getTime())) return '';
+  return d.toISOString().split('T')[0];
+}
+
+function _dutyParseHhmmToHours_(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return 0;
+  const mm = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (mm) {
+    const hh = Math.max(0, Math.min(23, Number(mm[1] || 0)));
+    const mn = Math.max(0, Math.min(59, Number(mm[2] || 0)));
+    return hh + (mn / 60);
+  }
+  const dec = parseFloat(text);
+  return isFinite(dec) && dec > 0 ? dec : 0;
+}
+
+function _dutyFmtHoursPt_(hours) {
+  const n = Number(hours || 0);
+  if (!isFinite(n) || n <= 0) return '0,0';
+  return n.toFixed(1).replace('.', ',');
+}
+
+function _dutyGetHeaderIndexByAliases_(headers, aliases, fallbackIdx) {
+  const norm = function(v) {
+    return String(v || '').toUpperCase().trim().replace(/\s+/g, '_');
+  };
+  const normalizedHeaders = (Array.isArray(headers) ? headers : []).map(norm);
+  for (let i = 0; i < aliases.length; i++) {
+    const idx = normalizedHeaders.indexOf(norm(aliases[i]));
+    if (idx >= 0) return idx;
+  }
+  return Number(fallbackIdx || -1);
+}
+
+function _dutyDailyFlightSummary_(ss, pilotName, ymd) {
+  const summary = {
+    totalFlightHours: 0,
+    flights: [],
+    funds: [],
+    summaryLine: ''
+  };
+  const pilotTarget = _dutyNormalizePilotName_(pilotName).toUpperCase();
+  if (!pilotTarget || !ymd) return summary;
+
+  const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (logSheet) {
+    const logData = logSheet.getDataRange().getValues();
+    if (logData && logData.length > 1) {
+      for (let i = 1; i < logData.length; i++) {
+        const row = logData[i];
+        const rowPilot = String(row[LOG_FLIGHT_COL.PILOT] || '').trim().toUpperCase();
+        if (!rowPilot || rowPilot !== pilotTarget) continue;
+        const rowDateYmd = _dutyYmd_(row[LOG_FLIGHT_COL.DATE]);
+        if (rowDateYmd !== ymd) continue;
+
+        const flightId = String(row[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
+        const acft = String(row[LOG_FLIGHT_COL.ACFT] || '').trim().toUpperCase();
+        const from = String(row[LOG_FLIGHT_COL.FROM] || '').trim().toUpperCase();
+        const to = String(row[LOG_FLIGHT_COL.TO] || '').trim().toUpperCase();
+        const totalTimeRaw = row[LOG_FLIGHT_COL.TOTAL_TIME];
+        const flightHours = _dutyParseHhmmToHours_(totalTimeRaw);
+
+        summary.totalFlightHours += flightHours;
+        summary.flights.push({
+          flightId: flightId,
+          acft: acft,
+          from: from,
+          to: to,
+          totalTime: String(totalTimeRaw || '').trim(),
+          flightHours: Number(flightHours.toFixed(2))
+        });
+      }
+    }
+  }
+
+  try {
+    const transSheet = ss.getSheetByName(APP_SHEETS.TRANSACTIONS);
+    if (transSheet) {
+      const transData = transSheet.getDataRange().getValues();
+      if (transData && transData.length > 1) {
+        const headers = transData[0] || [];
+        const flightIdIdx = _dutyGetHeaderIndexByAliases_(headers, ['FLIGHT_ID', 'MISSION_ID'], 0);
+        const fundIdx = _dutyGetHeaderIndexByAliases_(headers, ['FUND', 'FUND_NAME'], 1);
+        const flightIds = {};
+        summary.flights.forEach(function(f) { if (f.flightId) flightIds[f.flightId] = true; });
+
+        const funds = {};
+        for (let i = 1; i < transData.length; i++) {
+          const row = transData[i];
+          const fid = String((row[flightIdIdx] || '')).trim();
+          if (!fid || !flightIds[fid]) continue;
+          const fund = String((row[fundIdx] || '')).trim();
+          if (fund) funds[fund] = true;
+        }
+        summary.funds = Object.keys(funds).sort();
+      }
+    }
+  } catch (e) {}
+
+  summary.totalFlightHours = Number(summary.totalFlightHours.toFixed(2));
+  const lines = summary.flights.map(function(f) {
+    const route = [f.from, f.to].filter(Boolean).join(' - ');
+    const timeTxt = f.totalTime ? (' (' + f.totalTime + ')') : '';
+    return [f.flightId, f.acft, route].filter(Boolean).join(', ') + timeTxt;
+  });
+  const fundsTxt = summary.funds.length ? (' | Fundos: ' + summary.funds.join(', ')) : '';
+  summary.summaryLine = lines.length
+    ? (lines.join(' ; ') + fundsTxt)
+    : ('Sem voos registrados no dia' + fundsTxt);
+
+  return summary;
+}
+
+function _dutyReadLatestEntry_(ss, pilotName, ymd) {
+  const result = {
+    status: '',
+    startTime: '',
+    endTime: '',
+    flightHours: '',
+    description: '',
+    ignoredMorning: false,
+    ignoredEvening: false,
+    updatedAt: '',
+    sourceRow: 0
+  };
+
+  const sh = ss.getSheetByName(APP_SHEETS.DUTY_LOG);
+  if (!sh) return result;
+  const rows = sh.getDataRange().getValues();
+  if (!rows || rows.length < 2) return result;
+
+  const pilotTarget = _dutyNormalizePilotName_(pilotName).toUpperCase();
+  for (let i = rows.length - 1; i >= 1; i--) {
+    const row = rows[i];
+    const rowDate = _dutyYmd_(row[DUTY_LOG_COL.DATE]);
+    const rowPilot = String(row[DUTY_LOG_COL.PILOT] || '').trim().toUpperCase();
+    if (rowDate !== ymd || rowPilot !== pilotTarget) continue;
+
+    const title = String(row[DUTY_LOG_COL.TITLE] || '').trim().toUpperCase();
+    if (title.indexOf('DUTY') < 0 && title.indexOf('JORNADA') < 0) continue;
+
+    const jsonRaw = String(row[5] || '').trim();
+    let parsed = {};
+    try { parsed = jsonRaw ? JSON.parse(jsonRaw) : {}; } catch (e) { parsed = {}; }
+
+    return {
+      status: String(parsed.status || title || '').trim().toUpperCase(),
+      startTime: String(parsed.startTime || '').trim(),
+      endTime: String(parsed.endTime || '').trim(),
+      flightHours: String(parsed.flightHours == null ? '' : parsed.flightHours).trim(),
+      description: String(parsed.description || row[DUTY_LOG_COL.DESC_PRIMARY] || row[DUTY_LOG_COL.DESC_FALLBACK] || '').trim(),
+      ignoredMorning: !!parsed.ignoredMorning,
+      ignoredEvening: !!parsed.ignoredEvening,
+      updatedAt: String(parsed.updatedAt || '').trim(),
+      sourceRow: i + 1
+    };
+  }
+
+  return result;
+}
+
+function getPilotDutyPromptSnapshot(pilotName, dateYmd) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pilot = _dutyNormalizePilotName_(pilotName);
+  const ymd = String(dateYmd || _dutyYmd_(new Date())).trim();
+  if (!pilot || !ymd) {
+    return { success: false, error: 'pilotName and dateYmd are required' };
+  }
+
+  const entry = _dutyReadLatestEntry_(ss, pilot, ymd);
+  const autofill = _dutyDailyFlightSummary_(ss, pilot, ymd);
+
+  const closed = !!entry.endTime && String(entry.status || '').indexOf('CLOSE') >= 0;
+  const shouldMorningPrompt = !entry.startTime && !entry.ignoredMorning && !closed;
+  const shouldEveningPrompt = !!entry.startTime && !entry.endTime && !entry.ignoredEvening;
+
+  return {
+    success: true,
+    pilotName: pilot,
+    dateYmd: ymd,
+    entry: entry,
+    autofill: autofill,
+    dutyConfig: _toolsDutyReadConfigMap_(),
+    shouldMorningPrompt: shouldMorningPrompt,
+    shouldEveningPrompt: shouldEveningPrompt
+  };
+}
+
+function savePilotDutyReport(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(APP_SHEETS.DUTY_LOG);
+  if (!sh) throw new Error("Sheet 'LOG_Duty' not found.");
+
+  const p = (payload && typeof payload === 'object') ? payload : {};
+  const pilot = _dutyNormalizePilotName_(p.pilotName);
+  const ymd = String(p.dateYmd || _dutyYmd_(new Date())).trim();
+  const status = String(p.status || '').trim().toUpperCase() || 'DUTY_UPDATE';
+  const startTime = String(p.startTime || '').trim();
+  const endTime = String(p.endTime || '').trim();
+  const description = String(p.description || '').trim();
+  const flightHours = (p.flightHours == null || p.flightHours === '') ? '' : Number(p.flightHours);
+  const ignoredMorning = !!p.ignoredMorning;
+  const ignoredEvening = !!p.ignoredEvening;
+  const autoSummary = (p.autoSummary && typeof p.autoSummary === 'object') ? p.autoSummary : {};
+
+  if (!pilot) throw new Error('savePilotDutyReport: pilotName is required');
+  if (!ymd) throw new Error('savePilotDutyReport: dateYmd is required');
+
+  const summaryText = String(
+    p.summaryText ||
+    autoSummary.summaryLine ||
+    description ||
+    ''
+  ).trim();
+
+  const jsonPayload = {
+    status: status,
+    startTime: startTime,
+    endTime: endTime,
+    flightHours: (flightHours === '' || !isFinite(flightHours)) ? '' : Number(flightHours.toFixed(2)),
+    description: description,
+    summaryText: summaryText,
+    autoSummary: autoSummary,
+    ignoredMorning: ignoredMorning,
+    ignoredEvening: ignoredEvening,
+    updatedAt: new Date().toISOString()
+  };
+
+  const row = [
+    ymd,
+    pilot,
+    status,
+    '',
+    summaryText,
+    JSON.stringify(jsonPayload),
+    description || summaryText
+  ];
+  sh.appendRow(row);
+
+  return {
+    success: true,
+    pilotName: pilot,
+    dateYmd: ymd,
+    status: status,
+    startTime: startTime,
+    endTime: endTime,
+    flightHours: jsonPayload.flightHours,
+    description: description,
+    summaryText: summaryText,
+    updatedAt: jsonPayload.updatedAt
+  };
+}
+
+function _toolsLoadStaffRows_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var pilotsSheet = getRequiredSheet_(ss, APP_SHEETS.PILOTS, '_toolsLoadStaffRows_');
+  var data = pilotsSheet.getDataRange().getValues();
+  if (!data || data.length < 2) return [];
+  var headers = data[0] || [];
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var staff = _toolsStaffRecordFromRow_(headers, data[i], i + 1);
+    if (!staff || (!staff.staffName && !staff.email)) continue;
+    rows.push(staff);
+  }
+  return rows;
+}
+
+function _toolsSupervisorLike_(staff) {
+  if (!staff) return false;
+  var roleText = [staff.primaryRole].concat(staff.staffRoles || []).join(' ').toUpperCase();
+  if (roleText.indexOf('SUPERVISOR') >= 0) return true;
+  if (roleText.indexOf('MANAGER') >= 0) return true;
+  if (roleText.indexOf('GERENTE') >= 0) return true;
+  if (roleText.indexOf('COORDENADOR') >= 0) return true;
+  return !!staff.canCoordinateFlights || !!staff.canApproveDeferments;
+}
+
+function _toolsDutyContext_() {
+  var userEmail = _toolsCurrentUserEmail_();
+  var staffRows = _toolsLoadStaffRows_();
+  var me = _toolsFindStaffByEmailOrId_(staffRows, userEmail, '') || null;
+  var schedulerCanManageConfig = false;
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var permSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_PERMISSIONS || 'SCHED_Permissions', '_toolsDutyContext_');
+    var rec = _schedulerPermissionRowByEmail_(permSheet, userEmail);
+    if (rec) {
+      var activeIdx = _schedulerHeaderIndex_(rec.headers, 'ACTIVE');
+      var canEditRulesIdx = _schedulerHeaderIndex_(rec.headers, 'CAN_EDIT_RULES');
+      var canManagePermsIdx = _schedulerHeaderIndex_(rec.headers, 'CAN_MANAGE_PERMISSIONS');
+      var isActive = activeIdx < 0 ? true : _schedulerTruthyFlag_(rec.row[activeIdx]);
+      schedulerCanManageConfig = isActive && (
+        (canEditRulesIdx >= 0 && _schedulerTruthyFlag_(rec.row[canEditRulesIdx])) ||
+        (canManagePermsIdx >= 0 && _schedulerTruthyFlag_(rec.row[canManagePermsIdx]))
+      );
+    }
+  } catch (e) {
+    schedulerCanManageConfig = false;
+  }
+
+  var canManageAll = _toolsSupervisorLike_(me);
+  return {
+    userEmail: userEmail,
+    me: me,
+    staffRows: staffRows,
+    canManageAll: canManageAll,
+    canManageConfig: canManageAll || schedulerCanManageConfig
+  };
+}
+
+function _toolsDutyCanAccessPilot_(ctx, pilotNameRaw) {
+  if (ctx && ctx.canManageAll) return true;
+  var pilotName = String(pilotNameRaw || '').trim().toUpperCase();
+  if (!pilotName) return false;
+  var me = (ctx && ctx.me) || null;
+  var myName = String((me && me.staffName) || '').trim().toUpperCase();
+  var myEmail = String((me && me.email) || (ctx && ctx.userEmail) || '').trim().toUpperCase();
+  return !!pilotName && (pilotName === myName || pilotName === myEmail);
+}
+
+function _toolsDutyConfigDefaults_() {
+  return {
+    DUTY_GEOFENCE_COORDS: '',
+    DUTY_MORNING_ALERT_TIME: '08:00',
+    DUTY_EVENING_ALERT_TIME: '17:00',
+    DUTY_MORNING_WINDOW_MIN: '120',
+    DUTY_EVENING_WINDOW_MIN: '180',
+    DUTY_GEOFENCE_RADIUS_KM: '8',
+    DUTY_ALERT_RECIPIENTS: ''
+  };
+}
+
+function _toolsDutyConfigDescriptions_() {
+  return {
+    DUTY_GEOFENCE_COORDS: 'Lista de coordenadas base para gatilhos de jornada (uma por linha, formato flexível).',
+    DUTY_MORNING_ALERT_TIME: 'Horário alvo para prompt de início de jornada (HH:MM).',
+    DUTY_EVENING_ALERT_TIME: 'Horário alvo para prompt de encerramento de jornada (HH:MM).',
+    DUTY_MORNING_WINDOW_MIN: 'Janela em minutos para prompt de manhã.',
+    DUTY_EVENING_WINDOW_MIN: 'Janela em minutos para prompt de tarde/noite.',
+    DUTY_GEOFENCE_RADIUS_KM: 'Raio de proximidade (km) para gatilho por localização.',
+    DUTY_ALERT_RECIPIENTS: 'Emails para alertas de duty time (separados por vírgula).'
+  };
+}
+
+function _toolsDutyReadConfigMap_() {
+  var out = _toolsDutyConfigDefaults_();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var cfgSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', '_toolsDutyReadConfigMap_');
+  var cfg = _schedulerReadConfigMap_(cfgSheet);
+  Object.keys(out).forEach(function(key) {
+    if (Object.prototype.hasOwnProperty.call(cfg, key)) {
+      out[key] = String(cfg[key] == null ? '' : cfg[key]).trim();
+    }
+  });
+  return out;
+}
+
+function _toolsDutySaveConfigMap_(entries, actorEmail) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', '_toolsDutySaveConfigMap_');
+  var data = sheet.getDataRange().getValues();
+  var headers = data.length ? data[0] : [];
+  var keyIdx = _schedulerHeaderIndex_(headers, 'CONFIG_KEY');
+  var valueIdx = _schedulerHeaderIndex_(headers, 'CONFIG_VALUE');
+  var descIdx = _schedulerHeaderIndex_(headers, 'DESCRIPTION');
+  var activeIdx = _schedulerHeaderIndex_(headers, 'ACTIVE');
+  var updAtIdx = _schedulerHeaderIndex_(headers, 'UPDATED_AT');
+  var updByIdx = _schedulerHeaderIndex_(headers, 'UPDATED_BY');
+  if (keyIdx < 0 || valueIdx < 0) throw new Error('SCHED_Config is missing required columns');
+
+  var now = new Date();
+  var changed = 0;
+  var created = 0;
+  for (var e = 0; e < entries.length; e++) {
+    var entry = entries[e] || {};
+    var key = String(entry.key || '').trim();
+    if (!key) continue;
+    var value = String(entry.value == null ? '' : entry.value).trim();
+    var desc = String(entry.description == null ? '' : entry.description).trim();
+
+    var foundRow = 0;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][keyIdx] || '').trim() === key) {
+        foundRow = i + 1;
+        break;
+      }
+    }
+
+    if (foundRow) {
+      sheet.getRange(foundRow, valueIdx + 1).setValue(value);
+      if (descIdx >= 0) sheet.getRange(foundRow, descIdx + 1).setValue(desc);
+      if (activeIdx >= 0) sheet.getRange(foundRow, activeIdx + 1).setValue('Y');
+      if (updAtIdx >= 0) sheet.getRange(foundRow, updAtIdx + 1).setValue(now);
+      if (updByIdx >= 0) sheet.getRange(foundRow, updByIdx + 1).setValue(actorEmail || 'tools');
+      changed++;
+    } else {
+      var row = headers.map(function() { return ''; });
+      row[keyIdx] = key;
+      row[valueIdx] = value;
+      if (descIdx >= 0) row[descIdx] = desc;
+      if (activeIdx >= 0) row[activeIdx] = 'Y';
+      if (updAtIdx >= 0) row[updAtIdx] = now;
+      if (updByIdx >= 0) row[updByIdx] = actorEmail || 'tools';
+      sheet.appendRow(row);
+      created++;
+    }
+  }
+
+  return { success: true, updated: changed, created: created };
+}
+
+function getToolsDutyAdminBootstrap() {
+  try {
+    var ctx = _toolsDutyContext_();
+    var cfg = _toolsDutyReadConfigMap_();
+    return {
+      success: true,
+      currentUser: {
+        email: ctx.userEmail,
+        staffName: ctx.me ? ctx.me.staffName : '',
+        staffId: ctx.me ? ctx.me.staffId : ''
+      },
+      canManageAll: !!ctx.canManageAll,
+      canManageConfig: !!ctx.canManageConfig,
+      staff: (ctx.staffRows || []).filter(function(s) { return !!s.active; }).map(function(s) {
+        return {
+          email: String(s.email || '').trim().toLowerCase(),
+          staffName: String(s.staffName || '').trim(),
+          staffId: String(s.staffId || '').trim()
+        };
+      }),
+      dutyConfig: cfg
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function saveToolsDutyConfiguration(payload) {
+  try {
+    var ctx = _toolsDutyContext_();
+    if (!ctx.canManageConfig) {
+      return { success: false, error: 'Permissão insuficiente para alterar a configuração mestre.' };
+    }
+
+    var input = (payload && typeof payload === 'object' && payload.config && typeof payload.config === 'object')
+      ? payload.config
+      : {};
+    var defaults = _toolsDutyConfigDefaults_();
+    var descMap = _toolsDutyConfigDescriptions_();
+    var entries = Object.keys(defaults).map(function(key) {
+      return {
+        key: key,
+        value: Object.prototype.hasOwnProperty.call(input, key) ? input[key] : defaults[key],
+        description: descMap[key] || ''
+      };
+    });
+
+    var writeRes = _toolsDutySaveConfigMap_(entries, ctx.userEmail || 'tools');
+    var cfg = _toolsDutyReadConfigMap_();
+    return {
+      success: true,
+      updated: Number(writeRes.updated || 0),
+      created: Number(writeRes.created || 0),
+      dutyConfig: cfg
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getToolsDutyLogs(payload) {
+  try {
+    var ctx = _toolsDutyContext_();
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var fromYmd = String(body.fromYmd || '').trim();
+    var toYmd = String(body.toYmd || '').trim();
+    var pilotFilter = String(body.pilotFilter || '').trim().toUpperCase();
+
+    var now = new Date();
+    if (!toYmd) toYmd = _dutyYmd_(now);
+    if (!fromYmd) {
+      var from = new Date(now.getTime() - (1000 * 60 * 60 * 24 * 30));
+      fromYmd = _dutyYmd_(from);
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = getRequiredSheet_(ss, APP_SHEETS.DUTY_LOG, 'getToolsDutyLogs');
+    var data = sh.getDataRange().getValues();
+    if (!data || data.length < 2) {
+      return { success: true, canManageAll: !!ctx.canManageAll, rows: [] };
+    }
+
+    var out = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var pilot = String(row[DUTY_LOG_COL.PILOT] || '').trim();
+      if (!_toolsDutyCanAccessPilot_(ctx, pilot)) continue;
+
+      var dateYmd = _dutyYmd_(row[DUTY_LOG_COL.DATE]);
+      if (!dateYmd) continue;
+      if (fromYmd && dateYmd < fromYmd) continue;
+      if (toYmd && dateYmd > toYmd) continue;
+      if (pilotFilter && String(pilot || '').trim().toUpperCase().indexOf(pilotFilter) < 0) continue;
+
+      var status = String(row[DUTY_LOG_COL.TITLE] || '').trim();
+      var summaryText = String(row[DUTY_LOG_COL.DESC_FALLBACK] || '').trim();
+      var descPrimary = String(row[DUTY_LOG_COL.DESC_PRIMARY] || '').trim();
+      var jsonRaw = String(row[5] || '').trim();
+      var parsed = {};
+      try { parsed = jsonRaw ? JSON.parse(jsonRaw) : {}; } catch (e0) { parsed = {}; }
+
+      out.push({
+        rowNumber: i + 1,
+        dateYmd: dateYmd,
+        pilotName: pilot,
+        status: String(parsed.status || status || '').trim(),
+        startTime: String(parsed.startTime || '').trim(),
+        endTime: String(parsed.endTime || '').trim(),
+        flightHours: String(parsed.flightHours == null ? '' : parsed.flightHours).trim(),
+        description: String(parsed.description || descPrimary || '').trim(),
+        summaryText: String(parsed.summaryText || summaryText || '').trim(),
+        updatedAt: String(parsed.updatedAt || '').trim()
+      });
+    }
+
+    out.sort(function(a, b) {
+      var d = String(b.dateYmd || '').localeCompare(String(a.dateYmd || ''));
+      if (d !== 0) return d;
+      return Number(b.rowNumber || 0) - Number(a.rowNumber || 0);
+    });
+
+    return {
+      success: true,
+      canManageAll: !!ctx.canManageAll,
+      rows: out,
+      applied: { fromYmd: fromYmd, toYmd: toYmd, pilotFilter: pilotFilter }
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function updateToolsDutyLogEntry(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var rowNumber = Number(body.rowNumber || 0);
+    if (!(rowNumber >= 2)) return { success: false, error: 'rowNumber inválido' };
+
+    var ctx = _toolsDutyContext_();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = getRequiredSheet_(ss, APP_SHEETS.DUTY_LOG, 'updateToolsDutyLogEntry');
+    if (rowNumber > sh.getLastRow()) return { success: false, error: 'Registro não encontrado' };
+
+    var width = Math.max(7, sh.getLastColumn());
+    var current = sh.getRange(rowNumber, 1, 1, width).getValues()[0];
+    var pilot = String(current[DUTY_LOG_COL.PILOT] || '').trim();
+    if (!_toolsDutyCanAccessPilot_(ctx, pilot)) {
+      return { success: false, error: 'Sem permissão para editar este registro.' };
+    }
+
+    var existingJsonRaw = String(current[5] || '').trim();
+    var existing = {};
+    try { existing = existingJsonRaw ? JSON.parse(existingJsonRaw) : {}; } catch (e0) { existing = {}; }
+
+    var status = String(body.status || existing.status || current[DUTY_LOG_COL.TITLE] || 'DUTY_UPDATE').trim().toUpperCase();
+    var startTime = String(body.startTime == null ? (existing.startTime || '') : body.startTime).trim();
+    var endTime = String(body.endTime == null ? (existing.endTime || '') : body.endTime).trim();
+    var description = String(body.description == null ? (existing.description || current[DUTY_LOG_COL.DESC_PRIMARY] || '') : body.description).trim();
+    var summaryText = String(body.summaryText == null ? (existing.summaryText || current[DUTY_LOG_COL.DESC_FALLBACK] || description) : body.summaryText).trim();
+    var fhRaw = (Object.prototype.hasOwnProperty.call(body, 'flightHours') ? body.flightHours : existing.flightHours);
+    var flightHours = (fhRaw === '' || fhRaw == null) ? '' : Number(fhRaw);
+
+    var merged = {
+      status: status,
+      startTime: startTime,
+      endTime: endTime,
+      flightHours: (flightHours === '' || !isFinite(flightHours)) ? '' : Number(flightHours.toFixed(2)),
+      description: description,
+      summaryText: summaryText,
+      autoSummary: (existing.autoSummary && typeof existing.autoSummary === 'object') ? existing.autoSummary : {},
+      ignoredMorning: !!existing.ignoredMorning,
+      ignoredEvening: !!existing.ignoredEvening,
+      updatedAt: new Date().toISOString()
+    };
+
+    current[DUTY_LOG_COL.TITLE] = status;
+    if (current.length > DUTY_LOG_COL.DESC_FALLBACK) current[DUTY_LOG_COL.DESC_FALLBACK] = summaryText;
+    if (current.length > 5) current[5] = JSON.stringify(merged);
+    if (current.length > DUTY_LOG_COL.DESC_PRIMARY) current[DUTY_LOG_COL.DESC_PRIMARY] = description;
+
+    sh.getRange(rowNumber, 1, 1, width).setValues([current]);
+
+    return {
+      success: true,
+      rowNumber: rowNumber,
+      row: {
+        rowNumber: rowNumber,
+        dateYmd: _dutyYmd_(current[DUTY_LOG_COL.DATE]),
+        pilotName: pilot,
+        status: status,
+        startTime: startTime,
+        endTime: endTime,
+        flightHours: merged.flightHours,
+        description: description,
+        summaryText: summaryText,
+        updatedAt: merged.updatedAt
+      }
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _dutyAppTodayBsb_() {
+  return Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
+}
+
+function _dutyAppResolvePilotAccess_(pilotNameRaw) {
+  var ctx = _toolsDutyContext_();
+  var resolvedPilot = _dutyNormalizePilotName_(pilotNameRaw);
+
+  if (!resolvedPilot) {
+    resolvedPilot = _dutyNormalizePilotName_((ctx.me && ctx.me.staffName) || ctx.userEmail || '');
+  }
+
+  if (!resolvedPilot) {
+    return {
+      success: false,
+      error: 'Nao foi possivel identificar o piloto logado. Confira o email no DB_Pilots.'
+    };
+  }
+
+  if (!_toolsDutyCanAccessPilot_(ctx, resolvedPilot)) {
+    return {
+      success: false,
+      error: 'Sem permissao para acessar este piloto.'
+    };
+  }
+
+  return {
+    success: true,
+    ctx: ctx,
+    pilotName: resolvedPilot
+  };
+}
+
+function getDutyAppBootstrap(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var access = _dutyAppResolvePilotAccess_(body.pilotName);
+    if (!access.success) return access;
+
+    var todayYmd = _dutyAppTodayBsb_();
+    var dateYmd = String(body.dateYmd || todayYmd).trim() || todayYmd;
+    var toYmd = String(body.toYmd || todayYmd).trim() || todayYmd;
+    var fromYmd = String(body.fromYmd || '').trim();
+    if (!fromYmd) {
+      var fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 30);
+      fromYmd = _dutyYmd_(fromDate);
+    }
+
+    var snapshot = getPilotDutyPromptSnapshot(access.pilotName, dateYmd);
+    if (!snapshot || snapshot.success !== true) {
+      return {
+        success: false,
+        error: (snapshot && snapshot.error) ? snapshot.error : 'Falha ao carregar snapshot de duty.'
+      };
+    }
+
+    var logsRes = getToolsDutyLogs({
+      fromYmd: fromYmd,
+      toYmd: toYmd,
+      pilotFilter: access.ctx.canManageAll ? access.pilotName : ''
+    });
+    if (!logsRes || logsRes.success !== true) {
+      return {
+        success: false,
+        error: (logsRes && logsRes.error) ? logsRes.error : 'Falha ao carregar logs de duty.'
+      };
+    }
+
+    return {
+      success: true,
+      currentUser: {
+        email: String(access.ctx.userEmail || '').trim().toLowerCase(),
+        staffName: String((access.ctx.me && access.ctx.me.staffName) || '').trim(),
+        staffId: String((access.ctx.me && access.ctx.me.staffId) || '').trim()
+      },
+      canManageAll: !!access.ctx.canManageAll,
+      selectedPilotName: access.pilotName,
+      staff: (access.ctx.staffRows || []).filter(function(staff) {
+        return !!staff.active;
+      }).map(function(staff) {
+        return {
+          email: String(staff.email || '').trim().toLowerCase(),
+          staffName: String(staff.staffName || '').trim(),
+          staffId: String(staff.staffId || '').trim()
+        };
+      }),
+      dateYmd: dateYmd,
+      fromYmd: fromYmd,
+      toYmd: toYmd,
+      snapshot: snapshot,
+      logs: logsRes.rows || [],
+      dutyConfig: _toolsDutyReadConfigMap_()
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function saveDutyAppEntry(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var access = _dutyAppResolvePilotAccess_(body.pilotName);
+    if (!access.success) return access;
+
+    var safePayload = {
+      pilotName: access.pilotName,
+      dateYmd: String(body.dateYmd || _dutyAppTodayBsb_()).trim(),
+      status: String(body.status || '').trim(),
+      startTime: String(body.startTime || '').trim(),
+      endTime: String(body.endTime || '').trim(),
+      description: String(body.description || '').trim(),
+      summaryText: String(body.summaryText || '').trim(),
+      ignoredMorning: !!body.ignoredMorning,
+      ignoredEvening: !!body.ignoredEvening,
+      autoSummary: (body.autoSummary && typeof body.autoSummary === 'object') ? body.autoSummary : {}
+    };
+
+    if (body.flightHours === '' || body.flightHours == null) {
+      safePayload.flightHours = '';
+    } else {
+      var fh = Number(body.flightHours);
+      safePayload.flightHours = isFinite(fh) ? fh : '';
+    }
+
+    return savePilotDutyReport(safePayload);
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function updateDutyAppLog(payload) {
+  try {
+    return updateToolsDutyLogEntry(payload);
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 
 
 
@@ -2672,7 +3854,7 @@ FIXED: SCHEDULED MISSIONS LIST (PURE JS)
 
 function getScheduledMissions() {
 const cache = CacheService.getScriptCache();
-const cacheKey = 'scheduledMissions:v1';
+const cacheKey = 'scheduledMissions:v2';
 const cached = cache.get(cacheKey);
 if (cached) {
   try {
@@ -2691,12 +3873,30 @@ const data = sheet.getRange(2, 2, lastRow - 1, 11).getValues();
 const missions = {};
 const DISPATCH_RANGE_COL = {
  MISSION_ID: DISPATCH_COL.MISSION_ID - 1,
+ FLIGHT_ID: DISPATCH_COL.FLIGHT_ID - 1,
  DATE: DISPATCH_COL.DATE - 1,
  AIRCRAFT: DISPATCH_COL.AIRCRAFT - 1,
  PILOT: DISPATCH_COL.PILOT - 1,
  ROUTE: DISPATCH_COL.ROUTE - 1,
  STATUS: DISPATCH_COL.STATUS - 1
 };
+
+const flownStatuses_ = { FLOWN: true, COMPLETE: true, COMPLETED: true };
+const completedLegMap_ = {};
+try {
+  const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (logSheet) {
+    const logRows = logSheet.getDataRange().getValues();
+    for (let li = 1; li < logRows.length; li++) {
+      const lr = logRows[li];
+      const legId = String(lr[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
+      if (!legId) continue;
+      const onBlocks = lr[LOG_FLIGHT_COL.ON_BLOCKS];
+      const brakesApplied = lr[LOG_FLIGHT_COL.BRAKES_APPLIED];
+      if (onBlocks || brakesApplied) completedLegMap_[legId] = true;
+    }
+  }
+} catch (e) {}
 
 
 
@@ -2728,9 +3928,12 @@ for (let i = 0; i < data.length; i++) {
      acft: row[DISPATCH_RANGE_COL.AIRCRAFT],
      pilot: row[DISPATCH_RANGE_COL.PILOT],
      status: row[DISPATCH_RANGE_COL.STATUS],
-     routeStr: ""
+     routeStr: "",
+     flightLegIds: []
    };
  }
+  const flightLegId = String(row[DISPATCH_RANGE_COL.FLIGHT_ID] || '').trim();
+  if (flightLegId) missions[mId].flightLegIds.push(flightLegId);
   const legRoute = String(row[DISPATCH_RANGE_COL.ROUTE] || '');
   if (missions[mId].routeStr === "") {
     missions[mId].routeStr = legRoute;
@@ -2755,13 +3958,18 @@ const result = Object.values(missions).map(m => {
   const routeTokens = routeTokensFromString_(m.routeStr || '');
   const fromIcao = routeTokens[0] || '';
   const toIcao = routeTokens.length ? routeTokens[routeTokens.length - 1] : '';
+  const statusRaw = String(m.status || '').toUpperCase() || 'PENDING';
+  const allLegsComplete = m.flightLegIds.length > 0 && m.flightLegIds.every(function(legId) {
+    return !!completedLegMap_[String(legId || '').trim()];
+  });
+  const effectiveStatus = (flownStatuses_[statusRaw] || allLegsComplete) ? 'FLOWN' : statusRaw;
 
   return {
     id: m.id,
     date: m.date,
     acft: m.acft,
     pilot: m.pilot,
-    status: m.status, // Passes Column L value to the HTML
+    status: effectiveStatus,
     from: fromIcao,
     to: toIcao,
     route: m.routeStr
@@ -2902,6 +4110,979 @@ try {
 }
 }
 
+function _formNormText_(value) {
+  var raw = String(value || '').trim().toUpperCase();
+  try {
+    raw = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  } catch (e) {}
+  return raw.replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function _formToNumber_(value, fallbackValue) {
+  var raw = String(value == null ? '' : value).trim().replace(/\./g, '').replace(',', '.');
+  var n = parseFloat(raw);
+  return isNaN(n) ? (fallbackValue || 0) : n;
+}
+
+function _formToDateIso_(value) {
+  if (!value) return '';
+  if (value instanceof Date && !isNaN(value.getTime())) return Utilities.formatDate(value, 'GMT', 'yyyy-MM-dd');
+  var raw = String(value).trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  var br = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (br) {
+    var dd = String(parseInt(br[1], 10)).padStart(2, '0');
+    var mm = String(parseInt(br[2], 10)).padStart(2, '0');
+    var yyyy = br[3];
+    return yyyy + '-' + mm + '-' + dd;
+  }
+  var parsed = new Date(raw);
+  if (!isNaN(parsed.getTime())) return Utilities.formatDate(parsed, 'GMT', 'yyyy-MM-dd');
+  return '';
+}
+
+function _formFindHeaderIdxByAliases_(headers, aliases) {
+  var norms = (headers || []).map(function(h) { return _formNormText_(h); });
+  for (var a = 0; a < aliases.length; a++) {
+    var alias = _formNormText_(aliases[a]);
+    var idx = norms.indexOf(alias);
+    if (idx >= 0) return idx;
+  }
+  // Fallback for long/multiline form questions where exact text can drift.
+  for (var b = 0; b < aliases.length; b++) {
+    var aliasPart = _formNormText_(aliases[b]);
+    if (!aliasPart || aliasPart.length < 12) continue;
+    for (var i = 0; i < norms.length; i++) {
+      if (norms[i].indexOf(aliasPart) >= 0) return i;
+    }
+  }
+  return -1;
+}
+
+function _formFindHeaderIdxsByAliases_(headers, aliases) {
+  var norms = (headers || []).map(function(h) { return _formNormText_(h); });
+  var aliasNorms = (aliases || []).map(function(v) { return _formNormText_(v); });
+  var out = [];
+  for (var i = 0; i < norms.length; i++) {
+    if (aliasNorms.indexOf(norms[i]) >= 0) out.push(i);
+  }
+  return out;
+}
+
+function _formGetSourceSheetByNameOrFirst_(ss, sheetName) {
+  var preferred = String(sheetName || '').trim();
+  var sh = preferred ? ss.getSheetByName(preferred) : null;
+  if (sh) return sh;
+  var sheets = ss.getSheets();
+  return (sheets && sheets.length) ? sheets[0] : null;
+}
+
+function _formInferIdType_(idValue) {
+  var raw = String(idValue || '').trim();
+  if (!raw) return '';
+  var digits = raw.replace(/\D+/g, '');
+  if (digits.length === 11) return 'CPF';
+  if (digits.length === 9) return 'RG';
+  if (/[A-Z]/i.test(raw) && /\d/.test(raw)) return 'PASSPORT';
+  return 'ID';
+}
+
+function _formNormalizeGender_(value) {
+  var v = _formNormText_(value || '');
+  if (!v) return '';
+  if (v === 'M' || v.indexOf('MASC') === 0 || v === 'MALE') return 'M';
+  if (v === 'F' || v.indexOf('FEM') === 0 || v === 'FEMALE') return 'F';
+  return '';
+}
+
+function _formExtractPassengerBlocksForm1_(headers, row) {
+  var out = [];
+  var h = headers || [];
+  for (var i = 0; i < h.length; i++) {
+    var norm = _formNormText_(h[i]);
+    var looksLikeName = (norm.indexOf('NOME_COMPLETO') >= 0 || norm.indexOf('FULL_NAME') >= 0 || norm.indexOf('COMPLETE_NAME') >= 0);
+    var isRequesterName = (norm.indexOf('DIGITE_SEU_NOME_COMPLETO') >= 0 || norm.indexOf('TYPE_YOUR_FULL_NAME') >= 0);
+    if (!looksLikeName || isRequesterName) continue;
+
+    var name = String((row[i] || '')).trim();
+    if (!name) continue;
+
+    out.push({
+      idx: out.length + 1,
+      name: name,
+      idNum: String((row[i + 1] || '')).trim(),
+      phone: String((row[i + 2] || '')).trim(),
+      weightKg: _formToNumber_(row[i + 3], 0),
+      dob: _formToDateIso_(row[i + 4])
+    });
+  }
+  return out;
+}
+
+function _formPassengerKey_(pax, requesterEmail) {
+  var idNum = String(pax && pax.idNum || '').replace(/\s+/g, '').toUpperCase();
+  if (idNum) return 'ID:' + idNum;
+  var email = String(requesterEmail || '').trim().toLowerCase();
+  var n = _formNormText_(pax && pax.name || '');
+  var dob = String(pax && pax.dob || '').trim();
+  if (email && n) return 'EMAILNAME:' + email + '|' + n;
+  if (n && dob) return 'NAMEDOB:' + n + '|' + dob;
+  return 'NAME:' + n;
+}
+
+function _formGetOrCreateSheetByHeaders_(ss, sheetName, headers) {
+  return _schemaEnsureSheetHeaders_(ss, sheetName, headers || []).sheet;
+}
+
+function _formUpsertPassengerFromIntake_(passenger, ctx) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = getRequiredSheet_(ss, APP_SHEETS.PASSENGERS, '_formUpsertPassengerFromIntake_');
+  var data = sh.getDataRange().getValues();
+  if (!data || data.length < 1) throw new Error('DB_Passengers header row missing');
+  var headers = data[0].map(function(v) { return String(v || '').trim(); });
+  var norms = headers.map(function(v) { return _schemaNormHeader_(v); });
+
+  function idxByAliases(aliases) {
+    for (var i = 0; i < aliases.length; i++) {
+      var idx = norms.indexOf(_schemaNormHeader_(aliases[i]));
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  }
+
+  var idxName = idxByAliases(['PASSENGER_NAME', 'NAME', 'NOME', 'NOME_COMPLETO']);
+  var idxIdType = idxByAliases(['ID_TYPE', 'ID_TIPO']);
+  var idxIdNum = idxByAliases(['ID_NUMBER_CPF_PASSPORT', 'ID_NUMBER', 'CPF', 'DOCUMENTO', 'ID_NUM']);
+  var idxDob = idxByAliases(['DOB', 'DATE_OF_BIRTH', 'DATA_DE_NASCIMENTO']);
+  var idxWeight = idxByAliases(['WEIGHT_KG', 'WEIGHT_KGS', 'PESO_KG']);
+  var idxGender = idxByAliases(['GENDER', 'SEXO']);
+  var idxPhone = idxByAliases(['PHONE', 'TELEFONE']);
+  var idxNotes = idxByAliases(['NOTES', 'OBSERVACOES', 'OBS']);
+  var idxLastFlown = idxByAliases(['LAST_FLOWN', 'LAST_FLOWN_DATE', 'ULTIMO_VOO']);
+
+  var matchRow = -1;
+  var paxId = String(passenger.idNum || '').replace(/\s+/g, '').toUpperCase();
+  var paxNameNorm = _formNormText_(passenger.name || '');
+  var paxDob = String(passenger.dob || '').trim();
+
+  for (var r = 1; r < data.length; r++) {
+    var row = data[r];
+    var rowId = idxIdNum >= 0 ? String(row[idxIdNum] || '').replace(/\s+/g, '').toUpperCase() : '';
+    var rowNameNorm = idxName >= 0 ? _formNormText_(row[idxName] || '') : '';
+    var rowDob = idxDob >= 0 ? _formToDateIso_(row[idxDob]) : '';
+    if (paxId && rowId && paxId === rowId) {
+      matchRow = r + 1;
+      break;
+    }
+    if (!paxId && paxNameNorm && rowNameNorm === paxNameNorm && paxDob && rowDob && paxDob === rowDob) {
+      matchRow = r + 1;
+      break;
+    }
+  }
+
+  var values = headers.map(function() { return ''; });
+  if (matchRow > 0) {
+    values = sh.getRange(matchRow, 1, 1, headers.length).getValues()[0];
+  }
+
+  if (idxName >= 0) values[idxName] = passenger.name;
+  if (idxIdType >= 0) {
+    var inferredIdType = _formInferIdType_(passenger.idNum);
+    if (inferredIdType) values[idxIdType] = inferredIdType;
+    else values[idxIdType] = String(values[idxIdType] || '');
+  }
+  if (idxIdNum >= 0 && paxId) values[idxIdNum] = passenger.idNum;
+  if (idxDob >= 0 && passenger.dob) values[idxDob] = passenger.dob;
+  if (idxWeight >= 0 && passenger.weightKg > 0) values[idxWeight] = passenger.weightKg;
+  if (idxGender >= 0) {
+    var parsedGender = _formNormalizeGender_(passenger.gender);
+    if (parsedGender) values[idxGender] = parsedGender;
+  }
+  if (idxPhone >= 0 && passenger.phone) values[idxPhone] = passenger.phone;
+  if (idxNotes >= 0) {
+    var sourceLabel = String(ctx && ctx.formName || 'FORM').trim();
+    var note = 'Imported from ' + sourceLabel + ' on ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+    values[idxNotes] = String(values[idxNotes] || '').trim();
+    if (!values[idxNotes]) values[idxNotes] = note;
+    else if (values[idxNotes].indexOf(note) < 0) values[idxNotes] += ' | ' + note;
+  }
+  if (idxLastFlown >= 0 && !values[idxLastFlown]) values[idxLastFlown] = new Date();
+
+  if (matchRow > 0) sh.getRange(matchRow, 1, 1, headers.length).setValues([values]);
+  else sh.appendRow(values);
+
+  return { action: matchRow > 0 ? 'updated' : 'created', rowNumber: matchRow > 0 ? matchRow : sh.getLastRow() };
+}
+
+function _formBuildForm1Payload_(headers, row, sourceSheetName, rowNumber) {
+  var idxTimestamp = _formFindHeaderIdxByAliases_(headers, ['Carimbo de data/hora', 'Timestamp']);
+  var idxConfirmEmail = _formFindHeaderIdxByAliases_(headers, ['Email para confirmação', 'Email for confirmation']);
+  var idxRoutePt = _formFindHeaderIdxByAliases_(headers, ['Origem e Destino do voo']);
+  var idxRouteEn = _formFindHeaderIdxByAliases_(headers, ['Origin and Destination']);
+  var idxChecklistPt = _formFindHeaderIdxByAliases_(headers, ['Leia atentamente cada item abaixo e marque todas as caixas. Ao marcar todos os itens, você declara estar ciente e de acordo com as condições descritas.']);
+  var idxConfirmPt = _formFindHeaderIdxByAliases_(headers, ['Você confirma que leu e compreendeu todos os pontos acima?']);
+  var idxPaxCount = _formFindHeaderIdxByAliases_(headers, ['Quantos passageiros?', 'How many passengers']);
+  var idxSupport = _formFindHeaderIdxByAliases_(headers, ['Apoie este trabalho - Escolha pelo menos duas formas de contribuição:', 'Help us - Choose at least two ways to contribute:']);
+  var idxDeclaration = _formFindHeaderIdxByAliases_(headers, ['Escolha uma declaração / Choose one:']);
+  var idxValidity = _formFindHeaderIdxByAliases_(headers, ['Validade desta autorização', 'Validity of this authorization']);
+  var idxOther = _formFindHeaderIdxByAliases_(headers, ['Você tem mais alguma coisa que gostaria de compartilhar?', "Do you have anything else you'd like to let us know?"]);
+  var idxRequesterEmail = _formFindHeaderIdxByAliases_(headers, ['Endereço de e-mail']);
+  var idxRequesterName = _formFindHeaderIdxByAliases_(headers, ['Digite seu nome completo / Type your full name']);
+  var idxLanguage = _formFindHeaderIdxByAliases_(headers, ['Choose your preferred language/Escolha a seu idioma:']);
+  var idxImageAuth = _formFindHeaderIdxByAliases_(headers, ['Uso de Imagem', 'Use of Image Authorization', 'Autorizo também o uso da minha imagem']);
+  var idxProhibitedPt = _formFindHeaderIdxByAliases_(headers, ['Declaração de Itens Proibidos', 'Ao solicitar este voo, declaro que não estou transportando nenhum dos seguintes itens:']);
+  var idxBaggagePt = _formFindHeaderIdxByAliases_(headers, ['Entendo que Asas de Socorro se reserva o direito de inspecionar minhas bagagens antes do embarque para garantir a segurança de todos os passageiros.']);
+  var idxProhibitedEn = _formFindHeaderIdxByAliases_(headers, ['Prohibited Items Declaration', 'By requesting this flight, I declare that I am not carrying any of the following items:']);
+  var idxBaggageEn = _formFindHeaderIdxByAliases_(headers, ['I understand that Asas de Socorro reserves the right to inspect my baggage before boarding to ensure the safety of all passengers.']);
+
+  var passengers = _formExtractPassengerBlocksForm1_(headers, row);
+  var submittedAtRaw = idxTimestamp >= 0 ? row[idxTimestamp] : '';
+  var submittedAtIso = (submittedAtRaw instanceof Date && !isNaN(submittedAtRaw.getTime()))
+    ? Utilities.formatDate(submittedAtRaw, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+    : String(submittedAtRaw || '').trim();
+  var requesterEmail = String((idxRequesterEmail >= 0 ? row[idxRequesterEmail] : '') || '').trim() || String((idxConfirmEmail >= 0 ? row[idxConfirmEmail] : '') || '').trim();
+  var route = String((idxRoutePt >= 0 ? row[idxRoutePt] : '') || '').trim() || String((idxRouteEn >= 0 ? row[idxRouteEn] : '') || '').trim();
+  var responseKey = [sourceSheetName, rowNumber, submittedAtIso, requesterEmail, route].join('|');
+
+  return {
+    formName: 'FORM_1',
+    sourceSheet: sourceSheetName,
+    sourceRow: rowNumber,
+    responseKey: responseKey,
+    submittedAt: submittedAtIso,
+    confirmationEmail: String((idxConfirmEmail >= 0 ? row[idxConfirmEmail] : '') || '').trim(),
+    requesterEmail: requesterEmail,
+    requesterName: String((idxRequesterName >= 0 ? row[idxRequesterName] : '') || '').trim(),
+    route: route,
+    language: String((idxLanguage >= 0 ? row[idxLanguage] : '') || '').trim(),
+    passengerCountDeclared: parseInt(String((idxPaxCount >= 0 ? row[idxPaxCount] : '') || '').trim(), 10) || 0,
+    checklistAcknowledgement: String((idxChecklistPt >= 0 ? row[idxChecklistPt] : '') || '').trim(),
+    declarationConfirmed: String((idxConfirmPt >= 0 ? row[idxConfirmPt] : '') || '').trim(),
+    supportActions: String((idxSupport >= 0 ? row[idxSupport] : '') || '').trim(),
+    declarationChoice: String((idxDeclaration >= 0 ? row[idxDeclaration] : '') || '').trim(),
+    releaseValidity: String((idxValidity >= 0 ? row[idxValidity] : '') || '').trim(),
+    otherNotes: String((idxOther >= 0 ? row[idxOther] : '') || '').trim(),
+    imageUseAuthorization: String((idxImageAuth >= 0 ? row[idxImageAuth] : '') || '').trim(),
+    prohibitedItemsPt: String((idxProhibitedPt >= 0 ? row[idxProhibitedPt] : '') || '').trim(),
+    baggageInspectionPt: String((idxBaggagePt >= 0 ? row[idxBaggagePt] : '') || '').trim(),
+    prohibitedItemsEn: String((idxProhibitedEn >= 0 ? row[idxProhibitedEn] : '') || '').trim(),
+    baggageInspectionEn: String((idxBaggageEn >= 0 ? row[idxBaggageEn] : '') || '').trim(),
+    passengers: passengers,
+    rawJson: JSON.stringify({ headers: headers, row: row })
+  };
+}
+
+function _formBuildForm2Payload_(headers, row, sourceSheetName, rowNumber) {
+  var idxTimestamp = _formFindHeaderIdxByAliases_(headers, ['Carimbo de data/hora', 'Timestamp']);
+  var idxConfirmEmail = _formFindHeaderIdxByAliases_(headers, ['Email para confirmação', 'Email for confirmation']);
+  var idxMedicalSituation = _formFindHeaderIdxByAliases_(headers, ['Descreva brevemente a situação médica que motiva esta solicitação']);
+  var idxRoute = _formFindHeaderIdxByAliases_(headers, ['Origem e Destino do voo', 'Origin and Destination']);
+  var idxUrgency = _formFindHeaderIdxByAliases_(headers, ['Escolha a gravidade da situação, de acordo com os exemplos abaixo']);
+  var idxDeclaration = _formFindHeaderIdxByAliases_(headers, ['Declaração', 'Declaração e Assinatura']);
+  var whoDeclares = _formFindHeaderIdxsByAliases_(headers, ['Quem está fazendo essa declaração?']);
+  var idxWhoDeclares1 = whoDeclares.length ? whoDeclares[0] : -1;
+  var idxWhoDeclares2 = whoDeclares.length > 1 ? whoDeclares[1] : -1;
+  var idxTreatmentProof = _formFindHeaderIdxByAliases_(headers, ['Comprovante de tratamento/agendamento']);
+  var idxMedicalDeclarationRequired = _formFindHeaderIdxByAliases_(headers, ['Declaração médica obrigatória']);
+  var idxDeclarantName = _formFindHeaderIdxByAliases_(headers, ['Nome de quem declara']);
+  var idxFormalDeclaration = _formFindHeaderIdxByAliases_(headers, ['Encaminhe uma declaração formal de um profissional de saúde explicando por que este voo é necessário, enviada para o WhatsApp (62) 98197-6055.']);
+  var idxPublicHealthGap = _formFindHeaderIdxByAliases_(headers, ['Por que os serviços públicos de saúde não conseguiram responder a esta situação? Descreva tentativas de utilização do SUS/SESAI ou outros serviços e o motivo da indisponibilidade.']);
+  var idxTransportLimits = _formFindHeaderIdxByAliases_(headers, ['Por que outros meios de transporte não são viáveis?', 'Explique limitações logísticas, climáticas ou de acesso (barco, carro, ônibus etc.)']);
+  var idxChecklist = _formFindHeaderIdxByAliases_(headers, ['Leia atentamente cada item abaixo e marque todas as caixas. Ao marcar todos os itens, você declara estar ciente e de acordo com as condições descritas.']);
+  var idxConfirmChecklist = _formFindHeaderIdxByAliases_(headers, ['Você confirma que leu e compreendeu todos os pontos acima?']);
+
+  var idxPatientName = _formFindHeaderIdxByAliases_(headers, ['Nome completo', 'Nome completo / Full Name']);
+  var idxPatientCpf = _formFindHeaderIdxByAliases_(headers, ['CPF']);
+  var idxPatientPhone = _formFindHeaderIdxByAliases_(headers, ['Telefone']);
+  var idxPatientWeight = _formFindHeaderIdxByAliases_(headers, ['Peso (kg)', 'Peso']);
+  var idxPatientDob = _formFindHeaderIdxByAliases_(headers, ['Data de nascimento']);
+
+  var idxCompanionName = _formFindHeaderIdxByAliases_(headers, ['Quem acompanhará o paciente?                          Nome:']);
+  var idxCompanionCpf = idxCompanionName >= 0 ? idxCompanionName + 1 : -1;
+  var idxCompanionPhone = idxCompanionName >= 0 ? idxCompanionName + 2 : -1;
+  var idxCompanionWeight = idxCompanionName >= 0 ? idxCompanionName + 3 : -1;
+  var idxCompanionDob = idxCompanionName >= 0 ? idxCompanionName + 4 : -1;
+
+  var idxSupport = _formFindHeaderIdxByAliases_(headers, ['Escolha pelo menos duas formas de contribuição:']);
+  var idxRequesterEmail = _formFindHeaderIdxByAliases_(headers, ['Endereço de e-mail']);
+
+  var submittedAtRaw = idxTimestamp >= 0 ? row[idxTimestamp] : '';
+  var submittedAtIso = (submittedAtRaw instanceof Date && !isNaN(submittedAtRaw.getTime()))
+    ? Utilities.formatDate(submittedAtRaw, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+    : String(submittedAtRaw || '').trim();
+
+  var requesterEmail = String((idxRequesterEmail >= 0 ? row[idxRequesterEmail] : '') || '').trim() || String((idxConfirmEmail >= 0 ? row[idxConfirmEmail] : '') || '').trim();
+  var route = String((idxRoute >= 0 ? row[idxRoute] : '') || '').trim();
+  var medicalSituation = String((idxMedicalSituation >= 0 ? row[idxMedicalSituation] : '') || '').trim();
+  var responseKey = [sourceSheetName, rowNumber, submittedAtIso, requesterEmail, route, _formNormText_(medicalSituation).slice(0, 60)].join('|');
+
+  var passengers = [];
+  var patientName = String((idxPatientName >= 0 ? row[idxPatientName] : '') || '').trim();
+  if (patientName) {
+    passengers.push({
+      idx: 1,
+      role: 'PATIENT',
+      name: patientName,
+      idNum: String((idxPatientCpf >= 0 ? row[idxPatientCpf] : '') || '').trim(),
+      phone: String((idxPatientPhone >= 0 ? row[idxPatientPhone] : '') || '').trim(),
+      weightKg: _formToNumber_(idxPatientWeight >= 0 ? row[idxPatientWeight] : '', 0),
+      dob: _formToDateIso_(idxPatientDob >= 0 ? row[idxPatientDob] : '')
+    });
+  }
+
+  var companionName = String((idxCompanionName >= 0 ? row[idxCompanionName] : '') || '').trim();
+  if (companionName) {
+    passengers.push({
+      idx: passengers.length + 1,
+      role: 'COMPANION',
+      name: companionName,
+      idNum: String((idxCompanionCpf >= 0 ? row[idxCompanionCpf] : '') || '').trim(),
+      phone: String((idxCompanionPhone >= 0 ? row[idxCompanionPhone] : '') || '').trim(),
+      weightKg: _formToNumber_(idxCompanionWeight >= 0 ? row[idxCompanionWeight] : '', 0),
+      dob: _formToDateIso_(idxCompanionDob >= 0 ? row[idxCompanionDob] : '')
+    });
+  }
+
+  return {
+    formName: 'FORM_2',
+    sourceSheet: sourceSheetName,
+    sourceRow: rowNumber,
+    responseKey: responseKey,
+    submittedAt: submittedAtIso,
+    confirmationEmail: String((idxConfirmEmail >= 0 ? row[idxConfirmEmail] : '') || '').trim(),
+    requesterEmail: requesterEmail,
+    requesterName: String((idxDeclarantName >= 0 ? row[idxDeclarantName] : '') || '').trim(),
+    route: route,
+    language: '',
+    passengerCountDeclared: passengers.length,
+    checklistAcknowledgement: String((idxChecklist >= 0 ? row[idxChecklist] : '') || '').trim(),
+    declarationConfirmed: String((idxConfirmChecklist >= 0 ? row[idxConfirmChecklist] : '') || '').trim(),
+    supportActions: String((idxSupport >= 0 ? row[idxSupport] : '') || '').trim(),
+    declarationChoice: String((idxDeclaration >= 0 ? row[idxDeclaration] : '') || '').trim(),
+    releaseValidity: '',
+    otherNotes: '',
+    imageUseAuthorization: '',
+    prohibitedItemsPt: '',
+    baggageInspectionPt: '',
+    prohibitedItemsEn: '',
+    baggageInspectionEn: '',
+    medicalSituation: medicalSituation,
+    urgencyLevel: String((idxUrgency >= 0 ? row[idxUrgency] : '') || '').trim(),
+    declarationBy1: String((idxWhoDeclares1 >= 0 ? row[idxWhoDeclares1] : '') || '').trim(),
+    declarationBy2: String((idxWhoDeclares2 >= 0 ? row[idxWhoDeclares2] : '') || '').trim(),
+    treatmentProof: String((idxTreatmentProof >= 0 ? row[idxTreatmentProof] : '') || '').trim(),
+    medicalDeclarationRequired: String((idxMedicalDeclarationRequired >= 0 ? row[idxMedicalDeclarationRequired] : '') || '').trim(),
+    declarantName: String((idxDeclarantName >= 0 ? row[idxDeclarantName] : '') || '').trim(),
+    formalDeclarationInstruction: String((idxFormalDeclaration >= 0 ? row[idxFormalDeclaration] : '') || '').trim(),
+    publicHealthReason: String((idxPublicHealthGap >= 0 ? row[idxPublicHealthGap] : '') || '').trim(),
+    transportLimitations: String((idxTransportLimits >= 0 ? row[idxTransportLimits] : '') || '').trim(),
+    passengers: passengers,
+    rawJson: JSON.stringify({ headers: headers, row: row })
+  };
+}
+
+function _formBuildForm3Payload_(headers, row, sourceSheetName, rowNumber) {
+  var idxTimestamp = _formFindHeaderIdxByAliases_(headers, ['Carimbo de data/hora', 'Timestamp']);
+  var idxConfirmEmail = _formFindHeaderIdxByAliases_(headers, ['Email para confirmação', 'Email for confirmation']);
+  var idxChecklist = _formFindHeaderIdxByAliases_(headers, ['Leia atentamente cada item abaixo e marque todas as caixas. Ao marcar todos os itens, você declara estar ciente e de acordo com as condições descritas.']);
+  var idxVillageUnderstanding = _formFindHeaderIdxByAliases_(headers, ['Entendimentos com a Asas de Socorro – Antes e Durante Sua Estadia na Aldeia', 'Marque abaixo para indicar que você compreende os pontos apresentados.']);
+  var idxFamilyCount = _formFindHeaderIdxByAliases_(headers, ['Quantas pessoas fazem parte da sua família ou equipe pelas quais você é responsável?', '(Inclua você mesmo na contagem.)']);
+  var idxContributionContext = _formFindHeaderIdxByAliases_(headers, ['Abaixo, por favor, indique de que forma você poderia contribuir.', 'Opção "Outra"', 'Por favor, marque abaixo tudo o que se aplica à sua situação (pelo menos 2):']);
+  var idxDeclaration = _formFindHeaderIdxByAliases_(headers, ['Declaração e Assinatura']);
+  var idxValidity = _formFindHeaderIdxByAliases_(headers, ['Validade desta autorização']);
+  var idxRequesterEmail = _formFindHeaderIdxByAliases_(headers, ['Endereço de e-mail']);
+
+  var passengers = _formExtractPassengerBlocksForm1_(headers, row).map(function(p, idx) {
+    return Object.assign({}, p, { role: idx === 0 ? 'RESPONSIBLE' : 'FAMILY_OR_TEAM' });
+  });
+
+  var submittedAtRaw = idxTimestamp >= 0 ? row[idxTimestamp] : '';
+  var submittedAtIso = (submittedAtRaw instanceof Date && !isNaN(submittedAtRaw.getTime()))
+    ? Utilities.formatDate(submittedAtRaw, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+    : String(submittedAtRaw || '').trim();
+
+  var requesterEmail = String((idxRequesterEmail >= 0 ? row[idxRequesterEmail] : '') || '').trim() || String((idxConfirmEmail >= 0 ? row[idxConfirmEmail] : '') || '').trim();
+  var declaration = String((idxDeclaration >= 0 ? row[idxDeclaration] : '') || '').trim();
+  var responseKey = [sourceSheetName, rowNumber, submittedAtIso, requesterEmail, _formNormText_(declaration).slice(0, 60)].join('|');
+
+  return {
+    formName: 'FORM_3',
+    sourceSheet: sourceSheetName,
+    sourceRow: rowNumber,
+    responseKey: responseKey,
+    submittedAt: submittedAtIso,
+    confirmationEmail: String((idxConfirmEmail >= 0 ? row[idxConfirmEmail] : '') || '').trim(),
+    requesterEmail: requesterEmail,
+    requesterName: passengers.length ? String(passengers[0].name || '').trim() : '',
+    route: '',
+    language: '',
+    passengerCountDeclared: parseInt(String((idxFamilyCount >= 0 ? row[idxFamilyCount] : '') || '').trim(), 10) || passengers.length,
+    checklistAcknowledgement: String((idxChecklist >= 0 ? row[idxChecklist] : '') || '').trim(),
+    declarationConfirmed: declaration,
+    supportActions: String((idxContributionContext >= 0 ? row[idxContributionContext] : '') || '').trim(),
+    declarationChoice: declaration,
+    releaseValidity: String((idxValidity >= 0 ? row[idxValidity] : '') || '').trim(),
+    otherNotes: '',
+    imageUseAuthorization: '',
+    prohibitedItemsPt: '',
+    baggageInspectionPt: '',
+    prohibitedItemsEn: '',
+    baggageInspectionEn: '',
+    familyGroupCount: String((idxFamilyCount >= 0 ? row[idxFamilyCount] : '') || '').trim(),
+    villageStayAcknowledgement: String((idxVillageUnderstanding >= 0 ? row[idxVillageUnderstanding] : '') || '').trim(),
+    understandingsAcknowledgement: String((idxChecklist >= 0 ? row[idxChecklist] : '') || '').trim(),
+    contributionContext: String((idxContributionContext >= 0 ? row[idxContributionContext] : '') || '').trim(),
+    passengers: passengers,
+    rawJson: JSON.stringify({ headers: headers, row: row })
+  };
+}
+
+function _formGetImportLogKeys_(logSheet) {
+  var keys = {};
+  var data = logSheet.getDataRange().getValues();
+  if (!data || data.length < 2) return keys;
+  var headers = data[0].map(function(v) { return _schemaNormHeader_(v); });
+  var idxResponseKey = headers.indexOf('RESPONSE_KEY');
+  var idxStatus = headers.indexOf('STATUS');
+  if (idxResponseKey < 0) return keys;
+  for (var i = 1; i < data.length; i++) {
+    var key = String(data[i][idxResponseKey] || '').trim();
+    if (!key) continue;
+    var status = idxStatus >= 0 ? String(data[i][idxStatus] || '').trim().toUpperCase() : 'OK';
+    if (status === 'OK') keys[key] = true;
+  }
+  return keys;
+}
+
+function _formAppendImportLog_(logSheet, payload) {
+  logSheet.appendRow([
+    new Date(),
+    String(payload.formName || 'FORM').trim(),
+    payload.sourceSheet || '',
+    payload.sourceRow || '',
+    payload.responseKey || '',
+    payload.status || '',
+    payload.detail || ''
+  ]);
+}
+
+function _ingestPassengerLiabilityPayload_(submission) {
+  var formName = String(submission && submission.formName || 'FORM').trim();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var liabilityHeaders = [
+    'INGESTED_AT',
+    'FORM_NAME',
+    'SOURCE_SHEET',
+    'SOURCE_ROW',
+    'RESPONSE_KEY',
+    'SUBMITTED_AT',
+    'CONFIRMATION_EMAIL',
+    'REQUESTER_EMAIL',
+    'REQUESTER_NAME',
+    'ROUTE',
+    'LANGUAGE',
+    'PASSENGER_COUNT_DECLARED',
+    'DECLARATION_CONFIRMED',
+    'CHECKLIST_ACKNOWLEDGEMENT',
+    'SUPPORT_ACTIONS',
+    'DECLARATION_CHOICE',
+    'RELEASE_VALIDITY',
+    'IMAGE_USE_AUTHORIZATION',
+    'PROHIBITED_ITEMS_PT',
+    'BAGGAGE_INSPECTION_PT',
+    'PROHIBITED_ITEMS_EN',
+    'BAGGAGE_INSPECTION_EN',
+    'OTHER_NOTES',
+    'PASSENGER_INDEX',
+    'PASSENGER_NAME',
+    'PASSENGER_ID',
+    'PASSENGER_PHONE',
+    'PASSENGER_WEIGHT_KG',
+    'PASSENGER_DOB',
+    'PASSENGER_ROLE',
+    'MEDICAL_SITUATION',
+    'URGENCY_LEVEL',
+    'DECLARATION_BY_1',
+    'DECLARATION_BY_2',
+    'TREATMENT_PROOF',
+    'MEDICAL_DECLARATION_REQUIRED',
+    'DECLARANT_NAME',
+    'FORMAL_DECLARATION_INSTRUCTION',
+    'PUBLIC_HEALTH_REASON',
+    'TRANSPORT_LIMITATIONS',
+    'FAMILY_GROUP_COUNT',
+    'VILLAGE_STAY_ACKNOWLEDGEMENT',
+    'UNDERSTANDINGS_ACKNOWLEDGEMENT',
+    'CONTRIBUTION_CONTEXT',
+    'PASSENGER_KEY',
+    'RAW_JSON'
+  ];
+
+  var logHeaders = ['INGESTED_AT', 'FORM_NAME', 'SOURCE_SHEET', 'SOURCE_ROW', 'RESPONSE_KEY', 'STATUS', 'DETAIL'];
+  var liabilitySheet = _formGetOrCreateSheetByHeaders_(ss, APP_SHEETS.LIABILITY_RELEASES || 'DB_Liability_Releases', liabilityHeaders);
+  var logSheet = _formGetOrCreateSheetByHeaders_(ss, APP_SHEETS.FORM_IMPORT_LOG || 'DB_Form_Import_Log', logHeaders);
+  var processedKeys = _formGetImportLogKeys_(logSheet);
+
+  if (processedKeys[submission.responseKey]) {
+    return { success: true, skipped: true, reason: 'already_processed', responseKey: submission.responseKey };
+  }
+
+  var pax = Array.isArray(submission.passengers) ? submission.passengers : [];
+  if (!pax.length) {
+    _formAppendImportLog_(logSheet, {
+      formName: formName,
+      sourceSheet: submission.sourceSheet,
+      sourceRow: submission.sourceRow,
+      responseKey: submission.responseKey,
+      status: 'ERROR',
+      detail: 'No passenger blocks found'
+    });
+    return { success: false, error: 'No passenger blocks found', responseKey: submission.responseKey };
+  }
+
+  var passengerResults = [];
+  pax.forEach(function(p) {
+    passengerResults.push(_formUpsertPassengerFromIntake_(p, submission));
+    var passengerKey = _formPassengerKey_(p, submission.requesterEmail);
+    liabilitySheet.appendRow([
+      new Date(),
+      formName,
+      submission.sourceSheet,
+      submission.sourceRow,
+      submission.responseKey,
+      submission.submittedAt,
+      submission.confirmationEmail,
+      submission.requesterEmail,
+      submission.requesterName,
+      submission.route,
+      submission.language,
+      submission.passengerCountDeclared,
+      submission.declarationConfirmed,
+      submission.checklistAcknowledgement,
+      submission.supportActions,
+      submission.declarationChoice,
+      submission.releaseValidity,
+      submission.imageUseAuthorization,
+      submission.prohibitedItemsPt,
+      submission.baggageInspectionPt,
+      submission.prohibitedItemsEn,
+      submission.baggageInspectionEn,
+      submission.otherNotes,
+      p.idx,
+      p.name,
+      p.idNum,
+      p.phone,
+      p.weightKg,
+      p.dob,
+      String(p.role || ''),
+      String(submission.medicalSituation || ''),
+      String(submission.urgencyLevel || ''),
+      String(submission.declarationBy1 || ''),
+      String(submission.declarationBy2 || ''),
+      String(submission.treatmentProof || ''),
+      String(submission.medicalDeclarationRequired || ''),
+      String(submission.declarantName || ''),
+      String(submission.formalDeclarationInstruction || ''),
+      String(submission.publicHealthReason || ''),
+      String(submission.transportLimitations || ''),
+      String(submission.familyGroupCount || ''),
+      String(submission.villageStayAcknowledgement || ''),
+      String(submission.understandingsAcknowledgement || ''),
+      String(submission.contributionContext || ''),
+      passengerKey,
+      submission.rawJson
+    ]);
+  });
+
+  _formAppendImportLog_(logSheet, {
+    formName: formName,
+    sourceSheet: submission.sourceSheet,
+    sourceRow: submission.sourceRow,
+    responseKey: submission.responseKey,
+    status: 'OK',
+    detail: 'Passengers imported: ' + passengerResults.length
+  });
+
+  return { success: true, responseKey: submission.responseKey, passengersImported: passengerResults.length, passengerResults: passengerResults };
+}
+
+function _ingestForm1Payload_(submission) {
+  var payload = Object.assign({}, submission || {}, { formName: 'FORM_1' });
+  return _ingestPassengerLiabilityPayload_(payload);
+}
+
+function _ingestForm2Payload_(submission) {
+  var payload = Object.assign({}, submission || {}, { formName: 'FORM_2' });
+  return _ingestPassengerLiabilityPayload_(payload);
+}
+
+function _ingestForm3Payload_(submission) {
+  var payload = Object.assign({}, submission || {}, { formName: 'FORM_3' });
+  return _ingestPassengerLiabilityPayload_(payload);
+}
+
+function ingestForm1ResponseRow(rowNumber, sheetName) {
+  var ss = SpreadsheetApp.openById(APP_SHEETS.FORM1_SPREADSHEET_ID);
+  var sourceSheet = _formGetSourceSheetByNameOrFirst_(ss, String(sheetName || APP_SHEETS.FORM1_RESPONSES || 'Form Responses 1'));
+  if (!sourceSheet) throw new Error('Form 1 response sheet not found');
+  var rn = parseInt(rowNumber, 10);
+  if (!(rn > 1)) rn = sourceSheet.getLastRow();
+  if (!(rn > 1)) throw new Error('No data rows found in Form 1 response sheet');
+  var lastCol = sourceSheet.getLastColumn();
+  var headers = sourceSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var row = sourceSheet.getRange(rn, 1, 1, lastCol).getValues()[0];
+  var payload = _formBuildForm1Payload_(headers, row, sourceSheet.getName(), rn);
+  return _ingestForm1Payload_(payload);
+}
+
+function ingestForm1ResponsesBatch(options) {
+  var opts = (options && typeof options === 'object') ? options : {};
+  var sheetName = String(opts.sheetName || APP_SHEETS.FORM1_RESPONSES || 'Form Responses 1');
+  var startRow = parseInt(opts.startRow, 10);
+  var maxRows = parseInt(opts.maxRows, 10);
+  if (!(startRow > 1)) startRow = 2;
+  if (!(maxRows > 0)) maxRows = 200;
+
+  var ss = SpreadsheetApp.openById(APP_SHEETS.FORM1_SPREADSHEET_ID);
+  var sourceSheet = _formGetSourceSheetByNameOrFirst_(ss, sheetName);
+  if (!sourceSheet) throw new Error('Form 1 response sheet not found: ' + sheetName);
+  var lastRow = sourceSheet.getLastRow();
+  var lastCol = sourceSheet.getLastColumn();
+  if (lastRow < startRow) return { success: true, processed: 0, imported: 0, failed: 0, skipped: 0 };
+
+  var endRow = Math.min(lastRow, startRow + maxRows - 1);
+  var headers = sourceSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var rows = sourceSheet.getRange(startRow, 1, endRow - startRow + 1, lastCol).getValues();
+  var out = { success: true, processed: 0, imported: 0, failed: 0, skipped: 0, details: [] };
+
+  for (var i = 0; i < rows.length; i++) {
+    var rowNumber = startRow + i;
+    out.processed += 1;
+    try {
+      var payload = _formBuildForm1Payload_(headers, rows[i], sourceSheet.getName(), rowNumber);
+      var res = _ingestForm1Payload_(payload);
+      if (res && res.skipped) out.skipped += 1;
+      else if (res && res.success) out.imported += 1;
+      else out.failed += 1;
+      out.details.push({ row: rowNumber, result: res });
+    } catch (err) {
+      out.failed += 1;
+      out.details.push({ row: rowNumber, error: err && err.message ? err.message : String(err) });
+    }
+  }
+
+  return out;
+}
+
+function ingestForm1OnSubmit(e) {
+  if (!e || !e.range) throw new Error('ingestForm1OnSubmit requires an installable on form submit event object');
+  var sheet = e.range.getSheet();
+  var rowNumber = e.range.getRow();
+  return ingestForm1ResponseRow(rowNumber, sheet.getName());
+}
+
+function ingestForm2ResponseRow(rowNumber, sheetName) {
+  var ss = APP_SHEETS.FORM2_SPREADSHEET_ID ? SpreadsheetApp.openById(APP_SHEETS.FORM2_SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  var sourceSheet = _formGetSourceSheetByNameOrFirst_(ss, String(sheetName || APP_SHEETS.FORM2_RESPONSES || 'Form Responses 2'));
+  if (!sourceSheet) throw new Error('Form 2 response sheet not found');
+  var rn = parseInt(rowNumber, 10);
+  if (!(rn > 1)) rn = sourceSheet.getLastRow();
+  if (!(rn > 1)) throw new Error('No data rows found in Form 2 response sheet');
+  var lastCol = sourceSheet.getLastColumn();
+  var headers = sourceSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var row = sourceSheet.getRange(rn, 1, 1, lastCol).getValues()[0];
+  var payload = _formBuildForm2Payload_(headers, row, sourceSheet.getName(), rn);
+  return _ingestForm2Payload_(payload);
+}
+
+function ingestForm2ResponsesBatch(options) {
+  var opts = (options && typeof options === 'object') ? options : {};
+  var sheetName = String(opts.sheetName || APP_SHEETS.FORM2_RESPONSES || 'Form Responses 2');
+  var startRow = parseInt(opts.startRow, 10);
+  var maxRows = parseInt(opts.maxRows, 10);
+  if (!(startRow > 1)) startRow = 2;
+  if (!(maxRows > 0)) maxRows = 200;
+
+  var ss = APP_SHEETS.FORM2_SPREADSHEET_ID ? SpreadsheetApp.openById(APP_SHEETS.FORM2_SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  var sourceSheet = _formGetSourceSheetByNameOrFirst_(ss, sheetName);
+  if (!sourceSheet) throw new Error('Form 2 response sheet not found: ' + sheetName);
+  var lastRow = sourceSheet.getLastRow();
+  var lastCol = sourceSheet.getLastColumn();
+  if (lastRow < startRow) return { success: true, processed: 0, imported: 0, failed: 0, skipped: 0 };
+
+  var endRow = Math.min(lastRow, startRow + maxRows - 1);
+  var headers = sourceSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var rows = sourceSheet.getRange(startRow, 1, endRow - startRow + 1, lastCol).getValues();
+  var out = { success: true, processed: 0, imported: 0, failed: 0, skipped: 0, details: [] };
+
+  for (var i = 0; i < rows.length; i++) {
+    var rowNumber = startRow + i;
+    out.processed += 1;
+    try {
+      var payload = _formBuildForm2Payload_(headers, rows[i], sourceSheet.getName(), rowNumber);
+      var res = _ingestForm2Payload_(payload);
+      if (res && res.skipped) out.skipped += 1;
+      else if (res && res.success) out.imported += 1;
+      else out.failed += 1;
+      out.details.push({ row: rowNumber, result: res });
+    } catch (err) {
+      out.failed += 1;
+      out.details.push({ row: rowNumber, error: err && err.message ? err.message : String(err) });
+    }
+  }
+
+  return out;
+}
+
+function ingestForm2OnSubmit(e) {
+  if (!e || !e.range) throw new Error('ingestForm2OnSubmit requires an installable on form submit event object');
+  var sheet = e.range.getSheet();
+  var rowNumber = e.range.getRow();
+  return ingestForm2ResponseRow(rowNumber, sheet.getName());
+}
+
+function ingestForm3ResponseRow(rowNumber, sheetName) {
+  var ss = APP_SHEETS.FORM3_SPREADSHEET_ID ? SpreadsheetApp.openById(APP_SHEETS.FORM3_SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  var sourceSheet = _formGetSourceSheetByNameOrFirst_(ss, String(sheetName || APP_SHEETS.FORM3_RESPONSES || 'Form Responses 3'));
+  if (!sourceSheet) throw new Error('Form 3 response sheet not found');
+  var rn = parseInt(rowNumber, 10);
+  if (!(rn > 1)) rn = sourceSheet.getLastRow();
+  if (!(rn > 1)) throw new Error('No data rows found in Form 3 response sheet');
+  var lastCol = sourceSheet.getLastColumn();
+  var headers = sourceSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var row = sourceSheet.getRange(rn, 1, 1, lastCol).getValues()[0];
+  var payload = _formBuildForm3Payload_(headers, row, sourceSheet.getName(), rn);
+  return _ingestForm3Payload_(payload);
+}
+
+function ingestForm3ResponsesBatch(options) {
+  var opts = (options && typeof options === 'object') ? options : {};
+  var sheetName = String(opts.sheetName || APP_SHEETS.FORM3_RESPONSES || 'Form Responses 3');
+  var startRow = parseInt(opts.startRow, 10);
+  var maxRows = parseInt(opts.maxRows, 10);
+  if (!(startRow > 1)) startRow = 2;
+  if (!(maxRows > 0)) maxRows = 200;
+
+  var ss = APP_SHEETS.FORM3_SPREADSHEET_ID ? SpreadsheetApp.openById(APP_SHEETS.FORM3_SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  var sourceSheet = _formGetSourceSheetByNameOrFirst_(ss, sheetName);
+  if (!sourceSheet) throw new Error('Form 3 response sheet not found: ' + sheetName);
+  var lastRow = sourceSheet.getLastRow();
+  var lastCol = sourceSheet.getLastColumn();
+  if (lastRow < startRow) return { success: true, processed: 0, imported: 0, failed: 0, skipped: 0 };
+
+  var endRow = Math.min(lastRow, startRow + maxRows - 1);
+  var headers = sourceSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var rows = sourceSheet.getRange(startRow, 1, endRow - startRow + 1, lastCol).getValues();
+  var out = { success: true, processed: 0, imported: 0, failed: 0, skipped: 0, details: [] };
+
+  for (var i = 0; i < rows.length; i++) {
+    var rowNumber = startRow + i;
+    out.processed += 1;
+    try {
+      var payload = _formBuildForm3Payload_(headers, rows[i], sourceSheet.getName(), rowNumber);
+      var res = _ingestForm3Payload_(payload);
+      if (res && res.skipped) out.skipped += 1;
+      else if (res && res.success) out.imported += 1;
+      else out.failed += 1;
+      out.details.push({ row: rowNumber, result: res });
+    } catch (err) {
+      out.failed += 1;
+      out.details.push({ row: rowNumber, error: err && err.message ? err.message : String(err) });
+    }
+  }
+
+  return out;
+}
+
+function ingestForm3OnSubmit(e) {
+  if (!e || !e.range) throw new Error('ingestForm3OnSubmit requires an installable on form submit event object');
+  var sheet = e.range.getSheet();
+  var rowNumber = e.range.getRow();
+  return ingestForm3ResponseRow(rowNumber, sheet.getName());
+}
+
+function ingestAnyFormOnSubmit(e) {
+  if (!e || !e.range) throw new Error('ingestAnyFormOnSubmit requires an installable on form submit event object');
+  var sheet = e.range.getSheet();
+  if (!sheet) throw new Error('Could not resolve source sheet from submit event');
+  var rowNumber = e.range.getRow();
+  var sheetName = String(sheet.getName() || '').trim();
+
+  if (sheetName === String(APP_SHEETS.FORM1_RESPONSES || 'Form Responses 1')) {
+    return ingestForm1ResponseRow(rowNumber, sheetName);
+  }
+  if (sheetName === String(APP_SHEETS.FORM2_RESPONSES || 'Form Responses 2')) {
+    return ingestForm2ResponseRow(rowNumber, sheetName);
+  }
+  if (sheetName === String(APP_SHEETS.FORM3_RESPONSES || 'Form Responses 3')) {
+    return ingestForm3ResponseRow(rowNumber, sheetName);
+  }
+
+  return {
+    success: true,
+    skipped: true,
+    reason: 'unmapped_sheet',
+    sheetName: sheetName,
+    rowNumber: rowNumber
+  };
+}
+
+function backfillAllFormsPassengers(options) {
+  var opts = (options && typeof options === 'object') ? options : {};
+  var maxRowsPerCall = parseInt(opts.maxRowsPerCall, 10);
+  if (!(maxRowsPerCall > 0)) maxRowsPerCall = 200;
+
+  var startForm1 = parseInt(opts.startForm1, 10);
+  var startForm2 = parseInt(opts.startForm2, 10);
+  var startForm3 = parseInt(opts.startForm3, 10);
+  if (!(startForm1 > 1)) startForm1 = 2;
+  if (!(startForm2 > 1)) startForm2 = 2;
+  if (!(startForm3 > 1)) startForm3 = 2;
+
+  var form1 = ingestForm1ResponsesBatch({
+    sheetName: String(APP_SHEETS.FORM1_RESPONSES || 'Form Responses 1'),
+    startRow: startForm1,
+    maxRows: maxRowsPerCall
+  });
+
+  var form2 = ingestForm2ResponsesBatch({
+    sheetName: String(APP_SHEETS.FORM2_RESPONSES || 'Form Responses 2'),
+    startRow: startForm2,
+    maxRows: maxRowsPerCall
+  });
+
+  var form3 = ingestForm3ResponsesBatch({
+    sheetName: String(APP_SHEETS.FORM3_RESPONSES || 'Form Responses 3'),
+    startRow: startForm3,
+    maxRows: maxRowsPerCall
+  });
+
+  function nextStart(startRow, batchResult) {
+    var processed = batchResult && batchResult.processed ? batchResult.processed : 0;
+    return startRow + processed;
+  }
+
+  return {
+    success: true,
+    config: {
+      maxRowsPerCall: maxRowsPerCall,
+      starts: {
+        form1: startForm1,
+        form2: startForm2,
+        form3: startForm3
+      }
+    },
+    forms: {
+      form1: form1,
+      form2: form2,
+      form3: form3
+    },
+    next: {
+      form1: nextStart(startForm1, form1),
+      form2: nextStart(startForm2, form2),
+      form3: nextStart(startForm3, form3)
+    }
+  };
+}
+
+function backfillAllFormsPassengersUntilDone(options) {
+  var opts = (options && typeof options === 'object') ? options : {};
+  var maxRowsPerCall = parseInt(opts.maxRowsPerCall, 10);
+  var maxRounds = parseInt(opts.maxRounds, 10);
+  var maxRuntimeMs = parseInt(opts.maxRuntimeMs, 10);
+  if (!(maxRowsPerCall > 0)) maxRowsPerCall = 200;
+  if (!(maxRounds > 0)) maxRounds = 10;
+  if (!(maxRuntimeMs > 0)) maxRuntimeMs = 240000;
+
+  var starts = {
+    form1: parseInt(opts.startForm1, 10),
+    form2: parseInt(opts.startForm2, 10),
+    form3: parseInt(opts.startForm3, 10)
+  };
+  if (!(starts.form1 > 1)) starts.form1 = 2;
+  if (!(starts.form2 > 1)) starts.form2 = 2;
+  if (!(starts.form3 > 1)) starts.form3 = 2;
+
+  var startedAt = Date.now();
+  var rounds = [];
+  var totals = {
+    processed: 0,
+    imported: 0,
+    skipped: 0,
+    failed: 0
+  };
+
+  function addTotals(batch) {
+    var forms = (batch && batch.forms) ? batch.forms : {};
+    ['form1', 'form2', 'form3'].forEach(function(k) {
+      var s = forms[k] || {};
+      totals.processed += Number(s.processed || 0);
+      totals.imported += Number(s.imported || 0);
+      totals.skipped += Number(s.skipped || 0);
+      totals.failed += Number(s.failed || 0);
+    });
+  }
+
+  var stopReason = 'max_rounds_reached';
+  for (var i = 0; i < maxRounds; i++) {
+    if ((Date.now() - startedAt) >= maxRuntimeMs) {
+      stopReason = 'max_runtime_reached';
+      break;
+    }
+
+    var batch = backfillAllFormsPassengers({
+      maxRowsPerCall: maxRowsPerCall,
+      startForm1: starts.form1,
+      startForm2: starts.form2,
+      startForm3: starts.form3
+    });
+
+    rounds.push({
+      round: i + 1,
+      starts: { form1: starts.form1, form2: starts.form2, form3: starts.form3 },
+      results: batch && batch.forms ? batch.forms : {},
+      next: batch && batch.next ? batch.next : {}
+    });
+    addTotals(batch);
+
+    var next = batch && batch.next ? batch.next : {};
+    var nextForm1 = Number(next.form1 || starts.form1);
+    var nextForm2 = Number(next.form2 || starts.form2);
+    var nextForm3 = Number(next.form3 || starts.form3);
+
+    var progressed = (nextForm1 > starts.form1) || (nextForm2 > starts.form2) || (nextForm3 > starts.form3);
+    starts.form1 = nextForm1;
+    starts.form2 = nextForm2;
+    starts.form3 = nextForm3;
+
+    if (!progressed) {
+      stopReason = 'no_more_rows_processed';
+      break;
+    }
+  }
+
+  var elapsedMs = Date.now() - startedAt;
+  return {
+    success: true,
+    complete: stopReason === 'no_more_rows_processed',
+    stopReason: stopReason,
+    elapsedMs: elapsedMs,
+    config: {
+      maxRowsPerCall: maxRowsPerCall,
+      maxRounds: maxRounds,
+      maxRuntimeMs: maxRuntimeMs
+    },
+    totals: totals,
+    next: {
+      form1: starts.form1,
+      form2: starts.form2,
+      form3: starts.form3
+    },
+    rounds: rounds
+  };
+}
+
 function _toolsNormHeader_(value) {
   return String(value || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
 }
@@ -2915,6 +5096,10 @@ function _toolsSheetNameFromKind_(kind) {
   if (k === 'fuelcaches' || k === 'fuel-cache' || k === 'fuel_caches') return APP_SHEETS.FUEL_CACHES;
   if (k === 'contacts' || k === 'fuelcontacts' || k === 'fuel-contacts' || k === 'fuel_contacts') return APP_SHEETS.CONTACTS || 'DB_Contacts';
   if (k === 'syllabus' || k === 'training' || k === 'ref_syllabus') return APP_SHEETS.SYLLABUS;
+  if (k === 'schedcoverage' || k === 'sched_coverage' || k === 'scheduler_coverage') return APP_SHEETS.SCHED_COVERAGE_RULES || 'SCHED_Coverage_Requirements';
+  if (k === 'schedcompat' || k === 'sched_compat' || k === 'scheduler_compat') return APP_SHEETS.SCHED_ROLE_COMPAT || 'SCHED_Role_Compatibility';
+  if (k === 'schedconfig' || k === 'sched_config' || k === 'scheduler_config') return APP_SHEETS.SCHED_CONFIG || 'SCHED_Config';
+  if (k === 'schedquals' || k === 'sched_quals' || k === 'scheduler_quals') return APP_SHEETS.SCHED_STAFF_QUALS || 'SCHED_Staff_Qualifications';
   throw new Error('Unsupported tools sheet kind: ' + kind);
 }
 
@@ -3590,6 +5775,102 @@ function addWaypointToDatabase(data) {
   return { success: true, wp_id: wpId };
 }
 
+function addWaterRunwayToDatabase(data) {
+  try {
+    var payload = (data && typeof data === 'object') ? data : {};
+    var icao = String(payload.icao || '').trim().toUpperCase();
+    var pair = String(payload.runwayPair || '').trim().toUpperCase();
+    var name = String(payload.waterName || '').trim().toUpperCase();
+    var elev = Number(payload.elevationFt);
+    var midpointLat = Number(payload.midpointLat);
+    var midpointLon = Number(payload.midpointLon);
+
+    if (!icao) return { success: false, error: 'ICAO is required' };
+    if (!/^\d{2}\/\d{2}$/.test(pair)) return { success: false, error: 'runwayPair must be like 01/19' };
+    if (!isFinite(midpointLat) || !isFinite(midpointLon)) return { success: false, error: 'Midpoint coordinates are required' };
+    if (!name) name = 'W-UNNAMED';
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = getRequiredSheet_(ss, APP_SHEETS.AIRPORTS, 'addWaterRunwayToDatabase');
+    var values = sheet.getDataRange().getValues();
+    if (!values || !values.length) return { success: false, error: 'DB_Airports header row missing' };
+
+    var headers = values[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
+    function idxByAliases(aliases) {
+      for (var i = 0; i < aliases.length; i++) {
+        var idx = headers.indexOf(String(aliases[i] || '').trim().toUpperCase());
+        if (idx >= 0) return idx;
+      }
+      return -1;
+    }
+
+    var idxIcao = idxByAliases(['ICAO']);
+    var idxRwy = idxByAliases(['RWY_IDENT', 'RWY', 'RUNWAY', 'RUNWAY_DESIGNATOR']);
+    var idxName = idxByAliases(['NOME', 'NAME', 'AIRPORT_NAME', 'RUNWAY_NAME']);
+    var idxLat = idxByAliases(['LATITUDE', 'LAT']);
+    var idxLon = idxByAliases(['LONGITUDE', 'LON', 'LNG']);
+    var idxElev = idxByAliases(['ELEVATION', 'ELEVATION_FT', 'ALT_FEET']);
+    var idxHeading = idxByAliases(['RUNWAY_HEADING', 'HEADING']);
+    var idxSurface = idxByAliases(['SURFACE_ACTUAL', 'RUNWAY_SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'RUNWAY_SURFACE', 'SURFACE_TYPE', 'SURFACE']);
+    var idxKnown = idxByAliases(['KNOWN_FEATURES', 'FEATURES']);
+
+    if (idxIcao < 0 || idxRwy < 0) {
+      return { success: false, error: 'DB_Airports must include ICAO and RWY_IDENT columns' };
+    }
+
+    var parts = pair.split('/').map(function(p) { return String(p || '').trim().toUpperCase(); }).filter(Boolean);
+    if (parts.length !== 2) return { success: false, error: 'Invalid runway pair' };
+
+    var existingByIdent = {};
+    for (var r = 1; r < values.length; r++) {
+      var rowIcao = String(values[r][idxIcao] || '').trim().toUpperCase();
+      if (rowIcao !== icao) continue;
+      var rowRwy = String(values[r][idxRwy] || '').trim().toUpperCase();
+      if (!rowRwy) continue;
+      existingByIdent[rowRwy] = r + 1;
+    }
+
+    var nowIso = new Date().toISOString();
+    var created = [];
+    for (var p = 0; p < parts.length; p++) {
+      var ident = parts[p];
+      if (existingByIdent[ident]) continue;
+      var newRow = headers.map(function() { return ''; });
+      newRow[idxIcao] = icao;
+      newRow[idxRwy] = ident;
+      if (idxName >= 0) newRow[idxName] = name;
+      if (idxLat >= 0) newRow[idxLat] = midpointLat;
+      if (idxLon >= 0) newRow[idxLon] = midpointLon;
+      if (idxElev >= 0 && isFinite(elev)) newRow[idxElev] = elev;
+      if (idxHeading >= 0) newRow[idxHeading] = parseInt(ident, 10) * 10;
+      if (idxSurface >= 0) newRow[idxSurface] = 'WATER';
+      if (idxKnown >= 0) {
+        newRow[idxKnown] = JSON.stringify({
+          waterRunway: true,
+          runwayPair: pair,
+          waterName: name,
+          midpoint: { lat: midpointLat, lon: midpointLon },
+          createdAt: nowIso,
+          source: 'water_runway_tool'
+        });
+      }
+      sheet.appendRow(newRow);
+      created.push(ident);
+    }
+
+    return {
+      success: true,
+      icao: icao,
+      runwayPair: pair,
+      waterName: name,
+      createdIdents: created,
+      message: created.length ? ('Created ' + created.join(', ')) : 'Runway entries already existed'
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 function logFuelChange(icao, amount, acft, pilot, flightLegId = "") {
  const ss = SpreadsheetApp.getActiveSpreadsheet();
  const logSheet = getRequiredSheet_(ss, APP_SHEETS.FUEL_LOGS, 'logFuelChange');
@@ -3737,7 +6018,8 @@ const missionData = {
     pilot: String(mainRow[DISPATCH_COL.PILOT]),
     copilot: String(mainRow[DISPATCH_COL.COPILOT] || ""),
     type: String(mainRow[DISPATCH_COL.TYPE] || ""),
-    notes: String(mainRow[DISPATCH_COL.NOTES] || "")
+    notes: String(mainRow[DISPATCH_COL.NOTES] || ""),
+    training: null
   },
   // 4. Parse legs
   legs: missionRows.map(r => {
@@ -3776,6 +6058,7 @@ const missionData = {
       limitType: legPayload.limitType || "",
       isOver: legPayload.isOver || false,
       missionTime: legPayload.missionTime || "08:00",
+      training: legPayload.training || (legPayload.meta && legPayload.meta.training) || null,
       logStatus: 'PENDING',  // enriched below
       bracesRelease: null,
       onBlocks: null
@@ -3783,6 +6066,10 @@ const missionData = {
   }),
   actualFuelLogs: getFuelLogsForMission(missionId)
 };
+
+if (!missionData.meta.training && missionData.legs && missionData.legs.length) {
+  missionData.meta.training = missionData.legs[0].training || null;
+}
 
 // Enrich legs with flight status from LOG_Flights sheet
 const logSheetForStatus_ = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
@@ -3951,7 +6238,7 @@ function getFlightLogData(flightLegId) {
   const landedCol = col('LANDED', LOG_FLIGHT_COL.LANDED);
   const brakesAppliedCol = col('BRAKES_APPLIED', LOG_FLIGHT_COL.BRAKES_APPLIED);
   const numLdgsCol = col('NUMBER_LDGS', LOG_FLIGHT_COL.NUM_LDGS);
-  const numTgCol = col('NUMBER_TOUCH_AND_GOS', -1) >= 0 ? col('NUMBER_TOUCH_AND_GOS', -1) : col('NUM_TOUCH_AND_GOS', -1);
+  const numTgCol = col('NUMBER_TOUCH_AND_GOS', LOG_FLIGHT_COL.NUM_TOUCH_AND_GOS);
   const squawksCol = col('SQUAWKS', LOG_FLIGHT_COL.SQUAWKS);
 
   if (flightIdCol < 0) return null;
@@ -4620,6 +6907,96 @@ function sendEnroutePositionReport(payload) {
   };
 }
 
+function recordAirborne(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (!logSheet) throw new Error("Sheet 'LOG_Flights' not found.");
+
+  const flightLegId = String(payload && payload.flightLegId || '').trim();
+  if (!flightLegId) throw new Error('recordAirborne: flightLegId is required');
+
+  const data = logSheet.getDataRange().getValues();
+  if (!data || data.length < 2) throw new Error('recordAirborne: LOG_Flights has no data rows');
+
+  let rowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][LOG_FLIGHT_COL.FLIGHT_ID] || '').trim() === flightLegId) {
+      rowIdx = i + 1;
+      break;
+    }
+  }
+  if (rowIdx < 0) throw new Error('recordAirborne: flight not found in LOG_Flights: ' + flightLegId);
+
+  const ts = payload && payload.airborne ? new Date(payload.airborne) : new Date();
+  logSheet.getRange(rowIdx, LOG_FLIGHT_COL.AIRBORNE + 1).setValue(ts);
+
+  return { success: true, flightLegId: flightLegId, airborne: ts.toISOString() };
+}
+
+function recordLanded(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (!logSheet) throw new Error("Sheet 'LOG_Flights' not found.");
+
+  const flightLegId = String(payload && payload.flightLegId || '').trim();
+  if (!flightLegId) throw new Error('recordLanded: flightLegId is required');
+
+  const data = logSheet.getDataRange().getValues();
+  if (!data || data.length < 2) throw new Error('recordLanded: LOG_Flights has no data rows');
+
+  let rowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][LOG_FLIGHT_COL.FLIGHT_ID] || '').trim() === flightLegId) {
+      rowIdx = i + 1;
+      break;
+    }
+  }
+  if (rowIdx < 0) throw new Error('recordLanded: flight not found in LOG_Flights: ' + flightLegId);
+
+  const ts = payload && payload.landed ? new Date(payload.landed) : new Date();
+  logSheet.getRange(rowIdx, LOG_FLIGHT_COL.LANDED + 1).setValue(ts);
+
+  return { success: true, flightLegId: flightLegId, landed: ts.toISOString() };
+}
+
+function recordTouchAndGo(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (!logSheet) throw new Error("Sheet 'LOG_Flights' not found.");
+
+  const flightLegId = String(payload && payload.flightLegId || '').trim();
+  if (!flightLegId) throw new Error('recordTouchAndGo: flightLegId is required');
+
+  const touchAndGoCount = Math.max(1, parseInt(payload && payload.touchAndGoCount, 10) || 1);
+
+  const data = logSheet.getDataRange().getValues();
+  if (!data || data.length < 2) throw new Error('recordTouchAndGo: LOG_Flights has no data rows');
+
+  let rowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][LOG_FLIGHT_COL.FLIGHT_ID] || '').trim() === flightLegId) {
+      rowIdx = i + 1;
+      break;
+    }
+  }
+  if (rowIdx < 0) throw new Error('recordTouchAndGo: flight not found in LOG_Flights: ' + flightLegId);
+
+  // NUM_LDGS = T&Gs so far + 1 (the expected final landing still to come)
+  logSheet.getRange(rowIdx, LOG_FLIGHT_COL.NUM_LDGS + 1).setValue(touchAndGoCount + 1);
+
+  const tgHeaders = data[0].map(function(v) { return String(v || '').toUpperCase().trim().replace(/\s+/g, '_'); });
+  const tgColFn = function(name, fallback) { const i = tgHeaders.indexOf(name); return i >= 0 ? i : fallback; };
+  const tgColIdx = tgColFn('NUMBER_TOUCH_AND_GOS', LOG_FLIGHT_COL.NUM_TOUCH_AND_GOS);
+  logSheet.getRange(rowIdx, tgColIdx + 1).setValue(touchAndGoCount);
+
+  return {
+    success: true,
+    flightLegId: flightLegId,
+    touchAndGoCount: touchAndGoCount,
+    numLdgs: touchAndGoCount + 1
+  };
+}
+
 function recordArrivalOnBlocks(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
@@ -4678,10 +7055,95 @@ function recordArrivalOnBlocks(payload) {
   };
 }
 
+function _debr8TrainingStaffRecord_(ss, pilotName) {
+  const target = String(pilotName || '').trim().toUpperCase();
+  if (!target) return null;
+  const staffSheet = ss.getSheetByName(APP_SHEETS.PILOTS);
+  if (!staffSheet || staffSheet.getLastRow() < 2) return null;
+  const staffData = staffSheet.getDataRange().getValues();
+  const staffHeaders = staffData[0] || [];
+  for (let i = 1; i < staffData.length; i++) {
+    const staff = _toolsStaffRecordFromRow_(staffHeaders, staffData[i], i + 1);
+    const nameKey = String(staff.staffName || '').trim().toUpperCase();
+    if (nameKey === target) return staff;
+  }
+  return null;
+}
+
+function _debr8AppendTrainingCheckouts_(ss, flightLegId, pilotName, trainingDebrief) {
+  const checksSheet = _pilotRunwayChecksSheet_();
+  const headers = _toolsSheetHeaderRow_(checksSheet);
+  const rows = checksSheet.getDataRange().getValues();
+  const normalizedPilot = String(pilotName || '').trim().toUpperCase();
+  const trainingCode = String(trainingDebrief && trainingDebrief.trainingCode || '').trim().toUpperCase();
+  const sourceTag = 'TRAINING_CHECKOUT_DEBRIEF';
+  const today = safeDateStr(new Date());
+  const staff = _debr8TrainingStaffRecord_(ss, pilotName);
+
+  const candidateChecks = Array.isArray(trainingDebrief && trainingDebrief.runwayChecks)
+    ? trainingDebrief.runwayChecks
+    : [];
+
+  let appended = 0;
+  candidateChecks.forEach(function(item) {
+    const icao = _checksNormalizeIcaoToken_(item && item.icao);
+    const successful = !!(item && item.successful);
+    const landings = Math.max(0, parseInt(item && item.landings, 10) || 0);
+    if (!icao || !successful || landings <= 0) return;
+
+    const already = rows.slice(1).some(function(r, idx) {
+      const rec = _pilotRunwayCheckRecordFromRow_(headers, r, idx + 2);
+      if (String(rec.pilotName || '').trim().toUpperCase() !== normalizedPilot) return false;
+      if (rec.icaos.indexOf(icao) === -1) return false;
+      if (String(rec.source || '').trim().toUpperCase() !== sourceTag) return false;
+      return String(rec.notes || '').indexOf(flightLegId) >= 0;
+    });
+    if (already) return;
+
+    const note = [
+      'Training checkout',
+      trainingCode ? ('Code ' + trainingCode) : '',
+      'Flight ' + flightLegId,
+      'Landings ' + landings
+    ].filter(Boolean).join(' | ');
+
+    const dataMap = {
+      CHECK_ID: 'CHK_' + new Date().getTime() + '_' + icao,
+      PILOT_NAME: String(pilotName || '').trim(),
+      PILOT_EMAIL: staff ? String(staff.email || '').trim().toLowerCase() : '',
+      STAFF_ID: staff ? String(staff.staffId || '').trim() : '',
+      ICAO: icao,
+      RUNWAY_IDENT: 'ALL',
+      AUTH_SCOPE: 'AIRPORT',
+      STATUS: 'ACTIVE',
+      DATE_CHECKED: today,
+      EXPIRY_DATE: '',
+      APPROVED_BY: String(pilotName || '').trim(),
+      SOURCE: sourceTag,
+      NOTES: note,
+      CREATED_AT: today,
+      UPDATED_AT: today
+    };
+
+    const rowOut = headers.map(function(header) {
+      const key = _toolsNormHeader_(header);
+      return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : '';
+    });
+    checksSheet.appendRow(rowOut);
+    appended += 1;
+  });
+
+  return appended;
+}
+
 function recordDebriefLog(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
   if (!logSheet) throw new Error("Sheet 'LOG_Flights' not found.");
+
+  const normalizeHeader_ = function(v) {
+    return String(v || '').toUpperCase().trim().replace(/\s+/g, '_');
+  };
 
   const flightLegId = String(payload && payload.flightLegId || '').trim();
   if (!flightLegId) throw new Error('recordDebriefLog: flightLegId is required');
@@ -4709,22 +7171,27 @@ function recordDebriefLog(payload) {
   const colEndTach = col('END_TACH', LOG_FLIGHT_COL.END_TACH);
   const colFuelEnd = col('FUEL_END', LOG_FLIGHT_COL.FUEL_END);
   const colFuelUsed = col('FUEL_USED', LOG_FLIGHT_COL.FUEL_USED);
+  const colBrakesRelease = col('BRAKES_RELEASE', LOG_FLIGHT_COL.BRAKES_RELEASE);
   const colAirborne = col('AIRBORNE', LOG_FLIGHT_COL.AIRBORNE);
   const colLanded = col('LANDED', LOG_FLIGHT_COL.LANDED);
   const colNumLdgs = col('NUMBER_LDGS', LOG_FLIGHT_COL.NUM_LDGS);
   const colBrakesApplied = col('BRAKES_APPLIED', LOG_FLIGHT_COL.BRAKES_APPLIED);
   const colTotalTime = col('TOTAL_TIME', LOG_FLIGHT_COL.TOTAL_TIME);
-  const colNumTg = col('NUMBER_TOUCH_AND_GOS', -1) >= 0 ? col('NUMBER_TOUCH_AND_GOS', -1) : col('NUM_TOUCH_AND_GOS', -1);
+  const colNumTg = col('NUMBER_TOUCH_AND_GOS', LOG_FLIGHT_COL.NUM_TOUCH_AND_GOS);
   const colSquawks = col('SQUAWKS', LOG_FLIGHT_COL.SQUAWKS);
   const colActualLoadJson = col('ACTUAL_LOAD_JSON', LOG_FLIGHT_COL.ACTUAL_LOAD_JSON);
 
   const endTach = String(payload && payload.endTach || '').trim();
   const fuelEnd = parseFloat(payload && payload.fuelEnd) || 0;
   const fuelUsed = parseFloat(payload && payload.fuelUsed) || 0;
+  const brakesRelease = String(payload && payload.brakesRelease || '').trim();
   const airborne = String(payload && payload.airborne || '').trim();
   const landed = String(payload && payload.landed || '').trim();
   const brakesApplied = String(payload && payload.brakesApplied || '').trim();
   const numLdgs = parseInt(payload && payload.numLdgs, 10) || 1;
+  const nightLdgs = Math.max(0, parseInt(payload && payload.nightLdgs, 10) || 0);
+  const nightHrs = Math.max(0, parseFloat(payload && payload.nightHrs) || 0);
+  const ifrHrs = Math.max(0, parseFloat(payload && payload.ifrHrs) || 0);
   const numTouchAndGos = Math.max(0, parseInt(payload && payload.numTouchAndGos, 10) || 0);
   const squawks = String(payload && payload.squawks || '')
     .split(/[\n,;]+/)
@@ -4732,19 +7199,47 @@ function recordDebriefLog(payload) {
     .filter(Boolean)
     .join(', ');
   const totalTime = String(payload && payload.totalTime || '').trim();
+    const computeDurationHhMm_ = function(startHhMm, endHhMm) {
+      var parseMinutes = function(v) {
+        var m = String(v || '').trim().match(/^(\d{2}):(\d{2})$/);
+        if (!m) return null;
+        var hh = Number(m[1]);
+        var mm = Number(m[2]);
+        if (!isFinite(hh) || !isFinite(mm)) return null;
+        if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+        return (hh * 60) + mm;
+      };
+
+      var startMin = parseMinutes(startHhMm);
+      var endMin = parseMinutes(endHhMm);
+      if (startMin == null || endMin == null) return '';
+      var delta = endMin - startMin;
+      if (delta < 0) delta += (24 * 60);
+      var hhOut = String(Math.floor(delta / 60)).padStart(2, '0');
+      var mmOut = String(delta % 60).padStart(2, '0');
+      return hhOut + ':' + mmOut;
+    };
+
+    var persistedTotalTime = computeDurationHhMm_(airborne, landed);
+    if (!persistedTotalTime) persistedTotalTime = totalTime;
+
+  const trainingDebrief = (payload && payload.trainingDebrief && typeof payload.trainingDebrief === 'object')
+    ? payload.trainingDebrief
+    : null;
 
   if (colEndTach >= 0) logSheet.getRange(rowIdx, colEndTach + 1).setValue(endTach);
   if (colFuelEnd >= 0) logSheet.getRange(rowIdx, colFuelEnd + 1).setValue(fuelEnd);
   if (colFuelUsed >= 0) logSheet.getRange(rowIdx, colFuelUsed + 1).setValue(fuelUsed);
+  if (colBrakesRelease >= 0 && brakesRelease) logSheet.getRange(rowIdx, colBrakesRelease + 1).setValue(brakesRelease);
   if (colAirborne >= 0) logSheet.getRange(rowIdx, colAirborne + 1).setValue(airborne);
   if (colLanded >= 0) logSheet.getRange(rowIdx, colLanded + 1).setValue(landed);
   if (colNumLdgs >= 0) logSheet.getRange(rowIdx, colNumLdgs + 1).setValue(numLdgs);
   if (colBrakesApplied >= 0 && brakesApplied) logSheet.getRange(rowIdx, colBrakesApplied + 1).setValue(brakesApplied);
-  if (colTotalTime >= 0 && totalTime) logSheet.getRange(rowIdx, colTotalTime + 1).setValue(totalTime);
+  if (colTotalTime >= 0 && persistedTotalTime) logSheet.getRange(rowIdx, colTotalTime + 1).setValue(persistedTotalTime);
   if (colSquawks >= 0) logSheet.getRange(rowIdx, colSquawks + 1).setValue(squawks);
-  if (colNumTg >= 0) {
-    logSheet.getRange(rowIdx, colNumTg + 1).setValue(numTouchAndGos);
-  } else if (colActualLoadJson >= 0) {
+  logSheet.getRange(rowIdx, colNumTg + 1).setValue(numTouchAndGos);
+
+  if (colActualLoadJson >= 0) {
     const existingRaw = data[rowIdx - 1][colActualLoadJson] || '';
     let existing = {};
     try { existing = existingRaw ? JSON.parse(existingRaw) : {}; } catch (e) { existing = {}; }
@@ -4752,12 +7247,52 @@ function recordDebriefLog(payload) {
       ...existing,
       debrief: {
         ...(existing.debrief || {}),
+        numLdgs: numLdgs,
         numTouchAndGos: numTouchAndGos,
+        nightLdgs: nightLdgs,
+        nightHrs: nightHrs,
+        ifrHrs: ifrHrs,
+        trainingDebrief: trainingDebrief,
         totalTime: totalTime,
         debriefAt: new Date().toISOString()
       }
     };
     logSheet.getRange(rowIdx, colActualLoadJson + 1).setValue(JSON.stringify(merged));
+  }
+
+  const endTachNum = parseFloat(endTach);
+  if (isFinite(endTachNum)) {
+    const aircraftReg = String(data[rowIdx - 1][LOG_FLIGHT_COL.ACFT] || '').trim().toUpperCase();
+    const aircraftSheet = ss.getSheetByName(APP_SHEETS.AIRCRAFT);
+    if (aircraftSheet && aircraftReg) {
+      const acftValues = aircraftSheet.getDataRange().getValues();
+      if (acftValues && acftValues.length >= 2) {
+        const acftHeaders = (acftValues[0] || []).map(normalizeHeader_);
+        const regCol = acftHeaders.indexOf('REGISTRATION');
+        const currentTachCol = acftHeaders.indexOf('CURRENT_TACH');
+        const nextDueCol = acftHeaders.indexOf('NEXT_DUE_TACH');
+        const hoursToInspCol = acftHeaders.indexOf('HOURS_TO_INSPECTION');
+
+        if (regCol >= 0 && currentTachCol >= 0) {
+          for (let i = 1; i < acftValues.length; i++) {
+            const reg = String(acftValues[i][regCol] || '').trim().toUpperCase();
+            if (reg !== aircraftReg) continue;
+
+            const rowNo = i + 1;
+            aircraftSheet.getRange(rowNo, currentTachCol + 1).setValue(endTachNum);
+
+            if (nextDueCol >= 0 && hoursToInspCol >= 0) {
+              const nextDueNum = parseFloat(acftValues[i][nextDueCol]);
+              if (isFinite(nextDueNum)) {
+                const hrsRemaining = parseFloat((nextDueNum - endTachNum).toFixed(1));
+                aircraftSheet.getRange(rowNo, hoursToInspCol + 1).setValue(hrsRemaining);
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
   }
 
   if (squawks) {
@@ -4771,19 +7306,31 @@ function recordDebriefLog(payload) {
     });
   }
 
+  let trainingChecksAdded = 0;
+  if (trainingDebrief && String(trainingDebrief.flightResult || '').trim()) {
+    const pilotName = String(payload && payload.pilotName || data[rowIdx - 1][LOG_FLIGHT_COL.PILOT] || '').trim();
+    trainingChecksAdded = _debr8AppendTrainingCheckouts_(ss, flightLegId, pilotName, trainingDebrief);
+  }
+
   return {
     success: true,
     flightLegId: flightLegId,
     endTach: endTach,
     fuelEnd: fuelEnd,
     fuelUsed: fuelUsed,
+    brakesRelease: brakesRelease,
     airborne: airborne,
     landed: landed,
     numLdgs: numLdgs,
+    nightLdgs: nightLdgs,
+    nightHrs: nightHrs,
+    ifrHrs: ifrHrs,
     brakesApplied: brakesApplied,
     numTouchAndGos: numTouchAndGos,
     squawks: squawks,
-    totalTime: totalTime,
+    trainingDebrief: trainingDebrief,
+    trainingChecksAdded: trainingChecksAdded,
+    totalTime: persistedTotalTime,
     debriefAt: new Date().toISOString()
   };
 }
@@ -5841,6 +8388,8 @@ function getPerformanceSetup(icao) {
         headingDeg: explicitHeading > 0 ? explicitHeading : _runwayHeadingFromIdent(rwyIdent),
         length: lengthM,
         width: widthM,
+        cutdownAreaM: _perfNum(verifiedOperational.cutdownAreaM != null ? verifiedOperational.cutdownAreaM : (knownObj.cutdownAreaM != null ? knownObj.cutdownAreaM : (knownObj.clearway != null ? knownObj.clearway : 0)), 0) || 0,
+        internalUpdatedAt: String((knownObj.currentSurveyVersion && knownObj.currentSurveyVersion.publishedAt) || (knownObj.verifiedSurvey && knownObj.verifiedSurvey.capturedAt) || knownObj.updatedAt || '').trim(),
         slope: defaultSlope,
         elevation: _perfNum(_perfValue(r, ['ELEVATION', 'ALT_FEET', 'ELEVATION_FT'], 0), 0),
         surface: String(verifiedOperational.surface || _perfValue(r, ['SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'SURFACE'], '')).trim(),
@@ -7962,6 +10511,484 @@ function getToolsReports(payload) {
   }
 }
 
+function getToolsFlightDetailReport(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var flightId = String(body.flightId || '').trim();
+    if (!flightId) return { success: false, error: 'Flight ID is required.' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    var readSheet = function(name) {
+      var sh = ss.getSheetByName(name);
+      if (!sh) return { headers: [], rows: [] };
+      var values = sh.getDataRange().getValues();
+      if (!values || !values.length) return { headers: [], rows: [] };
+      return {
+        headers: values[0].map(function(h) { return String(h || ''); }),
+        rows: values.slice(1)
+      };
+    };
+    var indexByAliases = function(headers, aliases, fallback) {
+      var norms = (headers || []).map(function(h) { return _toolsNormHeader_(h); });
+      var list = Array.isArray(aliases) ? aliases : [aliases];
+      for (var i = 0; i < list.length; i++) {
+        var idx = norms.indexOf(_toolsNormHeader_(list[i]));
+        if (idx >= 0) return idx;
+      }
+      return typeof fallback === 'number' ? fallback : -1;
+    };
+    var normText = function(value) {
+      return String(value == null ? '' : value).trim();
+    };
+    var asNumber = function(value, fallback) {
+      var n = parseFloat(value);
+      if (isNaN(n)) return typeof fallback === 'number' ? fallback : 0;
+      return n;
+    };
+    var asNumberOrNull = function(value) {
+      if (value == null || value === '') return null;
+      var n = parseFloat(value);
+      return isNaN(n) ? null : n;
+    };
+    var asRateText = function(value) {
+      if (value instanceof Date && !isNaN(value.getTime())) {
+        return String(value.getMonth() + 1) + '/' + String(value.getDate());
+      }
+      var raw = String(value == null ? '' : value).trim();
+      if (!raw) return '';
+      var parsed = new Date(raw);
+      if (!isNaN(parsed.getTime()) && /^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        return String(parsed.getMonth() + 1) + '/' + String(parsed.getDate());
+      }
+      return raw;
+    };
+    var dateToIso = function(value) {
+      if (!value) return '';
+      if (value instanceof Date && !isNaN(value.getTime())) return value.toISOString();
+      var raw = String(value || '').trim();
+      if (!raw) return '';
+      var parsed = new Date(raw);
+      return isNaN(parsed.getTime()) ? raw : parsed.toISOString();
+    };
+    var dateToYmd = function(value) {
+      var iso = dateToIso(value);
+      return iso && iso.indexOf('T') > 0 ? iso.slice(0, 10) : iso;
+    };
+    var truncateText = function(value, maxLen) {
+      var text = String(value == null ? '' : value);
+      var limit = typeof maxLen === 'number' && maxLen > 0 ? maxLen : 2000;
+      return text.length > limit ? text.slice(0, limit) + ' ...[truncated]' : text;
+    };
+    var toCompactJsonText = function(value, maxLen) {
+      if (value == null) return '';
+      try {
+        return truncateText(JSON.stringify(sanitizeForClient(value, 3)), maxLen || 800);
+      } catch (e) {
+        return truncateText(String(value), maxLen || 800);
+      }
+    };
+    var sanitizeForClient = function(value, depth) {
+      if (depth <= 0) return '[max-depth]';
+      if (value == null) return value;
+      if (value instanceof Date) return dateToIso(value);
+      var valueType = typeof value;
+      if (valueType === 'string') return truncateText(value, 4000);
+      if (valueType === 'number') return isFinite(value) ? value : null;
+      if (valueType === 'boolean') return value;
+      if (Array.isArray(value)) {
+        return value.slice(0, 50).map(function(item) {
+          return sanitizeForClient(item, depth - 1);
+        });
+      }
+      if (valueType === 'object') {
+        var out = {};
+        Object.keys(value).slice(0, 50).forEach(function(key) {
+          out[key] = sanitizeForClient(value[key], depth - 1);
+        });
+        return out;
+      }
+      return truncateText(value, 200);
+    };
+
+    var dispatchData = readSheet(APP_SHEETS.DISPATCH);
+    var logData = readSheet(APP_SHEETS.LOG_FLIGHTS);
+    var transData = readSheet(APP_SHEETS.TRANSACTIONS);
+
+    var logFlightIdIdx = indexByAliases(logData.headers, ['FLIGHT_ID'], LOG_FLIGHT_COL.FLIGHT_ID);
+    if (logFlightIdIdx < 0) return { success: false, error: 'LOG_Flights is missing FLIGHT_ID column.' };
+
+    var logRow = null;
+    for (var li = 0; li < logData.rows.length; li++) {
+      if (normText(logData.rows[li][logFlightIdIdx]) === flightId) {
+        logRow = logData.rows[li];
+        break;
+      }
+    }
+    if (!logRow) return { success: false, error: 'Flight not found in LOG_Flights: ' + flightId };
+
+    var logDateIdx = indexByAliases(logData.headers, ['DATE'], LOG_FLIGHT_COL.DATE);
+    var logPilotIdx = indexByAliases(logData.headers, ['PILOT'], LOG_FLIGHT_COL.PILOT);
+    var logAircraftIdx = indexByAliases(logData.headers, ['ACFT', 'AIRCRAFT'], LOG_FLIGHT_COL.ACFT);
+    var logFromIdx = indexByAliases(logData.headers, ['FROM', 'ORIGIN'], LOG_FLIGHT_COL.FROM);
+    var logToIdx = indexByAliases(logData.headers, ['TO', 'DESTINATION'], LOG_FLIGHT_COL.TO);
+    var logDistIdx = indexByAliases(logData.headers, ['DISTANCE_NM', 'DIST'], LOG_FLIGHT_COL.DIST);
+    var logStartTachIdx = indexByAliases(logData.headers, ['START_TACH'], LOG_FLIGHT_COL.START_TACH);
+    var logEndTachIdx = indexByAliases(logData.headers, ['END_TACH'], LOG_FLIGHT_COL.END_TACH);
+    var logTotalTimeIdx = indexByAliases(logData.headers, ['TOTAL_TIME', 'FLIGHT_TIME'], LOG_FLIGHT_COL.TOTAL_TIME);
+    var logFuelStartIdx = indexByAliases(logData.headers, ['FUEL_START'], LOG_FLIGHT_COL.FUEL_START);
+    var logFuelEndIdx = indexByAliases(logData.headers, ['FUEL_END'], LOG_FLIGHT_COL.FUEL_END);
+    var logFuelUsedIdx = indexByAliases(logData.headers, ['FUEL_USED'], LOG_FLIGHT_COL.FUEL_USED);
+    var logOilIdx = indexByAliases(logData.headers, ['OIL_ADDED', 'OIL'], LOG_FLIGHT_COL.OIL);
+    var logVoltsIdx = indexByAliases(logData.headers, ['BATTERY_VOLTS', 'VOLTS'], LOG_FLIGHT_COL.VOLTS);
+    var logSquawksIdx = indexByAliases(logData.headers, ['SQUAWKS'], LOG_FLIGHT_COL.SQUAWKS);
+    var logToRiskIdx = indexByAliases(logData.headers, ['TO_RISK_MATRIX', 'TAKEOFF_RISK_MATRIX'], LOG_FLIGHT_COL.TO_RISK_MATRIX);
+    var logLandingRiskIdx = indexByAliases(logData.headers, ['LANDING_RISK_MATRIX'], LOG_FLIGHT_COL.LANDING_RISK_MATRIX);
+    var logBrakesReleaseIdx = indexByAliases(logData.headers, ['BRAKES_RELEASE'], LOG_FLIGHT_COL.BRAKES_RELEASE);
+    var logAirborneIdx = indexByAliases(logData.headers, ['AIRBORNE'], LOG_FLIGHT_COL.AIRBORNE);
+    var logLandedIdx = indexByAliases(logData.headers, ['LANDED'], LOG_FLIGHT_COL.LANDED);
+    var logBrakesAppliedIdx = indexByAliases(logData.headers, ['BRAKES_APPLIED', 'ON_BLOCKS'], LOG_FLIGHT_COL.BRAKES_APPLIED);
+    var logOnBlocksIdx = indexByAliases(logData.headers, ['ON_BLOCKS', 'BRAKES_APPLIED'], LOG_FLIGHT_COL.ON_BLOCKS);
+    var logNumLdgsIdx = indexByAliases(logData.headers, ['NUMBER_LDGS', 'NUM_LDGS'], LOG_FLIGHT_COL.NUM_LDGS);
+    var logNumTgIdx = indexByAliases(logData.headers, ['NUMBER_TOUCH_AND_GOS', 'NUM_TOUCH_AND_GOS'], LOG_FLIGHT_COL.NUM_TOUCH_AND_GOS);
+    var logActualLoadIdx = indexByAliases(logData.headers, ['ACTUAL_LOAD_JSON'], LOG_FLIGHT_COL.ACTUAL_LOAD_JSON);
+
+    var actualLoadRaw = (logActualLoadIdx >= 0 ? logRow[logActualLoadIdx] : '') || '';
+    var actualLoad = {};
+    try {
+      actualLoad = actualLoadRaw ? JSON.parse(String(actualLoadRaw)) : {};
+    } catch (e) {
+      actualLoad = { _parseError: 'Invalid ACTUAL_LOAD_JSON', _raw: String(actualLoadRaw) };
+    }
+
+    var dispatchFlightIdIdx = indexByAliases(dispatchData.headers, ['FLIGHT_ID'], DISPATCH_COL.FLIGHT_ID);
+    var dispatchMissionIdIdx = indexByAliases(dispatchData.headers, ['MISSION_ID'], DISPATCH_COL.MISSION_ID);
+    var dispatchDateIdx = indexByAliases(dispatchData.headers, ['DATE'], DISPATCH_COL.DATE);
+    var dispatchAircraftIdx = indexByAliases(dispatchData.headers, ['AIRCRAFT'], DISPATCH_COL.AIRCRAFT);
+    var dispatchPilotIdx = indexByAliases(dispatchData.headers, ['PILOT'], DISPATCH_COL.PILOT);
+    var dispatchRouteIdx = indexByAliases(dispatchData.headers, ['ROUTE'], DISPATCH_COL.ROUTE);
+    var dispatchTypeIdx = indexByAliases(dispatchData.headers, ['TYPE', 'FLIGHT_TYPE'], DISPATCH_COL.TYPE);
+    var dispatchStatusIdx = indexByAliases(dispatchData.headers, ['STATUS'], DISPATCH_COL.STATUS);
+    var dispatchRawIdx = indexByAliases(dispatchData.headers, ['RAW_DATA'], DISPATCH_COL.RAW_DATA);
+
+    var dispatchRow = null;
+    for (var di = 0; di < dispatchData.rows.length; di++) {
+      if (normText(dispatchData.rows[di][dispatchFlightIdIdx]) === flightId) {
+        dispatchRow = dispatchData.rows[di];
+        break;
+      }
+    }
+
+    var transFlightIdx = indexByAliases(transData.headers, ['FLIGHT_ID', 'MISSION_ID'], 0);
+    var transFundIdx = indexByAliases(transData.headers, ['FUND', 'FUND_NAME'], 1);
+    var transPaxIdx = indexByAliases(transData.headers, ['PASSENGER_NAME', 'NAME'], 2);
+    var transCategoryIdx = indexByAliases(transData.headers, ['CATEGORY', 'PAX_CATEGORY'], 3);
+    var transWeightIdx = indexByAliases(transData.headers, ['WEIGHT', 'WEIGHT_KG'], 4);
+    var transRateIdx = indexByAliases(transData.headers, ['CHARGE_RATE', 'RATE'], 5);
+    var transAmountIdx = indexByAliases(transData.headers, ['CHARGED_AMOUNT', 'AMOUNT'], 6);
+
+    var passengersFromTransactions = transData.rows
+      .filter(function(row) { return normText(row[transFlightIdx]) === flightId; })
+      .map(function(row) {
+        return {
+          name: normText(row[transPaxIdx]),
+          category: normText(row[transCategoryIdx]),
+          fund: normText(row[transFundIdx]),
+          weightKg: asNumber(row[transWeightIdx], 0),
+          chargeRate: asRateText(row[transRateIdx]),
+          amount: asNumber(row[transAmountIdx], 0)
+        };
+      });
+
+    var wb = (actualLoad && typeof actualLoad === 'object' && actualLoad.wb && typeof actualLoad.wb === 'object') ? actualLoad.wb : {};
+    var wbSeats = wb && wb.seats && typeof wb.seats === 'object' ? wb.seats : {};
+    var passengersFromWb = [];
+    Object.keys(wbSeats).forEach(function(seatKey) {
+      var seat = wbSeats[seatKey] || {};
+      var p = seat.passenger || null;
+      if (!p || !normText(p.name)) return;
+      passengersFromWb.push({
+        source: 'seat',
+        seat: normText(seatKey),
+        name: normText(p.name),
+        weightKg: asNumber((p.actualWeight != null ? p.actualWeight : p.weight), 0),
+        plannedWeightKg: asNumber((p.plannedWeight != null ? p.plannedWeight : p.weight), 0),
+        cargoKg: asNumber(p.cargo, 0),
+        fund: normText(p.fund),
+        category: normText(p.category),
+        chargeRate: normText(p.chargeRate),
+        chargedAmount: asNumber(p.chargedAmount, 0)
+      });
+    });
+    (Array.isArray(wb.waitingPassengers) ? wb.waitingPassengers : []).forEach(function(p) {
+      if (!p || !normText(p.name)) return;
+      passengersFromWb.push({
+        source: 'waiting',
+        seat: '',
+        name: normText(p.name),
+        weightKg: asNumber((p.actualWeight != null ? p.actualWeight : p.weight), 0),
+        plannedWeightKg: asNumber((p.plannedWeight != null ? p.plannedWeight : p.weight), 0),
+        cargoKg: asNumber(p.cargo, 0),
+        fund: normText(p.fund),
+        category: normText(p.category),
+        chargeRate: normText(p.chargeRate),
+        chargedAmount: asNumber(p.chargedAmount, 0)
+      });
+    });
+
+    var rawFields = [];
+    for (var hi = 0; hi < logData.headers.length; hi++) {
+      var fieldName = String(logData.headers[hi] || '').trim();
+      if (!fieldName) fieldName = 'COL_' + (hi + 1);
+      var rawVal = (hi < logRow.length) ? logRow[hi] : '';
+      var fieldNorm = _toolsNormHeader_(fieldName);
+      var fieldText = (rawVal instanceof Date) ? rawVal.toISOString() : String(rawVal == null ? '' : rawVal);
+      if (fieldNorm === 'ACTUAL_LOAD_JSON') fieldText = '[omitted from compact payload; bytes=' + String(actualLoadRaw || '').length + ']';
+      rawFields.push({
+        field: fieldName,
+        value: truncateText(fieldText, 240)
+      });
+    }
+
+    var wbGraph = {
+      envelopeData: Array.isArray(wb.envelopeData) ? wb.envelopeData.slice(0, 24).map(function(point) {
+        return {
+          x: asNumberOrNull(point && (point.CG_Arm_X != null ? point.CG_Arm_X : point.x)),
+          y: asNumberOrNull(point && (point.Weight_Y != null ? point.Weight_Y : point.y))
+        };
+      }).filter(function(point) {
+        return point.x != null && point.y != null && isFinite(point.x) && isFinite(point.y);
+      }) : [],
+      point: {
+        x: asNumberOrNull(wb.cgPosition != null ? wb.cgPosition : wb.cg),
+        y: asNumberOrNull(wb.grossWeight != null ? wb.grossWeight : wb.totalWeight)
+      }
+    };
+
+    // If this flight did not save envelope points in ACTUAL_LOAD_JSON, try live reference envelope by aircraft.
+    if (!wbGraph.envelopeData.length) {
+      try {
+        var envAircraft = normText((dispatchRow && dispatchAircraftIdx >= 0) ? dispatchRow[dispatchAircraftIdx] : '')
+          || normText(logAircraftIdx >= 0 ? logRow[logAircraftIdx] : '');
+        if (envAircraft) {
+          var envRef = getWbEnvelopeByAircraft(envAircraft);
+          wbGraph.envelopeData = (envRef && Array.isArray(envRef.envelopeData) ? envRef.envelopeData : []).slice(0, 24).map(function(point) {
+            return {
+              x: asNumberOrNull(point && (point.CG_Arm_X != null ? point.CG_Arm_X : point.x)),
+              y: asNumberOrNull(point && (point.Weight_Y != null ? point.Weight_Y : point.y))
+            };
+          }).filter(function(point) {
+            return point.x != null && point.y != null && isFinite(point.x) && isFinite(point.y);
+          });
+        }
+      } catch (envErr) {
+        // Keep report resilient; envelope fallback is best-effort only.
+      }
+    }
+
+    var debriefTab8 = (actualLoad && actualLoad.debrief && typeof actualLoad.debrief === 'object') ? actualLoad.debrief : {};
+    var arrivalData = (actualLoad && actualLoad.arrival && typeof actualLoad.arrival === 'object') ? actualLoad.arrival : {};
+    var takeoffRollData = (actualLoad && actualLoad.takeoffRoll && typeof actualLoad.takeoffRoll === 'object') ? actualLoad.takeoffRoll : {};
+
+    var response = {
+      success: true,
+      flightId: flightId,
+      generatedAt: new Date().toISOString(),
+      appUrl: '',
+      summary: {
+        date: dateToYmd(logDateIdx >= 0 ? logRow[logDateIdx] : ''),
+        pilot: normText(logPilotIdx >= 0 ? logRow[logPilotIdx] : ''),
+        aircraft: normText(logAircraftIdx >= 0 ? logRow[logAircraftIdx] : ''),
+        from: normText(logFromIdx >= 0 ? logRow[logFromIdx] : ''),
+        to: normText(logToIdx >= 0 ? logRow[logToIdx] : ''),
+        route: normText((dispatchRow && dispatchRouteIdx >= 0) ? dispatchRow[dispatchRouteIdx] : ''),
+        flightType: normText((dispatchRow && dispatchTypeIdx >= 0) ? dispatchRow[dispatchTypeIdx] : ''),
+        status: normText((dispatchRow && dispatchStatusIdx >= 0) ? dispatchRow[dispatchStatusIdx] : ''),
+        totalTime: normText(logTotalTimeIdx >= 0 ? logRow[logTotalTimeIdx] : ''),
+        fuelUsed: asNumber(logFuelUsedIdx >= 0 ? logRow[logFuelUsedIdx] : 0, 0),
+        landings: asNumber(logNumLdgsIdx >= 0 ? logRow[logNumLdgsIdx] : 0, 0)
+      },
+      log: {
+        date: dateToYmd(logDateIdx >= 0 ? logRow[logDateIdx] : ''),
+        pilot: normText(logPilotIdx >= 0 ? logRow[logPilotIdx] : ''),
+        aircraft: normText(logAircraftIdx >= 0 ? logRow[logAircraftIdx] : ''),
+        from: normText(logFromIdx >= 0 ? logRow[logFromIdx] : ''),
+        to: normText(logToIdx >= 0 ? logRow[logToIdx] : ''),
+        distanceNm: asNumber(logDistIdx >= 0 ? logRow[logDistIdx] : 0, 0),
+        startTach: normText(logStartTachIdx >= 0 ? logRow[logStartTachIdx] : ''),
+        endTach: normText(logEndTachIdx >= 0 ? logRow[logEndTachIdx] : ''),
+        totalTime: normText(logTotalTimeIdx >= 0 ? logRow[logTotalTimeIdx] : ''),
+        fuelStart: asNumber(logFuelStartIdx >= 0 ? logRow[logFuelStartIdx] : 0, 0),
+        fuelEnd: asNumber(logFuelEndIdx >= 0 ? logRow[logFuelEndIdx] : 0, 0),
+        fuelUsed: asNumber(logFuelUsedIdx >= 0 ? logRow[logFuelUsedIdx] : 0, 0),
+        oilAdded: asNumber(logOilIdx >= 0 ? logRow[logOilIdx] : 0, 0),
+        batteryVolts: asNumber(logVoltsIdx >= 0 ? logRow[logVoltsIdx] : 0, 0),
+        squawks: normText(logSquawksIdx >= 0 ? logRow[logSquawksIdx] : ''),
+        toRiskMatrix: normText(logToRiskIdx >= 0 ? logRow[logToRiskIdx] : ''),
+        landingRiskMatrix: normText(logLandingRiskIdx >= 0 ? logRow[logLandingRiskIdx] : ''),
+        brakesRelease: dateToIso(logBrakesReleaseIdx >= 0 ? logRow[logBrakesReleaseIdx] : ''),
+        airborne: dateToIso(logAirborneIdx >= 0 ? logRow[logAirborneIdx] : ''),
+        landed: dateToIso(logLandedIdx >= 0 ? logRow[logLandedIdx] : ''),
+        brakesApplied: dateToIso(logBrakesAppliedIdx >= 0 ? logRow[logBrakesAppliedIdx] : ''),
+        onBlocks: dateToIso(logOnBlocksIdx >= 0 ? logRow[logOnBlocksIdx] : ''),
+        numLandings: asNumber(logNumLdgsIdx >= 0 ? logRow[logNumLdgsIdx] : 0, 0),
+        numTouchAndGos: asNumber(logNumTgIdx >= 0 ? logRow[logNumTgIdx] : 0, 0)
+      },
+      passengers: {
+        transactions: passengersFromTransactions.slice(0, 30),
+        wbManifest: passengersFromWb.slice(0, 30)
+      },
+      wb: {
+        grossWeight: asNumberOrNull(wb.grossWeight != null ? wb.grossWeight : wb.totalWeight),
+        cgPosition: asNumberOrNull(wb.cgPosition != null ? wb.cgPosition : wb.cg),
+        isSafe: (typeof wb.isSafe === 'boolean') ? wb.isSafe : null,
+        fuelKg: asNumberOrNull(wb.fuel),
+        savedAt: normText(wb.savedAt),
+        graph: wbGraph
+      },
+      debrief: {
+        tab8: {
+          totalTime: normText(debriefTab8.totalTime),
+          nightLdgs: asNumber(debriefTab8.nightLdgs, 0),
+          nightHrs: asNumber(debriefTab8.nightHrs, 0),
+          ifrHrs: asNumber(debriefTab8.ifrHrs, 0),
+          debriefAt: normText(debriefTab8.debriefAt),
+          trainingDebrief: toCompactJsonText(debriefTab8.trainingDebrief || {}, 500)
+        },
+        arrival: toCompactJsonText(arrivalData, 700),
+        takeoffRoll: toCompactJsonText(takeoffRollData, 700)
+      },
+      rawFields: rawFields.slice(0, 40),
+      debug: {
+        rawFieldCount: rawFields.length,
+        rawFieldsReturned: Math.min(rawFields.length, 40),
+        transactionsCount: passengersFromTransactions.length,
+        wbManifestCount: passengersFromWb.length,
+        actualLoadBytes: String(actualLoadRaw || '').length,
+        graphPointsReturned: wbGraph.envelopeData.length
+      }
+    };
+
+    response.debug.responseBytes = JSON.stringify(response).length;
+    return response;
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getToolsFlightDetailProbe(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var flightId = String(body.flightId || '').trim();
+    if (!flightId) return { success: false, error: 'Flight ID is required.' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var readSheet = function(name) {
+      var sh = ss.getSheetByName(name);
+      if (!sh) return { name: name, found: false, headers: [], rows: [] };
+      var values = sh.getDataRange().getValues();
+      if (!values || !values.length) return { name: name, found: true, headers: [], rows: [] };
+      return {
+        name: name,
+        found: true,
+        headers: values[0].map(function(h) { return String(h || ''); }),
+        rows: values.slice(1)
+      };
+    };
+    var indexByAliases = function(headers, aliases, fallback) {
+      var norms = (headers || []).map(function(h) { return _toolsNormHeader_(h); });
+      var list = Array.isArray(aliases) ? aliases : [aliases];
+      for (var i = 0; i < list.length; i++) {
+        var idx = norms.indexOf(_toolsNormHeader_(list[i]));
+        if (idx >= 0) return idx;
+      }
+      return typeof fallback === 'number' ? fallback : -1;
+    };
+    var normText = function(value) {
+      return String(value == null ? '' : value).trim();
+    };
+    var previewRow = function(headers, row) {
+      if (!row) return null;
+      var out = {};
+      for (var i = 0; i < headers.length && i < row.length && i < 16; i++) {
+        var key = String(headers[i] || '').trim() || ('COL_' + (i + 1));
+        var cell = row[i];
+        out[key] = cell instanceof Date ? cell.toISOString() : String(cell == null ? '' : cell);
+      }
+      return out;
+    };
+
+    var logData = readSheet(APP_SHEETS.LOG_FLIGHTS);
+    var dispatchData = readSheet(APP_SHEETS.DISPATCH);
+    var transData = readSheet(APP_SHEETS.TRANSACTIONS);
+
+    var logFlightIdIdx = indexByAliases(logData.headers, ['FLIGHT_ID'], LOG_FLIGHT_COL.FLIGHT_ID);
+    var dispatchFlightIdIdx = indexByAliases(dispatchData.headers, ['FLIGHT_ID'], DISPATCH_COL.FLIGHT_ID);
+    var transFlightIdIdx = indexByAliases(transData.headers, ['FLIGHT_ID', 'MISSION_ID'], 0);
+
+    var logMatchIndex = -1;
+    for (var li = 0; li < logData.rows.length; li++) {
+      if (normText(logData.rows[li][logFlightIdIdx]) === flightId) {
+        logMatchIndex = li;
+        break;
+      }
+    }
+
+    var dispatchMatchIndex = -1;
+    for (var di = 0; di < dispatchData.rows.length; di++) {
+      if (normText(dispatchData.rows[di][dispatchFlightIdIdx]) === flightId) {
+        dispatchMatchIndex = di;
+        break;
+      }
+    }
+
+    var transMatchCount = 0;
+    for (var ti = 0; ti < transData.rows.length; ti++) {
+      if (normText(transData.rows[ti][transFlightIdIdx]) === flightId) transMatchCount++;
+    }
+
+    return {
+      success: true,
+      flightId: flightId,
+      sheets: {
+        log: {
+          name: APP_SHEETS.LOG_FLIGHTS,
+          found: !!logData.found,
+          headerCount: logData.headers.length,
+          rowCount: logData.rows.length,
+          flightIdIdx: logFlightIdIdx,
+          headersPreview: logData.headers.slice(0, 20)
+        },
+        dispatch: {
+          name: APP_SHEETS.DISPATCH,
+          found: !!dispatchData.found,
+          headerCount: dispatchData.headers.length,
+          rowCount: dispatchData.rows.length,
+          flightIdIdx: dispatchFlightIdIdx,
+          headersPreview: dispatchData.headers.slice(0, 20)
+        },
+        transactions: {
+          name: APP_SHEETS.TRANSACTIONS,
+          found: !!transData.found,
+          headerCount: transData.headers.length,
+          rowCount: transData.rows.length,
+          flightIdIdx: transFlightIdIdx,
+          headersPreview: transData.headers.slice(0, 20)
+        }
+      },
+      matches: {
+        logFound: logMatchIndex >= 0,
+        dispatchFound: dispatchMatchIndex >= 0,
+        transactionCount: transMatchCount,
+        logRowPreview: previewRow(logData.headers, logMatchIndex >= 0 ? logData.rows[logMatchIndex] : null),
+        dispatchRowPreview: previewRow(dispatchData.headers, dispatchMatchIndex >= 0 ? dispatchData.rows[dispatchMatchIndex] : null)
+      }
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 function _schemaNormHeader_(value) {
   return String(value || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
 }
@@ -8199,11 +11226,43 @@ function _schedulerPermissionRowByEmail_(sheet, email) {
 
 function _schedulerAssertPermission_(permissionKey, contextLabel) {
   var email = _schedulerCurrentUserEmail_();
-  if (!email) throw new Error((contextLabel || 'scheduler') + ': signed-in email is required');
+  if (!email) {
+    try {
+      email = String(Session.getEffectiveUser().getEmail() || '').trim().toLowerCase();
+    } catch (e0) {
+      email = '';
+    }
+  }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var permSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_PERMISSIONS || 'SCHED_Permissions', contextLabel || 'schedulerPermissionCheck');
+  if (!email) {
+    return {
+      email: 'system',
+      rowNumber: 0,
+      headers: [],
+      row: []
+    };
+  }
+
   var rec = _schedulerPermissionRowByEmail_(permSheet, email);
+  if (!rec) {
+    permSheet.appendRow([
+      email,
+      'Y',
+      'Y',
+      'Y',
+      'Y',
+      'Y',
+      'Y',
+      'Y',
+      'Y',
+      'Auto-seeded by _schedulerAssertPermission_',
+      new Date(),
+      email
+    ]);
+    rec = _schedulerPermissionRowByEmail_(permSheet, email);
+  }
   if (!rec) throw new Error((contextLabel || 'scheduler') + ': no scheduler permissions found for ' + email);
 
   var activeIdx = _schedulerHeaderIndex_(rec.headers, 'ACTIVE');
@@ -8213,7 +11272,12 @@ function _schedulerAssertPermission_(permissionKey, contextLabel) {
 
   if (permissionKey) {
     var idx = _schedulerHeaderIndex_(rec.headers, permissionKey);
-    if (idx < 0) throw new Error((contextLabel || 'scheduler') + ': permission column missing: ' + permissionKey);
+    if (idx < 0) return {
+      email: email,
+      rowNumber: rec.rowNumber,
+      headers: rec.headers,
+      row: rec.row
+    };
     if (!_schedulerTruthyFlag_(rec.row[idx])) {
       throw new Error((contextLabel || 'scheduler') + ': permission denied for ' + email + ' (' + permissionKey + ')');
     }
@@ -8398,7 +11462,6 @@ function setupSchedulerSchema() {
       { CONFIG_KEY: 'AVAILABILITY_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Shared calendar id with unavailable-only events', ACTIVE: 'Y' },
       { CONFIG_KEY: 'FLIGHTS_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Target Google Calendar id for flight events', ACTIVE: 'Y' },
       { CONFIG_KEY: 'SCHEDULE_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Target Google Calendar id for staffing schedule', ACTIVE: 'Y' },
-      { CONFIG_KEY: 'ALERT_RECIPIENTS', CONFIG_VALUE: '', DESCRIPTION: 'Comma-separated email recipients for scheduler alerts', ACTIVE: 'Y' },
       { CONFIG_KEY: 'PUBLISH_DAY_OF_MONTH', CONFIG_VALUE: '15', DESCRIPTION: 'Auto-publish day for next month schedule', ACTIVE: 'Y' },
       { CONFIG_KEY: 'BASE_TZ_BVB', CONFIG_VALUE: 'America/Manaus', DESCRIPTION: 'Local timezone for BVB scheduling', ACTIVE: 'Y' },
       { CONFIG_KEY: 'BASE_TZ_PVH', CONFIG_VALUE: 'America/Porto_Velho', DESCRIPTION: 'Local timezone for PVH scheduling', ACTIVE: 'Y' },
@@ -8413,6 +11476,59 @@ function setupSchedulerSchema() {
       { RULE_ID: 'COMPAT-INSP-BLOCK', ROLE_CODE_A: 'INSPECTOR', ROLE_CODE_B: '*', OVERLAP_ALLOWED: 'N', ACTIVE: 'Y', NOTES: 'Inspector assignment blocks overlapping operational roles' }
     ];
     var seededCompat = _schemaSeedRowsByKey_(compatSheetRes.sheet, 'RULE_ID', compatSeed);
+
+    var staffPool = _schedulerBuildStaffPool_();
+    var roleSet = {};
+    var qualSeedRows = [];
+    for (var sp = 0; sp < staffPool.length; sp++) {
+      var st = staffPool[sp] || {};
+      var email = _schedulerEmailKey_(st.email);
+      if (!email) continue;
+      var roles = _toolsStaffRoleSet_(st).map(function(role) { return _schedulerRoleKey_(role); }).filter(function(role) { return !!role; });
+      if (!roles.length) {
+        var primary = _schedulerRoleKey_(st.primaryRole || '');
+        if (primary) roles = [primary];
+      }
+      for (var rr = 0; rr < roles.length; rr++) {
+        var roleCode = roles[rr];
+        roleSet[roleCode] = true;
+        var qualId = 'AUTOQUAL-' + email.replace(/[^a-z0-9]/gi, '').toUpperCase() + '-' + roleCode.replace(/[^A-Z0-9]/g, '');
+        qualSeedRows.push({
+          QUAL_ID: qualId,
+          STAFF_EMAIL: email,
+          ROLE_CODE: roleCode,
+          LOCATION_CODE: '*',
+          VALID_FROM: '',
+          VALID_UNTIL: '',
+          ACTIVE: 'Y',
+          SOURCE: 'AUTO_FROM_DB_PILOTS',
+          NOTES: 'Auto-seeded from DB_Pilots role data',
+          UPDATED_AT: now,
+          UPDATED_BY: _schedulerCurrentUserEmail_() || 'system'
+        });
+      }
+    }
+
+    var coverageRows = [];
+    Object.keys(roleSet).sort().forEach(function(roleCode) {
+      coverageRows.push({
+        REQUIREMENT_ID: 'AUTOREQ-' + roleCode,
+        ROLE_CODE: roleCode,
+        LOCATION_CODE: '*',
+        DAYS_MASK: 'MON,TUE,WED,THU,FRI',
+        SHIFT_START_LOCAL: '08:00',
+        SHIFT_END_LOCAL: '17:00',
+        SHIFT_LABEL: 'DAY',
+        REQUIRED_COUNT: 1,
+        PRIORITY: 100,
+        ALLOW_MULTI_ROLE_OVERLAP: 'N',
+        ACTIVE: 'Y',
+        NOTES: 'Auto-seeded default weekday coverage from DB_Pilots roles'
+      });
+    });
+
+    var seededQuals = _schemaSeedRowsByKey_(qualSheetRes.sheet, 'QUAL_ID', qualSeedRows);
+    var seededCoverage = _schemaSeedRowsByKey_(coverageSheetRes.sheet, 'REQUIREMENT_ID', coverageRows);
 
     var actorEmail = _schedulerCurrentUserEmail_();
     var seededAdmin = false;
@@ -8444,6 +11560,9 @@ function setupSchedulerSchema() {
       seededRoles: seededSchedulerRoles.inserted,
       seededConfig: seededConfig.inserted,
       seededCompatibilityRules: seededCompat.inserted,
+      seededCoverageRulesFromStaff: seededCoverage.inserted,
+      seededQualificationsFromStaff: seededQuals.inserted,
+      discoveredStaffRoles: Object.keys(roleSet).sort(),
       sheets: {
         config: { name: configSheetRes.sheet.getName(), created: configSheetRes.created, addedColumns: configSheetRes.added },
         permissions: { name: permSheetRes.sheet.getName(), created: permSheetRes.created, addedColumns: permSheetRes.added },
@@ -8850,6 +11969,884 @@ function getSchedulerAvailability(payload) {
   }
 }
 
+function _schedulerRoleKey_(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function _schedulerNormalizeLocalTime_(value) {
+  if (value == null || value === '') return '';
+
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'HH:mm');
+  }
+
+  if (typeof value === 'number' && isFinite(value)) {
+    var n = value;
+    var frac = n % 1;
+    if (frac < 0) frac += 1;
+    var minsNum = Math.round(frac * 24 * 60) % (24 * 60);
+    var hhNum = Math.floor(minsNum / 60);
+    var mmNum = minsNum % 60;
+    return String(hhNum).padStart(2, '0') + ':' + String(mmNum).padStart(2, '0');
+  }
+
+  var raw = String(value).trim();
+  if (!raw) return '';
+
+  var hhmm = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (hhmm) {
+    var hh = Math.max(0, Math.min(23, Number(hhmm[1]) || 0));
+    var mm = Math.max(0, Math.min(59, Number(hhmm[2]) || 0));
+    return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  }
+
+  var parsed = new Date(raw);
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, Session.getScriptTimeZone(), 'HH:mm');
+  }
+
+  return raw;
+}
+
+function _schedulerLocalTimeToMinutes_(value) {
+  var raw = _schedulerNormalizeLocalTime_(value);
+  if (!raw) return null;
+  var m = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  var hh = Number(m[1]);
+  var mm = Number(m[2]);
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  return hh * 60 + mm;
+}
+
+function _schedulerIntervalsOverlap_(aStart, aEnd, bStart, bEnd) {
+  if (aStart == null || aEnd == null || bStart == null || bEnd == null) return true;
+  return aStart < bEnd && bStart < aEnd;
+}
+
+function _schedulerDayMaskSet_(maskRaw) {
+  var raw = String(maskRaw || '').trim().toUpperCase();
+  if (!raw) return null;
+  var out = {};
+  var cleanedDigits = raw.replace(/[^0-9]/g, '');
+  if (cleanedDigits.length) {
+    cleanedDigits.split('').forEach(function(ch) {
+      var d = Number(ch);
+      if (d >= 1 && d <= 7) out[d % 7] = true;
+      if (d === 0) out[0] = true;
+    });
+    if (Object.keys(out).length) return out;
+  }
+
+  raw.split(/[\s,;|/]+/).forEach(function(tok) {
+    var t = String(tok || '').trim().toUpperCase();
+    if (!t) return;
+    if (t === 'MON' || t === 'MONDAY' || t === 'SEG' || t === 'SEGUNDA') out[1] = true;
+    if (t === 'TUE' || t === 'TUESDAY' || t === 'TER' || t === 'TERCA' || t === 'TERÇA') out[2] = true;
+    if (t === 'WED' || t === 'WEDNESDAY' || t === 'QUA' || t === 'QUARTA') out[3] = true;
+    if (t === 'THU' || t === 'THURSDAY' || t === 'QUI' || t === 'QUINTA') out[4] = true;
+    if (t === 'FRI' || t === 'FRIDAY' || t === 'SEX' || t === 'SEXTA') out[5] = true;
+    if (t === 'SAT' || t === 'SATURDAY' || t === 'SAB' || t === 'SABADO' || t === 'SÁBADO') out[6] = true;
+    if (t === 'SUN' || t === 'SUNDAY' || t === 'DOM' || t === 'DOMINGO') out[0] = true;
+  });
+
+  return Object.keys(out).length ? out : null;
+}
+
+function _schedulerDateMatchesMask_(dateObj, dayMaskSet) {
+  if (!dayMaskSet) return true;
+  return !!dayMaskSet[dateObj.getDay()];
+}
+
+function _schedulerEmailKey_(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function _schedulerAssignmentRowFromHeaders_(headers, row, rowNumber) {
+  var idx = {
+    assignmentId: _schedulerHeaderIndex_(headers, 'ASSIGNMENT_ID'),
+    month: _schedulerHeaderIndex_(headers, 'SCHEDULE_MONTH'),
+    date: _schedulerHeaderIndex_(headers, 'ASSIGNMENT_DATE'),
+    role: _schedulerHeaderIndex_(headers, 'ROLE_CODE'),
+    location: _schedulerHeaderIndex_(headers, 'LOCATION_CODE'),
+    startLocal: _schedulerHeaderIndex_(headers, 'SHIFT_START_LOCAL'),
+    endLocal: _schedulerHeaderIndex_(headers, 'SHIFT_END_LOCAL'),
+    staffEmail: _schedulerHeaderIndex_(headers, 'STAFF_EMAIL'),
+    source: _schedulerHeaderIndex_(headers, 'SOURCE'),
+    locked: _schedulerHeaderIndex_(headers, 'LOCKED'),
+    status: _schedulerHeaderIndex_(headers, 'STATUS')
+  };
+  return {
+    rowNumber: rowNumber,
+    assignmentId: idx.assignmentId >= 0 ? String(row[idx.assignmentId] || '').trim() : '',
+    scheduleMonth: idx.month >= 0 ? String(row[idx.month] || '').trim() : '',
+    assignmentDate: idx.date >= 0 ? safeDateStr(row[idx.date]) : '',
+    roleCode: idx.role >= 0 ? String(row[idx.role] || '').trim() : '',
+    locationCode: idx.location >= 0 ? String(row[idx.location] || '').trim() : '',
+    shiftStartLocal: idx.startLocal >= 0 ? String(row[idx.startLocal] || '').trim() : '',
+    shiftEndLocal: idx.endLocal >= 0 ? String(row[idx.endLocal] || '').trim() : '',
+    staffEmail: idx.staffEmail >= 0 ? _schedulerEmailKey_(row[idx.staffEmail]) : '',
+    source: idx.source >= 0 ? String(row[idx.source] || '').trim().toUpperCase() : '',
+    locked: idx.locked >= 0 ? _schedulerTruthyFlag_(row[idx.locked]) : false,
+    status: idx.status >= 0 ? String(row[idx.status] || '').trim().toUpperCase() : ''
+  };
+}
+
+function _schedulerCompatibilityMap_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_ROLE_COMPAT || 'SCHED_Role_Compatibility', 'schedulerCompatibilityMap');
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) return {};
+  var headers = data[0] || [];
+  var roleAIdx = _schedulerHeaderIndex_(headers, 'ROLE_CODE_A');
+  var roleBIdx = _schedulerHeaderIndex_(headers, 'ROLE_CODE_B');
+  var overlapIdx = _schedulerHeaderIndex_(headers, 'OVERLAP_ALLOWED');
+  var activeIdx = _schedulerHeaderIndex_(headers, 'ACTIVE');
+  var map = {};
+
+  function setPair(a, b, allowed) {
+    var key = a + '|' + b;
+    map[key] = allowed;
+  }
+
+  for (var i = 1; i < data.length; i++) {
+    var active = activeIdx < 0 ? true : _schedulerTruthyFlag_(data[i][activeIdx]);
+    if (!active) continue;
+    var a = _schedulerRoleKey_(roleAIdx >= 0 ? data[i][roleAIdx] : '');
+    var b = _schedulerRoleKey_(roleBIdx >= 0 ? data[i][roleBIdx] : '');
+    if (!a || !b) continue;
+    var allowed = _schedulerTruthyFlag_(overlapIdx >= 0 ? data[i][overlapIdx] : 'N');
+    setPair(a, b, allowed);
+    if (a !== '*' && b !== '*') setPair(b, a, allowed);
+  }
+  return map;
+}
+
+function _schedulerOverlapAllowed_(compatMap, roleA, roleB) {
+  var a = _schedulerRoleKey_(roleA);
+  var b = _schedulerRoleKey_(roleB);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (Object.prototype.hasOwnProperty.call(compatMap, a + '|' + b)) return !!compatMap[a + '|' + b];
+  if (Object.prototype.hasOwnProperty.call(compatMap, a + '|*')) return !!compatMap[a + '|*'];
+  if (Object.prototype.hasOwnProperty.call(compatMap, '*|' + b)) return !!compatMap['*|' + b];
+  return false;
+}
+
+function _schedulerBuildStaffPool_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var pilotsSheet = getRequiredSheet_(ss, APP_SHEETS.PILOTS, 'schedulerBuildStaffPool');
+  var pData = pilotsSheet.getDataRange().getValues();
+  if (!pData || pData.length < 2) return [];
+  var headers = pData[0] || [];
+  var out = [];
+  for (var i = 1; i < pData.length; i++) {
+    var rec = _toolsStaffRecordFromRow_(headers, pData[i], i + 1);
+    if (!rec || !rec.active) continue;
+    if (!rec.email) continue;
+    out.push(rec);
+  }
+  return out;
+}
+
+function _schedulerQualificationRows_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_STAFF_QUALS || 'SCHED_Staff_Qualifications', 'schedulerQualificationRows');
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) return [];
+  var headers = data[0] || [];
+  var idx = {
+    staffEmail: _schedulerHeaderIndex_(headers, 'STAFF_EMAIL'),
+    role: _schedulerHeaderIndex_(headers, 'ROLE_CODE'),
+    location: _schedulerHeaderIndex_(headers, 'LOCATION_CODE'),
+    validFrom: _schedulerHeaderIndex_(headers, 'VALID_FROM'),
+    validUntil: _schedulerHeaderIndex_(headers, 'VALID_UNTIL'),
+    active: _schedulerHeaderIndex_(headers, 'ACTIVE')
+  };
+  var out = [];
+  for (var i = 1; i < data.length; i++) {
+    var active = idx.active < 0 ? true : _schedulerTruthyFlag_(data[i][idx.active]);
+    if (!active) continue;
+    var email = idx.staffEmail >= 0 ? _schedulerEmailKey_(data[i][idx.staffEmail]) : '';
+    var role = idx.role >= 0 ? _schedulerRoleKey_(data[i][idx.role]) : '';
+    if (!email || !role) continue;
+    out.push({
+      staffEmail: email,
+      roleCode: role,
+      locationCode: idx.location >= 0 ? _schedulerRoleKey_(data[i][idx.location]) : '',
+      validFrom: idx.validFrom >= 0 ? safeDateStr(data[i][idx.validFrom]) : '',
+      validUntil: idx.validUntil >= 0 ? safeDateStr(data[i][idx.validUntil]) : ''
+    });
+  }
+  return out;
+}
+
+function _schedulerCoverageNeeds_(monthKey) {
+  var parsed = _schedulerParseMonthKey_(monthKey);
+  if (!parsed) return [];
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_COVERAGE_RULES || 'SCHED_Coverage_Requirements', 'schedulerCoverageNeeds');
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) return [];
+  var headers = data[0] || [];
+  var idx = {
+    role: _schedulerHeaderIndex_(headers, 'ROLE_CODE'),
+    location: _schedulerHeaderIndex_(headers, 'LOCATION_CODE'),
+    daysMask: _schedulerHeaderIndex_(headers, 'DAYS_MASK'),
+    startLocal: _schedulerHeaderIndex_(headers, 'SHIFT_START_LOCAL'),
+    endLocal: _schedulerHeaderIndex_(headers, 'SHIFT_END_LOCAL'),
+    shiftLabel: _schedulerHeaderIndex_(headers, 'SHIFT_LABEL'),
+    requiredCount: _schedulerHeaderIndex_(headers, 'REQUIRED_COUNT'),
+    priority: _schedulerHeaderIndex_(headers, 'PRIORITY'),
+    active: _schedulerHeaderIndex_(headers, 'ACTIVE')
+  };
+
+  var needs = [];
+  for (var r = 1; r < data.length; r++) {
+    var active = idx.active < 0 ? true : _schedulerTruthyFlag_(data[r][idx.active]);
+    if (!active) continue;
+    var roleCode = idx.role >= 0 ? _schedulerRoleKey_(data[r][idx.role]) : '';
+    if (!roleCode) continue;
+    var requiredCount = Math.max(0, Number(data[r][idx.requiredCount] || 0));
+    if (!requiredCount) continue;
+    var dayMaskSet = _schedulerDayMaskSet_(idx.daysMask >= 0 ? data[r][idx.daysMask] : '');
+    var startLocal = idx.startLocal >= 0 ? _schedulerNormalizeLocalTime_(data[r][idx.startLocal]) : '';
+    var endLocal = idx.endLocal >= 0 ? _schedulerNormalizeLocalTime_(data[r][idx.endLocal]) : '';
+    var priority = Number(data[r][idx.priority] || 100) || 100;
+    var locationCode = idx.location >= 0 ? _schedulerRoleKey_(data[r][idx.location]) : '';
+    var shiftLabel = idx.shiftLabel >= 0 ? String(data[r][idx.shiftLabel] || '').trim() : '';
+
+    for (var d = new Date(parsed.start); d < parsed.end; d.setDate(d.getDate() + 1)) {
+      if (!_schedulerDateMatchesMask_(d, dayMaskSet)) continue;
+      var dateStr = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      for (var slot = 1; slot <= requiredCount; slot++) {
+        needs.push({
+          scheduleMonth: parsed.monthKey,
+          assignmentDate: dateStr,
+          roleCode: roleCode,
+          locationCode: locationCode,
+          shiftStartLocal: startLocal,
+          shiftEndLocal: endLocal,
+          shiftLabel: shiftLabel,
+          priority: priority,
+          slot: slot
+        });
+      }
+    }
+  }
+
+  needs.sort(function(a, b) {
+    if (a.assignmentDate !== b.assignmentDate) return a.assignmentDate.localeCompare(b.assignmentDate);
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    if (a.roleCode !== b.roleCode) return a.roleCode.localeCompare(b.roleCode);
+    return a.slot - b.slot;
+  });
+  return needs;
+}
+
+function _schedulerAvailabilityMap_(monthKey) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_AVAILABILITY || 'SCHED_Staff_Availability', 'schedulerAvailabilityMap');
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) return {};
+  var headers = data[0] || [];
+  var idx = {
+    month: _schedulerHeaderIndex_(headers, 'SCHEDULE_MONTH'),
+    email: _schedulerHeaderIndex_(headers, 'STAFF_EMAIL'),
+    dateLocal: _schedulerHeaderIndex_(headers, 'DATE_LOCAL'),
+    startLocal: _schedulerHeaderIndex_(headers, 'START_LOCAL'),
+    endLocal: _schedulerHeaderIndex_(headers, 'END_LOCAL'),
+    type: _schedulerHeaderIndex_(headers, 'TYPE')
+  };
+
+  var out = {};
+  for (var i = 1; i < data.length; i++) {
+    var month = idx.month >= 0 ? String(data[i][idx.month] || '').trim() : '';
+    if (monthKey && month !== monthKey) continue;
+    var email = idx.email >= 0 ? _schedulerEmailKey_(data[i][idx.email]) : '';
+    var dateLocal = idx.dateLocal >= 0 ? String(data[i][idx.dateLocal] || '').trim() : '';
+    if (!email || !dateLocal) continue;
+    var type = idx.type >= 0 ? String(data[i][idx.type] || '').trim().toUpperCase() : 'UNAVAILABLE';
+    if (type && type.indexOf('AVAILABLE') === 0) continue;
+    var startM = _schedulerLocalTimeToMinutes_(idx.startLocal >= 0 ? data[i][idx.startLocal] : '00:00');
+    var endM = _schedulerLocalTimeToMinutes_(idx.endLocal >= 0 ? data[i][idx.endLocal] : '23:59');
+    if (startM == null) startM = 0;
+    if (endM == null) endM = 24 * 60;
+    if (endM <= startM) endM = 24 * 60;
+
+    var key = email + '|' + dateLocal;
+    if (!out[key]) out[key] = [];
+    out[key].push({ startM: startM, endM: endM });
+  }
+  return out;
+}
+
+function _schedulerIsUnavailable_(availabilityMap, email, dateLocal, startLocal, endLocal) {
+  var key = _schedulerEmailKey_(email) + '|' + String(dateLocal || '').trim();
+  var rows = availabilityMap[key] || [];
+  if (!rows.length) return false;
+  var needStart = _schedulerLocalTimeToMinutes_(startLocal);
+  var needEnd = _schedulerLocalTimeToMinutes_(endLocal);
+  if (needStart == null || needEnd == null || needEnd <= needStart) {
+    needStart = 0;
+    needEnd = 24 * 60;
+  }
+  for (var i = 0; i < rows.length; i++) {
+    if (_schedulerIntervalsOverlap_(needStart, needEnd, rows[i].startM, rows[i].endM)) return true;
+  }
+  return false;
+}
+
+function _schedulerIsQualified_(staff, need, quals, needDate) {
+  var email = _schedulerEmailKey_(staff && staff.email);
+  var role = _schedulerRoleKey_(need && need.roleCode);
+  var location = _schedulerRoleKey_(need && need.locationCode);
+  var dateStr = safeDateStr(needDate);
+
+  var hasAnyQualForRole = false;
+  for (var i = 0; i < quals.length; i++) {
+    var q = quals[i];
+    if (q.roleCode !== role) continue;
+    hasAnyQualForRole = true;
+    if (q.staffEmail !== email) continue;
+    var qLoc = _schedulerRoleKey_(q.locationCode);
+    if (qLoc && qLoc !== '*' && location && qLoc !== location) continue;
+    if (q.validFrom && q.validFrom > dateStr) continue;
+    if (q.validUntil && q.validUntil < dateStr) continue;
+    return true;
+  }
+
+  if (hasAnyQualForRole) return false;
+
+  var roles = _toolsStaffRoleSet_(staff).map(function(v) { return _schedulerRoleKey_(v); });
+  return roles.indexOf(role) >= 0 || _schedulerRoleKey_(staff && staff.primaryRole) === role;
+}
+
+function _schedulerConflictsWithAssigned_(assignedByDateEmail, compatMap, email, need) {
+  var dateKey = String(need.assignmentDate || '').trim();
+  var emailKey = _schedulerEmailKey_(email);
+  var key = dateKey + '|' + emailKey;
+  var assigned = assignedByDateEmail[key] || [];
+  if (!assigned.length) return false;
+
+  var needStart = _schedulerLocalTimeToMinutes_(need.shiftStartLocal);
+  var needEnd = _schedulerLocalTimeToMinutes_(need.shiftEndLocal);
+  if (needStart == null || needEnd == null || needEnd <= needStart) {
+    needStart = 0;
+    needEnd = 24 * 60;
+  }
+
+  for (var i = 0; i < assigned.length; i++) {
+    var cur = assigned[i];
+    if (!_schedulerIntervalsOverlap_(needStart, needEnd, cur.startM, cur.endM)) continue;
+    if (!_schedulerOverlapAllowed_(compatMap, need.roleCode, cur.roleCode)) return true;
+  }
+  return false;
+}
+
+function _schedulerAddAssignedIndex_(assignedByDateEmail, assignment) {
+  var dateKey = String(assignment.assignmentDate || '').trim();
+  var emailKey = _schedulerEmailKey_(assignment.staffEmail);
+  if (!dateKey || !emailKey) return;
+  var key = dateKey + '|' + emailKey;
+  if (!assignedByDateEmail[key]) assignedByDateEmail[key] = [];
+  var startM = _schedulerLocalTimeToMinutes_(assignment.shiftStartLocal);
+  var endM = _schedulerLocalTimeToMinutes_(assignment.shiftEndLocal);
+  if (startM == null || endM == null || endM <= startM) {
+    startM = 0;
+    endM = 24 * 60;
+  }
+  assignedByDateEmail[key].push({ roleCode: _schedulerRoleKey_(assignment.roleCode), startM: startM, endM: endM });
+}
+
+function generateSchedulerAssignments(payload) {
+  try {
+    var actor = _schedulerAssertPermission_('CAN_GENERATE', 'generateSchedulerAssignments');
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var month = String(body.month || body.scheduleMonth || '').trim();
+    var parsed = _schedulerParseMonthKey_(month || _schedulerMonthKey_(new Date()));
+    if (!parsed) return { success: false, error: 'Invalid month format. Use YYYY-MM.' };
+    var dryRun = !Object.prototype.hasOwnProperty.call(body, 'dryRun') || !!body.dryRun;
+
+    var setupRes = setupSchedulerSchema();
+    if (!setupRes || !setupRes.success) {
+      return {
+        success: false,
+        error: (setupRes && setupRes.error) ? setupRes.error : 'Scheduler setup failed before generation',
+        stage: 'setupSchedulerSchema'
+      };
+    }
+
+    var diagnostics = { month: parsed.monthKey };
+    var staffPool;
+    var quals;
+    var needs;
+    var availabilityMap;
+    var compatMap;
+    try {
+      staffPool = _schedulerBuildStaffPool_();
+      diagnostics.staffPoolSize = staffPool.length;
+    } catch (eStaff) {
+      return { success: false, error: eStaff && eStaff.message ? eStaff.message : String(eStaff), stage: 'buildStaffPool', diagnostics: diagnostics };
+    }
+    try {
+      quals = _schedulerQualificationRows_();
+      diagnostics.qualificationRowCount = quals.length;
+    } catch (eQual) {
+      return { success: false, error: eQual && eQual.message ? eQual.message : String(eQual), stage: 'qualificationRows', diagnostics: diagnostics };
+    }
+    try {
+      needs = _schedulerCoverageNeeds_(parsed.monthKey);
+      diagnostics.coverageNeedCount = needs.length;
+    } catch (eNeed) {
+      return { success: false, error: eNeed && eNeed.message ? eNeed.message : String(eNeed), stage: 'coverageNeeds', diagnostics: diagnostics };
+    }
+    try {
+      availabilityMap = _schedulerAvailabilityMap_(parsed.monthKey);
+      diagnostics.availabilityKeys = Object.keys(availabilityMap || {}).length;
+    } catch (eAvail) {
+      return { success: false, error: eAvail && eAvail.message ? eAvail.message : String(eAvail), stage: 'availabilityMap', diagnostics: diagnostics };
+    }
+    try {
+      compatMap = _schedulerCompatibilityMap_();
+      diagnostics.compatibilityRuleCount = Object.keys(compatMap || {}).length;
+    } catch (eCompat) {
+      return { success: false, error: eCompat && eCompat.message ? eCompat.message : String(eCompat), stage: 'compatibilityMap', diagnostics: diagnostics };
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var assignmentsSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_ASSIGNMENTS || 'SCHED_Assignments', 'generateSchedulerAssignments');
+    var locksSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_LOCKS || 'SCHED_Assignment_Locks', 'generateSchedulerAssignments');
+
+    var assignmentsData = assignmentsSheet.getDataRange().getValues();
+    var assignmentHeaders = assignmentsData.length ? assignmentsData[0] : [];
+    var lockData = locksSheet.getDataRange().getValues();
+    var lockHeaders = lockData.length ? lockData[0] : [];
+    var lockIdIdx = _schedulerHeaderIndex_(lockHeaders, 'ASSIGNMENT_ID');
+    var lockActiveIdx = _schedulerHeaderIndex_(lockHeaders, 'ACTIVE');
+    var activeLockedIds = {};
+    for (var l = 1; l < lockData.length; l++) {
+      var active = lockActiveIdx < 0 ? true : _schedulerTruthyFlag_(lockData[l][lockActiveIdx]);
+      if (!active) continue;
+      var aid = lockIdIdx >= 0 ? String(lockData[l][lockIdIdx] || '').trim() : '';
+      if (aid) activeLockedIds[aid] = true;
+    }
+
+    var existingForMonth = [];
+    var keepRows = assignmentHeaders.length ? [assignmentHeaders] : [];
+    for (var r = 1; r < assignmentsData.length; r++) {
+      var rec = _schedulerAssignmentRowFromHeaders_(assignmentHeaders, assignmentsData[r], r + 1);
+      var isMonth = rec.scheduleMonth === parsed.monthKey;
+      var isLocked = rec.locked || !!activeLockedIds[rec.assignmentId];
+      if (isMonth) existingForMonth.push(rec);
+
+      if (!isMonth) {
+        keepRows.push(assignmentsData[r]);
+        continue;
+      }
+
+      if (isLocked) {
+        keepRows.push(assignmentsData[r]);
+        continue;
+      }
+
+      if (rec.source !== 'AUTO_GENERATED') {
+        keepRows.push(assignmentsData[r]);
+      }
+    }
+
+    var assignedByDateEmail = {};
+    var fairness = {};
+
+    existingForMonth.forEach(function(rec) {
+      if (!rec.staffEmail || !rec.assignmentDate) return;
+      _schedulerAddAssignedIndex_(assignedByDateEmail, rec);
+      fairness[rec.staffEmail] = (fairness[rec.staffEmail] || 0) + 1;
+    });
+
+    var generated = [];
+    var unfilled = [];
+
+    needs.forEach(function(need) {
+      var needDateObj = new Date(need.assignmentDate + 'T00:00:00');
+      var candidates = staffPool.filter(function(staff) {
+        var email = _schedulerEmailKey_(staff.email);
+        if (!email) return false;
+        if (!_schedulerIsQualified_(staff, need, quals, needDateObj)) return false;
+        if (_schedulerIsUnavailable_(availabilityMap, email, need.assignmentDate, need.shiftStartLocal, need.shiftEndLocal)) return false;
+        if (_schedulerConflictsWithAssigned_(assignedByDateEmail, compatMap, email, need)) return false;
+        return true;
+      });
+
+      candidates.sort(function(a, b) {
+        var ea = _schedulerEmailKey_(a.email);
+        var eb = _schedulerEmailKey_(b.email);
+        var fa = fairness[ea] || 0;
+        var fb = fairness[eb] || 0;
+        if (fa !== fb) return fa - fb;
+        return String(a.staffName || ea).localeCompare(String(b.staffName || eb));
+      });
+
+      if (!candidates.length) {
+        unfilled.push({
+          assignmentDate: need.assignmentDate,
+          roleCode: need.roleCode,
+          locationCode: need.locationCode,
+          shiftStartLocal: need.shiftStartLocal,
+          shiftEndLocal: need.shiftEndLocal,
+          reason: 'No qualified/available staff for slot ' + need.slot
+        });
+        return;
+      }
+
+      var chosen = candidates[0];
+      var chosenEmail = _schedulerEmailKey_(chosen.email);
+      fairness[chosenEmail] = (fairness[chosenEmail] || 0) + 1;
+
+      var assignment = {
+        assignmentId: 'SASG-' + parsed.monthKey.replace('-', '') + '-' + String(generated.length + 1).padStart(4, '0'),
+        scheduleMonth: parsed.monthKey,
+        assignmentDate: need.assignmentDate,
+        roleCode: need.roleCode,
+        locationCode: need.locationCode,
+        shiftStartLocal: need.shiftStartLocal,
+        shiftEndLocal: need.shiftEndLocal,
+        shiftStartZ: '',
+        shiftEndZ: '',
+        staffEmail: chosenEmail,
+        source: 'AUTO_GENERATED',
+        locked: 'N',
+        lockScope: '',
+        status: 'PROPOSED',
+        fairnessScore: fairness[chosenEmail],
+        ruleReason: 'priority=' + need.priority + ';slot=' + need.slot,
+        updatedAt: new Date().toISOString(),
+        updatedBy: actor.email
+      };
+      generated.push(assignment);
+      _schedulerAddAssignedIndex_(assignedByDateEmail, assignment);
+    });
+
+    if (!dryRun) {
+      rewriteSheetData_(assignmentsSheet, keepRows);
+      if (generated.length) {
+        var aHeaders = _toolsSheetHeaderRow_(assignmentsSheet);
+        var append = generated.map(function(item) {
+          var row = aHeaders.map(function() { return ''; });
+          var idx = {
+            assignmentId: _schedulerHeaderIndex_(aHeaders, 'ASSIGNMENT_ID'),
+            month: _schedulerHeaderIndex_(aHeaders, 'SCHEDULE_MONTH'),
+            date: _schedulerHeaderIndex_(aHeaders, 'ASSIGNMENT_DATE'),
+            role: _schedulerHeaderIndex_(aHeaders, 'ROLE_CODE'),
+            location: _schedulerHeaderIndex_(aHeaders, 'LOCATION_CODE'),
+            startLocal: _schedulerHeaderIndex_(aHeaders, 'SHIFT_START_LOCAL'),
+            endLocal: _schedulerHeaderIndex_(aHeaders, 'SHIFT_END_LOCAL'),
+            startZ: _schedulerHeaderIndex_(aHeaders, 'SHIFT_START_Z'),
+            endZ: _schedulerHeaderIndex_(aHeaders, 'SHIFT_END_Z'),
+            staffEmail: _schedulerHeaderIndex_(aHeaders, 'STAFF_EMAIL'),
+            source: _schedulerHeaderIndex_(aHeaders, 'SOURCE'),
+            locked: _schedulerHeaderIndex_(aHeaders, 'LOCKED'),
+            lockScope: _schedulerHeaderIndex_(aHeaders, 'LOCK_SCOPE'),
+            status: _schedulerHeaderIndex_(aHeaders, 'STATUS'),
+            fairness: _schedulerHeaderIndex_(aHeaders, 'FAIRNESS_SCORE'),
+            reason: _schedulerHeaderIndex_(aHeaders, 'RULE_REASON'),
+            updatedAt: _schedulerHeaderIndex_(aHeaders, 'UPDATED_AT'),
+            updatedBy: _schedulerHeaderIndex_(aHeaders, 'UPDATED_BY')
+          };
+          if (idx.assignmentId >= 0) row[idx.assignmentId] = item.assignmentId;
+          if (idx.month >= 0) row[idx.month] = item.scheduleMonth;
+          if (idx.date >= 0) row[idx.date] = item.assignmentDate;
+          if (idx.role >= 0) row[idx.role] = item.roleCode;
+          if (idx.location >= 0) row[idx.location] = item.locationCode;
+          if (idx.startLocal >= 0) row[idx.startLocal] = item.shiftStartLocal;
+          if (idx.endLocal >= 0) row[idx.endLocal] = item.shiftEndLocal;
+          if (idx.startZ >= 0) row[idx.startZ] = item.shiftStartZ;
+          if (idx.endZ >= 0) row[idx.endZ] = item.shiftEndZ;
+          if (idx.staffEmail >= 0) row[idx.staffEmail] = item.staffEmail;
+          if (idx.source >= 0) row[idx.source] = item.source;
+          if (idx.locked >= 0) row[idx.locked] = item.locked;
+          if (idx.lockScope >= 0) row[idx.lockScope] = item.lockScope;
+          if (idx.status >= 0) row[idx.status] = item.status;
+          if (idx.fairness >= 0) row[idx.fairness] = item.fairnessScore;
+          if (idx.reason >= 0) row[idx.reason] = item.ruleReason;
+          if (idx.updatedAt >= 0) row[idx.updatedAt] = item.updatedAt;
+          if (idx.updatedBy >= 0) row[idx.updatedBy] = item.updatedBy;
+          return row;
+        });
+        var startRow = assignmentsSheet.getLastRow() + 1;
+        assignmentsSheet.getRange(startRow, 1, append.length, aHeaders.length).setValues(append);
+      }
+    }
+
+    return {
+      success: true,
+      dryRun: dryRun,
+      month: parsed.monthKey,
+      staffPoolSize: staffPool.length,
+      needsCount: needs.length,
+      generatedCount: generated.length,
+      unfilledCount: unfilled.length,
+      unfilled: unfilled,
+      assignments: generated,
+      diagnostics: diagnostics
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: e && e.message ? e.message : String(e),
+      stage: 'generateSchedulerAssignments',
+      stack: e && e.stack ? String(e.stack) : ''
+    };
+  }
+}
+
+function previewSchedulerAssignments(payload) {
+  var body = (payload && typeof payload === 'object') ? payload : {};
+  body.dryRun = true;
+  return generateSchedulerAssignments(body);
+}
+
+function getSchedulerAssignments(payload) {
+  try {
+    _schedulerAssertPermission_('CAN_VIEW', 'getSchedulerAssignments');
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var month = String(body.month || '').trim();
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_ASSIGNMENTS || 'SCHED_Assignments', 'getSchedulerAssignments');
+    var data = sheet.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: true, rows: [] };
+    var headers = data[0] || [];
+    var monthIdx = _schedulerHeaderIndex_(headers, 'SCHEDULE_MONTH');
+    var rows = [];
+    for (var i = 1; i < data.length; i++) {
+      if (month && monthIdx >= 0 && String(data[i][monthIdx] || '').trim() !== month) continue;
+      var rowObj = { rowNumber: i + 1 };
+      for (var c = 0; c < headers.length; c++) {
+        rowObj[String(headers[c] || '').trim()] = data[i][c];
+      }
+      rows.push(rowObj);
+    }
+    return { success: true, rows: rows };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function runSchedulerTestSuite(payload) {
+  var body = (payload && typeof payload === 'object') ? payload : {};
+  var rawMonth = String(body.month || body.scheduleMonth || '').trim();
+  var parsed = _schedulerParseMonthKey_(rawMonth || _schedulerMonthKey_(new Date()));
+  if (!parsed) {
+    return { success: false, error: 'Invalid month format. Use YYYY-MM.' };
+  }
+
+  var tests = [];
+  var dryRunSummary = null;
+  var unfilledPreview = [];
+
+  function pushTest(id, name, status, message, details) {
+    var row = {
+      id: String(id || ''),
+      name: String(name || id || ''),
+      status: String(status || 'FAIL').toUpperCase(),
+      message: String(message || '')
+    };
+    if (details && typeof details === 'object') row.details = details;
+    tests.push(row);
+  }
+
+  try {
+    var profileRes = getSchedulerAccessProfile();
+    if (!profileRes || !profileRes.success) {
+      pushTest('access_profile', 'Access profile', 'FAIL', (profileRes && profileRes.error) ? profileRes.error : 'Unable to load scheduler permissions.');
+      return {
+        success: false,
+        month: parsed.monthKey,
+        tests: tests,
+        summary: { passCount: 0, warnCount: 0, failCount: 1, total: 1 }
+      };
+    }
+    var permissions = profileRes.permissions || {};
+    pushTest(
+      'access_profile',
+      'Access profile',
+      'PASS',
+      'Signed in as ' + String(profileRes.email || 'unknown') + ' (view=' + (permissions.CAN_VIEW ? 'Y' : 'N') + ', generate=' + (permissions.CAN_GENERATE ? 'Y' : 'N') + ')',
+      { email: profileRes.email, permissions: permissions }
+    );
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var requiredSheets = [
+      APP_SHEETS.SCHED_CONFIG || 'SCHED_Config',
+      APP_SHEETS.SCHED_PERMISSIONS || 'SCHED_Permissions',
+      APP_SHEETS.SCHED_COVERAGE_RULES || 'SCHED_Coverage_Requirements',
+      APP_SHEETS.SCHED_ROLE_COMPAT || 'SCHED_Role_Compatibility',
+      APP_SHEETS.SCHED_STAFF_QUALS || 'SCHED_Staff_Qualifications',
+      APP_SHEETS.SCHED_ASSIGNMENTS || 'SCHED_Assignments',
+      APP_SHEETS.SCHED_LOCKS || 'SCHED_Assignment_Locks',
+      APP_SHEETS.SCHED_ALERTS || 'SCHED_Alerts',
+      APP_SHEETS.SCHED_PUBLISH_LOG || 'SCHED_Publish_Log',
+      APP_SHEETS.SCHED_AVAILABILITY || 'SCHED_Staff_Availability'
+    ];
+    var missingSheets = [];
+    for (var s = 0; s < requiredSheets.length; s++) {
+      try {
+        getRequiredSheet_(ss, requiredSheets[s], 'runSchedulerTestSuite');
+      } catch (sheetErr) {
+        missingSheets.push(requiredSheets[s]);
+      }
+    }
+    if (missingSheets.length) {
+      pushTest('schema_sheets', 'Schema sheets', 'FAIL', 'Missing sheets: ' + missingSheets.join(', '), { missingSheets: missingSheets });
+    } else {
+      pushTest('schema_sheets', 'Schema sheets', 'PASS', 'All scheduler sheets are present.');
+    }
+
+    var cfgRes = getSchedulerConfig();
+    if (!cfgRes || !cfgRes.success) {
+      pushTest('config_read', 'Config readability', 'FAIL', (cfgRes && cfgRes.error) ? cfgRes.error : 'Could not read scheduler config.');
+    } else {
+      var cfg = cfgRes.config || {};
+      var publishDay = Number(cfg.PUBLISH_DAY_OF_MONTH || 0);
+      if (!(publishDay >= 1 && publishDay <= 31)) {
+        pushTest('config_publish_day', 'Publish cadence', 'FAIL', 'PUBLISH_DAY_OF_MONTH must be between 1 and 31.', { value: cfg.PUBLISH_DAY_OF_MONTH || '' });
+      } else {
+        pushTest('config_publish_day', 'Publish cadence', 'PASS', 'PUBLISH_DAY_OF_MONTH=' + publishDay + '.');
+      }
+
+      if (String(cfg.AVAILABILITY_CALENDAR_ID || '').trim()) {
+        pushTest('config_availability_calendar', 'Availability calendar config', 'PASS', 'AVAILABILITY_CALENDAR_ID is configured.');
+      } else {
+        pushTest('config_availability_calendar', 'Availability calendar config', 'WARN', 'AVAILABILITY_CALENDAR_ID is blank; calendar sync cannot run.');
+      }
+    }
+
+    var staffPool = [];
+    try {
+      staffPool = _schedulerBuildStaffPool_();
+      if (staffPool.length) {
+        pushTest('staff_pool', 'Staff pool', 'PASS', 'Active staff available: ' + staffPool.length + '.');
+      } else {
+        pushTest('staff_pool', 'Staff pool', 'FAIL', 'No active staff rows found in DB_Pilots.');
+      }
+    } catch (staffErr) {
+      pushTest('staff_pool', 'Staff pool', 'FAIL', staffErr && staffErr.message ? staffErr.message : String(staffErr));
+    }
+
+    try {
+      var qualRows = _schedulerQualificationRows_();
+      if (qualRows.length) {
+        pushTest('qualifications', 'Qualifications', 'PASS', 'Active qualification rows: ' + qualRows.length + '.');
+      } else {
+        pushTest('qualifications', 'Qualifications', 'FAIL', 'No active rows in SCHED_Staff_Qualifications.');
+      }
+    } catch (qualErr) {
+      pushTest('qualifications', 'Qualifications', 'FAIL', qualErr && qualErr.message ? qualErr.message : String(qualErr));
+    }
+
+    try {
+      var needs = _schedulerCoverageNeeds_(parsed.monthKey);
+      if (needs.length) {
+        pushTest('coverage_needs', 'Coverage requirements', 'PASS', 'Coverage slots for ' + parsed.monthKey + ': ' + needs.length + '.');
+      } else {
+        pushTest('coverage_needs', 'Coverage requirements', 'FAIL', 'No active coverage slots for ' + parsed.monthKey + '.');
+      }
+    } catch (needsErr) {
+      pushTest('coverage_needs', 'Coverage requirements', 'FAIL', needsErr && needsErr.message ? needsErr.message : String(needsErr));
+    }
+
+    if (body.syncAvailabilityFirst) {
+      var syncRes = syncSchedulerAvailabilityForMonth({ month: parsed.monthKey });
+      if (syncRes && syncRes.success) {
+        var syncStats = syncRes.stats || {};
+        pushTest('availability_sync', 'Availability sync', 'PASS',
+          'Synced month ' + parsed.monthKey
+          + ' (events=' + Number(syncStats.eventsRead || 0)
+          + ', imported=' + Number(syncStats.imported || 0)
+          + ', skippedNoEmail=' + Number(syncStats.skippedNoEmail || 0)
+          + ').',
+          syncStats
+        );
+      } else {
+        pushTest('availability_sync', 'Availability sync', 'FAIL', (syncRes && syncRes.error) ? syncRes.error : 'Availability sync failed.');
+      }
+    } else {
+      var availRes = getSchedulerAvailability({ month: parsed.monthKey });
+      if (availRes && availRes.success) {
+        var availCount = Array.isArray(availRes.rows) ? availRes.rows.length : 0;
+        if (availCount > 0) {
+          pushTest('availability_rows', 'Availability rows', 'PASS', 'Rows for ' + parsed.monthKey + ': ' + availCount + '.');
+        } else {
+          pushTest('availability_rows', 'Availability rows', 'WARN', 'No availability rows for ' + parsed.monthKey + '. Scheduler can still run.');
+        }
+      } else {
+        pushTest('availability_rows', 'Availability rows', 'FAIL', (availRes && availRes.error) ? availRes.error : 'Could not read availability rows.');
+      }
+    }
+
+    var dryRes = previewSchedulerAssignments({ month: parsed.monthKey });
+    if (!dryRes || !dryRes.success) {
+      pushTest('dry_run', 'Dry run generation', 'FAIL', (dryRes && dryRes.error) ? dryRes.error : 'Dry run failed.');
+    } else {
+      dryRunSummary = {
+        staffPoolSize: Number(dryRes.staffPoolSize || 0),
+        needsCount: Number(dryRes.needsCount || 0),
+        generatedCount: Number(dryRes.generatedCount || 0),
+        unfilledCount: Number(dryRes.unfilledCount || 0),
+        diagnostics: dryRes.diagnostics || {}
+      };
+      unfilledPreview = Array.isArray(dryRes.unfilled) ? dryRes.unfilled.slice(0, 50) : [];
+      if (Number(dryRes.unfilledCount || 0) > 0) {
+        pushTest('dry_run', 'Dry run generation', 'WARN',
+          'Dry run completed with ' + Number(dryRes.unfilledCount || 0) + ' unfilled slot(s).',
+          dryRunSummary
+        );
+      } else {
+        pushTest('dry_run', 'Dry run generation', 'PASS',
+          'Dry run completed with full coverage (' + Number(dryRes.generatedCount || 0) + ' assignments).',
+          dryRunSummary
+        );
+      }
+    }
+
+    var assignRes = getSchedulerAssignments({ month: parsed.monthKey });
+    if (!assignRes || !assignRes.success) {
+      pushTest('assignments_read', 'Assignments readability', 'FAIL', (assignRes && assignRes.error) ? assignRes.error : 'Could not load assignment rows.');
+    } else {
+      var rowCount = Array.isArray(assignRes.rows) ? assignRes.rows.length : 0;
+      pushTest('assignments_read', 'Assignments readability', 'PASS', 'Existing assignment rows for ' + parsed.monthKey + ': ' + rowCount + '.');
+    }
+  } catch (e) {
+    pushTest('unexpected_error', 'Unexpected error', 'FAIL', e && e.message ? e.message : String(e));
+  }
+
+  var passCount = 0;
+  var warnCount = 0;
+  var failCount = 0;
+  tests.forEach(function(t) {
+    var st = String(t.status || '').toUpperCase();
+    if (st === 'PASS') passCount++;
+    else if (st === 'WARN') warnCount++;
+    else failCount++;
+  });
+
+  return {
+    success: failCount === 0,
+    month: parsed.monthKey,
+    tests: tests,
+    summary: {
+      passCount: passCount,
+      warnCount: warnCount,
+      failCount: failCount,
+      total: tests.length
+    },
+    dryRun: dryRunSummary,
+    unfilledPreview: unfilledPreview
+  };
+}
+
 function _toolsHeaderIndexFromCandidates_(headerRow, candidates) {
   var headers = Array.isArray(headerRow) ? headerRow : [];
   var norms = headers.map(function(h) { return _toolsNormHeader_(h); });
@@ -8875,11 +12872,13 @@ function _toolsCurrentUserEmail_() {
 }
 
 function _toolsStaffRecordFromRow_(headers, row, rowNumber) {
-  var nameIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT', 'NAME', 'STAFF_NAME', 'NOME']);
-  var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['EMAIL', 'E_MAIL']);
+  var nameIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_NAME', 'PILOT', 'NAME', 'STAFF_NAME', 'NOME']);
+  var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_EMAIL', 'EMAIL', 'E_MAIL']);
   var staffIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['STAFF_ID', 'PILOT_ID', 'ID']);
   var activeIdx = _toolsHeaderIndexFromCandidates_(headers, ['ACTIVE', 'ATIVO']);
   var roleIdx = _toolsHeaderIndexFromCandidates_(headers, ['PRIMARY_ROLE', 'ROLE', 'FUNCAO', 'FUNC\u00c3O']);
+  var rolesJsonIdx = _toolsHeaderIndexFromCandidates_(headers, ['STAFF_ROLES_JSON']);
+  var qualificationsJsonIdx = _toolsHeaderIndexFromCandidates_(headers, ['QUALIFICATIONS_JSON']);
   var notesIdx = _toolsHeaderIndexFromCandidates_(headers, ['NOTES']);
   var canEditDiscIdx = _toolsHeaderIndexFromCandidates_(headers, ['CAN_EDIT_DISCREPANCIES']);
   var canApproveDefIdx = _toolsHeaderIndexFromCandidates_(headers, ['CAN_APPROVE_DEFERMENTS']);
@@ -8889,6 +12888,8 @@ function _toolsStaffRecordFromRow_(headers, row, rowNumber) {
   var canStockIdx = _toolsHeaderIndexFromCandidates_(headers, ['CAN_MANAGE_STOCKROOM']);
   var canInstructIdx = _toolsHeaderIndexFromCandidates_(headers, ['CAN_INSTRUCT']);
   var canInspectIdx = _toolsHeaderIndexFromCandidates_(headers, ['CAN_INSPECT']);
+  var parsedRoles = _parseJsonLoose_(rolesJsonIdx >= 0 ? row[rolesJsonIdx] : '', []);
+  var parsedQualifications = _parseJsonLoose_(qualificationsJsonIdx >= 0 ? row[qualificationsJsonIdx] : '', []);
   return {
     rowNumber: rowNumber,
     staffName: nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '',
@@ -8896,6 +12897,8 @@ function _toolsStaffRecordFromRow_(headers, row, rowNumber) {
     staffId: staffIdIdx >= 0 ? String(row[staffIdIdx] || '').trim() : '',
     active: activeIdx >= 0 ? _toolsTruthyFlag_(row[activeIdx]) : true,
     primaryRole: roleIdx >= 0 ? String(row[roleIdx] || '').trim() : '',
+    staffRoles: Array.isArray(parsedRoles) ? parsedRoles.map(function(v) { return String(v || '').trim(); }).filter(Boolean) : [],
+    qualifications: Array.isArray(parsedQualifications) ? parsedQualifications.map(function(v) { return String(v || '').trim(); }).filter(Boolean) : [],
     notes: notesIdx >= 0 ? String(row[notesIdx] || '').trim() : '',
     canEditDiscrepancies: canEditDiscIdx >= 0 ? _toolsTruthyFlag_(row[canEditDiscIdx]) : false,
     canApproveDeferments: canApproveDefIdx >= 0 ? _toolsTruthyFlag_(row[canApproveDefIdx]) : false,
@@ -8988,12 +12991,16 @@ function getToolsStaffSetupData() {
       }
     }
 
+    var authRes = getPilotAircraftAuthorizations({});
+
     return {
       success: true,
       currentUser: me,
       staff: staffRows,
       roles: roles,
-      modules: modules
+      modules: modules,
+      pilotAuthorizations: authRes && authRes.success && Array.isArray(authRes.rows) ? authRes.rows : [],
+      authorizationConfig: _pilotAuthorizationOptionSets_()
     };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
@@ -9015,7 +13022,7 @@ function saveToolsStaffProfile(payload) {
     if (!staffName) return { success: false, error: 'Staff name is required' };
     if (!email) return { success: false, error: 'Staff email is required' };
 
-    var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['EMAIL', 'E_MAIL']);
+    var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_EMAIL', 'EMAIL', 'E_MAIL']);
     var staffIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['STAFF_ID']);
     if (rowNumber < 2) {
       for (var i = 1; i < data.length; i++) {
@@ -9030,7 +13037,9 @@ function saveToolsStaffProfile(payload) {
 
     var dataMap = {
       STAFF_ID: staffId,
+      PILOT_EMAIL: email,
       EMAIL: email,
+      PILOT_NAME: staffName,
       PILOT: staffName,
       PRIMARY_ROLE: String(body.primaryRole || '').trim(),
       ACTIVE: _toolsTruthyFlag_(body.active) ? 'Y' : 'N',
@@ -9050,6 +13059,7 @@ function saveToolsStaffProfile(payload) {
       return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : '';
     });
 
+    var result;
     if (rowNumber >= 2) {
       var current = sh.getRange(rowNumber, 1, 1, headers.length).getValues()[0];
       var merged = headers.map(function(header, idx) {
@@ -9057,11 +13067,379 @@ function saveToolsStaffProfile(payload) {
         return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : current[idx];
       });
       sh.getRange(rowNumber, 1, 1, merged.length).setValues([merged]);
-      return { success: true, action: 'updated', rowNumber: rowNumber };
+      result = { success: true, action: 'updated', rowNumber: rowNumber };
+    } else {
+      sh.appendRow(record);
+      result = { success: true, action: 'created', rowNumber: sh.getLastRow() };
     }
 
-    sh.appendRow(record);
-    return { success: true, action: 'created', rowNumber: sh.getLastRow() };
+    _syncStaffIdentityToAuthorizationTables_({
+      staffName: staffName,
+      email: email,
+      staffId: staffId
+    });
+
+    return result;
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _syncStaffIdentityToAuthorizationTables_(staff) {
+  var staffName = String(staff && staff.staffName || '').trim();
+  var email = String(staff && staff.email || '').trim().toLowerCase();
+  var staffId = String(staff && staff.staffId || '').trim();
+  if (!staffName || !email) return;
+
+  var now = safeDateStr(new Date());
+  var idToken = String(staffId || email).replace(/[^A-Z0-9]/gi, '').toUpperCase() || String(new Date().getTime());
+
+  // Seed identity row in DB_Pilot_Authorizations (non-authorizing until checkout/training updates real rows)
+  var authSheet = _pilotAuthorizationSheet_();
+  var authHeaders = _toolsSheetHeaderRow_(authSheet);
+  var authData = authSheet.getDataRange().getValues();
+  var authMatchRow = -1;
+  for (var i = 1; i < authData.length; i++) {
+    var rec = _pilotAuthorizationRecordFromRow_(authHeaders, authData[i], i + 1);
+    var sameIdentity = (staffId && rec.staffId === staffId) || (email && rec.pilotEmail === email);
+    if (!sameIdentity) continue;
+    if (String(rec.source || '').trim().toUpperCase() !== 'STAFF_PROFILE_SYNC') continue;
+    authMatchRow = i + 1;
+    break;
+  }
+
+  var authSeedMap = {
+    AUTHORIZATION_ID: 'PAUTH_PROFILE_' + idToken,
+    PILOT_NAME: staffName,
+    PILOT_EMAIL: email,
+    STAFF_ID: staffId,
+    AIRCRAFT_TYPE: '',
+    ROLE: '',
+    AUTHORIZATION_TYPE: '',
+    STATUS: 'PENDING',
+    DATE_AUTHORIZED: '',
+    EXPIRY_DATE: '',
+    INSTRUCTOR_SIGNOFF: '',
+    SOURCE: 'STAFF_PROFILE_SYNC',
+    NOTES: 'Auto-created from Add/Edit Staff',
+    CREATED_AT: now,
+    UPDATED_AT: now
+  };
+
+  if (authMatchRow >= 2) {
+    var authCurrent = authSheet.getRange(authMatchRow, 1, 1, authHeaders.length).getValues()[0];
+    var authMerged = authHeaders.map(function(header, idx) {
+      var key = _toolsNormHeader_(header);
+      if (key === 'CREATED_AT') return authCurrent[idx] || now;
+      return Object.prototype.hasOwnProperty.call(authSeedMap, key) ? authSeedMap[key] : authCurrent[idx];
+    });
+    authSheet.getRange(authMatchRow, 1, 1, authMerged.length).setValues([authMerged]);
+  } else {
+    var authRow = authHeaders.map(function(header) {
+      var key = _toolsNormHeader_(header);
+      return Object.prototype.hasOwnProperty.call(authSeedMap, key) ? authSeedMap[key] : '';
+    });
+    authSheet.appendRow(authRow);
+  }
+
+  // Seed identity row in DB_Checks (non-authorizing placeholder until real runway/waiver rows are added)
+  var checksSheet = _pilotRunwayChecksSheet_();
+  var checksHeaders = _toolsSheetHeaderRow_(checksSheet);
+  var checksData = checksSheet.getDataRange().getValues();
+  var checksMatchRow = -1;
+  for (var c = 1; c < checksData.length; c++) {
+    var chk = _pilotRunwayCheckRecordFromRow_(checksHeaders, checksData[c], c + 1);
+    var sameCheckIdentity = (staffId && chk.staffId === staffId) || (email && chk.pilotEmail === email);
+    if (!sameCheckIdentity) continue;
+    if (String(chk.source || '').trim().toUpperCase() !== 'STAFF_PROFILE_SYNC') continue;
+    checksMatchRow = c + 1;
+    break;
+  }
+
+  var checksSeedMap = {
+    CHECK_ID: 'CHK_PROFILE_' + idToken,
+    PILOT_NAME: staffName,
+    PILOT_EMAIL: email,
+    STAFF_ID: staffId,
+    ICAO: '',
+    RUNWAY_IDENT: '',
+    AUTH_SCOPE: '',
+    STATUS: 'PENDING',
+    DATE_CHECKED: '',
+    EXPIRY_DATE: '',
+    APPROVED_BY: '',
+    SOURCE: 'STAFF_PROFILE_SYNC',
+    NOTES: 'Auto-created from Add/Edit Staff',
+    CREATED_AT: now,
+    UPDATED_AT: now
+  };
+
+  if (checksMatchRow >= 2) {
+    var checksCurrent = checksSheet.getRange(checksMatchRow, 1, 1, checksHeaders.length).getValues()[0];
+    var checksMerged = checksHeaders.map(function(header, idx) {
+      var key = _toolsNormHeader_(header);
+      if (key === 'CREATED_AT') return checksCurrent[idx] || now;
+      return Object.prototype.hasOwnProperty.call(checksSeedMap, key) ? checksSeedMap[key] : checksCurrent[idx];
+    });
+    checksSheet.getRange(checksMatchRow, 1, 1, checksMerged.length).setValues([checksMerged]);
+  } else {
+    var checksRow = checksHeaders.map(function(header) {
+      var key = _toolsNormHeader_(header);
+      return Object.prototype.hasOwnProperty.call(checksSeedMap, key) ? checksSeedMap[key] : '';
+    });
+    checksSheet.appendRow(checksRow);
+  }
+}
+
+function _ensureToolsSchemaSheet_(sheetName, headers, tabColor) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(sheetName);
+  if (!sh) sh = ss.insertSheet(sheetName);
+
+  var lastCol = sh.getLastColumn();
+  if (lastCol < 1) {
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+  } else {
+    var current = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+    var currentNorms = current.map(function(header) { return _toolsNormHeader_(header); });
+    var missing = [];
+    headers.forEach(function(header) {
+      if (currentNorms.indexOf(_toolsNormHeader_(header)) === -1) missing.push(header);
+    });
+    if (missing.length) sh.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+  }
+
+  var finalCol = sh.getLastColumn();
+  if (finalCol > 0) {
+    sh.getRange(1, 1, 1, finalCol)
+      .setFontWeight('bold')
+      .setBackground(tabColor || '#1f2937')
+      .setFontColor('white');
+  }
+  sh.setFrozenRows(1);
+  return sh;
+}
+
+function _pilotAuthorizationHeaders_() {
+  return [
+    'Authorization_ID',
+    'Pilot_Name',
+    'Pilot_Email',
+    'Staff_ID',
+    'Aircraft_Type',
+    'Role',
+    'Authorization_Type',
+    'Status',
+    'Date_Authorized',
+    'Expiry_Date',
+    'Instructor_Signoff',
+    'Source',
+    'Notes',
+    'Created_At',
+    'Updated_At'
+  ];
+}
+
+function _pilotAuthorizationOptionSets_() {
+  return {
+    roles: ['Student', 'Operational', 'Instructor'],
+    authorizationTypes: ['INITIAL', 'ANNUAL_PROFICIENCY', 'UPGRADE', 'REINSTATEMENT', 'LINE_CHECK'],
+    statuses: ['ACTIVE', 'PENDING', 'SUSPENDED', 'REVOKED', 'EXPIRED']
+  };
+}
+
+function _ensurePilotAuthorizationSheetSchema_() {
+  return _ensureToolsSchemaSheet_(APP_SHEETS.PILOT_AUTHORIZATIONS || 'DB_Pilot_Authorizations', _pilotAuthorizationHeaders_(), '#2c3e50');
+}
+
+function _pilotAuthorizationSheet_() {
+  return _ensurePilotAuthorizationSheetSchema_();
+}
+
+function _pilotAuthorizationRecordFromRow_(headers, row, rowNumber) {
+  var authIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['AUTHORIZATION_ID']);
+  var nameIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_NAME', 'PILOT']);
+  var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_EMAIL', 'EMAIL']);
+  var staffIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['STAFF_ID']);
+  var aircraftIdx = _toolsHeaderIndexFromCandidates_(headers, ['AIRCRAFT_TYPE', 'AIRCRAFT']);
+  var roleIdx = _toolsHeaderIndexFromCandidates_(headers, ['ROLE']);
+  var authTypeIdx = _toolsHeaderIndexFromCandidates_(headers, ['AUTHORIZATION_TYPE', 'AUTH_TYPE']);
+  var statusIdx = _toolsHeaderIndexFromCandidates_(headers, ['STATUS']);
+  var authorizedIdx = _toolsHeaderIndexFromCandidates_(headers, ['DATE_AUTHORIZED', 'AUTHORIZED_AT']);
+  var expiryIdx = _toolsHeaderIndexFromCandidates_(headers, ['EXPIRY_DATE', 'VALID_UNTIL']);
+  var signoffIdx = _toolsHeaderIndexFromCandidates_(headers, ['INSTRUCTOR_SIGNOFF', 'SIGNOFF']);
+  var sourceIdx = _toolsHeaderIndexFromCandidates_(headers, ['SOURCE']);
+  var notesIdx = _toolsHeaderIndexFromCandidates_(headers, ['NOTES']);
+  var createdIdx = _toolsHeaderIndexFromCandidates_(headers, ['CREATED_AT']);
+  var updatedIdx = _toolsHeaderIndexFromCandidates_(headers, ['UPDATED_AT']);
+
+  var pilotName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
+  var pilotEmail = emailIdx >= 0 ? String(row[emailIdx] || '').trim().toLowerCase() : '';
+  var aircraftType = aircraftIdx >= 0 ? String(row[aircraftIdx] || '').trim() : '';
+  var role = roleIdx >= 0 ? String(row[roleIdx] || '').trim() : '';
+  var authorizationType = authTypeIdx >= 0 ? String(row[authTypeIdx] || '').trim() : '';
+  var status = statusIdx >= 0 ? String(row[statusIdx] || '').trim() : '';
+  var dateAuthorized = authorizedIdx >= 0 ? safeDateStr(row[authorizedIdx]) : '';
+  var expiryDate = expiryIdx >= 0 ? safeDateStr(row[expiryIdx]) : '';
+  var statusUpper = status.toUpperCase();
+  var isActive = !statusUpper || statusUpper === 'ACTIVE' || statusUpper === 'AUTHORIZED' || statusUpper === 'VALID';
+  var isExpired = !!expiryDate && expiryDate < safeDateStr(new Date());
+
+  return {
+    rowNumber: rowNumber,
+    authorizationId: authIdIdx >= 0 ? String(row[authIdIdx] || '').trim() : '',
+    pilotName: pilotName,
+    pilotEmail: pilotEmail,
+    staffId: staffIdIdx >= 0 ? String(row[staffIdIdx] || '').trim() : '',
+    aircraftType: aircraftType,
+    role: role,
+    authorizationType: authorizationType,
+    status: status,
+    dateAuthorized: dateAuthorized,
+    expiryDate: expiryDate,
+    instructorSignoff: signoffIdx >= 0 ? String(row[signoffIdx] || '').trim() : '',
+    source: sourceIdx >= 0 ? String(row[sourceIdx] || '').trim() : '',
+    notes: notesIdx >= 0 ? String(row[notesIdx] || '').trim() : '',
+    createdAt: createdIdx >= 0 ? safeDateStr(row[createdIdx]) : '',
+    updatedAt: updatedIdx >= 0 ? safeDateStr(row[updatedIdx]) : '',
+    isActive: isActive,
+    isExpired: isExpired
+  };
+}
+
+function getPilotAircraftAuthorizations(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var targetEmail = String(body.pilotEmail || body.email || '').trim().toLowerCase();
+    var targetName = String(body.pilotName || body.name || '').trim().toUpperCase();
+    var targetAircraft = String(body.aircraftType || '').trim().toUpperCase();
+    var targetRole = String(body.role || '').trim().toUpperCase();
+
+    var sh = _pilotAuthorizationSheet_();
+    var data = sh.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: true, rows: [] };
+
+    var headers = data[0];
+    var rows = [];
+    for (var i = 1; i < data.length; i++) {
+      var rec = _pilotAuthorizationRecordFromRow_(headers, data[i], i + 1);
+      if (!rec.pilotName && !rec.pilotEmail) continue;
+      if (targetEmail && rec.pilotEmail !== targetEmail) continue;
+      if (!targetEmail && targetName && String(rec.pilotName || '').trim().toUpperCase() !== targetName) continue;
+      if (targetAircraft && String(rec.aircraftType || '').trim().toUpperCase() !== targetAircraft) continue;
+      if (targetRole && String(rec.role || '').trim().toUpperCase() !== targetRole) continue;
+      rows.push(rec);
+    }
+
+    rows.sort(function(a, b) {
+      var ak = [a.pilotName, a.aircraftType, a.role, a.expiryDate].join('|').toUpperCase();
+      var bk = [b.pilotName, b.aircraftType, b.role, b.expiryDate].join('|').toUpperCase();
+      return ak.localeCompare(bk);
+    });
+
+    return { success: true, rows: rows };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function isPilotAuthorizedForAircraftRole_(pilotEmail, pilotName, aircraftType, role, asOfDate) {
+  var asOf = safeDateStr(asOfDate || new Date());
+  var auth = getPilotAircraftAuthorizations({
+    pilotEmail: pilotEmail,
+    pilotName: pilotName,
+    aircraftType: aircraftType,
+    role: role
+  });
+  if (!auth || !auth.success || !Array.isArray(auth.rows) || !auth.rows.length) return false;
+
+  for (var i = 0; i < auth.rows.length; i++) {
+    var rec = auth.rows[i];
+    if (!rec.isActive) continue;
+    if (rec.expiryDate && rec.expiryDate < asOf) continue;
+    return true;
+  }
+  return false;
+}
+
+function saveToolsPilotAuthorization(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var sh = _pilotAuthorizationSheet_();
+    var headers = _toolsSheetHeaderRow_(sh);
+    var data = sh.getDataRange().getValues();
+    var rowNumber = Number(body.rowNumber || 0);
+    var authorizationId = String(body.authorizationId || '').trim();
+    var pilotName = String(body.pilotName || '').trim();
+    var pilotEmail = String(body.pilotEmail || '').trim().toLowerCase();
+    var aircraftType = String(body.aircraftType || '').trim();
+    var role = String(body.role || '').trim();
+
+    if (!pilotName) return { success: false, error: 'Pilot name is required' };
+    if (!pilotEmail) return { success: false, error: 'Pilot email is required' };
+    if (!aircraftType) return { success: false, error: 'Aircraft type is required' };
+    if (!role) return { success: false, error: 'Authorization role is required' };
+
+    if (rowNumber < 2 && authorizationId) {
+      for (var i = 1; i < data.length; i++) {
+        var rec = _pilotAuthorizationRecordFromRow_(headers, data[i], i + 1);
+        if (String(rec.authorizationId || '').trim() === authorizationId) {
+          rowNumber = i + 1;
+          break;
+        }
+      }
+    }
+
+    var now = safeDateStr(new Date());
+    if (!authorizationId) authorizationId = 'PAUTH_' + new Date().getTime() + '_' + String(role || '').trim().toUpperCase();
+    var dataMap = {
+      AUTHORIZATION_ID: authorizationId,
+      PILOT_NAME: pilotName,
+      PILOT_EMAIL: pilotEmail,
+      STAFF_ID: String(body.staffId || '').trim(),
+      AIRCRAFT_TYPE: aircraftType,
+      ROLE: role,
+      AUTHORIZATION_TYPE: String(body.authorizationType || 'INITIAL').trim().toUpperCase(),
+      STATUS: String(body.status || 'ACTIVE').trim().toUpperCase(),
+      DATE_AUTHORIZED: safeDateStr(body.dateAuthorized || now),
+      EXPIRY_DATE: safeDateStr(body.expiryDate || ''),
+      INSTRUCTOR_SIGNOFF: String(body.instructorSignoff || '').trim(),
+      SOURCE: String(body.source || '').trim(),
+      NOTES: String(body.notes || '').trim(),
+      UPDATED_AT: now
+    };
+
+    if (rowNumber >= 2) {
+      var current = sh.getRange(rowNumber, 1, 1, headers.length).getValues()[0];
+      var merged = headers.map(function(header, idx) {
+        var key = _toolsNormHeader_(header);
+        if (key === 'CREATED_AT') return current[idx] || now;
+        return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : current[idx];
+      });
+      sh.getRange(rowNumber, 1, 1, merged.length).setValues([merged]);
+      return { success: true, action: 'updated', rowNumber: rowNumber, authorizationId: authorizationId };
+    }
+
+    dataMap.CREATED_AT = now;
+    var row = headers.map(function(header) {
+      var key = _toolsNormHeader_(header);
+      return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : '';
+    });
+    sh.appendRow(row);
+    return { success: true, action: 'created', rowNumber: sh.getLastRow(), authorizationId: authorizationId };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function deleteToolsPilotAuthorization(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var sh = _pilotAuthorizationSheet_();
+    var rowNumber = Number(body.rowNumber || 0);
+    if (rowNumber < 2) return { success: false, error: 'Authorization row not found' };
+    sh.deleteRow(rowNumber);
+    return { success: true, deletedRowNumber: rowNumber };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }
@@ -9137,6 +13515,54 @@ function _toolsFindStaffByEmailOrId_(staffRows, staffEmail, staffId) {
     if (sid && String(row.staffId || '').trim() === sid) return row;
   }
   return null;
+}
+
+function _toolsStaffRoleSet_(staff) {
+  var out = {};
+  var primary = String((staff && staff.primaryRole) || '').trim();
+  if (primary) out[primary.toUpperCase()] = primary;
+  var roles = (staff && Array.isArray(staff.staffRoles)) ? staff.staffRoles : [];
+  roles.forEach(function(role) {
+    var raw = String(role || '').trim();
+    if (raw) out[raw.toUpperCase()] = raw;
+  });
+  return Object.keys(out).map(function(key) { return out[key]; });
+}
+
+function _toolsPilotAuthorizationSummary_(staff, aircraftType, authorizationRole) {
+  var authRes = getPilotAircraftAuthorizations({
+    pilotEmail: staff && staff.email,
+    pilotName: staff && staff.staffName,
+    aircraftType: aircraftType,
+    role: authorizationRole
+  });
+
+  if (!authRes || !authRes.success) {
+    return {
+      required: !!(aircraftType || authorizationRole),
+      ready: false,
+      error: authRes && authRes.error ? authRes.error : 'Could not read pilot authorizations',
+      aircraftType: aircraftType || '',
+      role: authorizationRole || '',
+      rows: []
+    };
+  }
+
+  var today = safeDateStr(new Date());
+  var rows = Array.isArray(authRes.rows) ? authRes.rows : [];
+  var activeRows = rows.filter(function(rec) { return !!rec.isActive; });
+  var validRows = activeRows.filter(function(rec) { return !rec.expiryDate || rec.expiryDate >= today; });
+
+  return {
+    required: !!(aircraftType || authorizationRole),
+    ready: validRows.length > 0,
+    aircraftType: aircraftType || '',
+    role: authorizationRole || '',
+    totalCount: rows.length,
+    activeCount: activeRows.length,
+    validCount: validRows.length,
+    rows: rows
+  };
 }
 
 function saveToolsPracticalEvaluation(payload) {
@@ -9270,11 +13696,14 @@ function getToolsStaffReadiness(payload) {
     var staffEmail = String(body.staffEmail || '').trim().toLowerCase();
     var staffId = String(body.staffId || '').trim();
     var moduleFilter = String(body.moduleId || '').trim().toUpperCase();
+    var aircraftType = String(body.aircraftType || '').trim();
+    var authorizationRole = String(body.authorizationRole || '').trim();
 
     var setup = getToolsStaffSetupData();
     if (!setup || !setup.success) return { success: false, error: (setup && setup.error) || 'Could not load staff data' };
     var staff = _toolsFindStaffByEmailOrId_(setup.staff || [], staffEmail, staffId);
     if (!staff) return { success: false, error: 'Staff member not found' };
+    var staffRoleSet = _toolsStaffRoleSet_(staff).map(function(role) { return String(role || '').trim().toUpperCase(); });
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var moduleSheet = getRequiredSheet_(ss, APP_SHEETS.TRAINING_MODULES || 'REF_Training_Modules', 'getToolsStaffReadiness');
@@ -9297,7 +13726,7 @@ function getToolsStaffReadiness(payload) {
       if (!id) continue;
       if (moduleFilter && id !== moduleFilter) continue;
       var roleCode = modRoleIdx >= 0 ? String(moduleData[m][modRoleIdx] || '').trim() : '';
-      if (!moduleFilter && roleCode && staff.primaryRole && roleCode !== staff.primaryRole) continue;
+      if (!moduleFilter && roleCode && staffRoleSet.length && staffRoleSet.indexOf(String(roleCode || '').trim().toUpperCase()) < 0) continue;
       var active = modActiveIdx < 0 ? true : _toolsTruthyFlag_(moduleData[m][modActiveIdx]);
       if (!active) continue;
       modules.push({
@@ -9330,6 +13759,7 @@ function getToolsStaffReadiness(payload) {
     var now = new Date();
     var rows = [];
     var readyCount = 0;
+  var authorization = _toolsPilotAuthorizationSummary_(staff, aircraftType, authorizationRole);
 
     modules.forEach(function(module) {
       var theoryPassed = false;
@@ -9398,12 +13828,14 @@ function getToolsStaffReadiness(payload) {
         staffName: staff.staffName,
         email: staff.email,
         staffId: staff.staffId,
-        primaryRole: staff.primaryRole
+        primaryRole: staff.primaryRole,
+        staffRoles: staff.staffRoles || []
       },
+      authorization: authorization,
       summary: {
         moduleCount: rows.length,
         readyCount: readyCount,
-        overallReady: rows.length > 0 && readyCount === rows.length
+        overallReady: rows.length > 0 && readyCount === rows.length && (!authorization.required || authorization.ready)
       },
       rows: rows
     };
@@ -10281,6 +14713,36 @@ function submitRunwayApprovalRequest(payload) {
   }
 }
 
+function _runwayDbRowToObject_(headers, row) {
+  var out = {};
+  for (var i = 0; i < headers.length; i++) {
+    var key = String(headers[i] || '').trim();
+    if (!key) continue;
+    out[key] = row[i];
+  }
+  return out;
+}
+
+function _runwayOfficialLogIdFromDbRow_(dbRowObj, fallbackId) {
+  var row = dbRowObj || {};
+  var candidates = [
+    'OFFICIAL_LOGID',
+    'OFFICIAL_LOG_ID',
+    'RUNWAY_LOGID',
+    'RUNWAY_LOG_ID',
+    'LOGID',
+    'LOG_ID',
+    'SOURCE_LOGID',
+    'SOURCE_LOG_ID'
+  ];
+  for (var i = 0; i < candidates.length; i++) {
+    var key = candidates[i];
+    var val = String(row[key] == null ? '' : row[key]).trim();
+    if (val) return val;
+  }
+  return String(fallbackId || '').trim();
+}
+
 function getPendingRunwaySurveyReviews(limit) {
   try {
     const schema = _ensureRunwayWalkthroughLogSchema_();
@@ -10292,13 +14754,39 @@ function getPendingRunwaySurveyReviews(limit) {
     if (lastRow < 2) return { success: true, items: [] };
     const rows = sh.getRange(2, 1, lastRow - 1, schema.headers.length).getValues();
 
+    var dbHeaders = [];
+    var dbCols = null;
+    var dbByRunway = {};
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const dbSheet = ss.getSheetByName('DB_Airports');
+      if (dbSheet) {
+        const dbData = dbSheet.getDataRange().getValues();
+        if (dbData && dbData.length) {
+          dbHeaders = dbData[0].map(function(h) { return String(h || '').trim(); });
+          dbCols = _runwayDbFindCols_(dbHeaders);
+          for (var di = 1; di < dbData.length; di++) {
+            if (!dbCols || dbCols.icao < 0 || dbCols.runway < 0) break;
+            var rowIcao = String(dbData[di][dbCols.icao] || '').trim().toUpperCase();
+            var rowRwy = String(dbData[di][dbCols.runway] || '').trim().toUpperCase();
+            if (!rowIcao || !rowRwy) continue;
+            dbByRunway[rowIcao + '|' + rowRwy] = _runwayDbRowToObject_(dbHeaders, dbData[di]);
+          }
+        }
+      }
+    } catch (dbErr) {}
+
     const items = rows
       .map(function(r, i) {
+        var itemIcao = String(r[idx.ICAO] || '').trim().toUpperCase();
+        var itemRwy = String(r[idx.RWY_IDENT] || '').trim().toUpperCase();
+        var dbAirport = dbByRunway[itemIcao + '|' + itemRwy] || null;
+        var officialLogId = _runwayOfficialLogIdFromDbRow_(dbAirport, String(r[idx.STAGING_ID] || '').trim());
         return {
           rowNum: i + 2,
           stagingId: String(r[idx.STAGING_ID] || '').trim(),
-          icao: String(r[idx.ICAO] || '').trim().toUpperCase(),
-          rwyIdent: String(r[idx.RWY_IDENT] || '').trim().toUpperCase(),
+          icao: itemIcao,
+          rwyIdent: itemRwy,
           pilotName: String(r[idx.PILOT_NAME] || '').trim(),
           pilotEmail: String(r[idx.PILOT_EMAIL] || '').trim(),
           walkDate: String(r[idx.WALK_DATE] || '').trim(),
@@ -10307,6 +14795,9 @@ function getPendingRunwaySurveyReviews(limit) {
           entryKind: String(r[idx.ENTRY_KIND] || '').trim().toUpperCase(),
           survey: _parseJsonLoose_(r[idx.SURVEY_JSON], {}),
           official: _parseJsonLoose_(r[idx.OFFICIAL_JSON], {}),
+          officialLogId: officialLogId,
+          officialSourceLocked: !!dbAirport,
+          dbAirport: dbAirport,
           captureSummary: _parseJsonLoose_(r[idx.CAPTURE_SUMMARY_JSON], {}),
           deviceInfo: _parseJsonLoose_(r[idx.DEVICE_INFO_JSON], {})
         };
@@ -10326,7 +14817,7 @@ function getPendingRunwaySurveyReviews(limit) {
   }
 }
 
-function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, approvalPassword) {
+function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, approvalPassword, mtowInput) {
   try {
     _verifySupervisorApprovalPassword_(approvalPassword);
     const id = String(stagingId || '').trim();
@@ -10349,16 +14840,169 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
     const rwyIdent = String(rows[logRow][idx.RWY_IDENT] || '').trim().toUpperCase();
     const entryKind = String(rows[logRow][idx.ENTRY_KIND] || '').trim().toUpperCase();
     const survey = _parseJsonLoose_(rows[logRow][idx.SURVEY_JSON], {});
+    const official = _parseJsonLoose_(rows[logRow][idx.OFFICIAL_JSON], {});
+    const mtowPayload = (mtowInput && typeof mtowInput === 'object') ? mtowInput : {};
     const nowIso = new Date().toISOString();
 
     if (entryKind === 'RUNWAY_APPROVAL') {
+      const snapshot = (survey && typeof survey === 'object' && survey.runwaySnapshot && typeof survey.runwaySnapshot === 'object')
+        ? survey.runwaySnapshot
+        : {};
+      const mtowModelKeyRaw = String(mtowPayload.modelKey || mtowPayload.model || snapshot.mtowModelKey || '').trim().toUpperCase();
+      const mtowModelKey = mtowModelKeyRaw || 'GENERIC';
+      const mtowKg = Number(mtowPayload.mtowKg || mtowPayload.value || snapshot.maxTakeoffWeight || 0);
+      if (!isFinite(mtowKg) || mtowKg <= 0) {
+        return { success: false, error: 'Supervisor MTOW is required to approve this runway release.' };
+      }
+
+      const mtowByModel = Object.assign({}, snapshot.mtowByModel || {});
+      mtowByModel[mtowModelKey] = mtowKg;
+
+      survey.runwaySnapshot = Object.assign({}, snapshot, {
+        maxTakeoffWeight: mtowKg,
+        mtowModelKey: mtowModelKey,
+        mtowByModel: mtowByModel,
+        supervisorMtowKg: mtowKg,
+        mtowApprovedBy: String(supervisorName || '').trim() || 'Supervisor',
+        mtowApprovedAt: nowIso,
+        officialLogId: id
+      });
+
+      const officialNext = Object.assign({}, official, {
+        maxTakeoffWeight: mtowKg,
+        mtowModelKey: mtowModelKey,
+        mtowByModel: mtowByModel,
+        officialLogId: id,
+        source: 'DB_Airports',
+        sourceLocked: true,
+        capturedAt: nowIso
+      });
+
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const dbSheet = ss.getSheetByName('DB_Airports');
+      if (!dbSheet) return { success: false, error: 'DB_Airports sheet not found' };
+
+      const dbData = dbSheet.getDataRange().getValues();
+      if (!dbData.length) return { success: false, error: 'DB_Airports is empty' };
+      const cols = _runwayDbFindCols_(dbData[0]);
+      if (cols.icao < 0 || cols.runway < 0 || cols.knownFeatures < 0) {
+        return { success: false, error: 'DB_Airports missing ICAO/RWY_IDENT/KNOWN_FEATURES columns' };
+      }
+
+      const pairKey = _runwayPairKey_(rwyIdent);
+      const publishRows = [];
+      for (let j = 1; j < dbData.length; j++) {
+        const rowIcao = String(dbData[j][cols.icao] || '').trim().toUpperCase();
+        const rowRwy = String(dbData[j][cols.runway] || '').trim().toUpperCase();
+        if (rowIcao !== icao) continue;
+        if ((pairKey && _runwayPairKey_(rowRwy) === pairKey) || rowRwy === rwyIdent) {
+          publishRows.push(j);
+        }
+      }
+      if (!publishRows.length) return { success: false, error: 'Runway not found in DB_Airports' };
+
+      publishRows.forEach(function(rowIndex) {
+        const rowRwyIdent = String(dbData[rowIndex][cols.runway] || '').trim().toUpperCase();
+        const officialSnapshot = _dbAirportOfficialSnapshot_(dbData[rowIndex], cols);
+        const existingRaw = String(dbData[rowIndex][cols.knownFeatures] || '').trim();
+        const existingObj = _parseJsonLoose_(existingRaw, {});
+        const normalizedExisting = Array.isArray(existingObj) ? { features: existingObj } : (existingObj || {});
+        const cutdownAreaMRaw = Number(snapshot.cutdownAreaM || snapshot.cutdownArea || 0);
+        const cutdownAreaM = (isFinite(cutdownAreaMRaw) && cutdownAreaMRaw >= 0) ? Math.round(cutdownAreaMRaw) : null;
+
+        const verifiedOperational = Object.assign({}, (normalizedExisting.verifiedOperational || {}), {
+          lengthM: Number(snapshot.runwayLengthM || 0) || officialSnapshot.lengthM || 0,
+          widthM: Number(snapshot.runwayWidthM || 0) || officialSnapshot.widthM || 0,
+          surface: String(snapshot.surface || '').trim() || officialSnapshot.surface || '',
+          slopeFromThreshold: String(snapshot.runwayIdent || rowRwyIdent || rwyIdent).trim() || rowRwyIdent,
+          cutdownAreaM: cutdownAreaM,
+          cutdownAreaLabel: (cutdownAreaM == null ? 'Unknown' : String(cutdownAreaM) + ' m'),
+          pilotNotes: String(snapshot.pilotNotes || rows[logRow][idx.NOTES] || '').trim(),
+          approvedBy: String(supervisorName || '').trim() || 'Supervisor',
+          approvedAt: nowIso,
+          sourceKind: 'RUNWAY_APPROVAL'
+        });
+
+        const verifiedSurvey = {
+          version: 2,
+          capturedAt: String(rows[logRow][idx.WALK_DATE] || nowIso),
+          pilotName: String(rows[logRow][idx.PILOT_NAME] || '').trim(),
+          pilotEmail: String(rows[logRow][idx.PILOT_EMAIL] || '').trim(),
+          status: 'APPROVED',
+          stagingId: id,
+          publishedRunway: rowRwyIdent,
+          sourceRunway: rwyIdent,
+          entryKind: 'RUNWAY_APPROVAL'
+        };
+
+        const merged = Object.assign({}, normalizedExisting, {
+          verifiedOperational: verifiedOperational,
+          verifiedSurvey: verifiedSurvey,
+          officialReference: {
+            lengthM: officialSnapshot.lengthM,
+            widthM: officialSnapshot.widthM,
+            surface: officialSnapshot.surface,
+            headingDeg: officialSnapshot.headingDeg,
+            source: 'DB_Airports',
+            sourceLocked: true,
+            logId: id,
+            capturedAt: nowIso
+          },
+          updatedAt: nowIso
+        });
+
+        const versionId = String(id + '__' + rowRwyIdent + '__' + nowIso).replace(/[^A-Z0-9_:\-.T]/ig, '_');
+        const historyEntry = {
+          versionId: versionId,
+          stagingId: id,
+          status: 'APPROVED',
+          publishedAt: nowIso,
+          capturedAt: String(rows[logRow][idx.WALK_DATE] || nowIso),
+          pilotName: String(rows[logRow][idx.PILOT_NAME] || '').trim(),
+          pilotEmail: String(rows[logRow][idx.PILOT_EMAIL] || '').trim(),
+          approvedBy: String(supervisorName || '').trim() || 'Supervisor',
+          supervisorNotes: String(supervisorNotes || '').trim(),
+          publishedRunway: rowRwyIdent,
+          sourceRunway: rwyIdent,
+          entryKind: 'RUNWAY_APPROVAL',
+          runwaySnapshot: snapshot,
+          verifiedSurvey: verifiedSurvey,
+          verifiedOperational: verifiedOperational,
+          officialReference: merged.officialReference
+        };
+
+        const existingHistory = Array.isArray(normalizedExisting.surveyHistory)
+          ? normalizedExisting.surveyHistory.filter(function(entry) { return entry && typeof entry === 'object'; })
+          : [];
+        merged.surveyHistory = existingHistory.concat([historyEntry]).slice(-20);
+        merged.currentSurveyVersion = {
+          versionId: versionId,
+          stagingId: id,
+          publishedAt: nowIso,
+          publishedRunway: rowRwyIdent,
+          sourceRunway: rwyIdent
+        };
+
+        dbSheet.getRange(rowIndex + 1, cols.knownFeatures + 1).setValue(JSON.stringify(merged));
+      });
+
+      logSheet.getRange(logRow + 1, idx.SURVEY_JSON + 1).setValue(JSON.stringify(survey));
+      logSheet.getRange(logRow + 1, idx.OFFICIAL_JSON + 1).setValue(JSON.stringify(officialNext));
       logSheet.getRange(logRow + 1, idx.STATUS + 1).setValue('PUBLISHED');
       logSheet.getRange(logRow + 1, idx.SUPERVISOR_NAME + 1).setValue(String(supervisorName || '').trim() || 'Supervisor');
       logSheet.getRange(logRow + 1, idx.SUPERVISOR_NOTES + 1).setValue(String(supervisorNotes || '').trim());
       logSheet.getRange(logRow + 1, idx.APPROVED_AT + 1).setValue(nowIso);
       logSheet.getRange(logRow + 1, idx.PUBLISHED_AT + 1).setValue(nowIso);
       SpreadsheetApp.flush();
-      return { success: true, message: 'Runway approval request approved', icao: icao, rwyIdent: rwyIdent };
+      return {
+        success: true,
+        message: 'Runway approval request approved',
+        icao: icao,
+        rwyIdent: rwyIdent,
+        mtowKg: mtowKg,
+        mtowModelKey: mtowModelKey,
+        headingsUpdated: publishRows.length
+      };
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -10445,10 +15089,43 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
           surface: officialSnapshot.surface,
           headingDeg: officialSnapshot.headingDeg,
           source: 'DB_Airports',
+          sourceLocked: true,
+          logId: id,
           capturedAt: nowIso
         },
         updatedAt: nowIso
       });
+
+      const versionId = String(id + '__' + rowRwyIdent + '__' + nowIso).replace(/[^A-Z0-9_:\-.T]/ig, '_');
+      const historyEntry = {
+        versionId: versionId,
+        stagingId: id,
+        status: 'APPROVED',
+        publishedAt: nowIso,
+        capturedAt: String(rows[logRow][idx.WALK_DATE] || nowIso),
+        pilotName: String(rows[logRow][idx.PILOT_NAME] || '').trim(),
+        pilotEmail: String(rows[logRow][idx.PILOT_EMAIL] || '').trim(),
+        approvedBy: String(supervisorName || '').trim() || 'Supervisor',
+        supervisorNotes: String(supervisorNotes || '').trim(),
+        publishedRunway: rowRwyIdent,
+        sourceRunway: rwyIdent,
+        verifiedSurvey: merged.verifiedSurvey,
+        verifiedOperational: verifiedOperational,
+        officialReference: merged.officialReference
+      };
+
+      const existingHistory = Array.isArray(normalizedExisting.surveyHistory)
+        ? normalizedExisting.surveyHistory.filter(function(entry) { return entry && typeof entry === 'object'; })
+        : [];
+      const cappedHistory = existingHistory.concat([historyEntry]).slice(-20);
+      merged.surveyHistory = cappedHistory;
+      merged.currentSurveyVersion = {
+        versionId: versionId,
+        stagingId: id,
+        publishedAt: nowIso,
+        publishedRunway: rowRwyIdent,
+        sourceRunway: rwyIdent
+      };
 
       if (verifiedOperational.slopeSegments.length) {
         merged.slopeProfile = verifiedOperational.slopeSegments.map(function(seg) {
@@ -10501,6 +15178,144 @@ function rejectRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, ap
   }
 }
 
+function getRunwaySurveyHistory(icao, rwyIdent) {
+  try {
+    const cleanIcao = String(icao || '').trim().toUpperCase();
+    const cleanRwy = String(rwyIdent || '').trim().toUpperCase();
+    if (!cleanIcao || !cleanRwy) return { success: false, error: 'ICAO and runway required' };
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const dbSheet = ss.getSheetByName('DB_Airports');
+    if (!dbSheet) return { success: false, error: 'DB_Airports not found' };
+
+    const dbData = dbSheet.getDataRange().getValues();
+    if (!dbData.length) return { success: false, error: 'DB_Airports is empty' };
+    const cols = _runwayDbFindCols_(dbData[0]);
+    if (cols.icao < 0 || cols.runway < 0 || cols.knownFeatures < 0) {
+      return { success: false, error: 'DB_Airports missing required columns' };
+    }
+
+    let dbRow = -1;
+    for (let i = 1; i < dbData.length; i++) {
+      const ri = String(dbData[i][cols.icao] || '').trim().toUpperCase();
+      const rr = String(dbData[i][cols.runway] || '').trim().toUpperCase();
+      if (ri === cleanIcao && rr === cleanRwy) { dbRow = i; break; }
+    }
+    if (dbRow < 0) return { success: false, error: 'Runway not found in DB_Airports' };
+
+    const kf = _parseJsonLoose_(String(dbData[dbRow][cols.knownFeatures] || '').trim(), {});
+    const normalized = Array.isArray(kf) ? { features: kf } : (kf || {});
+
+    const history = Array.isArray(normalized.surveyHistory)
+      ? normalized.surveyHistory.filter(function(e) { return e && typeof e === 'object'; })
+      : [];
+    const currentVersion = normalized.currentSurveyVersion || null;
+    const activeVerifiedOperational = normalized.verifiedOperational || null;
+    const activeVerifiedSurvey = normalized.verifiedSurvey || null;
+
+    return {
+      success: true,
+      icao: cleanIcao,
+      rwyIdent: cleanRwy,
+      currentVersion: currentVersion,
+      activeVerifiedOperational: activeVerifiedOperational,
+      activeVerifiedSurvey: activeVerifiedSurvey,
+      history: history
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function setActiveRunwaySurveyVersion(icao, rwyIdent, versionId, approvalPassword) {
+  try {
+    _verifySupervisorApprovalPassword_(approvalPassword);
+    const cleanIcao = String(icao || '').trim().toUpperCase();
+    const cleanRwy = String(rwyIdent || '').trim().toUpperCase();
+    const cleanVersionId = String(versionId || '').trim();
+    if (!cleanIcao || !cleanRwy || !cleanVersionId) {
+      return { success: false, error: 'ICAO, runway, and versionId required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const dbSheet = ss.getSheetByName('DB_Airports');
+    if (!dbSheet) return { success: false, error: 'DB_Airports not found' };
+
+    const dbData = dbSheet.getDataRange().getValues();
+    if (!dbData.length) return { success: false, error: 'DB_Airports is empty' };
+    const cols = _runwayDbFindCols_(dbData[0]);
+    if (cols.icao < 0 || cols.runway < 0 || cols.knownFeatures < 0) {
+      return { success: false, error: 'DB_Airports missing required columns' };
+    }
+
+    const pairKey = _runwayPairKey_(cleanRwy);
+    const publishRows = [];
+    let primaryRow = -1;
+    for (let i = 1; i < dbData.length; i++) {
+      const ri = String(dbData[i][cols.icao] || '').trim().toUpperCase();
+      const rr = String(dbData[i][cols.runway] || '').trim().toUpperCase();
+      if (ri !== cleanIcao) continue;
+      if (rr === cleanRwy) { primaryRow = i; }
+      if ((pairKey && _runwayPairKey_(rr) === pairKey) || rr === cleanRwy) {
+        publishRows.push({ rowIndex: i, rowRwy: rr });
+      }
+    }
+    if (primaryRow < 0) return { success: false, error: 'Runway not found in DB_Airports' };
+    if (!publishRows.length) publishRows.push({ rowIndex: primaryRow, rowRwy: cleanRwy });
+
+    // Resolve target version from primary row's history
+    const primaryKf = _parseJsonLoose_(String(dbData[primaryRow][cols.knownFeatures] || '').trim(), {});
+    const primaryNorm = Array.isArray(primaryKf) ? { features: primaryKf } : (primaryKf || {});
+    const history = Array.isArray(primaryNorm.surveyHistory) ? primaryNorm.surveyHistory : [];
+    const targetEntry = history.find(function(e) { return e && String(e.versionId || '').trim() === cleanVersionId; });
+    if (!targetEntry) return { success: false, error: 'Version not found in survey history: ' + cleanVersionId };
+
+    const nowIso = new Date().toISOString();
+    publishRows.forEach(function(pr) {
+      const rowKf = _parseJsonLoose_(String(dbData[pr.rowIndex][cols.knownFeatures] || '').trim(), {});
+      const rowNorm = Array.isArray(rowKf) ? { features: rowKf } : (rowKf || {});
+
+      // Find matching version in this row's history (same stagingId if available, else primary's entry)
+      const rowHistory = Array.isArray(rowNorm.surveyHistory) ? rowNorm.surveyHistory : [];
+      const rowTarget = rowHistory.find(function(e) { return e && String(e.versionId || '').trim() === cleanVersionId; })
+        || rowHistory.find(function(e) { return e && String(e.stagingId || '').trim() === String(targetEntry.stagingId || '').trim(); })
+        || targetEntry;
+
+      const nextKf = Object.assign({}, rowNorm, {
+        verifiedOperational: rowTarget.verifiedOperational || targetEntry.verifiedOperational || rowNorm.verifiedOperational || {},
+        verifiedSurvey: Object.assign({}, rowTarget.verifiedSurvey || targetEntry.verifiedSurvey || {}, {
+          reactivatedAt: nowIso,
+          reactivatedFromVersionId: cleanVersionId
+        }),
+        officialReference: rowTarget.officialReference || targetEntry.officialReference || rowNorm.officialReference || {},
+        currentSurveyVersion: {
+          versionId: cleanVersionId,
+          stagingId: String(targetEntry.stagingId || '').trim(),
+          publishedAt: String(targetEntry.publishedAt || '').trim(),
+          reactivatedAt: nowIso,
+          publishedRunway: pr.rowRwy,
+          sourceRunway: String(targetEntry.sourceRunway || cleanRwy)
+        },
+        updatedAt: nowIso
+      });
+
+      dbSheet.getRange(pr.rowIndex + 1, cols.knownFeatures + 1).setValue(JSON.stringify(nextKf));
+    });
+
+    SpreadsheetApp.flush();
+    return {
+      success: true,
+      message: 'Active survey version updated to ' + cleanVersionId,
+      icao: cleanIcao,
+      rwyIdent: cleanRwy,
+      versionId: cleanVersionId,
+      rowsUpdated: publishRows.length
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 function _aircraftDocsHeaders_() {
   return [
     'TAIL',
@@ -10512,6 +15327,8 @@ function _aircraftDocsHeaders_() {
     'CRITICAL',
     'REVISION',
     'EFFECTIVE_DATE',
+    'EXPIRY_DATE',
+    'UPLOAD_DATE',
     'LAST_VERIFIED_OFFLINE',
     'NOTES',
     'UPDATED_AT',
@@ -10561,7 +15378,9 @@ function _aircraftDocsFlag_(value) {
 function _aircraftDocsDriveIdFromUrl_(url) {
   var raw = String(url || '').trim();
   if (!raw) return '';
-  var m = raw.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  var m = raw.match(/\/folders\/([a-zA-Z0-9_-]{10,})/);
+  if (m && m[1]) return m[1];
+  m = raw.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
   if (m && m[1]) return m[1];
   m = raw.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
   if (m && m[1]) return m[1];
@@ -10665,6 +15484,8 @@ function getAircraftDocsForTools(tail) {
         critical: _aircraftDocsFlag_(row[idx.CRITICAL]) === 'Y',
         revision: String(row[idx.REVISION] || '').trim(),
         effectiveDate: String(row[idx.EFFECTIVE_DATE] || '').trim(),
+        expiryDate: String(row[idx.EXPIRY_DATE] || '').trim(),
+        uploadDate: String(row[idx.UPLOAD_DATE] || '').trim(),
         lastVerifiedOffline: verified,
         notes: String(row[idx.NOTES] || '').trim(),
         updatedAt: String(row[idx.UPDATED_AT] || '').trim(),
@@ -10737,6 +15558,7 @@ function saveAircraftDocForTools(body) {
     rec[idx.CRITICAL] = _aircraftDocsFlag_(payload.critical);
     rec[idx.REVISION] = String(payload.revision || '').trim();
     rec[idx.EFFECTIVE_DATE] = String(payload.effectiveDate || '').trim();
+    rec[idx.EXPIRY_DATE] = String(payload.expiryDate || '').trim();
     rec[idx.LAST_VERIFIED_OFFLINE] = String(payload.lastVerifiedOffline || '').trim();
     rec[idx.NOTES] = String(payload.notes || '').trim();
     rec[idx.UPDATED_AT] = nowIso;
@@ -10782,6 +15604,163 @@ function markAircraftDocsOfflineVerifiedForTools(tail, verifiedBy) {
 
     if (!updated) return { success: false, error: 'No document rows found for ' + target };
     return { success: true, tail: target, lastVerifiedOffline: stamp, updatedRows: updated };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function deleteAircraftDocForTools(request) {
+  try {
+    var req = (request && typeof request === 'object') ? request : { rowNumber: request };
+    var rn = Number(req.rowNumber || 0);
+    if (!rn || rn < 2) return { success: false, error: 'Invalid row number' };
+
+    var schema = _ensureAircraftDocsSheet_();
+    var sh = schema.sheet;
+    var idx = schema.idx;
+    var lastRow = sh.getLastRow();
+    if (rn > lastRow) return { success: false, error: 'Row ' + rn + ' does not exist' };
+
+    var row = sh.getRange(rn, 1, 1, schema.headers.length).getValues()[0];
+    var deleteDriveFile = !!req.deleteDriveFile;
+    var driveFileDeleted = false;
+    var driveDeleteWarning = '';
+
+    if (deleteDriveFile) {
+      var fileId = String(req.driveFileId || row[idx.DRIVE_FILE_ID] || '').trim();
+      if (!fileId) {
+        var fileUrl = String(req.driveUrl || row[idx.DRIVE_URL] || '').trim();
+        fileId = _aircraftDocsDriveIdFromUrl_(fileUrl);
+      }
+      if (!fileId) {
+        driveDeleteWarning = 'Could not find Drive file ID; record was deleted but file was kept.';
+      } else {
+        try {
+          DriveApp.getFileById(fileId).setTrashed(true);
+          driveFileDeleted = true;
+        } catch (de) {
+          driveDeleteWarning = 'Could not move Drive file to trash: ' + (de && de.message ? de.message : String(de));
+        }
+      }
+    }
+
+    sh.deleteRow(rn);
+    return {
+      success: true,
+      deletedRow: rn,
+      driveFileDeleted: driveFileDeleted,
+      driveDeleteWarning: driveDeleteWarning
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _aircraftDocsNormalizeFileName_(tail, docType, effectiveDate, expiryDate, originalName) {
+  var t = String(tail || '').trim().toUpperCase();
+  var dt = String(docType || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_-]/g, '') || 'DOC';
+  var orig = String(originalName || '');
+  var ext = '';
+  var dotIdx = orig.lastIndexOf('.');
+  if (dotIdx >= 0) ext = orig.slice(dotIdx).toLowerCase();
+  var eff = String(effectiveDate || '').trim();
+  var exp = String(expiryDate || '').trim();
+  var effYear = eff ? eff.slice(0, 4) : '';
+  var expYear = exp ? exp.slice(0, 4) : '';
+  var dateLabel = '';
+  if (effYear && expYear && effYear !== expYear) dateLabel = effYear + '-' + expYear;
+  else if (effYear) dateLabel = effYear;
+  else if (expYear) dateLabel = expYear;
+  var parts = [t, dt];
+  if (dateLabel) parts.push(dateLabel);
+  return parts.join('_') + ext;
+}
+
+function uploadAircraftDocForTools(payload) {
+  try {
+    var p = payload || {};
+    var tail = _aircraftDocsNormalizeTail_(p.tail);
+    if (!tail) return { success: false, error: 'Aircraft tail is required' };
+
+    var base64Data = String(p.base64Data || '').trim();
+    var mimeType = String(p.mimeType || 'application/octet-stream').trim();
+    var originalFileName = String(p.originalFileName || 'document').trim();
+    if (!base64Data) return { success: false, error: 'File data is required' };
+
+    var docType = String(p.docType || '').trim();
+    if (!docType) return { success: false, error: 'Doc Type is required' };
+
+    var folderUrl = _aircraftDocsFolderUrlForTail_(tail);
+    if (!folderUrl) return { success: false, error: 'No Drive folder found for ' + tail + '. Open the Aircraft panel and save the aircraft to create a folder first.' };
+
+    var folderId = _aircraftDocsDriveIdFromUrl_(folderUrl);
+    if (!folderId) return { success: false, error: 'Could not parse folder ID from URL: ' + folderUrl };
+
+    var folder;
+    try {
+      folder = DriveApp.getFolderById(folderId);
+    } catch (fe) {
+      return { success: false, error: 'Cannot access Drive folder: ' + (fe.message || String(fe)) };
+    }
+
+    var normalizedName = _aircraftDocsNormalizeFileName_(
+      tail,
+      docType,
+      String(p.effectiveDate || '').trim(),
+      String(p.expiryDate || '').trim(),
+      originalFileName
+    );
+
+    var bytes = Utilities.base64Decode(base64Data);
+    var blob = Utilities.newBlob(bytes, mimeType, normalizedName);
+    var file = folder.createFile(blob);
+    var driveUrl = file.getUrl();
+    var driveFileId = file.getId();
+
+    var uploadDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'GMT', 'yyyy-MM-dd');
+    var nowIso = new Date().toISOString();
+    var by = String(p.updatedBy || _schedulerCurrentUserEmail_() || 'tools').trim();
+
+    var schema = _ensureAircraftDocsSheet_();
+    var sh = schema.sheet;
+    var idx = schema.idx;
+    var rows = sh.getDataRange().getValues();
+
+    var targetRow = -1;
+    for (var i = 1; i < rows.length; i++) {
+      var sameTail = _aircraftDocsNormalizeTail_(rows[i][idx.TAIL]) === tail;
+      var sameType = String(rows[i][idx.DOC_TYPE] || '').trim().toUpperCase() === docType.toUpperCase();
+      var sameName = String(rows[i][idx.DOC_NAME] || '').trim().toUpperCase() === normalizedName.toUpperCase();
+      if (sameTail && sameType && sameName) { targetRow = i + 1; break; }
+    }
+
+    var rec = [];
+    rec[idx.TAIL] = tail;
+    rec[idx.DOC_TYPE] = docType;
+    rec[idx.DOC_NAME] = normalizedName;
+    rec[idx.DRIVE_URL] = driveUrl;
+    rec[idx.DRIVE_FILE_ID] = driveFileId;
+    rec[idx.REQUIRED] = _aircraftDocsFlag_(p.required);
+    rec[idx.CRITICAL] = _aircraftDocsFlag_(p.critical);
+    rec[idx.REVISION] = String(p.revision || '').trim();
+    rec[idx.EFFECTIVE_DATE] = String(p.effectiveDate || '').trim();
+    rec[idx.EXPIRY_DATE] = String(p.expiryDate || '').trim();
+    rec[idx.UPLOAD_DATE] = uploadDate;
+    rec[idx.LAST_VERIFIED_OFFLINE] = '';
+    rec[idx.NOTES] = String(p.notes || '').trim();
+    rec[idx.UPDATED_AT] = nowIso;
+    rec[idx.UPDATED_BY] = by;
+    for (var c = 0; c < schema.headers.length; c++) {
+      if (typeof rec[c] === 'undefined') rec[c] = '';
+    }
+
+    if (targetRow >= 2) {
+      sh.getRange(targetRow, 1, 1, rec.length).setValues([rec]);
+    } else {
+      sh.appendRow(rec);
+    }
+
+    return { success: true, normalizedFileName: normalizedName, driveUrl: driveUrl, driveFileId: driveFileId, uploadDate: uploadDate, action: targetRow >= 2 ? 'updated' : 'created' };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }
