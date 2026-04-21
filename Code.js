@@ -3328,7 +3328,7 @@ function _toolsDutyConfigDefaults_() {
     DUTY_EVENING_ALERT_TIME: '17:00',
     DUTY_MORNING_WINDOW_MIN: '120',
     DUTY_EVENING_WINDOW_MIN: '180',
-    DUTY_GEOFENCE_RADIUS_KM: '8',
+    DUTY_GEOFENCE_RADIUS_KM: '8000',
     DUTY_ALERT_RECIPIENTS: ''
   };
 }
@@ -3340,7 +3340,7 @@ function _toolsDutyConfigDescriptions_() {
     DUTY_EVENING_ALERT_TIME: 'Horário alvo para prompt de encerramento de jornada (HH:MM).',
     DUTY_MORNING_WINDOW_MIN: 'Janela em minutos para prompt de manhã.',
     DUTY_EVENING_WINDOW_MIN: 'Janela em minutos para prompt de tarde/noite.',
-    DUTY_GEOFENCE_RADIUS_KM: 'Raio de proximidade (km) para gatilho por localização.',
+    DUTY_GEOFENCE_RADIUS_KM: 'Raio de proximidade (metros) para gatilho por localização.',
     DUTY_ALERT_RECIPIENTS: 'Emails para alertas de duty time (separados por vírgula).'
   };
 }
@@ -13506,6 +13506,22 @@ function saveToolsTrainingModule(payload) {
   }
 }
 
+function deleteToolsTrainingModule(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var rowNumber = Number(body.rowNumber || 0);
+    if (rowNumber < 2) return { success: false, error: 'Invalid row number.' };
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(APP_SHEETS.TRAINING_MODULES || 'REF_Training_Modules');
+    if (!sh) return { success: false, error: 'REF_Training_Modules sheet not found.' };
+    if (rowNumber > sh.getLastRow()) return { success: false, error: 'Row ' + rowNumber + ' does not exist.' };
+    sh.deleteRow(rowNumber);
+    return { success: true, action: 'deleted', rowNumber: rowNumber };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 function _toolsFindStaffByEmailOrId_(staffRows, staffEmail, staffId) {
   var email = String(staffEmail || '').trim().toLowerCase();
   var sid = String(staffId || '').trim();
@@ -15195,32 +15211,65 @@ function getRunwaySurveyHistory(icao, rwyIdent) {
       return { success: false, error: 'DB_Airports missing required columns' };
     }
 
-    let dbRow = -1;
+    // Collect ALL matching rows for this runway pair (e.g. both RWY 09 and RWY 27)
+    const pairKey = _runwayPairKey_(cleanRwy);
+    const matchedRows = [];
     for (let i = 1; i < dbData.length; i++) {
       const ri = String(dbData[i][cols.icao] || '').trim().toUpperCase();
+      if (ri !== cleanIcao) continue;
       const rr = String(dbData[i][cols.runway] || '').trim().toUpperCase();
-      if (ri === cleanIcao && rr === cleanRwy) { dbRow = i; break; }
+      const isExact = rr === cleanRwy;
+      const isPair  = pairKey && _runwayPairKey_(rr) === pairKey;
+      if (isExact || isPair) matchedRows.push({ rowIdx: i, rwy: rr, isPrimary: isExact });
     }
-    if (dbRow < 0) return { success: false, error: 'Runway not found in DB_Airports' };
 
-    const kf = _parseJsonLoose_(String(dbData[dbRow][cols.knownFeatures] || '').trim(), {});
-    const normalized = Array.isArray(kf) ? { features: kf } : (kf || {});
+    if (!matchedRows.length) return { success: false, error: 'Runway not found in DB_Airports' };
 
-    const history = Array.isArray(normalized.surveyHistory)
-      ? normalized.surveyHistory.filter(function(e) { return e && typeof e === 'object'; })
-      : [];
-    const currentVersion = normalized.currentSurveyVersion || null;
-    const activeVerifiedOperational = normalized.verifiedOperational || null;
-    const activeVerifiedSurvey = normalized.verifiedSurvey || null;
+    // Primary row = the searched direction, fallback to first match
+    const primaryMatch = matchedRows.find(function(r) { return r.isPrimary; }) || matchedRows[0];
+    const primaryKf = _parseJsonLoose_(String(dbData[primaryMatch.rowIdx][cols.knownFeatures] || '').trim(), {});
+    const primaryNorm = Array.isArray(primaryKf) ? { features: primaryKf } : (primaryKf || {});
+
+    // Merge histories from all matched rows, deduplicating by versionId
+    const seenVersionIds = {};
+    const mergedHistory = [];
+    matchedRows.forEach(function(mr) {
+      const kf = _parseJsonLoose_(String(dbData[mr.rowIdx][cols.knownFeatures] || '').trim(), {});
+      const norm = Array.isArray(kf) ? { features: kf } : (kf || {});
+      const hist = Array.isArray(norm.surveyHistory) ? norm.surveyHistory : [];
+      hist.forEach(function(entry) {
+        if (!entry || typeof entry !== 'object') return;
+        const vid = String(entry.versionId || entry.stagingId || '').trim();
+        if (vid && seenVersionIds[vid]) return; // skip duplicate
+        if (vid) seenVersionIds[vid] = true;
+        mergedHistory.push(entry);
+      });
+    });
+
+    // Sort merged history by publishedAt ascending (oldest first)
+    mergedHistory.sort(function(a, b) {
+      const ta = new Date(a.publishedAt || 0).getTime();
+      const tb = new Date(b.publishedAt || 0).getTime();
+      return ta - tb;
+    });
+
+    const currentVersion = primaryNorm.currentSurveyVersion || null;
+    const activeVerifiedOperational = primaryNorm.verifiedOperational || null;
+    const activeVerifiedSurvey = primaryNorm.verifiedSurvey || null;
+
+    // Build the pair label for display (e.g. "09/27")
+    const rwyLabels = matchedRows.map(function(r) { return r.rwy; }).sort();
+    const rwyPairLabel = rwyLabels.join('/');
 
     return {
       success: true,
       icao: cleanIcao,
       rwyIdent: cleanRwy,
+      rwyPairLabel: rwyPairLabel,
       currentVersion: currentVersion,
       activeVerifiedOperational: activeVerifiedOperational,
       activeVerifiedSurvey: activeVerifiedSurvey,
-      history: history
+      history: mergedHistory
     };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
@@ -15452,6 +15501,165 @@ function _aircraftDocsListAircraftRegs_() {
     if (reg) out[reg] = true;
   }
   return Object.keys(out).sort();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// RUNWAY BRIEFING CARD  –  save / load
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Saves a briefingCard blob into the KNOWN_FEATURES JSON for the
+ * matching runway row(s) in DB_Airports.
+ * Both runway directions (e.g. RWY 10 and RWY 28) get the same card
+ * so either direction can open it.
+ */
+function saveRunwayBriefingCard(icao, rwyIdent, cardData) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var dbSheet = ss.getSheetByName('DB_Airports');
+    if (!dbSheet) return { success: false, error: 'DB_Airports sheet not found' };
+
+    var dbData = dbSheet.getDataRange().getValues();
+    if (!dbData.length) return { success: false, error: 'DB_Airports is empty' };
+
+    var cols = _runwayDbFindCols_(dbData[0]);
+    if (cols.icao < 0 || cols.runway < 0 || cols.knownFeatures < 0) {
+      return { success: false, error: 'DB_Airports missing ICAO/RWY_IDENT/KNOWN_FEATURES columns' };
+    }
+
+    var icaoNorm  = String(icao || '').trim().toUpperCase();
+    var pairKey   = _runwayPairKey_(rwyIdent);
+    var rwyNorm   = String(rwyIdent || '').trim().toUpperCase();
+    var nowIso    = new Date().toISOString();
+    var updated   = 0;
+
+    // Sanitise card: remove any injected keys, keep known fields only
+    var allowedKeys = ['restrictions','obstructions','weather','dangers','forcedLanding',
+                       'routes','rwyhist','incidents','othernotes','airstripPhoto',
+                       'mapDistM','revisedAt','revisedBy'];
+    var safeCard = {};
+    allowedKeys.forEach(function(k) {
+      if (cardData && cardData[k] !== undefined) safeCard[k] = cardData[k];
+    });
+    safeCard.savedAt = nowIso;
+
+    for (var i = 1; i < dbData.length; i++) {
+      var rowIcao = String(dbData[i][cols.icao] || '').trim().toUpperCase();
+      var rowRwy  = String(dbData[i][cols.runway] || '').trim().toUpperCase();
+      if (rowIcao !== icaoNorm) continue;
+      // Match this direction OR its pair (both directions of same strip)
+      var match = rowRwy === rwyNorm || (pairKey && _runwayPairKey_(rowRwy) === pairKey);
+      if (!match) continue;
+
+      var existingRaw = String(dbData[i][cols.knownFeatures] || '').trim();
+      var existingObj = _parseJsonLoose_(existingRaw, {});
+      var normalised  = Array.isArray(existingObj) ? { features: existingObj } : (existingObj || {});
+      normalised.briefingCard = safeCard;
+
+      dbSheet.getRange(i + 1, cols.knownFeatures + 1).setValue(JSON.stringify(normalised));
+      updated++;
+    }
+
+    if (!updated) return { success: false, error: 'Runway not found in DB_Airports: ' + icaoNorm + ' ' + rwyNorm };
+    return { success: true, updatedRows: updated, savedAt: nowIso };
+  } catch (e) {
+    return { success: false, error: String(e && e.message || e) };
+  }
+}
+
+/**
+ * Returns the last `limit` takeoff departures from `icao` (matching
+ * rwyIdent where available) from LOG_Flights, with performance details.
+ */
+function getRunwayTakeoffHistory(icao, rwyIdent, limit) {
+  try {
+    var ss       = SpreadsheetApp.getActiveSpreadsheet();
+    var logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+    if (!logSheet) return { success: true, records: [] };
+
+    var data = logSheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, records: [] };
+
+    var headers = data[0].map(function(h) { return String(h||'').toUpperCase().trim().replace(/\s+/g,'_'); });
+    var col = function(name, fallback) { var i = headers.indexOf(name); return i >= 0 ? i : (fallback != null ? fallback : -1); };
+
+    var C = {
+      date:         col('DATE',              LOG_FLIGHT_COL.DATE),
+      pilot:        col('PILOT',             LOG_FLIGHT_COL.PILOT),
+      acft:         col('ACFT',              LOG_FLIGHT_COL.ACFT),
+      from:         col('FROM',              LOG_FLIGHT_COL.FROM),
+      brakesRel:    col('BRAKES_RELEASE',    LOG_FLIGHT_COL.BRAKES_RELEASE),
+      actualLoad:   col('ACTUAL_LOAD_JSON',  LOG_FLIGHT_COL.ACTUAL_LOAD_JSON),
+      actualToRoll: col('ACTUAL_TO_ROLL',    LOG_FLIGHT_COL.ACTUAL_TO_ROLL),
+      toRiskMatrix: col('TO_RISK_MATRIX',    LOG_FLIGHT_COL.TO_RISK_MATRIX)
+    };
+
+    var icaoNorm  = String(icao || '').trim().toUpperCase();
+    var maxRows   = Math.min(Math.max(Number(limit) || 2, 1), 10);
+    var records   = [];
+
+    // Scan backwards (most recent first)
+    for (var i = data.length - 1; i >= 1 && records.length < maxRows; i--) {
+      var row = data[i];
+      var fromIcao = String(C.from >= 0 ? row[C.from] : '').trim().toUpperCase();
+      if (fromIcao !== icaoNorm) continue;
+
+      // Parse ACTUAL_LOAD_JSON for weight
+      var weightKg = null;
+      var calcToRoll = null;
+      var vrDistM = null;
+      var tempC = null;
+      var flaps = null;
+      var surface = null;
+      var wet = false;
+      var alternates = null;
+      var mapDistM = null;
+
+      try {
+        var loadRaw = C.actualLoad >= 0 ? String(row[C.actualLoad] || '') : '';
+        if (loadRaw) {
+          var loadObj = JSON.parse(loadRaw);
+          weightKg   = loadObj.weightKg   != null ? Number(loadObj.weightKg)   : null;
+          calcToRoll = loadObj.calcToRoll != null ? Number(loadObj.calcToRoll) : (loadObj.takeoffRollM != null ? Number(loadObj.takeoffRollM) : null);
+          vrDistM    = loadObj.vrDistM    != null ? Number(loadObj.vrDistM)    : null;
+          tempC      = loadObj.tempC      != null ? Number(loadObj.tempC)      : null;
+          flaps      = loadObj.flaps      != null ? Number(loadObj.flaps)      : null;
+          surface    = loadObj.surface    != null ? String(loadObj.surface)    : null;
+          wet        = loadObj.wet === true || String(loadObj.surfaceCondition||'').toUpperCase() === 'WET';
+          alternates = loadObj.alternates != null ? String(loadObj.alternates) : null;
+          mapDistM   = loadObj.mapDistM   != null ? Number(loadObj.mapDistM)   : null;
+        }
+      } catch (e) {}
+
+      var actualToRoll = (C.actualToRoll >= 0 && row[C.actualToRoll] !== '' && row[C.actualToRoll] != null)
+        ? Number(row[C.actualToRoll]) : null;
+
+      var dateRaw = C.date >= 0 ? row[C.date] : '';
+      var dateStr = '';
+      if (dateRaw instanceof Date) dateStr = Utilities.formatDate(dateRaw, 'GMT', 'yyyy-MM-dd');
+      else dateStr = String(dateRaw || '').substring(0, 10);
+
+      records.push({
+        date:         dateStr,
+        pilot:        String(C.pilot >= 0 ? row[C.pilot] : '').trim(),
+        acft:         String(C.acft  >= 0 ? row[C.acft]  : '').trim(),
+        weightKg:     weightKg,
+        tempC:        tempC,
+        flaps:        flaps,
+        surface:      surface,
+        wet:          wet,
+        calcToRollM:  calcToRoll,
+        actualToRollM:actualToRoll,
+        vrDistM:      vrDistM,
+        mapDistM:     mapDistM,
+        alternates:   alternates
+      });
+    }
+
+    return { success: true, records: records };
+  } catch (e) {
+    return { success: false, error: String(e && e.message || e), records: [] };
+  }
 }
 
 function getAircraftDocsForTools(tail) {
@@ -15761,6 +15969,597 @@ function uploadAircraftDocForTools(payload) {
     }
 
     return { success: true, normalizedFileName: normalizedName, driveUrl: driveUrl, driveFileId: driveFileId, uploadDate: uploadDate, action: targetRow >= 2 ? 'updated' : 'created' };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+// ─── Training-to-Scheduler Qualification Sync ────────────────────────────────
+
+function _trainingQualIsoToday_() {
+  var d = new Date();
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function _trainingQualDateMax_(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return a >= b ? a : b;
+}
+
+function _trainingQualDateToIso_(val) {
+  if (!val) return '';
+  if (val instanceof Date) return Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return String(val).trim().substring(0, 10);
+}
+
+function _trainingRoleModuleMap_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(APP_SHEETS.TRAINING_MODULES || 'REF_Training_Modules');
+  if (!sh) return {};
+  var rows = sh.getDataRange().getValues();
+  if (rows.length < 2) return {};
+  var h = rows[0].map(function(c) { return String(c).trim().toUpperCase(); });
+  var iMod = h.indexOf('MODULE_ID');
+  var iRole = h.indexOf('ROLE_CODE');
+  var iPrac = h.indexOf('REQUIRES_PRACTICAL');
+  var iRec = h.indexOf('RECURRENT_DAYS');
+  if (iMod < 0 || iRole < 0) return {};
+  var map = {};
+  for (var i = 1; i < rows.length; i++) {
+    var r = rows[i];
+    var moduleId = String(r[iMod] || '').trim().toUpperCase();
+    var roleCode = String(r[iRole] || '').trim().toUpperCase();
+    if (!moduleId || !roleCode) continue;
+    if (!map[roleCode]) map[roleCode] = [];
+    map[roleCode].push({
+      moduleId: moduleId,
+      requiresPractical: String(r[iPrac] || '').trim().toUpperCase() === 'TRUE' || r[iPrac] === true || r[iPrac] === 1,
+      recurrentDays: parseInt(r[iRec] || '0', 10) || 0
+    });
+  }
+  return map;
+}
+
+function _trainingStaffModuleEvidence_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var tSh = ss.getSheetByName(APP_SHEETS.STAFF_TRAINING || 'DB_Staff_Training_Records');
+  var pSh = ss.getSheetByName(APP_SHEETS.STAFF_PRACTICALS || 'DB_Staff_Practical_Evaluations');
+  var evidence = {}; // key: "email|moduleId" → {theoryDate, practicalDate, practicalPass}
+
+  function key_(email, mod) { return String(email).toLowerCase().trim() + '|' + String(mod).toUpperCase().trim(); }
+
+  if (tSh && tSh.getLastRow() > 1) {
+    var tRows = tSh.getDataRange().getValues();
+    var th = tRows[0].map(function(c) { return String(c).trim().toUpperCase(); });
+    var tiEmail = th.indexOf('STAFF_EMAIL'); var tiMod = th.indexOf('MODULE_ID');
+    var tiDate = th.indexOf('COMPLETION_DATE'); var tiPass = th.indexOf('RESULT');
+    if (tiEmail >= 0 && tiMod >= 0) {
+      for (var i = 1; i < tRows.length; i++) {
+        var r = tRows[i];
+        var passed = String(r[tiPass] || '').trim().toUpperCase();
+        if (passed && passed !== 'PASS' && passed !== 'TRUE' && passed !== '1') continue;
+        var k = key_(r[tiEmail], r[tiMod]);
+        var iso = _trainingQualDateToIso_(tiDate >= 0 ? r[tiDate] : '');
+        if (!evidence[k]) evidence[k] = {};
+        evidence[k].theoryDate = _trainingQualDateMax_(evidence[k].theoryDate, iso);
+      }
+    }
+  }
+
+  if (pSh && pSh.getLastRow() > 1) {
+    var pRows = pSh.getDataRange().getValues();
+    var ph = pRows[0].map(function(c) { return String(c).trim().toUpperCase(); });
+    var piEmail = ph.indexOf('STAFF_EMAIL'); var piMod = ph.indexOf('MODULE_ID');
+    var piDate = ph.indexOf('EVAL_DATE'); var piPass = ph.indexOf('RESULT');
+    if (piEmail >= 0 && piMod >= 0) {
+      for (var j = 1; j < pRows.length; j++) {
+        var pr = pRows[j];
+        var pPassed = String(pr[piPass] || '').trim().toUpperCase();
+        var k2 = key_(pr[piEmail], pr[piMod]);
+        var iso2 = _trainingQualDateToIso_(piDate >= 0 ? pr[piDate] : '');
+        if (!evidence[k2]) evidence[k2] = {};
+        if (pPassed === 'PASS' || pPassed === 'TRUE' || pPassed === '1') {
+          evidence[k2].practicalDate = _trainingQualDateMax_(evidence[k2].practicalDate, iso2);
+          evidence[k2].practicalPass = true;
+        }
+      }
+    }
+  }
+  return evidence;
+}
+
+function _trainingRoleEligibilityForStaff_(staffEmail, roleCode, modulesForRole, evidenceMap, asOfDate) {
+  if (!modulesForRole || modulesForRole.length === 0) {
+    return { eligible: true, managedByTraining: false, validUntil: '', reason: 'No training modules required for this role' };
+  }
+  var today = asOfDate || _trainingQualIsoToday_();
+  var minValidUntil = '';
+  for (var i = 0; i < modulesForRole.length; i++) {
+    var m = modulesForRole[i];
+    var k = String(staffEmail).toLowerCase().trim() + '|' + m.moduleId;
+    var ev = evidenceMap[k] || {};
+    if (!ev.theoryDate) {
+      return { eligible: false, managedByTraining: true, validUntil: '', reason: 'Missing theory: ' + m.moduleId };
+    }
+    if (m.requiresPractical && !ev.practicalPass) {
+      return { eligible: false, managedByTraining: true, validUntil: '', reason: 'Missing practical: ' + m.moduleId };
+    }
+    if (m.recurrentDays > 0) {
+      var baseDate = m.requiresPractical && ev.practicalDate ? ev.practicalDate : ev.theoryDate;
+      var expiry = new Date(baseDate);
+      expiry.setDate(expiry.getDate() + m.recurrentDays);
+      var expiryIso = Utilities.formatDate(expiry, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      if (expiryIso < today) {
+        return { eligible: false, managedByTraining: true, validUntil: expiryIso, reason: 'Recurrency expired for module: ' + m.moduleId };
+      }
+      minValidUntil = minValidUntil ? (expiryIso < minValidUntil ? expiryIso : minValidUntil) : expiryIso;
+    }
+  }
+  return { eligible: true, managedByTraining: true, validUntil: minValidUntil, reason: 'All modules current' };
+}
+
+function syncTrainingQualificationsToScheduler(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var dryRun = body.dryRun === true;
+    _schedulerAssertPermission_('CAN_EDIT_RULES', 'syncTrainingQualificationsToScheduler');
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var qualSh = ss.getSheetByName(APP_SHEETS.SCHED_STAFF_QUALS || 'SCHED_Staff_Qualifications');
+    if (!qualSh) return { success: false, error: 'SCHED_Staff_Qualifications sheet not found. Run SETUP SCHEMA first.' };
+
+    var staffSh = ss.getSheetByName(APP_SHEETS.PILOTS || 'DB_Pilots');
+    if (!staffSh) return { success: false, error: 'DB_Pilots sheet not found.' };
+
+    // Load staff list using existing record parser
+    var pData = staffSh.getDataRange().getValues();
+    var pHeaders = pData.length ? pData[0] : [];
+    var staffList = [];
+    for (var i = 1; i < pData.length; i++) {
+      var rec = _toolsStaffRecordFromRow_(pHeaders, pData[i], i + 1);
+      if (!rec.email) continue;
+      var roles = [rec.primaryRole].concat(rec.staffRoles || []).map(function(r) { return String(r || '').trim().toUpperCase(); }).filter(Boolean);
+      staffList.push({ email: rec.email, roles: roles });
+    }
+
+    var roleModuleMap = _trainingRoleModuleMap_();
+    var evidenceMap = _trainingStaffModuleEvidence_();
+    var today = _trainingQualIsoToday_();
+
+    // Load existing qual rows
+    var qRows = qualSh.getDataRange().getValues();
+    var qH = qRows[0].map(function(c) { return String(c).trim().toUpperCase(); });
+    var qEmail = qH.indexOf('STAFF_EMAIL'); var qRole = qH.indexOf('ROLE_CODE');
+    var qActive = qH.indexOf('ACTIVE'); var qValid = qH.indexOf('VALID_UNTIL');
+    var qSource = qH.indexOf('SOURCE');
+
+    // Build index of existing rows by "email|role"
+    var existingIdx = {};
+    for (var r = 1; r < qRows.length; r++) {
+      var ek = String(qRows[r][qEmail] || '').toLowerCase().trim() + '|' + String(qRows[r][qRole] || '').toUpperCase().trim();
+      existingIdx[ek] = r + 1; // 1-based sheet row
+    }
+
+    var actions = [];
+
+    for (var s = 0; s < staffList.length; s++) {
+      var member = staffList[s];
+      for (var ri = 0; ri < member.roles.length; ri++) {
+        var role = member.roles[ri];
+        var modules = roleModuleMap[role];
+        if (!modules) continue; // role not managed by training system
+        var eligibility = _trainingRoleEligibilityForStaff_(member.email, role, modules, evidenceMap, today);
+        if (!eligibility.managedByTraining) continue;
+        var rowKey = member.email + '|' + role;
+        var existingRow = existingIdx[rowKey];
+        var newActive = eligibility.eligible ? 'TRUE' : 'FALSE';
+        var newValidUntil = eligibility.validUntil || '';
+        if (existingRow) {
+          var curActive = String(qRows[existingRow - 1][qActive] || '').trim().toUpperCase();
+          var curValid = String(qRows[existingRow - 1][qValid] || '').trim();
+          var curSource = qSource >= 0 ? String(qRows[existingRow - 1][qSource] || '').trim() : '';
+          if (curActive === newActive && curValid === newValidUntil) continue;
+          actions.push({ action: eligibility.eligible ? 'ACTIVATE' : 'DEACTIVATE', email: member.email, role: role, active: eligibility.eligible, validUntil: newValidUntil, reason: eligibility.reason, sheetRow: existingRow });
+          if (!dryRun) {
+            if (qActive >= 0) qualSh.getRange(existingRow, qActive + 1).setValue(newActive);
+            if (qValid >= 0) qualSh.getRange(existingRow, qValid + 1).setValue(newValidUntil);
+            if (qSource >= 0) qualSh.getRange(existingRow, qSource + 1).setValue('AUTO_FROM_TRAINING_SYNC');
+          }
+        } else {
+          if (!eligibility.eligible) continue; // don't create rows for ineligible staff
+          actions.push({ action: 'INSERT', email: member.email, role: role, active: true, validUntil: newValidUntil, reason: eligibility.reason });
+          if (!dryRun) {
+            var newRow = new Array(qH.length).fill('');
+            if (qEmail >= 0) newRow[qEmail] = member.email;
+            if (qRole >= 0) newRow[qRole] = role;
+            if (qActive >= 0) newRow[qActive] = 'TRUE';
+            if (qValid >= 0) newRow[qValid] = newValidUntil;
+            if (qSource >= 0) newRow[qSource] = 'AUTO_FROM_TRAINING_SYNC';
+            qualSh.appendRow(newRow);
+          }
+        }
+      }
+    }
+
+    return { success: true, dryRun: dryRun, actions: actions, count: actions.length };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function previewTrainingQualificationSync(payload) {
+  var body = (payload && typeof payload === 'object') ? payload : {};
+  body.dryRun = true;
+  return syncTrainingQualificationsToScheduler(body);
+}
+
+// ─── Training Module Course Generator ────────────────────────────────────────
+
+function generateTrainingModuleCourse(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var roleCode      = String(body.roleCode      || '').trim().toUpperCase();
+    var moduleType    = String(body.moduleType    || 'INITIAL').trim().toUpperCase();
+    var component     = String(body.component     || 'THEORY').trim().toUpperCase();
+    var moduleName    = String(body.moduleName    || '').trim();
+    var moduleId      = String(body.moduleId      || '').trim();
+    var recurrentDays = parseInt(body.recurrentDays || '0', 10) || 0;
+    var requiresPractical = _toolsTruthyFlag_(body.requiresPractical);
+    var extraContext  = String(body.extraContext   || '').trim();
+
+    var roleNames = { OP_PILOT_LAND:'Piloto Operacional Terrestre', OP_PILOT_ANF:'Piloto Operacional ANF', OP_INSTR_PILOT_LAND:'Piloto Instrutor Terrestre', OP_INSTR_PILOT_ANF:'Piloto Instrutor ANF', FLIGHT_INSTRUCTOR:'Instrutor de Voo', FLIGHT_FOLLOWER:'Acompanhador de Voo', FLIGHT_COORDINATOR:'Coordenador de Voo', FLIGHT_SUPERVISOR:'Supervisor de Voo', MECHANIC:'Mecânico', MECHANIC_TRAINEE:'Mecânico em Treinamento', INSPECTOR:'Inspetor', SRM:'Gerente de Segurança e Risco', STOCKROOM:'Almoxarife' };
+    var compNames  = { THEORY:'Teórico', PRACTICAL:'Prático', MIXED:'Teórico-Prático' };
+    var typeNames  = { INITIAL:'Inicial', RECURRENT:'Recorrente' };
+
+    var roleName = roleNames[roleCode] || roleCode;
+    var compName = compNames[component] || component;
+    var typeName = typeNames[moduleType] || moduleType;
+    var today    = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy');
+    var docTitle = moduleName || (roleName + ' \u2014 ' + compName + ' ' + typeName);
+
+    // ── Role content definitions ──────────────────────────────────────────────
+    var allContent = {};
+
+    allContent['FLIGHT_FOLLOWER'] = {
+      description: 'Capacita o acompanhador de voo a exercer controle operacional compartilhado, monitorar voos em tempo real e coordenar com pilotos e base operacional conforme RBAC 135.',
+      prerequisites: ['Conhecimento básico de aviação e terminologia aeronáutica', 'Aptidão para comunicação via rádio VHF', 'Familiaridade com o sistema operacional da empresa'],
+      duration: '16 horas (teórico) + 4 horas de prática supervisionada',
+      objectives: ['Compreender as responsabilidades legais do acompanhador conforme RBAC 135.77', 'Operar sistemas de comunicação e rastreamento de voo', 'Utilizar fraseologia padrão de radiocomunicação ANAC/ICAO', 'Monitorar condições meteorológicas e apoiar decisão de despacho', 'Calcular e controlar combustível e autonomia durante o voo', 'Executar protocolo de emergência e acionamento de SAR', 'Preencher corretamente toda documentação operacional'],
+      sections: [
+        { title: '1. Papel e Responsabilidades Legais', items: ['Definição de acompanhador de voo conforme RBAC 135.77', 'Controle operacional compartilhado: responsabilidades e limites', 'Autoridade para suspender ou cancelar um voo', 'Cadeia de comunicação: piloto — acompanhador — supervisor', 'Responsabilidade civil e administrativa do acompanhador'] },
+        { title: '2. Regulamentação Aplicável', items: ['RBAC 135 — Operações de transporte aéreo não regular', 'RBAC 91 — Regras gerais de voo', 'IS 119-004 — Acompanhamento de voo', 'Manuais operacionais da empresa: MOM e GOM', 'NOTAM e publicações AIP relevantes'] },
+        { title: '3. Sistemas de Comunicação e Rastreamento', items: ['Rádio VHF aeronáutico: frequências e canais operacionais', 'Fraseologia padrão ANAC/ICAO para acompanhamento', 'Protocolos de comunicação digital da empresa', 'Rastreamento via ADS-B (FlightAware, FlightRadar24)', 'Checklist de verificação de comunicação pré-voo'] },
+        { title: '4. Meteorologia Aplicada', items: ['Fontes de informação: REDEMET, AISWEB, SIGWX', 'Interpretação de METAR, TAF e SIGMET', 'Limites meteorológicos operacionais (mínimos VFR/IFR)', 'Tomada de decisão Go/No-Go com base em meteorologia', 'Fenômenos meteorológicos críticos para a região de operação'] },
+        { title: '5. Gestão de Combustível e Autonomia', items: ['Cálculo de consumo horário por tipo de aeronave', 'Verificação de combustível no despacho vs. plano de voo', 'Monitoramento de combustível durante o voo', 'Procedimento de desvio por mínimo de combustível', 'Comunicação proativa do estado de combustível ao piloto'] },
+        { title: '6. Planejamento e Acompanhamento Ativo', items: ['Leitura e interpretação do plano de voo operacional', 'Waypoints, rotas e aeródromos alternativos', 'Horários de posição esperada (ETA) e controle de atraso', 'Relatórios de posição periódicos (SELCAL)', 'Identificação de desvio de rota e ação corretiva'] },
+        { title: '7. Procedimentos de Emergência', items: ['Protocolo de resposta a emergência declarada pelo piloto', 'Fases INCERFA, ALERFA, DETRESFA — quando e como acionar', 'Acionamento do SAR (Busca e Salvamento)', 'Comunicação com CENIPA e ANAC em ocorrências', 'Coordenação com autoridades locais', 'Estudo de caso: simulação de aeronave em atraso'] },
+        { title: '8. Documentação e Registros Operacionais', items: ['Ficha de acompanhamento de voo (preenchimento obrigatório)', 'Diário operacional do acompanhador', 'Registro de combustível e posições por trecho', 'Relatório de ocorrências e irregularidades', 'Uso correto do sistema de controle operacional da empresa'] },
+        { title: '9. Segurança e SMS', items: ['Cultura de segurança na função de acompanhamento', 'Identificação e relato de perigos operacionais', 'Just Culture: ambiente de relato sem punição', 'Principais ocorrências históricas na função (lições aprendidas)', 'Papel do acompanhador na prevenção de acidentes'] }
+      ],
+      normativerefs: ['RBAC 135', 'RBAC 91', 'IS 119-004', 'IS 00-010 (SMS)', 'ICAO Annex 2', 'MOM/GOM da empresa'],
+      evalcriteria: 'Avaliação teórica escrita (mínimo 70%). Simulação prática de acompanhamento de voo com cenário de emergência. Avaliação de fraseologia por avaliador designado.'
+    };
+
+    allContent['OP_PILOT_LAND'] = {
+      description: 'Capacitação para piloto operacional em voos terrestres conforme RBAC 135. Cobre sistemas, procedimentos, regulamentação e CRM aplicados à operação da empresa.',
+      prerequisites: ['Licença PPL ou CPL válida', 'Habilitação de tipo na aeronave pertinente', 'Habilitação IFR conforme aplicável à operação'],
+      duration: '24 horas (teórico) + dual com instrutor conforme programa de treinamento',
+      objectives: ['Dominar os sistemas e limitações da aeronave operada', 'Aplicar procedimentos normais, anormais e de emergência conforme AFM', 'Conhecer e cumprir regulamentação RBAC 135 e 91', 'Executar CRM efetivo em ambiente single e multi-pilot', 'Gerenciar combustível, performance e peso & balanceamento', 'Operar em todas as condições meteorológicas autorizadas'],
+      sections: [
+        { title: '1. Sistemas da Aeronave', items: ['Estrutura e célula: limites e inspeção pré-voo', 'Sistema de propulsão: operação e limitações', 'Sistemas elétrico, hidráulico e pneumático', 'Aviônica e instrumentos: uso e falhas', 'Sistema de combustível: tanques, válvulas, consumo', 'Limitações operacionais conforme AFM/POH'] },
+        { title: '2. Procedimentos Normais e Anormais', items: ['Checklists: pré-voo, partida, voo e pós-voo', 'Procedimentos de decolagem em condições adversas (vento cruzado, densidade altitude)', 'Aproximação e pouso: técnicas e variações', 'Procedimentos anormais conforme AFM', 'MEL — Lista de Equipamentos Mínimos: interpretação e aplicação'] },
+        { title: '3. Regulamentação Aplicável', items: ['RBAC 91 — Regras gerais de voo (VFR/IFR)', 'RBAC 135 — Operações de transporte aéreo', 'Duty time e repouso mínimo obrigatório', 'Qualificações requeridas para a operação', 'Documentação obrigatória a bordo'] },
+        { title: '4. Navegação e Meteorologia', items: ['Planejamento de rota VFR e IFR', 'Fontes de meteorologia: REDEMET, AISWEB', 'Interpretação de METAR, TAF, SIGMET, AIRMET', 'Mínimos operacionais da empresa', 'Combustível: reservas regulatórias e de política da empresa'] },
+        { title: '5. Performance e Peso & Balanceamento', items: ['Cálculo de TOD e LDR em condições variadas', 'Limitações de pista: comprimento, declive, altitude', 'Peso e balanceamento: cálculo e limites', 'Densidade altitude: impacto na performance', 'Casos práticos com aeronaves da frota'] },
+        { title: '6. CRM — Crew Resource Management', items: ['Comunicação efetiva piloto-acompanhador-base', 'Tomada de decisão sob pressão (DECIDE model)', 'Gestão de carga de trabalho', 'Situational Awareness: manutenção e recuperação', 'Threat and Error Management (TEM)'] },
+        { title: '7. Procedimentos de Emergência', items: ['Falha de motor: procedimentos e pouso de emergência', 'Incêndio a bordo: motor, cabine e elétrico', 'Emergência médica a bordo', 'Comunicação de emergência: MAYDAY e PAN PAN', 'Desorientação espacial: reconhecimento e recuperação'] },
+        { title: '8. SMS e Fatores Humanos', items: ['Relato de ocorrências SIPAER', 'Just Culture e ambiente de segurança', 'Fatores humanos: fadiga, estresse, complacência', 'Pressão comercial vs. tomada de decisão segura', 'Lições aprendidas de acidentes relevantes'] }
+      ],
+      normativerefs: ['RBAC 91', 'RBAC 135', 'IS 135-003', 'AFM/POH da aeronave', 'MOM/GOM da empresa', 'IS 00-010'],
+      evalcriteria: 'Prova teórica (mínimo 80%) + checkride com instrutor autorizado. Demonstração de todos os procedimentos de emergência requeridos.'
+    };
+
+    allContent['OP_PILOT_ANF'] = allContent['OP_PILOT_LAND'];
+
+    allContent['MECHANIC'] = {
+      description: 'Capacitação para mecânico de aviação conforme RBAC 65. Cobre sistemas, documentação, normas de segurança e regulamentação aplicada à manutenção das aeronaves da operação.',
+      prerequisites: ['Licença CHT emitida pela ANAC', 'Habilitação na categoria pertinente', 'Experiência mínima conforme programa de treinamento'],
+      duration: '20 horas (teórico) + prático supervisionado conforme tarefa',
+      objectives: ['Executar manutenção preventiva e corretiva conforme manuais aprovados', 'Preencher documentação de manutenção corretamente (RAD, SIGR)', 'Aplicar normas de segurança e EPI em hangar', 'Utilizar ferramentas e equipamentos de teste corretamente', 'Identificar e registrar discrepâncias conforme procedimentos'],
+      sections: [
+        { title: '1. Regulamentação de Manutenção', items: ['RBAC 43 — Manutenção, revisões e reparos', 'RBAC 65 — Certificação de técnicos aeronáuticos', 'RBAC 145 — Organizações de manutenção aprovadas', 'Hierarquia documental: MM, IPC, SB, AD/ICA', 'Responsabilidades do mecânico certificado'] },
+        { title: '2. Sistemas da Aeronave', items: ['Célula e estrutura: pontos de inspeção', 'Motor e hélice: operação e manutenção', 'Trem de pouso e freios', 'Sistema hidráulico', 'Sistema elétrico e aviônica', 'Sistema de combustível e óleo'] },
+        { title: '3. Documentação e Rastreabilidade', items: ['RAD — Registro de Aeronave e Diário de Bordo', 'Ficha de manutenção programada', 'Autorização de Retorno ao Serviço (ARS)', 'SIGR — Registro de discrepâncias', 'Rastreabilidade de peças e materiais aeronáuticos', 'Controle de vida útil de componentes (time-limited parts)'] },
+        { title: '4. Ferramentas e Equipamentos', items: ['Ferramentas de torque: uso e calibração', 'Equipamentos de medição elétrica', 'Ferramentas especiais (SE) e controle', 'Programa de calibração de instrumentos', 'Segurança no manuseio de fluidos aeronáuticos'] },
+        { title: '5. Segurança no Hangar', items: ['EPI obrigatório por tipo de tarefa', 'Plano de emergência do hangar', 'Prevenção de FOD (Foreign Object Damage)', 'Operação segura de aeronave em solo (pushback, reboque)', 'Manuseio e descarte de materiais inflamáveis e perigosos'] },
+        { title: '6. Controle de Qualidade e Inspeção', items: ['Inspeção dupla (two-person rule) em itens críticos', 'Signing off de tarefas de manutenção', 'Revisão independente de trabalho realizado', 'Limites de inspeção: TBO, TBR e intervalos calendário', 'Comunicação de anomalias com o inspetor responsável'] }
+      ],
+      normativerefs: ['RBAC 43', 'RBAC 65', 'RBAC 145', 'Manuais do fabricante (MM, IPC)', 'ADs e ICAs aplicáveis', 'Manual de Manutenção da empresa'],
+      evalcriteria: 'Avaliação escrita (mínimo 75%) + avaliação prática supervisionada em tarefa real ou simulada.'
+    };
+
+    allContent['INSPECTOR'] = {
+      description: 'Capacitação para inspetor de aeronave. Cobre autoridade de inspeção, critérios de aceitação, documentação e regulamentação RBAC 145.',
+      prerequisites: ['Licença CHT com habilitação de inspeção (CHT-I)', 'Experiência mínima conforme RBAC 65', 'Autorização de inspetor emitida pela organização'],
+      duration: '16 horas (teórico) + prático supervisionado com inspetor sênior',
+      objectives: ['Exercer a autoridade de inspeção com independência técnica', 'Aplicar critérios de aceitação conforme manuais aprovados', 'Documentar inspeções e não-conformidades corretamente', 'Emitir autorização de retorno ao serviço com respaldo regulatório'],
+      sections: [
+        { title: '1. Autoridade e Responsabilidade', items: ['Definição legal de inspetor conforme RBAC 145', 'Independência funcional do inspetor', 'Responsabilidade civil e criminal na função', 'Limites de autoridade de inspeção', 'Comunicação de não-conformidades à direção'] },
+        { title: '2. Critérios de Aceitação', items: ['Tolerâncias conforme manuais do fabricante', 'Critérios de aceitação/rejeição para corrosão', 'Avaliação de danos estruturais e reparos aprovados', 'Substituição obrigatória vs. reparo permitido', 'Componentes de vida limitada: controle e substituição'] },
+        { title: '3. Documentação de Inspeção', items: ['Relatório de inspeção: elementos obrigatórios', 'RGA — Registro de Grau de Anomalia', 'ARS — Autorização de Retorno ao Serviço', 'Arquivo e retenção de registros de inspeção', 'Auditoria interna e externa de registros'] },
+        { title: '4. Inspeções Regulatórias', items: ['Inspeção de 100 horas: escopo e documentação', 'Inspeção anual: diferenças e exigências adicionais', 'Inspeção de retorno de longa paragem', 'Verificação de Aeronavegabilidade (VA)', 'Coordenação com ANAC para inspeções especiais'] }
+      ],
+      normativerefs: ['RBAC 43', 'RBAC 65', 'RBAC 145', 'Manuais do fabricante', 'ADs e ICAs aplicáveis'],
+      evalcriteria: 'Avaliação escrita (mínimo 80%) + inspeção prática com parecer de inspetor sênior.'
+    };
+
+    allContent['FLIGHT_COORDINATOR'] = {
+      description: 'Capacitação para coordenador de voo no exercício de controle operacional compartilhado conforme RBAC 135. Cobre planejamento, despacho, documentação e gestão da operação.',
+      prerequisites: ['Experiência operacional na empresa', 'Conhecimento de regulamentação RBAC 135', 'Autorização interna para controle operacional'],
+      duration: '12 horas (teórico) + acompanhamento prático com coordenador sênior',
+      objectives: ['Planejar e despachar voos conforme manuais operacionais', 'Exercer controle operacional compartilhado com o piloto', 'Gerenciar documentação de despacho', 'Tomar decisão Go/No-Go com base em dados operacionais', 'Coordenar resposta a emergências operacionais'],
+      sections: [
+        { title: '1. Controle Operacional Compartilhado', items: ['Definição e responsabilidades conforme RBAC 135', 'Autoridade do coordenador vs. piloto em comando', 'Tomada de decisão compartilhada', 'Comunicação com a tripulação antes e durante o voo', 'Ação corretiva e cancelamento de voo'] },
+        { title: '2. Planejamento de Voo', items: ['Plano de voo ICAO e simplificado', 'Roteamento, waypoints e aeródromos alternativos', 'NOTAM: pesquisa e interpretação', 'Meteorologia aplicada ao despacho', 'Cálculo de combustível, reservas e autonomia'] },
+        { title: '3. Documentação de Despacho', items: ['Folha de despacho: elementos obrigatórios', 'Manifesto de passageiros e carga', 'Verificação de documentos da aeronave (CAN, IEM, RA)', 'Controle de documentos e habilitações da tripulação', 'Registros de operação e arquivo'] },
+        { title: '4. Gestão de Tripulação', items: ['Controle de duty time e repouso mínimo', 'Verificação de qualificações vigentes', 'Substituição de tripulante em casos de indisponibilidade', 'Briefing operacional com o piloto'] },
+        { title: '5. Emergências Operacionais', items: ['Protocolo de aeronave em atraso', 'Acionamento SAR: responsabilidades do coordenador', 'Comunicação com DECEA e ANAC', 'Gestão de crise e comunicação interna', 'Relatório pós-evento'] }
+      ],
+      normativerefs: ['RBAC 135', 'RBAC 91', 'IS 135-003', 'MOM/GOM da empresa', 'IS 00-010'],
+      evalcriteria: 'Avaliação escrita (mínimo 75%) + simulação de despacho de voo com cenário de emergência.'
+    };
+
+    allContent['FLIGHT_SUPERVISOR'] = {
+      description: 'Capacitação para supervisor de voo. Cobre supervisão da operação, gestão de risco, tomada de decisão e cumprimento de normas operacionais.',
+      prerequisites: ['Experiência prévia em funções operacionais (mínimo 1 ano)', 'Treinamento de coordenador ou equivalente', 'Autorização de supervisor emitida pela empresa'],
+      duration: '16 horas (teórico) + acompanhamento prático de turno completo',
+      objectives: ['Supervisionar a operação diária com foco em segurança', 'Gerenciar riscos operacionais e tomar decisões sob pressão', 'Controlar duty time e prontidão da tripulação', 'Coordenar resposta a emergências', 'Garantir conformidade com manuais e regulamentação'],
+      sections: [
+        { title: '1. Papel do Supervisor de Voo', items: ['Responsabilidades conforme manuais operacionais', 'Autoridade e limites da função', 'Interface com direção operacional e ANAC', 'Turnover e passagem de turno: elementos críticos'] },
+        { title: '2. Gestão de Risco Operacional', items: ['Briefing de risco diário: metodologia e condução', 'Ferramentas de TRM (Threat and Risk Management)', 'Decisão Go/No-Go de alto nível operacional', 'Pressão comercial vs. cultura de segurança', 'Documentação de decisões operacionais críticas'] },
+        { title: '3. Controle de Tripulação e Frota', items: ['Status de prontidão da frota em tempo real', 'Controle de qualificações e habilitações vigentes', 'Gestão de duty time: controle e registros', 'Substituição emergencial de tripulante', 'Liberação de aeronave com MEL ativo'] },
+        { title: '4. Gerenciamento de Emergências', items: ['Plano de Emergência Operacional (PEO)', 'Acionamento de SAR: responsabilidades do supervisor', 'Comunicação com ANAC, DECEA e CENIPA', 'Gestão de crise: comunicação interna e externa', 'Relatório pós-evento e lições aprendidas'] },
+        { title: '5. Conformidade e Auditorias', items: ['Inspeção de linha (observação operacional)', 'Monitoramento de conformidade operacional', 'Relato e tratamento de não-conformidades', 'Ações corretivas e preventivas (CAPA)', 'Preparação para inspeção da ANAC'] }
+      ],
+      normativerefs: ['RBAC 135', 'RBAC 91', 'IS 135-003', 'IS 00-010', 'MOM/GOM da empresa', 'Plano de Emergência Operacional'],
+      evalcriteria: 'Avaliação escrita (mínimo 80%) + simulação de gestão de emergência operacional com avaliador.'
+    };
+
+    allContent['SRM'] = {
+      description: 'Capacitação para Gerente de Segurança e Risco (SRM) conforme IS 00-010 e requisitos do PGSSO. Cobre SMS, identificação de perigos, avaliação de risco e cultura de segurança.',
+      prerequisites: ['Experiência operacional relevante (mínimo 2 anos)', 'Conhecimento de regulamentação ANAC', 'Indicação pela diretoria da empresa'],
+      duration: '20 horas (teórico) + workshop prático de análise de risco',
+      objectives: ['Implementar e manter o Sistema de Gestão de Segurança (SGSO)', 'Identificar perigos e avaliar riscos sistematicamente', 'Desenvolver cultura de segurança e Just Culture', 'Investigar ocorrências e propor ações corretivas', 'Preparar relatórios de segurança para a ANAC'],
+      sections: [
+        { title: '1. Sistema de Gestão de Segurança (SMS/SGSO)', items: ['Quatro pilares do SMS (ICAO Doc 9859)', 'Política de segurança: elaboração e divulgação', 'Objetivos e indicadores de segurança (KPIs de segurança)', 'Plano de Segurança Operacional (PSO)', 'Responsabilidades executivas: Accountable Manager'] },
+        { title: '2. Identificação de Perigos', items: ['Métodos: LOSA, observação, análise de dados históricos', 'Registro de perigos (hazard log)', 'Fontes de dados: SIPAER, relatórios internos, auditorias', 'Análise de tendências e indicadores preditivos', 'Perigos específicos da operação (ex: operação em área remota, voos noturnos)'] },
+        { title: '3. Avaliação e Mitigação de Riscos', items: ['Matriz de risco: probabilidade × severidade', 'Hierarquia de controles de segurança', 'Modelo Swiss Cheese (James Reason)', 'ALARP — tão baixo quanto razoavelmente praticável', 'Documentação, revisão e aprovação de riscos'] },
+        { title: '4. Cultura de Segurança e Just Culture', items: ['Definição e importância da cultura de segurança', 'Just Culture: relato sem punição automática', 'Estratégias de comunicação de segurança', 'Treinamento de conscientização para toda a equipe', 'Medição e melhoria da cultura de segurança'] },
+        { title: '5. Investigação de Ocorrências', items: ['Tipos: acidente, incidente grave, incidente e ocorrência de solo', 'Metodologia: análise de causa raiz, HFACS, Bow-Tie', 'Coordenação com CENIPA e ANAC', 'Relatório interno: elementos obrigatórios', 'CAPA — Ações Corretivas e Preventivas'] },
+        { title: '6. Conformidade Regulatória SMS', items: ['IS 00-010 — Requisitos do PGSSO', 'Relatórios periódicos de segurança à ANAC', 'Auditoria interna do SMS', 'Avaliação de efetividade do SMS (revisão gerencial)', 'Integração SMS com o sistema de qualidade da empresa'] }
+      ],
+      normativerefs: ['IS 00-010', 'ICAO Doc 9859', 'RBAC 91', 'RBAC 135', 'IS 175-007', 'ICAO Annex 13'],
+      evalcriteria: 'Avaliação escrita (mínimo 80%) + apresentação de análise de risco operacional real ou hipotético para a banca avaliadora.'
+    };
+
+    allContent['FLIGHT_INSTRUCTOR'] = {
+      description: 'Capacitação para instrutor de voo conforme RBAC 61. Cobre técnicas de instrução, planejamento curricular, avaliação de alunos e responsabilidades do instrutor.',
+      prerequisites: ['Certificado de instrutor de voo (CFI) válido', 'Habilitação de tipo na aeronave pertinente', 'Experiência mínima conforme RBAC 61'],
+      duration: '16 horas (teórico) + checkride com instrutor verificador',
+      objectives: ['Planejar e conduzir sessões de instrução efetivas', 'Avaliar competências de alunos de forma objetiva', 'Manter registros de treinamento conforme regulamentação', 'Garantir padrão de segurança durante toda a instrução'],
+      sections: [
+        { title: '1. Fundamentos da Instrução', items: ['Princípios de aprendizagem adulta (andragogia)', 'Estilos de aprendizado: visual, auditivo, cinestésico', 'Técnicas de briefing e debriefing efetivo', 'Feedback construtivo: como e quando dar', 'Gerenciamento de erros do aluno durante o voo'] },
+        { title: '2. Planejamento Curricular', items: ['Objetivos de aprendizado (SMART)', 'Sequência lógica de tópicos e progressão', 'Carga horária por tópico e manobra', 'Material de apoio: apostilas, checklists, referências', 'Adaptação do currículo para diferentes níveis de aluno'] },
+        { title: '3. Instrução em Solo', items: ['Técnicas de briefing pré-voo', 'Uso de simuladores, maquetes e quadro branco', 'Avaliação teórica escrita e oral', 'Preparação mental do aluno para o voo', 'Resolução de dúvidas técnicas e conceituais'] },
+        { title: '4. Instrução em Voo', items: ['Técnica de transferência de controles', 'Demonstração de manobras com narração', 'Correção de erros em tempo real: quando intervir', 'Gestão da carga de trabalho do aluno', 'Segurança durante instrução: limites de intervenção'] },
+        { title: '5. Avaliação e Documentação', items: ['Critérios de aprovação por manobra (ACS/PTS ANAC)', 'Registro de progresso e horas de instrução', 'Recomendação para checkride com examinador', 'Manutenção de arquivos de treinamento', 'Responsabilidade do instrutor na documentação obrigatória'] }
+      ],
+      normativerefs: ['RBAC 61', 'RBAC 91', 'ACS/PTS aplicável da ANAC', 'MOM da empresa', 'ICAO Doc 9868'],
+      evalcriteria: 'Demonstração de briefing e condução de instrução de manobra com avaliador designado. Revisão de plano de aula e registros.'
+    };
+
+    allContent['STOCKROOM'] = {
+      description: 'Capacitação para almoxarife de aviação. Cobre controle de estoque, rastreabilidade de peças aeronáuticas, documentação e normas de armazenagem.',
+      prerequisites: ['Orientação inicial da empresa', 'Conhecimento básico de informática e sistemas de controle'],
+      duration: '8 horas (teórico) + prático supervisionado',
+      objectives: ['Controlar estoque de peças e materiais aeronáuticos', 'Manter rastreabilidade de componentes certificados', 'Documentar entrada e saída de materiais corretamente', 'Garantir armazenagem correta conforme fabricante e normas'],
+      sections: [
+        { title: '1. Componentes Aeronáuticos', items: ['Partes certificadas vs. consumíveis', 'Números de parte (P/N) e número de série (S/N)', 'Certificados de conformidade: FAA 8130-3 e EASA Form 1', 'Componentes de vida limitada (life-limited parts)', 'Identificação e segregação de peças suspeitas ou piratas'] },
+        { title: '2. Rastreabilidade e Documentação', items: ['Controle de tags e etiquetas de identificação', 'Registro de entrada: fornecedor, certificado, data', 'Registro de saída: aeronave, O/S, mecânico responsável', 'Arquivo físico e digital de certificados', 'Coordenação com mecânico e inspetor'] },
+        { title: '3. Armazenagem Correta', items: ['Condições ambientais: temperatura e umidade', 'Proteção anticorrosão e embalagem original', 'Segregação de materiais incompatíveis', 'FIFO — First In First Out: aplicação prática', 'Controle de validade de materiais perecíveis e selantes'] },
+        { title: '4. Controle de Estoque e Reposição', items: ['Nível mínimo e máximo de estoque por item', 'Processo de pedido de reposição', 'Inventário periódico: metodologia e registro', 'Controle de ferramentas calibradas em empréstimo', 'Uso do sistema de gestão de almoxarifado da empresa'] }
+      ],
+      normativerefs: ['RBAC 43', 'RBAC 145', 'Manuais do fabricante', 'Procedimentos internos da empresa'],
+      evalcriteria: 'Avaliação escrita (mínimo 70%) + simulação de processo completo de entrada e saída de componente aeronáutico.'
+    };
+
+    // Default for unmapped roles
+    allContent['_DEFAULT_'] = {
+      description: 'Módulo de treinamento para a função ' + roleName + '. Gerado automaticamente — revisar e complementar conforme realidade operacional.',
+      prerequisites: ['Experiência na função ou área correlata', 'Orientação inicial da empresa'],
+      duration: 'A definir conforme escopo do módulo',
+      objectives: ['Conhecer as responsabilidades e escopo da função', 'Cumprir os requisitos regulatórios aplicáveis', 'Operar com segurança dentro do escopo da função'],
+      sections: [
+        { title: '1. Fundamentos da Função', items: ['Responsabilidades e escopo de atuação', 'Regulamentação aplicável', 'Interface com outras funções da operação'] },
+        { title: '2. Procedimentos Operacionais', items: ['Procedimentos normais', 'Procedimentos de emergência', 'Documentação e registros obrigatórios'] },
+        { title: '3. Segurança Operacional', items: ['Cultura de segurança e Just Culture', 'Identificação e relato de perigos', 'Lições aprendidas aplicáveis'] }
+      ],
+      normativerefs: ['Regulamentação ANAC aplicável', 'MOM/GOM da empresa', 'IS 00-010'],
+      evalcriteria: 'Avaliação escrita (mínimo 70%) e avaliação prática conforme padrão da empresa.'
+    };
+
+    var content = allContent[roleCode] || allContent['_DEFAULT_'];
+
+    // Adapt for recurrent
+    if (moduleType === 'RECURRENT') {
+      var recDesc = 'MÓDULO DE RECICLAGEM — ' + content.description;
+      var recObj  = ['Rever e atualizar conhecimentos adquiridos no treinamento inicial'].concat(content.objectives);
+      var recSecs = content.sections.slice();
+      recSecs.push({ title: (recSecs.length + 1) + '. Atualização Regulatória e Lições Aprendidas', items: [
+        'Alterações regulatórias desde o último treinamento' + (recurrentDays > 0 ? ' (ciclo de ' + recurrentDays + ' dias)' : ''),
+        'Ocorrências e acidentes recentes relevantes para a função',
+        'Atualizações nos manuais e procedimentos da empresa',
+        'Lições aprendidas do período anterior',
+        'Revisão dos pontos de maior dificuldade — Q&A'
+      ]});
+      content = { description: recDesc, prerequisites: content.prerequisites, duration: content.duration, objectives: recObj, sections: recSecs, normativerefs: content.normativerefs, evalcriteria: content.evalcriteria };
+    }
+
+    // Add extra context section
+    if (extraContext) {
+      var extraSecs = content.sections.slice();
+      extraSecs.push({ title: (extraSecs.length + 1) + '. Informações Específicas da Operação', items: extraContext.split('\n').filter(function(l) { return l.trim(); }) });
+      content = { description: content.description, prerequisites: content.prerequisites, duration: content.duration, objectives: content.objectives, sections: extraSecs, normativerefs: content.normativerefs, evalcriteria: content.evalcriteria };
+    }
+
+    // ── Create Google Doc ─────────────────────────────────────────────────────
+    var fullTitle = docTitle + ' \u2014 Plano de Aula';
+    var doc  = DocumentApp.create(fullTitle);
+    var body = doc.getBody();
+    body.clear();
+
+    body.appendParagraph(docTitle).setHeading(DocumentApp.ParagraphHeading.TITLE);
+    body.appendParagraph('Plano de Aula \u2014 ' + typeName + ' ' + compName).setHeading(DocumentApp.ParagraphHeading.SUBTITLE);
+
+    var metaLines = [
+      'Fun\u00e7\u00e3o: ' + roleName,
+      'M\u00f3dulo ID: ' + (moduleId || 'N/D') + '   |   Tipo: ' + typeName + '   |   Componente: ' + compName,
+      recurrentDays > 0 ? 'Validade: ' + recurrentDays + ' dias' : 'Validade: Sem recorr\u00eancia definida',
+      'Avalia\u00e7\u00e3o Pr\u00e1tica: ' + (requiresPractical ? 'Exigida' : 'N\u00e3o exigida'),
+      'Data de Gera\u00e7\u00e3o: ' + today,
+      'ATEN\u00c7\u00c3O: Documento gerado automaticamente. Revisar antes de usar.'
+    ];
+    metaLines.forEach(function(line) { body.appendParagraph(line); });
+
+    body.appendParagraph('Descri\u00e7\u00e3o do M\u00f3dulo').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    body.appendParagraph(content.description);
+
+    body.appendParagraph('Carga Hor\u00e1ria').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    body.appendParagraph(content.duration);
+
+    body.appendParagraph('Pr\u00e9-requisitos').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    content.prerequisites.forEach(function(p) { body.appendListItem(p).setGlyphType(DocumentApp.GlyphType.BULLET); });
+
+    body.appendParagraph('Objetivos de Aprendizado').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    content.objectives.forEach(function(o, idx) { body.appendListItem((idx + 1) + '. ' + o).setGlyphType(DocumentApp.GlyphType.BULLET); });
+
+    body.appendParagraph('Conte\u00fado Program\u00e1tico').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    content.sections.forEach(function(sec) {
+      body.appendParagraph(sec.title).setHeading(DocumentApp.ParagraphHeading.HEADING2);
+      sec.items.forEach(function(item) { body.appendListItem(item).setGlyphType(DocumentApp.GlyphType.BULLET); });
+    });
+
+    body.appendParagraph('Crit\u00e9rios de Avalia\u00e7\u00e3o').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    body.appendParagraph(content.evalcriteria);
+
+    body.appendParagraph('Refer\u00eancias Normativas').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    content.normativerefs.forEach(function(ref) { body.appendListItem(ref).setGlyphType(DocumentApp.GlyphType.BULLET); });
+
+    body.appendParagraph('Notas para o Instrutor').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    var notes = [
+      'Este documento foi gerado automaticamente pelo sistema de treinamento.',
+      'O instrutor respons\u00e1vel deve revisar e adaptar o conte\u00fado \u00e0 realidade operacional atual.',
+      'Incluir exemplos reais da opera\u00e7\u00e3o e ocorr\u00eancias locais sempre que poss\u00edvel.',
+      'Manter registros de presen\u00e7a e avalia\u00e7\u00e3o de todos os participantes.',
+      'Versionar este documento conforme SOP de controle documental da empresa.'
+    ];
+    notes.forEach(function(note) { body.appendListItem(note).setGlyphType(DocumentApp.GlyphType.BULLET); });
+
+    body.appendParagraph('Controle de Aprova\u00e7\u00e3o').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    ['Elaborado por: ________________________  Data: ___/___/_____',
+     'Revisado por:  ________________________  Data: ___/___/_____',
+     'Aprovado por:  ________________________  Data: ___/___/_____',
+     '',
+     'Vers\u00e3o: 1.0   |   Data de vig\u00eancia: ___/___/_____'
+    ].forEach(function(line) { body.appendParagraph(line); });
+
+    doc.saveAndClose();
+    return { success: true, docUrl: doc.getUrl(), docTitle: doc.getName() };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+// ============================================================
+// LIVE POSITION TRACKING
+// ============================================================
+
+function pushLivePosition(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var reg = String(body.reg || '').trim().toUpperCase();
+    if (!reg) return { success: false, error: 'reg required' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = APP_SHEETS.LIVE_TRACK || 'LIVE_Track';
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+      sheet.appendRow(['REG', 'MISSION_ID', 'LAT', 'LNG', 'BEARING', 'GS_KTS', 'UPDATED_AT']);
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
+    var col = function(name) { return headers.indexOf(name); };
+    var ri = col('REG'), mi = col('MISSION_ID'), lati = col('LAT'), lngi = col('LNG');
+    var beari = col('BEARING'), gsi = col('GS_KTS'), tsi = col('UPDATED_AT');
+
+    var now = new Date();
+    var row = headers.map(function() { return ''; });
+    if (ri >= 0)   row[ri]   = reg;
+    if (mi >= 0)   row[mi]   = String(body.missionId || '');
+    if (lati >= 0) row[lati] = Number(body.lat  || 0);
+    if (lngi >= 0) row[lngi] = Number(body.lng  || 0);
+    if (beari >= 0) row[beari] = Number(body.bearing || 0);
+    if (gsi >= 0)  row[gsi]  = Number(body.gsKts || 0);
+    if (tsi >= 0)  row[tsi]  = now;
+
+    var foundRow = -1;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][ri] || '').trim().toUpperCase() === reg) { foundRow = i + 1; break; }
+    }
+    if (foundRow > 0) {
+      sheet.getRange(foundRow, 1, 1, row.length).setValues([row]);
+    } else {
+      sheet.appendRow(row);
+    }
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getLivePositions() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(APP_SHEETS.LIVE_TRACK || 'LIVE_Track');
+    if (!sheet) return { success: true, positions: [] };
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, positions: [] };
+
+    var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
+    var col = function(name) { return headers.indexOf(name); };
+    var ri = col('REG'), mi = col('MISSION_ID'), lati = col('LAT'), lngi = col('LNG');
+    var beari = col('BEARING'), gsi = col('GS_KTS'), tsi = col('UPDATED_AT');
+
+    var positions = [];
+    for (var i = 1; i < data.length; i++) {
+      var reg = String(data[i][ri] || '').trim().toUpperCase();
+      if (!reg) continue;
+      var tsVal = tsi >= 0 && data[i][tsi] ? data[i][tsi] : null;
+      var tsMs = tsVal ? (tsVal instanceof Date ? tsVal.getTime() : new Date(tsVal).getTime()) : 0;
+      positions.push({
+        reg:       reg,
+        missionId: mi >= 0 ? String(data[i][mi] || '') : '',
+        lat:       lati >= 0 ? Number(data[i][lati] || 0) : 0,
+        lng:       lngi >= 0 ? Number(data[i][lngi] || 0) : 0,
+        bearing:   beari >= 0 ? Number(data[i][beari] || 0) : 0,
+        gsKts:     gsi >= 0 ? Number(data[i][gsi] || 0) : 0,
+        updatedAtMs: tsMs
+      });
+    }
+    return { success: true, positions: positions };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }

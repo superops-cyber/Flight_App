@@ -762,8 +762,24 @@ function _debr8Render_(mission, leg, logData) {
   };
   window.debrief8.timelineTapState = {};
   window.debrief8.landingLog = (function() {
-    var raw = logData && logData.landingLog;
-    return Array.isArray(raw) ? raw.slice() : [];
+    var fromServer = (Array.isArray(logData && logData.landingLog)) ? logData.landingLog.slice() : [];
+    // Merge in auto-detected landings/T&Gs written by Tab 6 auto-log
+    try {
+      var fid = String(window.debrief8.flightLegId || '');
+      var mid = String((mission && mission.id) || '');
+      if (fid && mid) {
+        var autoRaw = localStorage.getItem('mba_autolog_ldglog_' + mid + '_' + fid);
+        var autoEntries = autoRaw ? JSON.parse(autoRaw) : [];
+        if (Array.isArray(autoEntries) && autoEntries.length) {
+          var existingTimes = fromServer.map(function(e) { return e.timeZ; });
+          autoEntries.forEach(function(ae) {
+            if (!existingTimes.includes(ae.timeZ)) fromServer.push(ae);
+          });
+          fromServer.sort(function(a, b) { return String(a.timeZ || '').localeCompare(String(b.timeZ || '')); });
+        }
+      }
+    } catch (e) {}
+    return fromServer;
   })();
   window.debrief8.landingLogVerified = false;
   const squawkItems = _debr8SquawkList_(logData && logData.squawks);
@@ -1239,7 +1255,16 @@ window.debr8AddLandingOpen_ = function() {
     var q = String(this.value || '').trim().toUpperCase();
     if (q.length < 2) { suggestEl.style.display = 'none'; return; }
     var airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
-    var matches = airports.filter(function(a) {
+    // Deduplicate by ICAO — DB_Airports has one row per runway direction;
+    // for the landing log we only need to know which airport, not which runway.
+    var seenCodes = {};
+    var uniqueAirports = airports.filter(function(a) {
+      var code = String(a && (a.icao || a.code || a.iata) || '').toUpperCase();
+      if (!code || seenCodes[code]) return false;
+      seenCodes[code] = true;
+      return true;
+    });
+    var matches = uniqueAirports.filter(function(a) {
       var code = String(a && (a.icao || a.code || a.iata) || '').toUpperCase();
       var name = String(a && (a.name || a.city) || '').toUpperCase();
       return code.indexOf(q) >= 0 || name.indexOf(q) >= 0;

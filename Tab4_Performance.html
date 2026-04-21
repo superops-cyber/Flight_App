@@ -1775,7 +1775,15 @@
     if (!_perfAllRequiredFilled_()) {
       // Show "waiting for inputs" hint, hide results
       const emptyMsg = document.getElementById('perf-results-empty');
-      if (emptyMsg) emptyMsg.style.display = '';
+      if (emptyMsg) { emptyMsg.style.display = ''; emptyMsg.textContent = 'Fill all required fields to calculate'; }
+      const resultsEl = document.getElementById('perf-results');
+      if (resultsEl) resultsEl.style.display = 'none';
+      return;
+    }
+    if (!_perfWindConfirmedStatus_()) {
+      // Wind not yet entered — require pilot to set wind or tap CALM WIND before calculating
+      const emptyMsg = document.getElementById('perf-results-empty');
+      if (emptyMsg) { emptyMsg.style.display = ''; emptyMsg.textContent = 'Set wind direction & speed, or tap CALM WIND'; }
       const resultsEl = document.getElementById('perf-results');
       if (resultsEl) resultsEl.style.display = 'none';
       return;

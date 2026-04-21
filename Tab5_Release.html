@@ -521,7 +521,8 @@
       mtowModelKey: mtowModelKey,
       mtowByModel: mtowByModel,
       pilotNotes: pilotNotes,
-      airstripPhoto: airstripPhoto
+      airstripPhoto: airstripPhoto,
+      fromIcao: fromIcao
     };
   }
 
@@ -698,7 +699,13 @@
 
     body.innerHTML = `
       <div class="release5-card">
-        <div class="release5-subtitle">Runway Briefing</div>
+        <div class="release5-subtitle" style="display:flex; align-items:center; justify-content:space-between;">
+          <span>Runway Briefing</span>
+          <button style="height:28px; padding:0 12px; border:none; border-radius:6px; background:#6a1b9a; color:#fff; font-size:0.72rem; font-weight:900; cursor:pointer;"
+            onclick="openRunwayBriefingCard('${brief.fromIcao || ''}', '${brief.runwayIdent || ''}', 'tab5')">
+            ✦ BRIEFING CARD
+          </button>
+        </div>
         <div class="release5-grid">
           <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • <span title="Internal measured runway dimensions">Internal ${brief.runwayLengthM || 0}m × ${brief.runwayWidthM || 0}m</span> • <span title="Official DB_Airports runway dimensions">Official ${brief.officialRunwayLengthM || 0}m × ${brief.officialRunwayWidthM || 0}m</span><br><small style="color:#546e7a; font-weight:600;">Internal date: ${brief.internalUpdatedLabel || 'N/A'}</small></div>
           <div class="release5-chip"><b>Cutdown Area:</b> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" style="height:30px; width:110px; margin-left:6px;"> <small style="color:#666; font-weight:500;" title="This data is critical because runway widths can change rapidly in jungle areas. Data entered here is pushed to DB_Airports internal runway data after supervisor approval.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>

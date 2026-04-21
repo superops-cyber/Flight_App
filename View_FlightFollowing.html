@@ -201,6 +201,43 @@
     line-height: 1.6;
   }
 
+  /* DUAL-MAP PANEL */
+  .ff-map-panel { display: flex; flex-direction: column; gap: 0; border: 1px solid #b3c5d4; border-radius: 4px; overflow: hidden; }
+  .ff-map-toolbar {
+    background: #1a3a52; color: #fff;
+    display: flex; align-items: center; gap: 6px; padding: 5px 8px; flex-wrap: wrap;
+  }
+  .ff-map-source-badge {
+    font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 7px; border-radius: 999px; background: rgba(255,255,255,0.15);
+  }
+  .ff-map-source-badge.live  { background: #2e7d32; }
+  .ff-map-source-badge.stale { background: #bf360c; }
+  .ff-map-source-badge.none  { background: #455a64; }
+  .ff-map-toggle-btn {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; border-radius: 3px; padding: 3px 9px; font-size: 0.7rem; font-weight: 700;
+    cursor: pointer; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .ff-map-toggle-btn.active { background: #1565c0; border-color: #90caf9; }
+  .ff-map-toggle-btn:hover  { background: rgba(255,255,255,0.22); }
+  .ff-map-inreach-url {
+    flex: 1; min-width: 100px; max-width: 260px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);
+    color: #fff; border-radius: 3px; padding: 3px 6px; font-size: 0.68rem;
+  }
+  .ff-map-inreach-url::placeholder { color: rgba(255,255,255,0.45); }
+  .ff-live-map-wrap  { position: relative; }
+  .ff-inreach-wrap   { position: relative; }
+  .ff-leaflet-map    { height: 220px; }
+  .ff-inreach-iframe { width: 100%; height: 220px; border: none; display: block; }
+  .ff-inreach-fallback {
+    height: 220px; background: #263238; color: #90a4ae;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; font-size: 0.82rem; font-weight: 700;
+  }
+  .ff-inreach-fallback a { color: #90caf9; font-size: 0.8rem; }
+
   .ff-chat-container {
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -338,12 +375,200 @@
     missionsByReg: {},
     activeFlights: new Set(),
     messagesByReg: {},
-    checksByReg: {}
+    checksByReg: {},
+    livePositions: {},      // reg -> { lat, lng, bearing, gsKts, updatedAtMs }
+    mapModeByKey: {},       // key -> 'inhouse' | 'inreach' | 'both'
+    inreachUrlByKey: {},    // key -> url string
+    leafletMapsByKey: {},   // key -> L.map instance
+    leafletMarkersByKey: {} // key -> L.marker instance
+  };
+  var _ffPollTimer = null;
+  var _ffLeafletReady = false;
+
+  loadAircraftAndMissions();
+  _ffStartPolling();
+
+  function _ffStartPolling() {
+    if (_ffPollTimer) clearInterval(_ffPollTimer);
+    _ffPollTimer = setInterval(_ffPollLivePositions, 15000);
+  }
+
+  function _ffPollLivePositions() {
+    if (!state.activeFlights.size) return;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) return;
+        (res.positions || []).forEach(function(p) {
+          state.livePositions[p.reg] = p;
+        });
+        _ffApplyAllPositions();
+      })
+      .withFailureHandler(function() {})
+      .getLivePositions();
+  }
+
+  function _ffApplyAllPositions() {
+    state.activeFlights.forEach(function(key) {
+      var reg = key.split('|')[0];
+      var pos = state.livePositions[reg] || null;
+      var sreg = safeId(reg);
+      var ageMs = pos ? (Date.now() - pos.updatedAtMs) : Infinity;
+      var isLive = pos && ageMs < 90000;  // < 90 s = live
+      var isStale = pos && !isLive;
+
+      // Update badge
+      var badge = document.getElementById('ff-map-badge-' + sreg);
+      if (badge) {
+        if (isLive)  { badge.textContent = 'Live (' + Math.round(ageMs/1000) + 's ago)'; badge.className = 'ff-map-source-badge live'; }
+        else if (isStale) { badge.textContent = 'Stale (' + Math.round(ageMs/60000) + 'min ago)'; badge.className = 'ff-map-source-badge stale'; }
+        else { badge.textContent = 'No position'; badge.className = 'ff-map-source-badge none'; }
+      }
+
+      // Auto-switch: if no live data and inReach URL set, prefer inReach
+      var mode = state.mapModeByKey[key] || 'inhouse';
+      if (!isLive && state.inreachUrlByKey[key] && mode === 'inhouse') {
+        // Auto-revert only if not manually set — track auto vs manual with a flag
+        if (!state._mapModeManual || !state._mapModeManual[key]) {
+          mode = 'inreach';
+          state.mapModeByKey[key] = 'inreach';
+          _ffApplyMapModeUI(key, reg, mode);
+        }
+      } else if (isLive && mode === 'inreach') {
+        // Auto-switch back to inhouse when live data returns
+        if (!state._mapModeManual || !state._mapModeManual[key]) {
+          mode = 'inhouse';
+          state.mapModeByKey[key] = 'inhouse';
+          _ffApplyMapModeUI(key, reg, mode);
+        }
+      }
+
+      // Update Leaflet marker
+      if (isLive && mode !== 'inreach') {
+        _ffUpdateMapMarker(key, reg, pos);
+      }
+    });
+  }
+
+  function _ffEnsureLeaflet(cb) {
+    if (window.L && typeof window.L.map === 'function') { cb(); return; }
+    if (!document.getElementById('ff-leaflet-css')) {
+      var link = document.createElement('link');
+      link.id = 'ff-leaflet-css'; link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+    var script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = function() { cb(); };
+    document.head.appendChild(script);
+  }
+
+  function _ffInitMap(key, reg, mission) {
+    if (state.leafletMapsByKey[key]) return; // already initialized
+    var sreg = safeId(reg);
+    var mapEl = document.getElementById('ff-live-map-' + sreg);
+    if (!mapEl) return;
+    _ffEnsureLeaflet(function() {
+      var map = L.map('ff-live-map-' + sreg, { zoomControl: true, attributionControl: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16, minZoom: 2 }).addTo(map);
+      state.leafletMapsByKey[key] = map;
+      // Plot route line from waypoints if available
+      var waypoints = mission && Array.isArray(mission.resolvedWaypoints) ? mission.resolvedWaypoints : [];
+      if (waypoints.length >= 2) {
+        var lls = waypoints.filter(function(w){ return w.lat && w.lon; }).map(function(w){ return [w.lat, w.lon]; });
+        if (lls.length >= 2) {
+          L.polyline(lls, { color: '#1565c0', weight: 2, opacity: 0.6, dashArray: '5 5' }).addTo(map);
+          map.fitBounds(L.latLngBounds(lls), { padding: [20, 20] });
+          return;
+        }
+      }
+      map.setView([-3.5, -60.0], 5); // Default: central Brazil
+    });
+  }
+
+  function _ffUpdateMapMarker(key, reg, pos) {
+    var sreg = safeId(reg);
+    _ffEnsureLeaflet(function() {
+      var map = state.leafletMapsByKey[key];
+      if (!map) { _ffInitMap(key, reg, null); return; }
+
+      var latlng = [pos.lat, pos.lng];
+      // Rotated aircraft icon using divIcon
+      var iconHtml = '<div style="width:24px;height:24px;transform:rotate(' + Math.round(pos.bearing) + 'deg);font-size:22px;line-height:1;">✈</div>';
+      var icon = L.divIcon({ html: iconHtml, iconSize: [24, 24], iconAnchor: [12, 12], className: '' });
+
+      if (state.leafletMarkersByKey[key]) {
+        state.leafletMarkersByKey[key].setLatLng(latlng).setIcon(icon);
+        state.leafletMarkersByKey[key].setPopupContent(
+          reg + ' — ' + Math.round(pos.gsKts) + ' kts / hdg ' + Math.round(pos.bearing) + '°'
+        );
+      } else {
+        var marker = L.marker(latlng, { icon: icon })
+          .bindPopup(reg + ' — ' + Math.round(pos.gsKts) + ' kts / hdg ' + Math.round(pos.bearing) + '°')
+          .addTo(map);
+        state.leafletMarkersByKey[key] = marker;
+        map.setView(latlng, Math.max(map.getZoom(), 9));
+      }
+    });
+  }
+
+  window.ffSetMapMode = function(key, mode) {
+    if (!state._mapModeManual) state._mapModeManual = {};
+    state._mapModeManual[key] = true; // user manually set — no auto-override
+    state.mapModeByKey[key] = mode;
+    var reg = key.split('|')[0];
+    _ffApplyMapModeUI(key, reg, mode);
   };
 
-  window.onFlightFollowingShown = function() {
-    loadAircraftAndMissions();
+  function _ffApplyMapModeUI(key, reg, mode) {
+    var sreg = safeId(reg);
+    var liveWrap    = document.getElementById('ff-live-wrap-' + sreg);
+    var inreachWrap = document.getElementById('ff-inreach-wrap-' + sreg);
+    var btnIn  = document.getElementById('ff-maptab-inhouse-' + sreg);
+    var btnIr  = document.getElementById('ff-maptab-inreach-' + sreg);
+    var btnBoth= document.getElementById('ff-maptab-both-' + sreg);
+    var showLive    = mode === 'inhouse' || mode === 'both';
+    var showInreach = mode === 'inreach' || mode === 'both';
+    if (liveWrap)    liveWrap.style.display    = showLive    ? '' : 'none';
+    if (inreachWrap) inreachWrap.style.display = showInreach ? '' : 'none';
+    if (btnIn)   btnIn.className   = 'ff-map-toggle-btn' + (mode === 'inhouse' ? ' active' : '');
+    if (btnIr)   btnIr.className   = 'ff-map-toggle-btn' + (mode === 'inreach' ? ' active' : '');
+    if (btnBoth) btnBoth.className = 'ff-map-toggle-btn' + (mode === 'both'    ? ' active' : '');
+    // Invalidate Leaflet size if shown
+    if (showLive) {
+      var map = state.leafletMapsByKey[key];
+      if (map) setTimeout(function(){ map.invalidateSize(); }, 50);
+    }
+    // Load InReach iframe if url set
+    if (showInreach) _ffRenderInreachFrame(key, reg);
+  }
+
+  window.ffSetInreachUrl = function(key, url) {
+    url = String(url || '').trim();
+    if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+    state.inreachUrlByKey[key] = url;
+    if (!state._mapModeManual) state._mapModeManual = {};
+    state._mapModeManual[key] = true;
+    var reg = key.split('|')[0];
+    var mode = state.mapModeByKey[key] || 'inhouse';
+    if (mode === 'inhouse') { // auto-show InReach alongside if user just entered URL
+      state.mapModeByKey[key] = 'both';
+      _ffApplyMapModeUI(key, reg, 'both');
+    } else {
+      _ffRenderInreachFrame(key, reg);
+    }
   };
+
+  function _ffRenderInreachFrame(key, reg) {
+    var sreg = safeId(reg);
+    var wrap = document.getElementById('ff-inreach-wrap-' + sreg);
+    if (!wrap) return;
+    var url = state.inreachUrlByKey[key] || '';
+    if (!url) { /* leave fallback text */ return; }
+    var existing = wrap.querySelector('iframe');
+    if (existing && existing.src === url) return; // already loaded
+    wrap.innerHTML = '<iframe class="ff-inreach-iframe" src="' + url.replace(/"/g,'&quot;') + '" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms"></iframe>';
+  }
 
   function loadAircraftAndMissions() {
     google.script.run
@@ -435,7 +660,15 @@
     grid.innerHTML = cards.length ? cards.join('') : '<div class="ff-empty-state">Waiting for mission data...</div>';
     state.activeFlights.forEach(function(key) {
       loadMessages(key.split('|')[0]);
+      // Init Leaflet map for each card after DOM is ready
+      var parts = key.split('|');
+      var reg = parts[0];
+      var missionId = parts[1];
+      var mission = (state.missionsByReg[reg] || []).find(function(m) { return m.missionId === missionId; }) || null;
+      setTimeout(function() { _ffInitMap(key, reg, mission); }, 80);
     });
+    // Kick off a position poll immediately when flights change
+    _ffPollLivePositions();
   }
 
   function buildCard(acft, mission) {
@@ -531,7 +764,24 @@
           '</div>' +
         '</div>' +
 
-        '<div class="ff-map-container">InReach map placeholder for ' + esc(reg) + '<br><span style="font-size:0.75rem;font-weight:600;">Add Garmin share URL later</span></div>' +
+        '<div class="ff-map-panel" id="ff-map-panel-' + sreg + '">' +
+          '<div class="ff-map-toolbar">' +
+            '<span class="ff-map-source-badge none" id="ff-map-badge-' + sreg + '">No data</span>' +
+            '<button class="ff-map-toggle-btn active" id="ff-maptab-inhouse-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inhouse\')">In-House</button>' +
+            '<button class="ff-map-toggle-btn" id="ff-maptab-inreach-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inreach\')">InReach</button>' +
+            '<button class="ff-map-toggle-btn" id="ff-maptab-both-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'both\')">Both</button>' +
+            '<input class="ff-map-inreach-url" id="ff-inreach-url-' + sreg + '" type="url" placeholder="share.garmin.com/DeviceID" onblur="ffSetInreachUrl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\')ffSetInreachUrl(\''+key+'\',this.value)">' +
+          '</div>' +
+          '<div class="ff-live-map-wrap" id="ff-live-wrap-' + sreg + '">' +
+            '<div class="ff-leaflet-map" id="ff-live-map-' + sreg + '"></div>' +
+          '</div>' +
+          '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + sreg + '" style="display:none">' +
+            '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + sreg + '">' +
+              'Paste the Garmin MapShare URL above<br>' +
+              '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">e.g. share.garmin.com/YourDevice</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
 
         '<div class="ff-chat-container">' +
           '<div class="ff-chat-header">InReach Messages</div>' +

@@ -35,6 +35,34 @@
     }
     .nav-open-new:hover { background: rgba(255,255,255,0.28); }
     .nav-open-new i { font-size: 14px; line-height: 1; }
+
+    /* NAV DROPDOWN */
+    .nav-dropdown-wrap { position: relative; display: inline-flex; align-items: center; }
+    .nav-dropdown-btn {
+      background: rgba(255,255,255,0.15); border: none; color: #fff;
+      cursor: pointer; padding: 0 10px; height: 64px; font-size: 0.82rem;
+      font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+      display: inline-flex; align-items: center; gap: 4px;
+      transition: background 0.15s ease;
+    }
+    .nav-dropdown-btn:hover { background: rgba(255,255,255,0.28); }
+    .nav-dropdown-menu {
+      display: none; position: absolute; top: 64px; right: 0;
+      background: #0d47a1; border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 0 0 6px 6px; min-width: 200px; z-index: 1200;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    }
+    .nav-dropdown-menu.open { display: block; }
+    .nav-dropdown-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; color: rgba(255,255,255,0.92); font-size: 0.8rem;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+      cursor: pointer; white-space: nowrap; text-decoration: none;
+      transition: background 0.12s ease;
+    }
+    .nav-dropdown-item:hover { background: rgba(255,255,255,0.18); color: #fff; }
+    .nav-dropdown-item i { font-size: 16px; opacity: 0.8; }
+    .nav-dropdown-divider { border-top: 1px solid rgba(255,255,255,0.15); margin: 4px 0; }
     .portal-time-trio {
       display: inline-flex;
       align-items: center;
@@ -135,6 +163,29 @@
         <li id="nav-maintenance"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-maintenance')">MAINTENANCE</a><a href="javascript:void(0)" class="nav-open-new" title="Open Maintenance in new tab" onclick="openViewInNewTab('view-maintenance'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
         <li id="nav-flightfollow"><a href="javascript:void(0)" onclick="switchTab('view-flightfollow')">FLIGHT FOLLOW</a></li>
         <li id="nav-pilot"><a href="javascript:void(0)" onclick="openPilotAppFromPortal()">PILOT APP</a></li>
+        <li>
+          <div class="nav-dropdown-wrap" id="nav-apps-wrap">
+            <button class="nav-dropdown-btn" onclick="navAppsToggle_(event)">
+              <i class="material-icons" style="font-size:16px;">apps</i> APPS
+              <i class="material-icons" style="font-size:14px; margin-left:2px;">arrow_drop_down</i>
+            </button>
+            <div class="nav-dropdown-menu" id="nav-apps-menu">
+              <a class="nav-dropdown-item" href="javascript:void(0)" onclick="navOpenApp_('duty')">
+                <i class="material-icons">schedule</i> Duty Time App
+              </a>
+              <a class="nav-dropdown-item" href="javascript:void(0)" onclick="navOpenApp_('pilot')">
+                <i class="material-icons">flight</i> Pilot Flight Deck
+              </a>
+              <div class="nav-dropdown-divider"></div>
+              <a class="nav-dropdown-item" id="nav-copy-duty-link" href="javascript:void(0)" onclick="navCopyAppLink_('duty')">
+                <i class="material-icons">link</i> Copy Duty App Link
+              </a>
+              <a class="nav-dropdown-item" id="nav-copy-portal-link" href="javascript:void(0)" onclick="navCopyAppLink_('')">
+                <i class="material-icons">link</i> Copy Portal Link
+              </a>
+            </div>
+          </div>
+        </li>
       </ul>
     </div>
   </div>
@@ -320,6 +371,45 @@
         window.open(url.toString(), '_blank', 'noopener');
       } catch (e) {
         window.open(String(_portalBaseUrl_() || window.location.pathname || '') + '?view=portal#' + String(viewId || 'view-home'), '_blank', 'noopener');
+      }
+    }
+
+    function navAppsToggle_(e) {
+      e.stopPropagation();
+      var menu = document.getElementById('nav-apps-menu');
+      if (menu) menu.classList.toggle('open');
+    }
+    document.addEventListener('click', function() {
+      var menu = document.getElementById('nav-apps-menu');
+      if (menu) menu.classList.remove('open');
+    });
+
+    function navOpenApp_(view) {
+      document.getElementById('nav-apps-menu').classList.remove('open');
+      try {
+        const url = new URL(_portalBaseUrl_());
+        if (view) url.searchParams.set('view', view);
+        url.hash = '';
+        window.open(url.toString(), '_blank', 'noopener');
+      } catch (e) {
+        window.open(String(_portalBaseUrl_() || '') + (view ? '?view=' + view : ''), '_blank', 'noopener');
+      }
+    }
+
+    function navCopyAppLink_(view) {
+      document.getElementById('nav-apps-menu').classList.remove('open');
+      try {
+        const url = new URL(_portalBaseUrl_());
+        if (view) url.searchParams.set('view', view);
+        url.hash = '';
+        var link = url.toString();
+        navigator.clipboard.writeText(link).then(function() {
+          M.toast({ html: 'Link copiado: ' + link, displayLength: 4000 });
+        }).catch(function() {
+          window.prompt('Copie o link abaixo:', link);
+        });
+      } catch(e) {
+        window.prompt('Copie o link abaixo:', String(_portalBaseUrl_() || '') + (view ? '?view=' + view : ''));
       }
     }
 

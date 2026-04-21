@@ -842,11 +842,11 @@
       <div class="tools-field"><label for="tools-module-name">Module Name</label><input id="tools-module-name" type="text"></div>
     </div>
     <div class="tools-row">
-      <div class="tools-field"><label for="tools-module-role">Role Code</label><select id="tools-module-role" class="browser-default"></select></div>
-      <div class="tools-field"><label for="tools-module-component">Component</label><select id="tools-module-component" class="browser-default"><option value="THEORY">THEORY</option><option value="PRACTICAL">PRACTICAL</option><option value="MIXED">MIXED</option></select></div>
+      <div class="tools-field"><label for="tools-module-role">Role Code</label><select id="tools-module-role" class="browser-default" onchange="toolsModuleAutoFillIdName_()"></select></div>
+      <div class="tools-field"><label for="tools-module-component">Component</label><select id="tools-module-component" class="browser-default" onchange="toolsModuleAutoFillIdName_()"><option value="THEORY">THEORY</option><option value="PRACTICAL">PRACTICAL</option><option value="MIXED">MIXED</option></select></div>
     </div>
     <div class="tools-row">
-      <div class="tools-field"><label for="tools-module-type">Module Type</label><select id="tools-module-type" class="browser-default"><option value="INITIAL">INITIAL</option><option value="RECURRENT">RECURRENT</option></select></div>
+      <div class="tools-field"><label for="tools-module-type">Module Type</label><select id="tools-module-type" class="browser-default" onchange="toolsModuleAutoFillIdName_()"><option value="INITIAL">INITIAL</option><option value="RECURRENT">RECURRENT</option></select></div>
       <div class="tools-field"><label for="tools-module-pass">Pass Threshold (%)</label><input id="tools-module-pass" type="number" inputmode="numeric" min="0" max="100"></div>
     </div>
     <div class="tools-row">
@@ -859,7 +859,18 @@
     </div>
     <div class="tools-btn-row">
       <button class="btn-ts" type="button" onclick="toolsModuleClearForm_()">LIMPAR</button>
+      <button id="tools-module-delete-btn" class="btn-td" type="button" onclick="toolsModuleDelete_()" style="display:none;">DELETAR</button>
+      <button class="btn-ts" type="button" onclick="toolsModuleShowLessonForm_()">AUTO-CRIAR AULA</button>
       <button class="btn-tp" type="button" onclick="toolsModuleSave_()">SALVAR MÓDULO</button>
+    </div>
+    <div id="tools-module-lesson-form" style="display:none; margin-top:10px; padding:12px; background:#e8f0fe; border-radius:8px; border-left:3px solid #1a73e8;">
+      <label style="font-size:0.8rem; color:#0b5394; font-weight:700; display:block; margin-bottom:6px;">Informações adicionais para o conteúdo (opcional):</label>
+      <textarea id="tools-module-lesson-context" style="width:100%; min-height:80px; font-size:0.82rem; border:1px solid #b0bec5; border-radius:4px; padding:6px; box-sizing:border-box;" placeholder="Ex: Operação em Roraima, rotas BVB-PVH. Incluir procedimentos para área remota e voos noturnos. Destacar comunicação em zonas sem cobertura de rádio..."></textarea>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+        <button class="btn-tp" type="button" onclick="toolsModuleAutoCreateLesson_()">GERAR DOCUMENTO</button>
+        <button class="btn-ts" type="button" onclick="document.getElementById('tools-module-lesson-form').style.display='none'">CANCELAR</button>
+        <span id="tools-module-lesson-status" style="font-size:0.75rem; color:#546e7a;"></span>
+      </div>
     </div>
   </div>
 
@@ -950,6 +961,16 @@
       <div class="tools-field" style="margin-bottom:0; max-width:220px;">
         <button class="btn-ta" type="button" onclick="toolsSchedulerRunTests_()">RUN TEST SUITE</button>
       </div>
+      <div class="tools-field" style="margin-bottom:0; max-width:220px; margin-top:6px; display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="tools-scheduler-training-sync-dry" checked style="margin:0;">
+        <label for="tools-scheduler-training-sync-dry" style="font-size:0.75rem; color:#546e7a; margin:0;">Preview only</label>
+      </div>
+      <div class="tools-field" style="margin-bottom:0; max-width:220px;">
+        <button class="btn-ts" type="button" onclick="toolsSchedulerPreviewTrainingSync_()">PREVIEW TRAINING SYNC</button>
+      </div>
+      <div class="tools-field" style="margin-bottom:0; max-width:220px;">
+        <button class="btn-ta" type="button" onclick="toolsSchedulerApplyTrainingSync_()">APPLY TRAINING SYNC</button>
+      </div>
     </div>
     <div id="tools-scheduler-status" class="tools-report-meta" style="margin-top:8px;">Select a month and run dry run first.</div>
     <div id="tools-scheduler-results" class="tools-report-table-wrap" style="margin-top:10px;"></div>
@@ -967,10 +988,18 @@
         <div id="tools-master-meta" class="tools-report-meta"></div>
       </div>
       <div class="tools-master-grid">
-        <div class="tools-field">
-          <label for="tools-master-home-airports">Geofence Coordinates (uma por linha)</label>
-          <textarea id="tools-master-home-airports" placeholder="-3,1416; -60,0212&#10;S 03 08 30, W 060 01 16"></textarea>
-          <div class="tools-dbadd-help">Aceita decimal, vírgula decimal (pt-BR), DMS e decimal-minutes.</div>
+        <div class="tools-field" style="grid-column:1/-1;">
+          <label>Pontos de Geofence <span style="font-weight:400; color:#78909c; font-size:0.78rem;">(clique no mapa para adicionar, ou digite abaixo)</span></label>
+          <div id="tools-master-geofence-map" style="height:220px; border:1px solid #d1dbe6; border-radius:8px; margin-bottom:8px;"></div>
+          <ol id="tools-master-geofence-list" style="margin:0 0 8px 0; padding-left:20px; font-size:0.82rem; color:#37474f; min-height:24px;"></ol>
+          <div style="display:flex; gap:6px; align-items:flex-start;">
+            <textarea id="tools-master-home-airports" placeholder="-3.1416, -60.0212&#10;45°33'34.76&quot;N, 93°36'19.44&quot;W" style="flex:1; min-height:70px; font-size:0.8rem;"></textarea>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <button class="btn-ts" type="button" style="white-space:nowrap;" onclick="toolsMasterGeofencePreview_()">VISUALIZAR</button>
+              <button class="btn-ts" type="button" style="white-space:nowrap;" onclick="toolsMasterGeofenceClearAll_()">LIMPAR</button>
+            </div>
+          </div>
+          <div class="tools-dbadd-help">Uma coordenada por linha. Aceita decimal (ex: -3.14, -60.02), DMS (ex: S 03°08'30&quot;, W 060°01'16&quot;) ou decimal-minutos.</div>
         </div>
         <div class="tools-field">
           <label for="tools-master-alert-recipients">Alert Recipients</label>
@@ -978,11 +1007,11 @@
         </div>
         <div class="tools-field">
           <label for="tools-master-morning-time">Morning Alert Time</label>
-          <input id="tools-master-morning-time" type="text" placeholder="08:00">
+          <input id="tools-master-morning-time" type="time" placeholder="08:00">
         </div>
         <div class="tools-field">
           <label for="tools-master-evening-time">Evening Alert Time</label>
-          <input id="tools-master-evening-time" type="text" placeholder="17:00">
+          <input id="tools-master-evening-time" type="time" placeholder="17:00">
         </div>
         <div class="tools-field">
           <label for="tools-master-morning-window">Morning Window (min)</label>
@@ -993,8 +1022,8 @@
           <input id="tools-master-evening-window" type="number" inputmode="numeric" min="10" step="5" placeholder="180">
         </div>
         <div class="tools-field">
-          <label for="tools-master-geofence-km">Geofence Radius (km)</label>
-          <input id="tools-master-geofence-km" type="number" inputmode="decimal" min="1" step="0.5" placeholder="8">
+          <label for="tools-master-geofence-km">Geofence Radius (metros)</label>
+          <input id="tools-master-geofence-km" type="number" inputmode="decimal" min="100" step="50" placeholder="8000">
         </div>
       </div>
       <div class="tools-btn-row">
@@ -3036,6 +3065,8 @@
       return;
     }
     _toolsSelectedModuleRow = Number(mod.rowNumber || 0);
+    var delBtn = document.getElementById('tools-module-delete-btn');
+    if (delBtn) delBtn.style.display = _toolsSelectedModuleRow >= 2 ? '' : 'none';
     document.getElementById('tools-module-id').value = String(mod.moduleId || '');
     document.getElementById('tools-module-name').value = String(mod.moduleName || '');
     document.getElementById('tools-module-role').value = String(mod.roleCode || '');
@@ -3048,10 +3079,102 @@
     document.getElementById('tools-module-notes').value = String(mod.notes || '');
   }
 
+  function toolsModuleAutoFillIdName_() {
+    var roleEl = document.getElementById('tools-module-role');
+    var typeEl = document.getElementById('tools-module-type');
+    var compEl = document.getElementById('tools-module-component');
+    var idEl   = document.getElementById('tools-module-id');
+    var nameEl = document.getElementById('tools-module-name');
+    var role = roleEl ? String(roleEl.value || '').trim() : '';
+    var type = typeEl ? String(typeEl.value || 'INITIAL') : 'INITIAL';
+    var comp = compEl ? String(compEl.value || 'THEORY') : 'THEORY';
+    if (!role) return;
+    var roleShort = { OP_PILOT_LAND:'OPL', OP_PILOT_ANF:'OPA', OP_INSTR_PILOT_LAND:'IPL', OP_INSTR_PILOT_ANF:'IPA', FLIGHT_INSTRUCTOR:'FI', FLIGHT_FOLLOWER:'FF', FLIGHT_COORDINATOR:'FC', FLIGHT_SUPERVISOR:'FS', MECHANIC:'MEC', MECHANIC_TRAINEE:'MECT', INSPECTOR:'INSP', SRM:'SRM', STOCKROOM:'STK' };
+    var roleNamePt = { OP_PILOT_LAND:'Piloto Operacional Terrestre', OP_PILOT_ANF:'Piloto Operacional ANF', OP_INSTR_PILOT_LAND:'Piloto Instrutor Terrestre', OP_INSTR_PILOT_ANF:'Piloto Instrutor ANF', FLIGHT_INSTRUCTOR:'Instrutor de Voo', FLIGHT_FOLLOWER:'Acompanhador de Voo', FLIGHT_COORDINATOR:'Coordenador de Voo', FLIGHT_SUPERVISOR:'Supervisor de Voo', MECHANIC:'Mecânico', MECHANIC_TRAINEE:'Mecânico em Treinamento', INSPECTOR:'Inspetor', SRM:'Gerente de Segurança e Risco', STOCKROOM:'Almoxarife' };
+    var typeShort  = { INITIAL:'INIT', RECURRENT:'REC' };
+    var typeNamePt = { INITIAL:'Inicial', RECURRENT:'Recorrente' };
+    var compShort  = { THEORY:'TEO', PRACTICAL:'PRAT', MIXED:'MIX' };
+    var compNamePt = { THEORY:'Teoria', PRACTICAL:'Prática', MIXED:'Teórico-Prático' };
+    var code = (roleShort[role] || role.replace(/[^A-Z0-9]/g,'').substring(0,4)) + '-' + (typeShort[type] || type.substring(0,3)) + '-' + (compShort[comp] || comp.substring(0,3));
+    var name = (roleNamePt[role] || role) + ' \u2014 ' + (compNamePt[comp] || comp) + ' ' + (typeNamePt[type] || type);
+    if (idEl)   idEl.value   = code;
+    if (nameEl) nameEl.value = name;
+  }
+
+  function toolsModuleShowLessonForm_() {
+    var form = document.getElementById('tools-module-lesson-form');
+    if (!form) return;
+    form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+    var statusEl = document.getElementById('tools-module-lesson-status');
+    if (statusEl) statusEl.innerHTML = '';
+  }
+
+  function toolsModuleAutoCreateLesson_() {
+    var roleEl    = document.getElementById('tools-module-role');
+    var typeEl    = document.getElementById('tools-module-type');
+    var compEl    = document.getElementById('tools-module-component');
+    var idEl      = document.getElementById('tools-module-id');
+    var nameEl    = document.getElementById('tools-module-name');
+    var recEl     = document.getElementById('tools-module-recurrent');
+    var practEl   = document.getElementById('tools-module-practical');
+    var contextEl = document.getElementById('tools-module-lesson-context');
+    var statusEl  = document.getElementById('tools-module-lesson-status');
+    var roleCode  = roleEl ? String(roleEl.value || '').trim() : '';
+    if (!roleCode) { toolsToast_('Selecione um Role Code antes de gerar a aula.', 'orange'); return; }
+    if (statusEl) statusEl.textContent = 'Gerando documento no Google Drive...';
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          if (statusEl) statusEl.textContent = 'Erro: ' + ((res && res.error) || 'Falha desconhecida');
+          return;
+        }
+        if (statusEl) statusEl.innerHTML = 'Pronto! <a href="' + res.docUrl + '" target="_blank" style="color:#1a73e8;font-weight:600;">Abrir no Google Docs \u2197</a>';
+        toolsToast_('Plano de aula gerado com sucesso!', 'green');
+      })
+      .withFailureHandler(function(err) {
+        if (statusEl) statusEl.textContent = 'Erro: ' + (err && err.message ? err.message : String(err));
+      })
+      .generateTrainingModuleCourse({
+        roleCode:        roleCode,
+        moduleType:      typeEl  ? String(typeEl.value  || 'INITIAL') : 'INITIAL',
+        component:       compEl  ? String(compEl.value  || 'THEORY')  : 'THEORY',
+        moduleId:        idEl    ? String(idEl.value    || '').trim()  : '',
+        moduleName:      nameEl  ? String(nameEl.value  || '').trim()  : '',
+        recurrentDays:   recEl   ? String(recEl.value   || '0')        : '0',
+        requiresPractical: practEl ? practEl.value === 'Y' : false,
+        extraContext:    contextEl ? String(contextEl.value || '').trim() : ''
+      });
+  }
+
+  function toolsModuleDelete_() {
+    if (!_toolsSelectedModuleRow || _toolsSelectedModuleRow < 2) {
+      toolsToast_('Selecione um módulo para deletar.', 'orange');
+      return;
+    }
+    var moduleId = String((document.getElementById('tools-module-id') || {}).value || '').trim();
+    if (!confirm('Deletar módulo "' + moduleId + '"? Esta ação não pode ser desfeita.')) return;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          toolsToast_((res && res.error) ? res.error : 'Não foi possível deletar módulo.', 'red');
+          return;
+        }
+        toolsToast_('Módulo deletado.', 'green');
+        toolsModuleClearForm_();
+        toolsLoadStaffSetupData_(true);
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .deleteToolsTrainingModule({ rowNumber: _toolsSelectedModuleRow });
+  }
+
   function toolsModuleClearForm_() {
     _toolsSelectedModuleRow = 0;
     var sel = document.getElementById('tools-module-select');
     if (sel) sel.value = '';
+    var delBtn = document.getElementById('tools-module-delete-btn');
+    if (delBtn) delBtn.style.display = 'none';
     ['tools-module-id','tools-module-name','tools-module-pass','tools-module-recurrent','tools-module-notes'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.value = '';
@@ -3362,6 +3485,41 @@
     out.innerHTML = top + testsTable + dryRunHtml + unfilledHtml;
   }
 
+  function toolsSchedulerRenderTrainingSync_(res, modeLabel) {
+    var out = document.getElementById('tools-scheduler-results');
+    if (!res || !Array.isArray(res.actions)) {
+      toolsSchedulerSetStatus_('Training sync failed: unexpected response.', '#c62828');
+      if (out) out.innerHTML = '<pre style="white-space:pre-wrap;font-size:0.75rem;color:#546e7a;background:#f5f7f8;padding:10px;border-radius:8px;">' + JSON.stringify(res || {}, null, 2) + '</pre>';
+      return;
+    }
+    var rows = res.actions.map(function(a) {
+      return '<tr><td>' + (a.action||'') + '</td><td>' + (a.email||'') + '</td><td>' + (a.role||'') + '</td><td>' + (a.active!=null?a.active:'') + '</td><td>' + (a.validUntil||'') + '</td><td style="font-size:0.7rem;color:#607d8b;">' + (a.reason||'') + '</td></tr>';
+    }).join('');
+    var table = rows.length
+      ? '<table class="tools-report-table"><thead><tr><th>Action</th><th>Email</th><th>Role</th><th>Active</th><th>Valid Until</th><th>Reason</th></tr></thead><tbody>' + rows + '</tbody></table>'
+      : '<p style="font-size:0.8rem;color:#607d8b;padding:8px 0;">No changes needed — all qualifications are already in sync.</p>';
+    toolsSchedulerSetStatus_(modeLabel + ': ' + res.actions.length + ' action(s).', '#2e7d32');
+    if (out) out.innerHTML = table;
+  }
+
+  function toolsSchedulerPreviewTrainingSync_() {
+    toolsSchedulerSetStatus_('Previewing training qualification sync...', '#1565c0');
+    google.script.run
+      .withSuccessHandler(function(res) { toolsSchedulerRenderTrainingSync_(res, 'Preview'); })
+      .withFailureHandler(function(e) { toolsSchedulerSetStatus_('Preview failed: ' + e.message, '#c62828'); })
+      .previewTrainingQualificationSync({});
+  }
+
+  function toolsSchedulerApplyTrainingSync_() {
+    var dryRun = !!(document.getElementById('tools-scheduler-training-sync-dry') || {checked:true}).checked;
+    if (!dryRun && !confirm('This will write qualification rows to SCHED_Staff_Qualifications. Continue?')) return;
+    toolsSchedulerSetStatus_((dryRun ? 'Previewing' : 'Applying') + ' training qualification sync...', '#1565c0');
+    google.script.run
+      .withSuccessHandler(function(res) { toolsSchedulerRenderTrainingSync_(res, dryRun ? 'Preview' : 'Applied'); })
+      .withFailureHandler(function(e) { toolsSchedulerSetStatus_('Sync failed: ' + e.message, '#c62828'); })
+      .syncTrainingQualificationsToScheduler({dryRun: dryRun});
+  }
+
   function toolsSchedulerRunTests_() {
     var month = toolsSchedulerMonth_();
     if (!month) {
@@ -3664,6 +3822,118 @@
     toolsOpenPanel('masterconfig');
   }
 
+  // ---- Geofence map helpers -------------------------------------------------
+  var _toolsMasterGeoMap = null;
+  var _toolsMasterGeoMarkers = null;
+
+  function toolsMasterGeofencePreview_() {
+    var raw = String((document.getElementById('tools-master-home-airports') || {}).value || '');
+    var lines = raw.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    var points = lines.map(toolsMasterParseCoordLine_).filter(Boolean);
+
+    // Render numbered list
+    var listEl = document.getElementById('tools-master-geofence-list');
+    if (listEl) {
+      listEl.innerHTML = '';
+      points.forEach(function(p, i) {
+        var li = document.createElement('li');
+        li.textContent = p.label + ' (' + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) + ')';
+        listEl.appendChild(li);
+      });
+      if (!points.length && lines.length) {
+        listEl.innerHTML = '<li style="color:#c62828">Formato não reconhecido. Use decimal (lat, lng) ou DMS.</li>';
+      }
+    }
+
+    if (!points.length) return;
+
+    toolsEnsureLeaflet_(function() {
+      var mapEl = document.getElementById('tools-master-geofence-map');
+      if (!mapEl) return;
+      mapEl.style.display = 'block';
+
+      if (!_toolsMasterGeoMap) {
+        _toolsMasterGeoMap = L.map('tools-master-geofence-map', { zoomControl: true, attributionControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, minZoom: 2 }).addTo(_toolsMasterGeoMap);
+        // Click to append a coordinate
+        _toolsMasterGeoMap.on('click', function(e) {
+          var lat = e.latlng.lat.toFixed(6);
+          var lng = e.latlng.lng.toFixed(6);
+          var ta = document.getElementById('tools-master-home-airports');
+          var cur = (ta.value || '').trim();
+          ta.value = cur ? cur + '\n' + lat + ', ' + lng : lat + ', ' + lng;
+          toolsMasterGeofencePreview_();
+        });
+      } else {
+        setTimeout(function(){ _toolsMasterGeoMap.invalidateSize(); }, 50);
+      }
+
+      if (_toolsMasterGeoMarkers) {
+        try { _toolsMasterGeoMap.removeLayer(_toolsMasterGeoMarkers); } catch(e) {}
+      }
+      _toolsMasterGeoMarkers = L.layerGroup(points.map(function(p, i) {
+        return L.marker([p.lat, p.lng]).bindPopup((i + 1) + '. ' + p.label);
+      })).addTo(_toolsMasterGeoMap);
+
+      var latlngs = points.map(function(p){ return [p.lat, p.lng]; });
+      if (latlngs.length === 1) {
+        _toolsMasterGeoMap.setView(latlngs[0], 10);
+      } else {
+        _toolsMasterGeoMap.fitBounds(L.latLngBounds(latlngs), { padding: [24, 24] });
+      }
+    });
+  }
+
+  function toolsMasterGeofenceClearAll_() {
+    var ta = document.getElementById('tools-master-home-airports');
+    if (ta) ta.value = '';
+    var listEl = document.getElementById('tools-master-geofence-list');
+    if (listEl) listEl.innerHTML = '';
+    if (_toolsMasterGeoMarkers && _toolsMasterGeoMap) {
+      try { _toolsMasterGeoMap.removeLayer(_toolsMasterGeoMarkers); } catch(e) {}
+      _toolsMasterGeoMarkers = null;
+    }
+  }
+
+  function toolsMasterParseCoordLine_(line) {
+    if (!line) return null;
+    // Strip degree/minute/second symbols, normalize separators
+    var cleaned = line.replace(/[°′'″"]/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // --- Full DMS: handles both "N 45 33 34.73 W 93 36 19.50" AND "45 33 34.73 N 93 36 19.50 W" ---
+    // Pattern: optional-dir  deg  min  sec  optional-dir  AND  optional-dir  deg  min  sec  optional-dir
+    var dmsRe = /([NS]?)\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*([NS]?)\s+([EW]?)\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*([EW]?)/i;
+    var dm = cleaned.match(dmsRe);
+    if (dm) {
+      var latDeg = parseFloat(dm[2]), latMin = parseFloat(dm[3]), latSec = parseFloat(dm[4]);
+      var lngDeg = parseFloat(dm[7]), lngMin = parseFloat(dm[8]), lngSec = parseFloat(dm[9]);
+      var latDir = (dm[1] || dm[5] || '').toUpperCase();
+      var lngDir = (dm[6] || dm[10] || '').toUpperCase();
+      var lat = latDeg + latMin / 60 + latSec / 3600;
+      var lng = lngDeg + lngMin / 60 + lngSec / 3600;
+      if (latDir === 'S') lat = -lat;
+      if (lngDir === 'W') lng = -lng;
+      if (!isNaN(lat) && !isNaN(lng)) return { lat: lat, lng: lng, label: line };
+    }
+
+    // --- Decimal with optional N/S/E/W prefix or suffix, comma or space separated ---
+    // e.g. "-3.1416, -60.0212" or "S3.1416 W60.0212" or "3.1416S 60.0212W"
+    var decRe = /([NS]?)\s*(-?[\d.]+)\s*([NS]?)[,\s]+([EW]?)\s*(-?[\d.]+)\s*([EW]?)/i;
+    var de = cleaned.match(decRe);
+    if (de) {
+      var lat2 = parseFloat(de[2]);
+      var lng2 = parseFloat(de[5]);
+      var latDir2 = (de[1] || de[3] || '').toUpperCase();
+      var lngDir2 = (de[4] || de[6] || '').toUpperCase();
+      if (latDir2 === 'S') lat2 = -Math.abs(lat2);
+      if (lngDir2 === 'W') lng2 = -Math.abs(lng2);
+      if (!isNaN(lat2) && !isNaN(lng2)) return { lat: lat2, lng: lng2, label: line };
+    }
+
+    return null;
+  }
+  // --------------------------------------------------------------------------
+
   function toolsSetMasterMeta_(text, color) {
     var el = document.getElementById('tools-master-meta');
     if (!el) return;
@@ -3686,7 +3956,7 @@
       DUTY_EVENING_ALERT_TIME: String((document.getElementById('tools-master-evening-time') || {}).value || '').trim(),
       DUTY_MORNING_WINDOW_MIN: String((document.getElementById('tools-master-morning-window') || {}).value || '').trim(),
       DUTY_EVENING_WINDOW_MIN: String((document.getElementById('tools-master-evening-window') || {}).value || '').trim(),
-      DUTY_GEOFENCE_RADIUS_KM: String((document.getElementById('tools-master-geofence-km') || {}).value || '').trim()
+      DUTY_GEOFENCE_RADIUS_KM: String((document.getElementById('tools-master-geofence-km') || {}).value || '').trim()  // stored as meters now
     };
   }
 
@@ -3694,11 +3964,22 @@
     var c = cfg || {};
     document.getElementById('tools-master-home-airports').value = String(c.DUTY_GEOFENCE_COORDS || '');
     document.getElementById('tools-master-alert-recipients').value = String(c.DUTY_ALERT_RECIPIENTS || '');
-    document.getElementById('tools-master-morning-time').value = String(c.DUTY_MORNING_ALERT_TIME || '');
-    document.getElementById('tools-master-evening-time').value = String(c.DUTY_EVENING_ALERT_TIME || '');
+    // Strip full Date string if sheet stored as Date — keep only HH:MM
+    var morningRaw = String(c.DUTY_MORNING_ALERT_TIME || '');
+    var eveningRaw = String(c.DUTY_EVENING_ALERT_TIME || '');
+    var timeRe = /(\d{1,2}):(\d{2})/;
+    var morningMatch = morningRaw.match(timeRe);
+    var eveningMatch = eveningRaw.match(timeRe);
+    document.getElementById('tools-master-morning-time').value = morningMatch ? (String(morningMatch[1]).padStart(2,'0') + ':' + morningMatch[2]) : '';
+    document.getElementById('tools-master-evening-time').value = eveningMatch ? (String(eveningMatch[1]).padStart(2,'0') + ':' + eveningMatch[2]) : '';
     document.getElementById('tools-master-morning-window').value = String(c.DUTY_MORNING_WINDOW_MIN || '');
     document.getElementById('tools-master-evening-window').value = String(c.DUTY_EVENING_WINDOW_MIN || '');
-    document.getElementById('tools-master-geofence-km').value = String(c.DUTY_GEOFENCE_RADIUS_KM || '');
+    // Radius: stored internally as km for backward-compat; display as meters
+    var radiusRaw = parseFloat(c.DUTY_GEOFENCE_RADIUS_KM || '0');
+    // If value <= 50 it's km (legacy); if > 50 it's already meters
+    var radiusMeters = radiusRaw > 50 ? Math.round(radiusRaw) : Math.round(radiusRaw * 1000);
+    document.getElementById('tools-master-geofence-km').value = radiusMeters || '';
+    toolsMasterGeofencePreview_();
   }
 
   function toolsApplyMasterSchedulerConfig_(cfg) {
@@ -7338,16 +7619,27 @@
     var airports=(_toolsAirportsDbRows&&_toolsAirportsDbRows.length)?_toolsAirportsDbRows:(data.airports||[]);
     var q=query.trim().toUpperCase();
     if(!airports.length){container.innerHTML='<div style="color:#90a4ae;font-size:0.85rem;padding:8px 0;">No airports loaded from DB_Airports.</div>';return;}
-    var seen={},filtered=[];
+    var icaoGroups={},icaoOrder=[];
     for(var i=0;i<airports.length;i++){
       var a=airports[i],icao=String(a.icao||'').toUpperCase();
-      if(seen[icao])continue;
-      if(!q || icao.indexOf(q)>-1||String(a.nome||'').toUpperCase().indexOf(q)>-1){seen[icao]=true;filtered.push(a);}
+      if(!icao)continue;
+      if(!q || icao.indexOf(q)>-1||String(a.nome||'').toUpperCase().indexOf(q)>-1){
+        if(!icaoGroups[icao]){icaoGroups[icao]=[];icaoOrder.push(icao);}
+        icaoGroups[icao].push(a);
+      }
     }
-    if(!filtered.length){container.innerHTML='<div style="color:#90a4ae;font-size:0.85rem;padding:8px 0;">No airports found for &ldquo;'+query+'&rdquo;.</div>';return;}
-    container.innerHTML=filtered.map(function(a){
-      var icao=String(a.icao||''),nome=String(a.nome||icao||'Unknown');
-      var rwyText=a.runwayIdent?(a.runwayIdent+' — '+Math.round(a.runwayLength||0)+'m × '+Math.round(a.runwayWidth||0)+'m'):'No runway data';
+    if(!icaoOrder.length){container.innerHTML='<div style="color:#90a4ae;font-size:0.85rem;padding:8px 0;">No airports found for &ldquo;'+query+'&rdquo;.</div>';return;}
+    container.innerHTML=icaoOrder.map(function(icao){
+      var rows=icaoGroups[icao],a=rows[0];
+      var nome=String(a.nome||icao||'Unknown');
+      var rwyPairsSeen={},rwyLines=[];
+      rows.forEach(function(row){
+        var ident=String(row.runwayIdent||'').trim().toUpperCase();if(!ident)return;
+        var pairKey=toolsRwyPairKey_(ident)||ident;
+        if(rwyPairsSeen[pairKey])return;rwyPairsSeen[pairKey]=true;
+        rwyLines.push(pairKey+' — '+Math.round(row.runwayLength||0)+'m × '+Math.round(row.runwayWidth||0)+'m');
+      });
+      var rwyText=rwyLines.length?rwyLines.join('<br>'):'No runway data';
       var hasFuel=toolsAirportHasFuel_(a.fuelAvailable);
       var elev=a.elevationFt?(Math.round(a.elevationFt)+' ft'):'';
       var surface=toolsAirportSurface_(a);

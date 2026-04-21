@@ -1,0 +1,1425 @@
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     RUNWAY BRIEFING CARD  –  modal overlay styles
+     ───────────────────────────────────────────────────────────── */
+  #rbc-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.62);
+    z-index: 13000;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #rbc-sheet {
+    width: 100%;
+    max-width: 640px;
+    min-height: 100vh;
+    margin: 0 auto;
+    background: #fff;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 0.82rem;
+  }
+  /* iPad mini target: roughly 768×1024, so max-width 640 centres nicely */
+
+  /* ── shared header ── */
+  .rbc-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #0b2a4e;
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .rbc-top-bar h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+  }
+  .rbc-top-bar .rbc-close-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+  .rbc-page-tabs {
+    display: flex;
+    border-bottom: 2px solid #e0e7ef;
+    background: #f4f7fb;
+  }
+  .rbc-page-tab {
+    flex: 1;
+    padding: 9px 0;
+    text-align: center;
+    font-weight: 800;
+    font-size: 0.78rem;
+    color: #607d8b;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .rbc-page-tab.active {
+    color: #0b5394;
+    border-bottom-color: #0b5394;
+    background: #fff;
+  }
+
+  /* ── page wrapper ── */
+  .rbc-page { display: none; padding: 0 0 60px 0; }
+  .rbc-page.active { display: block; }
+
+  /* ── section block ── */
+  .rbc-section {
+    margin: 10px 10px 0 10px;
+    border: 1px solid #dde3ea;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .rbc-section-title {
+    background: #e8f0fb;
+    color: #0b2a4e;
+    font-weight: 900;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 5px 10px;
+    border-bottom: 1px solid #c8d8ee;
+  }
+  .rbc-section-body {
+    padding: 8px 10px;
+    background: #fff;
+  }
+
+  /* ── grid helpers ── */
+  .rbc-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .rbc-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+  .rbc-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  .rbc-cell {
+    background: #f7f9fc;
+    border: 1px solid #e3e8ef;
+    border-radius: 5px;
+    padding: 5px 7px;
+  }
+  .rbc-cell .lbl {
+    font-size: 0.64rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #78909c;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .rbc-cell .val {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1a2533;
+    display: block;
+    word-break: break-word;
+  }
+  .rbc-cell .val.big {
+    font-size: 1.05rem;
+    font-weight: 900;
+  }
+  .rbc-cell .val.mono {
+    font-family: 'SF Mono', 'Consolas', monospace;
+  }
+  .rbc-cell .val.danger { color: #c62828; }
+  .rbc-cell .val.warn   { color: #e65100; }
+  .rbc-cell .val.ok     { color: #2e7d32; }
+
+  /* ── inline edit fields ── */
+  .rbc-editable { cursor: text; }
+  .rbc-editable.editing input,
+  .rbc-editable.editing textarea {
+    display: block;
+    width: 100%;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1a2533;
+    border: 1.5px solid #1565c0;
+    border-radius: 4px;
+    padding: 3px 5px;
+    background: #f0f6ff;
+    box-sizing: border-box;
+    outline: none;
+  }
+  .rbc-editable .val { min-height: 1.2em; }
+  .rbc-editable.editing .val { display: none; }
+
+  /* ── text blocks (notes, dangers, etc.) ── */
+  .rbc-text-block {
+    background: #f7f9fc;
+    border: 1px solid #e3e8ef;
+    border-radius: 5px;
+    padding: 8px 10px;
+    margin: 4px 0;
+    min-height: 44px;
+    font-size: 0.84rem;
+    color: #263238;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+  .rbc-text-block.editable-block {
+    cursor: text;
+    position: relative;
+  }
+  .rbc-text-block.editable-block::after {
+    content: '✎';
+    position: absolute;
+    top: 5px;
+    right: 7px;
+    font-size: 0.8rem;
+    color: #b0bec5;
+  }
+  textarea.rbc-textarea {
+    width: 100%;
+    min-height: 70px;
+    border: 1.5px solid #1565c0;
+    border-radius: 4px;
+    padding: 5px 7px;
+    font-size: 0.83rem;
+    color: #1a2533;
+    background: #f0f6ff;
+    box-sizing: border-box;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+  }
+
+  /* ── runway diagram ── */
+  #rbc-diagram-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .rbc-diagram-container {
+    background: #f0f4f8;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  /* Maltese cross for MAP/go-around */
+  .rbc-map-cross {
+    pointer-events: none;
+  }
+  #rbc-diagram-drop-hint {
+    font-size: 0.72rem;
+    color: #90a4ae;
+    text-align: center;
+    padding: 3px 0 4px 0;
+    font-weight: 700;
+  }
+
+  /* ── photo placeholder ── */
+  .rbc-photo-box {
+    background: #eceff1;
+    border: 2px dashed #b0bec5;
+    border-radius: 6px;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #90a4ae;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 4px 0;
+    overflow: hidden;
+  }
+  .rbc-photo-box img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+  }
+
+  /* ── restrictions table ── */
+  .rbc-restrictions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+  .rbc-restrictions-table th {
+    background: #dde3ea;
+    color: #1a2533;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 0.66rem;
+    padding: 5px 6px;
+    text-align: left;
+    border: 1px solid #c8d0da;
+  }
+  .rbc-restrictions-table td {
+    padding: 5px 6px;
+    border: 1px solid #dde3ea;
+    vertical-align: top;
+    color: #263238;
+  }
+  .rbc-restrictions-table tr:nth-child(even) td { background: #f7f9fc; }
+  .rbc-restrictions-table td.warn { color: #e65100; font-weight: 800; }
+  .rbc-restrictions-table td.ok   { color: #2e7d32; font-weight: 800; }
+
+  /* ── history table (page 2) ── */
+  .rbc-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+  }
+  .rbc-history-table th {
+    background: #263238;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    padding: 5px 6px;
+    text-align: left;
+  }
+  .rbc-history-table td {
+    padding: 5px 6px;
+    border: 1px solid #dde3ea;
+    vertical-align: middle;
+  }
+  .rbc-history-table tr:nth-child(even) td { background: #f4f7fb; }
+
+  /* ── action bar ── */
+  .rbc-action-bar {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid #dde3ea;
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    z-index: 3;
+  }
+  .rbc-btn {
+    height: 36px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 7px;
+    font-weight: 900;
+    font-size: 0.78rem;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .rbc-btn-primary  { background: #0b5394; color: #fff; }
+  .rbc-btn-edit     { background: #1565c0; color: #fff; }
+  .rbc-btn-save     { background: #2e7d32; color: #fff; }
+  .rbc-btn-cancel   { background: #eceff1; color: #546e7a; }
+  .rbc-btn-danger   { background: #c62828; color: #fff; }
+  .rbc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .rbc-status-msg {
+    flex: 1;
+    font-size: 0.75rem;
+    color: #607d8b;
+    font-weight: 700;
+  }
+
+  /* ── revision footer ── */
+  .rbc-revision-footer {
+    text-align: center;
+    padding: 10px 10px 4px 10px;
+    font-size: 0.7rem;
+    color: #90a4ae;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+</style>
+
+<!-- ════════════════════════════════════════════
+     RUNWAY BRIEFING CARD OVERLAY
+     ════════════════════════════════════════════ -->
+<div id="rbc-overlay">
+  <div id="rbc-sheet">
+
+    <!-- Top bar -->
+    <div class="rbc-top-bar">
+      <h2 id="rbc-header-title">Runway Briefing Card</h2>
+      <button class="rbc-close-btn" onclick="rbcClose()">✕</button>
+    </div>
+
+    <!-- Page tabs -->
+    <div class="rbc-page-tabs">
+      <button class="rbc-page-tab active" id="rbc-tab-btn-1" onclick="rbcSwitchPage(1)">PAGE 1 – RUNWAY</button>
+      <button class="rbc-page-tab"        id="rbc-tab-btn-2" onclick="rbcSwitchPage(2)">PAGE 2 – PERFORMANCE HISTORY</button>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         PAGE 1
+         ══════════════════════════════════════════ -->
+    <div class="rbc-page active" id="rbc-page-1">
+
+      <!-- HEADER INFO 4-column grid -->
+      <div class="rbc-section" style="margin-top:10px;">
+        <div class="rbc-section-title">Runway Identification</div>
+        <div class="rbc-section-body rbc-grid-4" id="rbc-ident-grid">
+          <div class="rbc-cell">
+            <span class="lbl">Class</span>
+            <span class="val big" id="rbc-class">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Runway</span>
+            <span class="val big mono" id="rbc-ident">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">ICAO</span>
+            <span class="val big" id="rbc-icao">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">GPS Coordinates</span>
+            <span class="val mono" style="font-size:0.72rem;" id="rbc-coords">–</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIMENSIONS row -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Dimensions &amp; Measurements</div>
+        <div class="rbc-section-body rbc-grid-3" id="rbc-dims-grid">
+          <div class="rbc-cell">
+            <span class="lbl">Internal Length</span>
+            <span class="val big" id="rbc-int-length">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Official Length</span>
+            <span class="val" id="rbc-off-length">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Survey Date</span>
+            <span class="val" id="rbc-survey-date">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Internal Width</span>
+            <span class="val big" id="rbc-int-width">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Official Width</span>
+            <span class="val" id="rbc-off-width">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Cutdown Area</span>
+            <span class="val" id="rbc-cutdown">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Elevation</span>
+            <span class="val" id="rbc-elevation">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Surface</span>
+            <span class="val" id="rbc-surface">–</span>
+          </div>
+          <div class="rbc-cell">
+            <span class="lbl">Slope</span>
+            <span class="val" id="rbc-slope">–</span>
+          </div>
+        </div>
+        <div class="rbc-section-body" id="rbc-slope-detail-row" style="padding-top:0;"></div>
+      </div>
+
+      <!-- DIAGRAM -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">
+          Runway Diagram
+          <span id="rbc-diagram-edit-hint" style="font-weight:500; font-size:0.68rem; color:#546e7a; display:none;"> — tap diagram to place Go-Around Point (MAP) ✛</span>
+        </div>
+        <div class="rbc-section-body" style="padding:6px;">
+          <div class="rbc-diagram-container" id="rbc-diagram-container">
+            <svg id="rbc-diagram-svg" viewBox="0 0 700 470"></svg>
+          </div>
+          <div id="rbc-diagram-drop-hint"></div>
+          <div id="rbc-map-info" style="display:none; text-align:center; font-size:0.74rem; font-weight:800; color:#6a1b9a; padding:2px 0 4px;">
+            ✛ Go-Around Point: <span id="rbc-map-dist">–</span> from threshold
+          </div>
+        </div>
+      </div>
+
+      <!-- AIRSTRIP PHOTO -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Airstrip Photo</div>
+        <div class="rbc-section-body" style="padding:6px;">
+          <div class="rbc-photo-box" id="rbc-photo-box">
+            <span>No photo available</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAKEOFF RESTRICTIONS -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Takeoff Restrictions by Aircraft</div>
+        <div class="rbc-section-body" style="padding:6px;">
+          <table class="rbc-restrictions-table" id="rbc-restrictions-table">
+            <thead>
+              <tr>
+                <th>Aircraft / Model</th>
+                <th>Direction</th>
+                <th>Max Weight</th>
+                <th>Notes / Condition</th>
+              </tr>
+            </thead>
+            <tbody id="rbc-restrictions-tbody">
+              <tr><td colspan="4" style="color:#90a4ae; text-align:center;">No restrictions recorded</td></tr>
+            </tbody>
+          </table>
+          <!-- Supervisor adds rows in edit mode -->
+          <div id="rbc-restrictions-editor" style="display:none; margin-top:8px; padding:6px; background:#f0f6ff; border-radius:6px; border:1px solid #c5d9f5;">
+            <div style="font-size:0.72rem; font-weight:900; color:#0b5394; margin-bottom:6px;">ADD / EDIT RESTRICTION ROW</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px;">
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Aircraft / Model</label>
+                <input id="rbc-r-acft" type="text" placeholder="e.g. C206 / PP-XYZ" class="rbc-input-sm">
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Direction</label>
+                <input id="rbc-r-dir" type="text" placeholder="e.g. RWY 10 / Both" class="rbc-input-sm">
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Max Weight (kg)</label>
+                <input id="rbc-r-mtow" type="number" inputmode="numeric" placeholder="e.g. 1814" class="rbc-input-sm">
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Notes / Condition</label>
+                <input id="rbc-r-notes" type="text" placeholder="e.g. Dry only, flaps 10" class="rbc-input-sm">
+              </div>
+            </div>
+            <button class="rbc-btn rbc-btn-edit" style="height:30px; font-size:0.72rem;" onclick="rbcAddRestrictionRow()">+ ADD ROW</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SURFACE & OBSTRUCTIONS -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Surface &amp; Obstructions</div>
+        <div class="rbc-section-body" style="padding:4px 8px;">
+          <div id="rbc-obstructions-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('obstructions')">–</div>
+          <textarea id="rbc-obstructions-edit" class="rbc-textarea" style="display:none;" placeholder="Describe obstructions, trees, rocks, power lines..."></textarea>
+        </div>
+      </div>
+
+      <!-- WEATHER OBSERVATIONS -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Weather Observations</div>
+        <div class="rbc-section-body" style="padding:4px 8px;">
+          <div id="rbc-weather-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('weather')">–</div>
+          <textarea id="rbc-weather-edit" class="rbc-textarea" style="display:none;" placeholder="Prevailing winds, fog tendency, wet season, terrain effects..."></textarea>
+        </div>
+      </div>
+
+      <!-- DANGERS -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Dangers</div>
+        <div class="rbc-section-body" style="padding:4px 8px;">
+          <div id="rbc-dangers-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('dangers')">–</div>
+          <textarea id="rbc-dangers-edit" class="rbc-textarea" style="display:none;" placeholder="Wildlife, soft edges, drainage ditches, approach hazards..."></textarea>
+        </div>
+      </div>
+
+      <!-- FORCED LANDING SPOTS -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Recommended Forced Landing Spots</div>
+        <div class="rbc-section-body" style="padding:4px 8px;">
+          <div id="rbc-forced-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('forced')">–</div>
+          <textarea id="rbc-forced-edit" class="rbc-textarea" style="display:none;" placeholder="Recommended areas for forced landing if departure abort fails..."></textarea>
+        </div>
+      </div>
+
+      <!-- REVISION FOOTER -->
+      <div class="rbc-revision-footer">
+        Last Revision: <span id="rbc-revision-date">–</span> &nbsp;·&nbsp; <span id="rbc-revised-by">–</span>
+      </div>
+
+    </div><!-- /page-1 -->
+
+    <!-- ══════════════════════════════════════════
+         PAGE 2 – PERFORMANCE HISTORY
+         ══════════════════════════════════════════ -->
+    <div class="rbc-page" id="rbc-page-2">
+
+      <!-- Alternates / routes -->
+      <div class="rbc-section" style="margin-top:10px;">
+        <div class="rbc-section-title">Routes &amp; Alternates</div>
+        <div class="rbc-section-body" style="padding:4px 8px;">
+          <div id="rbc-routes-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('routes')">–</div>
+          <textarea id="rbc-routes-edit" class="rbc-textarea" style="display:none;" placeholder="Alternate airports with bearing and distance...&#10;e.g. SNLL: 7 NM / 243°&#10;     SSLM: 11 NM / 204°"></textarea>
+        </div>
+      </div>
+
+      <!-- Runway history notes -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Runway History</div>
+        <div class="rbc-section-body" style="padding:4px 8px;">
+          <div id="rbc-rwyhist-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('rwyhist')">–</div>
+          <textarea id="rbc-rwyhist-edit" class="rbc-textarea" style="display:none;" placeholder="Known incidents, past conditions, changes over time..."></textarea>
+        </div>
+      </div>
+
+      <!-- Incidents/accidents -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Incident / Accident History</div>
+        <div class="rbc-section-body" style="padding:4px 8px;">
+          <div id="rbc-incidents-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('incidents')">–</div>
+          <textarea id="rbc-incidents-edit" class="rbc-textarea" style="display:none;" placeholder="Any known incidents or accidents at this strip..."></textarea>
+        </div>
+      </div>
+
+      <!-- Additional notes -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Other Notes &amp; Observations</div>
+        <div class="rbc-section-body" style="padding:4px 8px;">
+          <div id="rbc-othernotes-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('othernotes')">–</div>
+          <textarea id="rbc-othernotes-edit" class="rbc-textarea" style="display:none;" placeholder="Runway markers: white stripe distance 50m, 1000m marks at 300–350m..."></textarea>
+        </div>
+      </div>
+
+      <!-- Last 2 takeoff performance records -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Last Takeoff Performance Records (this runway)</div>
+        <div class="rbc-section-body" style="padding:6px;">
+          <div id="rbc-history-loading" style="text-align:center; color:#90a4ae; font-weight:700; padding:12px;">Loading flight history...</div>
+          <table class="rbc-history-table" id="rbc-history-table" style="display:none;">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Pilot</th>
+                <th>Aircraft</th>
+                <th>Weight (kg)</th>
+                <th>Temp</th>
+                <th>Flaps</th>
+                <th>Surface</th>
+                <th>Wet?</th>
+                <th>Calc TO Roll</th>
+                <th>Actual TO Roll</th>
+                <th>VR Dist</th>
+                <th>MAP</th>
+                <th>Alt / Routes</th>
+              </tr>
+            </thead>
+            <tbody id="rbc-history-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /page-2 -->
+
+    <!-- Action bar -->
+    <div class="rbc-action-bar">
+      <button class="rbc-btn rbc-btn-edit" id="rbc-edit-btn" onclick="rbcToggleEdit()">✎ EDIT</button>
+      <button class="rbc-btn rbc-btn-save" id="rbc-save-btn" onclick="rbcSave()" style="display:none;">✓ SAVE</button>
+      <button class="rbc-btn rbc-btn-cancel" id="rbc-cancel-btn" onclick="rbcCancelEdit()" style="display:none;">CANCEL</button>
+      <span class="rbc-status-msg" id="rbc-status-msg"></span>
+    </div>
+
+  </div><!-- /rbc-sheet -->
+</div><!-- /rbc-overlay -->
+
+<style>
+  .rbc-input-sm {
+    width: 100%;
+    height: 30px;
+    border: 1px solid #c5d9f5;
+    border-radius: 4px;
+    padding: 0 7px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    background: #fff;
+    box-sizing: border-box;
+    outline: none;
+  }
+  .rbc-input-sm:focus { border-color: #1565c0; background: #f0f6ff; }
+</style>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  RUNWAY BRIEFING CARD  –  controller
+// ══════════════════════════════════════════════════════════════════
+
+window._rbcState = {
+  icao: '',
+  rwyIdent: '',
+  runway: null,          // full runway object from performanceTab4 / appData
+  card: {},              // loaded/saved card data blob
+  editMode: false,
+  dirty: false,
+  mapDistM: null,        // go-around distance in metres from threshold
+  diagramScale: 1,       // pixels per metre (set when diagram is drawn)
+  diagramTopX: 0,
+  diagramTopY: 0,
+  diagramTopH: 0,
+  diagramRunwayPx: 0,
+  callerContext: 'tab5'  // 'tab5' | 'tab7'
+};
+
+// ── open / close ─────────────────────────────────────────────────
+
+window.openRunwayBriefingCard = function(icao, rwyIdent, callerContext) {
+  const s = window._rbcState;
+  s.icao = String(icao || '').trim().toUpperCase();
+  s.rwyIdent = String(rwyIdent || '').trim().toUpperCase();
+  s.callerContext = callerContext || 'tab5';
+  s.editMode = false;
+  s.dirty = false;
+  s.mapDistM = null;
+
+  // Resolve runway object
+  s.runway = _rbcFindRunway(s.icao, s.rwyIdent);
+
+  const overlay = document.getElementById('rbc-overlay');
+  if (overlay) overlay.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  rbcSwitchPage(1);
+  _rbcRenderPage1();
+  _rbcLoadAndRenderPage2();
+  _rbcSetEditUI(false);
+};
+
+window.rbcClose = function() {
+  const overlay = document.getElementById('rbc-overlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+};
+
+// ── page switching ────────────────────────────────────────────────
+
+window.rbcSwitchPage = function(n) {
+  [1,2].forEach(function(i) {
+    const page = document.getElementById('rbc-page-' + i);
+    const tab = document.getElementById('rbc-tab-btn-' + i);
+    if (page) page.classList.toggle('active', i === n);
+    if (tab)  tab.classList.toggle('active', i === n);
+  });
+};
+
+// ── helpers ────────────────────────────────────────────────────────
+
+function _rbcEsc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _rbcFindRunway(icao, rwyIdent) {
+  const perf = window.performanceTab4 || {};
+  const runways = Array.isArray(perf.runways) ? perf.runways : [];
+  // Try exact match first
+  let rwy = runways.find(r => String(r.rwyIdent||'').toUpperCase() === rwyIdent);
+  if (!rwy) {
+    // Try ICAO match via appData
+    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const apt = airports.find(a => String(a.icao||'').toUpperCase() === icao);
+    if (apt) {
+      // Synthesise a minimal runway object from apt
+      rwy = {
+        icao: icao,
+        rwyIdent: rwyIdent,
+        length: parseFloat(apt.runwayLength) || 0,
+        width: parseFloat(apt.runwayWidth) || 0,
+        slope: parseFloat(apt.runwaySlopePercent) || 0,
+        surface: apt.runwaySurfaceActual || '',
+        elevation: parseFloat(apt.elevationFt) || 0,
+        knownFeatures: [],
+        slopeProfile: [],
+        surveySlopeSegments: [],
+        obstacleAngles: [],
+        officialReference: { lengthM: parseFloat(apt.runwayLength)||0, widthM: parseFloat(apt.runwayWidth)||0 },
+        verifiedOperational: {},
+        cutdownAreaM: 0,
+        airstripPhoto: apt.airstripPhoto || '',
+        pilotNotes: apt.pilotNotes || '',
+        knownFeaturesRaw: apt.knownFeatures || ''
+      };
+    }
+  }
+  return rwy || null;
+}
+
+function _rbcLoadCard() {
+  // Card data lives in KNOWN_FEATURES JSON under key "briefingCard"
+  const s = window._rbcState;
+  const rwy = s.runway;
+  if (!rwy) return {};
+
+  // Try from verifiedOperational.briefingCard or top-level knownObj
+  let blob = {};
+  try {
+    const raw = String((rwy && rwy.knownFeaturesRaw) || '').trim();
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const obj = Array.isArray(parsed) ? {} : (parsed || {});
+      blob = (obj.briefingCard && typeof obj.briefingCard === 'object') ? obj.briefingCard : {};
+    }
+  } catch (e) {}
+
+  // Also check verifiedOperational directly (set by newer approval flow)
+  if (!Object.keys(blob).length) {
+    const vo = (rwy && rwy.verifiedOperational) || {};
+    blob = (vo.briefingCard && typeof vo.briefingCard === 'object') ? vo.briefingCard : {};
+  }
+
+  return blob;
+}
+
+function _rbcRunwayClass(rwy) {
+  if (!rwy) return '?';
+  const l = Number(rwy.length || 0);
+  if (l >= 900) return '1';
+  if (l >= 600) return '2';
+  return '3';
+}
+
+// ── PAGE 1 render ─────────────────────────────────────────────────
+
+function _rbcRenderPage1() {
+  const s = window._rbcState;
+  const rwy = s.runway;
+  s.card = _rbcLoadCard();
+  const card = s.card;
+
+  // Header title
+  const title = document.getElementById('rbc-header-title');
+  if (title) title.textContent = (s.icao || '?') + ' · ' + (s.rwyIdent || '?') + ' Briefing Card';
+
+  // Ident grid
+  _rbcSet('rbc-class', 'Class ' + _rbcRunwayClass(rwy));
+  _rbcSet('rbc-ident', s.rwyIdent || '–');
+  _rbcSet('rbc-icao', s.icao || '–');
+
+  // Coordinates from verifiedOperational thresholds or knownObj
+  let coordsText = '–';
+  try {
+    const vo = (rwy && rwy.verifiedOperational) || {};
+    const thr = Array.isArray(vo.thresholds) ? vo.thresholds : [];
+    if (thr.length) {
+      coordsText = thr.map(function(t) {
+        const lat = Number(t.lat || t.latitude || 0).toFixed(5);
+        const lon = Number(t.lon || t.longitude || 0).toFixed(5);
+        const id  = String(t.ident || t.rwy || '').toUpperCase();
+        return (id ? id + ': ' : '') + lat + ', ' + lon;
+      }).join('\n');
+    }
+  } catch (e) {}
+  _rbcSet('rbc-coords', coordsText);
+
+  // Dimensions
+  const intLen  = rwy ? Math.round(Number(rwy.length || 0)) : 0;
+  const intWid  = rwy ? Math.round(Number(rwy.width  || 0)) : 0;
+  const offLen  = rwy ? Math.round(Number((rwy.officialReference && rwy.officialReference.lengthM) || intLen || 0)) : 0;
+  const offWid  = rwy ? Math.round(Number((rwy.officialReference && rwy.officialReference.widthM)  || intWid || 0)) : 0;
+  const cutdown = rwy ? (Number(rwy.cutdownAreaM || 0) > 0 ? Math.round(rwy.cutdownAreaM) + ' m' : '–') : '–';
+  const elev    = rwy ? Math.round(Number(rwy.elevation || 0)) + ' ft' : '–';
+  const surface = rwy ? (rwy.surface || '–') : '–';
+  const slopePct = rwy ? Number(rwy.slope || 0).toFixed(1) + '%' : '–';
+  const survDate = rwy ? String(rwy.internalUpdatedAt || '').substring(0, 10) || '–' : '–';
+
+  _rbcSet('rbc-int-length', intLen ? intLen + ' m' : '–');
+  _rbcSet('rbc-off-length', offLen ? offLen + ' m' : '–');
+  _rbcSet('rbc-int-width',  intWid ? intWid + ' m' : '–');
+  _rbcSet('rbc-off-width',  offWid ? offWid + ' m' : '–');
+  _rbcSet('rbc-cutdown',    cutdown);
+  _rbcSet('rbc-elevation',  elev);
+  _rbcSet('rbc-surface',    surface);
+  _rbcSet('rbc-slope',      slopePct);
+  _rbcSet('rbc-survey-date', survDate);
+
+  // Slope detail labels
+  const slopeDetailEl = document.getElementById('rbc-slope-detail-row');
+  if (slopeDetailEl && rwy) {
+    const segs = Array.isArray(rwy.surveySlopeSegments) && rwy.surveySlopeSegments.length
+      ? rwy.surveySlopeSegments
+      : (Array.isArray(rwy.slopeProfile) ? rwy.slopeProfile : []);
+    if (segs.length > 1) {
+      const labels = segs.map(function(seg) {
+        const dist = Math.round(Number(seg.distanceM || seg.distance || 0));
+        const slp  = Number(seg.slope || 0).toFixed(1);
+        return dist + 'm ' + (seg.slope >= 0 ? '+' : '') + slp + '%';
+      }).join('  →  ');
+      slopeDetailEl.innerHTML = '<div style="font-size:0.72rem; color:#546e7a; font-weight:700; padding-bottom:4px;">⛰ Slope profile: ' + _rbcEsc(labels) + '</div>';
+    } else {
+      slopeDetailEl.innerHTML = '';
+    }
+  }
+
+  // Diagram
+  _rbcDrawDiagram();
+
+  // Photo
+  const photoBox = document.getElementById('rbc-photo-box');
+  if (photoBox) {
+    const photoUrl = String((rwy && rwy.airstripPhoto) || (card && card.airstripPhoto) || '').trim();
+    if (photoUrl) {
+      photoBox.innerHTML = '<img src="' + _rbcEsc(photoUrl) + '" alt="Airstrip photo" onerror="this.parentNode.innerHTML=\'<span>Photo unavailable</span>\'">';
+    } else {
+      photoBox.innerHTML = '<span>No photo — tap EDIT to add URL</span>';
+    }
+  }
+
+  // Restrictions
+  _rbcRenderRestrictions();
+
+  // Text blocks
+  _rbcSetBlock('obstructions', card.obstructions  || (rwy && _rbcBuildDefaultObstructions(rwy)) || '–');
+  _rbcSetBlock('weather',      card.weather       || '–');
+  _rbcSetBlock('dangers',      card.dangers       || '–');
+  _rbcSetBlock('forced',       card.forcedLanding || '–');
+
+  // MAP / go-around
+  if (card.mapDistM != null) {
+    s.mapDistM = Number(card.mapDistM);
+    _rbcShowMapInfo();
+  }
+
+  // Revision footer
+  const el1 = document.getElementById('rbc-revision-date');
+  const el2 = document.getElementById('rbc-revised-by');
+  if (el1) el1.textContent = String(card.revisedAt || '').substring(0,10) || '–';
+  if (el2) el2.textContent = String(card.revisedBy || '') || '–';
+}
+
+function _rbcBuildDefaultObstructions(rwy) {
+  const feats = Array.isArray(rwy.knownFeatures) ? rwy.knownFeatures : [];
+  if (!feats.length) return '';
+  return feats.map(function(f) {
+    return '• ' + String(f.name || '') + (f.distance ? ' @ ' + Math.round(f.distance) + 'm' : '') + (f.side ? ' (' + f.side + ')' : '');
+  }).join('\n');
+}
+
+function _rbcSet(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function _rbcSetBlock(key, text) {
+  const view = document.getElementById('rbc-' + key + '-view');
+  const edit  = document.getElementById('rbc-' + key + '-edit');
+  if (view) view.textContent = text || '–';
+  if (edit) edit.value = (text && text !== '–') ? text : '';
+}
+
+function _rbcRenderRestrictions() {
+  const s = window._rbcState;
+  const card = s.card;
+  const rwy = s.runway;
+  const tbody = document.getElementById('rbc-restrictions-tbody');
+  if (!tbody) return;
+
+  let rows = [];
+
+  // From card
+  if (Array.isArray(card.restrictions) && card.restrictions.length) {
+    rows = card.restrictions.slice();
+  }
+
+  // Auto-populate from mtowByModel if no card rows
+  if (!rows.length) {
+    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const apt = airports.find(function(a) { return String(a.icao||'').toUpperCase() === s.icao; });
+    const mtow = (apt && apt.mtowByModel && typeof apt.mtowByModel === 'object') ? apt.mtowByModel : {};
+    Object.keys(mtow).forEach(function(modelKey) {
+      const kg = Number(mtow[modelKey] || 0);
+      if (kg > 0) rows.push({ acft: modelKey, dir: 'All', mtow: kg, notes: 'From DB_Airports MTOW' });
+    });
+  }
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#90a4ae; text-align:center;">No restrictions recorded</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(function(r) {
+    const mtowVal = Number(r.mtow || 0);
+    const mtowClass = mtowVal > 0 ? 'ok' : '';
+    return '<tr><td>' + _rbcEsc(r.acft||'–') + '</td>'
+      + '<td>' + _rbcEsc(r.dir||'–') + '</td>'
+      + '<td class="' + mtowClass + '">' + (mtowVal > 0 ? mtowVal + ' kg' : '–') + '</td>'
+      + '<td>' + _rbcEsc(r.notes||'–') + '</td></tr>';
+  }).join('');
+}
+
+// ── DIAGRAM (reuses window.drawRunwayDiagram logic, self-contained) ──
+
+function _rbcDrawDiagram() {
+  const s = window._rbcState;
+  const rwy = s.runway;
+  if (!rwy) return;
+
+  // Delegate to Tab4's drawRunwayDiagram if available, drawing into our SVG
+  // We swap the element id temporarily
+  const svg = document.getElementById('rbc-diagram-svg');
+  if (!svg) return;
+
+  // Use the shared drawing function by temporarily redirecting it
+  if (typeof window.drawRunwayDiagram === 'function') {
+    // We need to draw into OUR svg. The Tab4 function uses 'perf-runway-diagram'.
+    // We'll call rbcDrawRunwayDiagramInto() — our own standalone version.
+  }
+  _rbcDrawRunwayDiagramInto(svg, rwy, null, s.mapDistM);
+}
+
+function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
+  if (!svg || !runway) return;
+
+  const makeEl = function(tag, attrs, text) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.keys(attrs || {}).forEach(function(k) { el.setAttribute(k, String(attrs[k])); });
+    if (text != null) el.textContent = text;
+    return el;
+  };
+
+  const surfaceNorm = String(runway.surface || '').toUpperCase().replace(/[^A-Z]/g, '');
+  const isAsphalt = /PAVED|ASPHALT|CONCRETE|ASFALTO|CONCRETO/.test(surfaceNorm);
+  const isGrass   = /GRASS|TURF|GRAMA/.test(surfaceNorm);
+  const lengthM   = Math.max(Number(runway.length || 0), 1);
+  const widthM    = Math.max(Number(runway.width  || 0), 0);
+
+  const canvasW   = 700;
+  const canvasH   = 470;
+  const topX      = 40;
+  const topY      = 42;
+  const topHeight = 62;
+  const usableWidth = 620;
+  const scale     = usableWidth / lengthM;
+  const runwayPx  = lengthM * scale;
+
+  // Store for MAP placement
+  const st = window._rbcState;
+  st.diagramScale     = scale;
+  st.diagramTopX      = topX;
+  st.diagramTopY      = topY;
+  st.diagramTopH      = topHeight;
+  st.diagramRunwayPx  = runwayPx;
+
+  svg.innerHTML = '';
+
+  const defs = makeEl('defs', {});
+  const gp = makeEl('pattern', { id: 'rbcGrass', patternUnits: 'userSpaceOnUse', width: 12, height: 12 });
+  gp.appendChild(makeEl('rect', { x:0, y:0, width:12, height:12, fill:'#6d9557' }));
+  gp.appendChild(makeEl('path', { d:'M0,12 L12,0 M-3,9 L3,3 M9,15 L15,9', stroke:'#7fab66', 'stroke-width':1 }));
+  defs.appendChild(gp);
+  const rp = makeEl('pattern', { id: 'rbcRough', patternUnits: 'userSpaceOnUse', width: 8, height: 8 });
+  rp.appendChild(makeEl('rect', { x:0, y:0, width:8, height:8, fill:'#8b6f47' }));
+  rp.appendChild(makeEl('circle', { cx:2, cy:2, r:1, fill:'#6f5837' }));
+  rp.appendChild(makeEl('circle', { cx:6, cy:5, r:1, fill:'#6f5837' }));
+  defs.appendChild(rp);
+  svg.appendChild(defs);
+
+  const fill = isAsphalt ? '#5f5f5f' : (isGrass ? 'url(#rbcGrass)' : (/ROUGH|MUD|SAND/.test(surfaceNorm) ? 'url(#rbcRough)' : '#9a9a9a'));
+
+  const topGroup = makeEl('g', {});
+  topGroup.appendChild(makeEl('text', { x:topX, y:24, 'font-size':14, fill:'#333', 'font-weight':'700' }, 'TOP VIEW'));
+  topGroup.appendChild(makeEl('rect', { x:topX, y:topY, width:runwayPx, height:topHeight, fill:fill, stroke:'#2a2a2a', 'stroke-width':1.5, rx:2 }));
+
+  if (isAsphalt) {
+    topGroup.appendChild(makeEl('line', { x1:topX, y1:topY+topHeight/2, x2:topX+runwayPx, y2:topY+topHeight/2, stroke:'#f3f3f3', 'stroke-width':2, 'stroke-dasharray':'12,8' }));
+  }
+
+  const identNum = parseInt(String(runway.rwyIdent || '').replace(/\D/g,''), 10);
+  const thisRwy  = (!isNaN(identNum) && identNum >= 1 && identNum <= 36) ? String(identNum).padStart(2,'0') : String(runway.rwyIdent || '??');
+  const recipN   = (!isNaN(identNum) && identNum >= 1 && identNum <= 36) ? String((((identNum+18-1)%36)+1)).padStart(2,'0') : '';
+
+  const addBadge = function(cx, angle, label) {
+    const g = makeEl('g', { transform:'rotate('+angle+' '+cx+' '+(topY+topHeight/2)+')' });
+    g.appendChild(makeEl('rect', { x:cx-18, y:(topY+topHeight/2)-13, width:36, height:26, fill:'rgba(0,0,0,0.45)', rx:3 }));
+    g.appendChild(makeEl('text', { x:cx, y:(topY+topHeight/2)+6, 'font-size':16, fill:'#fff', 'font-weight':'900', 'text-anchor':'middle' }, label));
+    topGroup.appendChild(g);
+  };
+  addBadge(topX+22, 90, thisRwy);
+  if (recipN) addBadge(topX+runwayPx-22, -90, recipN);
+
+  // Width label
+  topGroup.appendChild(makeEl('text', { x:topX+(runwayPx/2), y:topY+topHeight+22, 'font-size':13, fill:'#333', 'text-anchor':'middle' },
+    Math.round(lengthM)+'m × '+ Math.round(widthM||0)+'m · '+(runway.surface||'')));
+
+  // Official ref
+  const offRef = runway.officialReference || {};
+  if (offRef.lengthM) {
+    topGroup.appendChild(makeEl('text', { x:topX+(runwayPx/2), y:topY+topHeight+36, 'font-size':12, fill:'#0b5394', 'font-weight':'700', 'text-anchor':'middle' },
+      'OFFICIAL: '+Math.round(offRef.lengthM||0)+'m × '+Math.round(offRef.widthM||0)+'m'));
+  }
+
+  // Features
+  const features = Array.isArray(runway.knownFeatures) ? runway.knownFeatures : [];
+  features.forEach(function(feat) {
+    const dist = Math.max(0, Number(feat.distance || 0));
+    if (dist > lengthM) return;
+    const side = String(feat.side||'right').toLowerCase();
+    const fx = topX + (dist * scale);
+    const fy = side === 'left' ? topY - 18 : topY + topHeight + 18;
+    topGroup.appendChild(makeEl('line', { x1:fx, y1:side==='left'?topY:topY+topHeight, x2:fx, y2:fy, stroke:'#ff9800', 'stroke-width':1.5 }));
+    topGroup.appendChild(makeEl('text', { x:fx, y:fy, 'font-size':14, 'text-anchor':'middle' }, '●'));
+    topGroup.appendChild(makeEl('text', { x:fx, y:fy+(side==='left'?-6:12), 'font-size':11, fill:'#555', 'text-anchor':'middle' }, Math.round(dist)+'m'));
+  });
+
+  // MAP / go-around Maltese cross
+  if (mapDistM != null && mapDistM >= 0) {
+    const mx = topX + (mapDistM * scale);
+    const my = topY + topHeight/2;
+    const arm = 10;
+    topGroup.appendChild(makeEl('line', { x1:mx-arm, y1:my, x2:mx+arm, y2:my, stroke:'#6a1b9a', 'stroke-width':3 }));
+    topGroup.appendChild(makeEl('line', { x1:mx, y1:my-arm, x2:mx, y2:my+arm, stroke:'#6a1b9a', 'stroke-width':3 }));
+    topGroup.appendChild(makeEl('line', { x1:mx-arm*0.6, y1:my-arm*0.6, x2:mx+arm*0.6, y2:my+arm*0.6, stroke:'#6a1b9a', 'stroke-width':2 }));
+    topGroup.appendChild(makeEl('line', { x1:mx+arm*0.6, y1:my-arm*0.6, x2:mx-arm*0.6, y2:my+arm*0.6, stroke:'#6a1b9a', 'stroke-width':2 }));
+    topGroup.appendChild(makeEl('text', { x:mx, y:topY-6, 'font-size':11, fill:'#6a1b9a', 'font-weight':'800', 'text-anchor':'middle' }, 'MAP'));
+  }
+
+  svg.appendChild(topGroup);
+
+  // ── SIDE VIEW ─────────────────────────────────────────────────
+
+  let profile = [];
+  const segs = Array.isArray(runway.surveySlopeSegments) && runway.surveySlopeSegments.length
+    ? runway.surveySlopeSegments
+    : (Array.isArray(runway.slopeProfile) ? runway.slopeProfile : []);
+
+  if (segs.length) {
+    const ident = String(runway.rwyIdent||'').toUpperCase();
+    let cursor = 0;
+    const sorted = segs.map(function(seg) {
+      const segDist = Math.max(Number(seg.distanceM != null ? seg.distanceM : (seg.distance||0)), 0);
+      const rawStart = Number(seg.startDistanceM);
+      const startM = isFinite(rawStart) ? rawStart : cursor;
+      return { startDistanceM: Math.max(0, Math.min(lengthM, startM)), distance: segDist, slope: Number(seg.slope||0) };
+    }).filter(function(s) { return s.distance > 0; }).sort(function(a,b) { return a.startDistanceM - b.startDistanceM; });
+    cursor = 0;
+    sorted.forEach(function(seg) {
+      if (seg.startDistanceM > cursor) profile.push({ distance: seg.startDistanceM - cursor, slope: 0 });
+      const clipped = Math.max(0, Math.min(seg.distance, lengthM - seg.startDistanceM));
+      if (clipped > 0) { profile.push({ distance: clipped, slope: seg.slope }); cursor = seg.startDistanceM + clipped; }
+    });
+    if (cursor < lengthM) profile.push({ distance: lengthM - cursor, slope: 0 });
+  } else {
+    profile = [{ distance: lengthM, slope: Number(runway.slope||0) }];
+  }
+
+  const sideX = topX, sideY = 308, sideH = 84;
+  const elevations = [0];
+  let curEl = 0;
+  profile.forEach(function(seg) { curEl += seg.distance*seg.slope/100; elevations.push(curEl); });
+  const minEl = Math.min.apply(null, elevations);
+  const maxEl = Math.max.apply(null, elevations);
+  const spanEl = Math.max(0.5, maxEl - minEl);
+  const elScale = Math.max(0.8, Math.min(sideH / spanEl, 4));
+  const usedH = spanEl * elScale;
+  const yOff = (sideH - usedH) / 2;
+
+  let xCur = 0;
+  const pts = [sideX + ',' + (sideY + yOff + usedH - ((elevations[0]-minEl)*elScale))];
+  profile.forEach(function(seg, i) {
+    xCur += seg.distance;
+    const px = sideX + (xCur * scale);
+    const py = sideY + yOff + usedH - ((elevations[i+1]-minEl)*elScale);
+    pts.push(px + ',' + py);
+  });
+
+  const sideGroup = makeEl('g', {});
+  sideGroup.appendChild(makeEl('text', { x:sideX, y:sideY-6, 'font-size':13, fill:'#333', 'font-weight':'700' }, 'SIDE VIEW'));
+  sideGroup.appendChild(makeEl('rect', { x:sideX, y:sideY, width:runwayPx, height:sideH, fill:'#f3f3f3', stroke:'#ddd' }));
+  sideGroup.appendChild(makeEl('polyline', { points:pts.join(' '), fill:'none', stroke:'#00695c', 'stroke-width':3 }));
+
+  // Slope labels
+  let segPos = 0;
+  profile.forEach(function(seg) {
+    const midX = sideX + ((segPos + seg.distance/2) * scale);
+    const lbl = Math.round(seg.distance)+'m '+(seg.slope>=0?'+':'')+Number(seg.slope).toFixed(1)+'%';
+    sideGroup.appendChild(makeEl('text', { x:midX, y:sideY+sideH+22, 'font-size':11, fill:'#4b4b4b', 'text-anchor':'middle' }, lbl));
+    segPos += seg.distance;
+  });
+
+  sideGroup.appendChild(makeEl('text', { x:sideX+2, y:sideY+sideH+14, 'font-size':11, fill:'#546e7a' }, thisRwy||'??'));
+  if (recipN) sideGroup.appendChild(makeEl('text', { x:sideX+runwayPx-2, y:sideY+sideH+14, 'font-size':11, fill:'#546e7a', 'text-anchor':'end' }, recipN));
+
+  svg.appendChild(sideGroup);
+  svg.setAttribute('viewBox', '0 0 ' + canvasW + ' ' + canvasH);
+}
+
+function _rbcShowMapInfo() {
+  const s = window._rbcState;
+  const el = document.getElementById('rbc-map-info');
+  const ds = document.getElementById('rbc-map-dist');
+  if (!el) return;
+  if (s.mapDistM != null) {
+    el.style.display = 'block';
+    if (ds) ds.textContent = Math.round(s.mapDistM) + ' m';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// ── MAP placement (tap on diagram) ───────────────────────────────
+
+function _rbcEnableDiagramTap(enabled) {
+  const container = document.getElementById('rbc-diagram-container');
+  const hint = document.getElementById('rbc-diagram-drop-hint');
+  const editHint = document.getElementById('rbc-diagram-edit-hint');
+  if (!container) return;
+
+  if (enabled) {
+    container.style.cursor = 'crosshair';
+    if (hint) hint.textContent = 'Tap the diagram to place the Go-Around Point (MAP) ✛';
+    if (editHint) editHint.style.display = 'inline';
+    container.onclick = function(e) {
+      const svgEl = document.getElementById('rbc-diagram-svg');
+      if (!svgEl) return;
+      const rect = svgEl.getBoundingClientRect();
+      // Map click to SVG coordinates
+      const svgW = 700;
+      const svgH = 470;
+      const clickX = (e.clientX - rect.left) * (svgW / rect.width);
+      const st = window._rbcState;
+      const localX = clickX - st.diagramTopX;
+      const distM = Math.max(0, Math.min(Math.round(localX / st.diagramScale), Math.round(Number((st.runway && st.runway.length)||0))));
+      st.mapDistM = distM;
+      st.dirty = true;
+      _rbcDrawDiagram();
+      _rbcShowMapInfo();
+    };
+  } else {
+    container.style.cursor = '';
+    if (hint) hint.textContent = '';
+    if (editHint) editHint.style.display = 'none';
+    container.onclick = null;
+  }
+}
+
+// ── inline text block editing ────────────────────────────────────
+
+window.rbcEditBlock = function(key) {
+  if (!window._rbcState.editMode) return;
+  const view = document.getElementById('rbc-' + key + '-view');
+  const edit  = document.getElementById('rbc-' + key + '-edit');
+  if (!view || !edit) return;
+  view.style.display = 'none';
+  edit.style.display = 'block';
+  edit.focus();
+  edit.onblur = function() {
+    const newVal = edit.value.trim() || '–';
+    view.textContent = newVal;
+    view.style.display = 'block';
+    edit.style.display = 'none';
+    window._rbcState.dirty = true;
+    // Persist to card blob
+    const keyMap = { obstructions:'obstructions', weather:'weather', dangers:'dangers', forced:'forcedLanding', routes:'routes', rwyhist:'rwyhist', incidents:'incidents', othernotes:'othernotes' };
+    if (keyMap[key]) window._rbcState.card[keyMap[key]] = newVal !== '–' ? newVal : '';
+  };
+};
+
+// ── restrictions ──────────────────────────────────────────────────
+
+window.rbcAddRestrictionRow = function() {
+  const acft  = String(document.getElementById('rbc-r-acft')?.value || '').trim();
+  const dir   = String(document.getElementById('rbc-r-dir')?.value  || '').trim();
+  const mtow  = Number(document.getElementById('rbc-r-mtow')?.value  || 0);
+  const notes = String(document.getElementById('rbc-r-notes')?.value || '').trim();
+  if (!acft) { if (window.M) M.toast({html:'Enter aircraft / model name', classes:'orange'}); return; }
+
+  const s = window._rbcState;
+  if (!Array.isArray(s.card.restrictions)) s.card.restrictions = [];
+  s.card.restrictions.push({ acft, dir: dir||'All', mtow: mtow||0, notes });
+  s.dirty = true;
+  _rbcRenderRestrictions();
+  ['rbc-r-acft','rbc-r-dir','rbc-r-mtow','rbc-r-notes'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+};
+
+// ── edit mode ────────────────────────────────────────────────────
+
+function _rbcSetEditUI(editing) {
+  const s = window._rbcState;
+  s.editMode = editing;
+
+  const editBtn   = document.getElementById('rbc-edit-btn');
+  const saveBtn   = document.getElementById('rbc-save-btn');
+  const cancelBtn = document.getElementById('rbc-cancel-btn');
+  const reEditor  = document.getElementById('rbc-restrictions-editor');
+
+  if (editBtn)   editBtn.style.display   = editing ? 'none'  : 'inline-block';
+  if (saveBtn)   saveBtn.style.display   = editing ? 'inline-block' : 'none';
+  if (cancelBtn) cancelBtn.style.display = editing ? 'inline-block' : 'none';
+  if (reEditor)  reEditor.style.display  = editing ? 'block' : 'none';
+
+  // Show/hide editable hints
+  const blocks = ['obstructions','weather','dangers','forced','routes','rwyhist','incidents','othernotes'];
+  blocks.forEach(function(key) {
+    const view = document.getElementById('rbc-' + key + '-view');
+    if (view) view.classList.toggle('editable-block', editing);
+  });
+
+  _rbcEnableDiagramTap(editing);
+}
+
+window.rbcToggleEdit = function() {
+  _rbcSetEditUI(true);
+  _rbcSetStatus('Editing — tap text blocks to edit. Tap diagram to place MAP ✛.');
+};
+
+window.rbcCancelEdit = function() {
+  _rbcSetEditUI(false);
+  window._rbcState.dirty = false;
+  _rbcRenderPage1(); // reload original
+  _rbcSetStatus('');
+};
+
+// ── save ─────────────────────────────────────────────────────────
+
+window.rbcSave = function() {
+  const s = window._rbcState;
+  if (!s.icao || !s.rwyIdent) {
+    _rbcSetStatus('Error: no runway selected.');
+    return;
+  }
+
+  // Collect any open textareas
+  ['obstructions','weather','dangers','forced','routes','rwyhist','incidents','othernotes'].forEach(function(key) {
+    const edit = document.getElementById('rbc-' + key + '-edit');
+    if (edit && edit.style.display !== 'none') {
+      const keyMap = { obstructions:'obstructions', weather:'weather', dangers:'dangers', forced:'forcedLanding', routes:'routes', rwyhist:'rwyhist', incidents:'incidents', othernotes:'othernotes' };
+      s.card[keyMap[key]] = edit.value.trim();
+    }
+  });
+
+  s.card.mapDistM   = s.mapDistM != null ? s.mapDistM : null;
+  s.card.revisedAt  = new Date().toISOString().substring(0,10);
+  s.card.revisedBy  = _rbcCurrentUser();
+
+  const saveBtn = document.getElementById('rbc-save-btn');
+  if (saveBtn) saveBtn.disabled = true;
+  _rbcSetStatus('Saving...');
+
+  if (!(window.google && google.script && google.script.run)) {
+    // Offline — persist to AIRCRAFT_DOCS cache as best-effort
+    _rbcSetStatus('Offline: changes saved locally only. Sync when online.');
+    _rbcSetEditUI(false);
+    if (saveBtn) saveBtn.disabled = false;
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (saveBtn) saveBtn.disabled = false;
+      if (result && result.success) {
+        _rbcSetStatus('Saved ✓ — ' + (s.card.revisedAt||''));
+        _rbcSetEditUI(false);
+        s.dirty = false;
+        // Refresh revision footer
+        const el1 = document.getElementById('rbc-revision-date');
+        const el2 = document.getElementById('rbc-revised-by');
+        if (el1) el1.textContent = s.card.revisedAt || '–';
+        if (el2) el2.textContent = s.card.revisedBy || '–';
+      } else {
+        _rbcSetStatus('Save failed: ' + _rbcEsc(String((result && result.error) || 'unknown')));
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (saveBtn) saveBtn.disabled = false;
+      _rbcSetStatus('Save error: ' + _rbcEsc(String(err || 'unknown')));
+    })
+    .saveRunwayBriefingCard(s.icao, s.rwyIdent, s.card);
+};
+
+function _rbcCurrentUser() {
+  // Best-effort: get pilot name from mission context
+  try {
+    const m = window.currentBriefingMission;
+    return String((m && m.pilot) || '').trim() || 'Supervisor';
+  } catch (e) { return 'Supervisor'; }
+}
+
+function _rbcSetStatus(msg) {
+  const el = document.getElementById('rbc-status-msg');
+  if (el) el.textContent = msg || '';
+}
+
+// ── PAGE 2 — performance history ─────────────────────────────────
+
+function _rbcLoadAndRenderPage2() {
+  const s = window._rbcState;
+
+  // Text blocks
+  const card = s.card;
+  _rbcSetBlock('routes',    card.routes    || '');
+  _rbcSetBlock('rwyhist',   card.rwyhist   || '');
+  _rbcSetBlock('incidents', card.incidents || '');
+  _rbcSetBlock('othernotes',card.othernotes|| '');
+
+  // History
+  const loadingEl = document.getElementById('rbc-history-loading');
+  const tableEl   = document.getElementById('rbc-history-table');
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (tableEl)   tableEl.style.display   = 'none';
+
+  if (!(window.google && google.script && google.script.run)) {
+    if (loadingEl) loadingEl.textContent = 'Offline — flight history not available.';
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      _rbcRenderHistory(result);
+    })
+    .withFailureHandler(function() {
+      if (loadingEl) loadingEl.textContent = 'Could not load flight history.';
+    })
+    .getRunwayTakeoffHistory(s.icao, s.rwyIdent, 2);
+}
+
+function _rbcRenderHistory(result) {
+  const tbody = document.getElementById('rbc-history-tbody');
+  const table = document.getElementById('rbc-history-table');
+  const loading = document.getElementById('rbc-history-loading');
+  if (!tbody) return;
+
+  const records = (result && Array.isArray(result.records)) ? result.records : [];
+  if (!records.length) {
+    if (loading) { loading.style.display = 'block'; loading.textContent = 'No departure records found for this runway.'; }
+    return;
+  }
+
+  tbody.innerHTML = records.map(function(r) {
+    const actual = r.actualToRollM != null ? Math.round(r.actualToRollM) + ' m' : '–';
+    const calc   = r.calcToRollM   != null ? Math.round(r.calcToRollM)   + ' m' : '–';
+    const wt     = r.weightKg      != null ? Math.round(r.weightKg) + ' kg' : '–';
+    const vrDist = r.vrDistM       != null ? Math.round(r.vrDistM)  + ' m' : '–';
+    const mapD   = r.mapDistM      != null ? Math.round(r.mapDistM) + ' m' : '–';
+    return '<tr>'
+      + '<td>' + _rbcEsc(r.date||'–') + '</td>'
+      + '<td>' + _rbcEsc(r.pilot||'–') + '</td>'
+      + '<td>' + _rbcEsc(r.acft||'–') + '</td>'
+      + '<td>' + _rbcEsc(wt) + '</td>'
+      + '<td>' + _rbcEsc(String(r.tempC!=null?r.tempC+'°C':'–')) + '</td>'
+      + '<td>' + _rbcEsc(String(r.flaps!=null?r.flaps+'°':'–')) + '</td>'
+      + '<td>' + _rbcEsc(r.surface||'–') + '</td>'
+      + '<td>' + _rbcEsc(r.wet ? 'WET' : 'DRY') + '</td>'
+      + '<td>' + _rbcEsc(calc) + '</td>'
+      + '<td><b>' + _rbcEsc(actual) + '</b></td>'
+      + '<td>' + _rbcEsc(vrDist) + '</td>'
+      + '<td>' + _rbcEsc(mapD) + '</td>'
+      + '<td style="font-size:0.7rem;">' + _rbcEsc(r.alternates||'–') + '</td>'
+      + '</tr>';
+  }).join('');
+
+  if (table)   table.style.display   = '';
+  if (loading) loading.style.display = 'none';
+}
+</script>

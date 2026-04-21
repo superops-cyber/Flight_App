@@ -451,7 +451,9 @@ const FUEL_DENSITY = 0.72;
 let _dispatchFuelCalcState = { legIndex: -1, map: null, polyline: null, markers: [] };
 
 function dispatchFormatDateMonDayYear_(value, fallback) {
- const d = new Date(value || '');
+ const s = String(value || '').trim();
+ // Parse date-only strings as local time (not UTC) to avoid timezone off-by-one
+ const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s);
  if (isNaN(d.getTime())) return fallback || '';
  const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May.', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
@@ -725,7 +727,7 @@ function dispatchRefreshDropdownData_(cb) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-document.getElementById('fDate').valueAsDate = new Date();
+document.getElementById('fDate').value = new Date().toLocaleDateString('en-CA');
 google.script.run
 .withSuccessHandler(data => {
 if (!data) { showDispatchError("Server returned empty data."); return; }
@@ -1911,7 +1913,7 @@ function openEditPaxModal_(legIdx, paxIdx) {
   const descEl = document.getElementById('edit-pax-desc');
   if (descEl) descEl.value = String(p.description || '');
   const weightField = document.getElementById('edit-pax-weight');
-  if (weightField) weightField.closest && (weightField.closest('.input-field') || weightField).style.display = isFreight ? 'none' : 'block';
+  if (weightField) { const _wfc = (weightField.closest && weightField.closest('.input-field')) || weightField; _wfc.style.display = isFreight ? 'none' : 'block'; }
 
   const fundSel = document.getElementById('edit-pax-fund');
   const rateSel = document.getElementById('edit-pax-rate');

@@ -307,7 +307,9 @@
     let supervisorPasswordPromptState = { resolve: null };
 
     function supFormatDateMonDayYear_(value, fallback) {
-      const d = new Date(value || '');
+      const s = String(value || '').trim();
+      // Parse date-only strings as local time (not UTC) to avoid timezone off-by-one
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s);
       if (isNaN(d.getTime())) return fallback || '';
       const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May.', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
       return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
@@ -452,7 +454,8 @@
     // --- SIDEBAR ---
     function initSidebar(data) {
       if(!data) return;
-      document.getElementById('userDisplay').innerText = data.user || 'Admin';
+      const userDisplayEl = document.getElementById('userDisplay');
+      if (userDisplayEl) userDisplayEl.innerText = data.user || 'Admin';
       supInstructors = Array.isArray(data.instructors) ? data.instructors.slice() : [];
       const sb = document.getElementById('sbList');
       sb.innerHTML = `<div class="sb-header"><h6 style="margin:0">DISPATCH SUPERVISOR</h6><div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:8px;"><small>${data.user || 'Admin'}</small><button type="button" onclick="refreshSupervisorDashboard(false)" style="border:none;border-radius:6px;background:#0b5394;color:#fff;padding:4px 8px;font-size:0.72rem;font-weight:800;cursor:pointer;">REFRESH</button></div></div>`;
@@ -687,7 +690,8 @@
       const tl = document.getElementById('timelineContainer');
       tl.innerHTML = "";
       t.forEach(ev => {
-        const isMissionDay = new Date(ev.date).toDateString() === new Date(m.meta.date).toDateString();
+        const _parseLocalDate_ = v => { const s = String(v||'').trim(); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s+'T00:00:00') : new Date(s); };
+        const isMissionDay = _parseLocalDate_(ev.date).toDateString() === _parseLocalDate_(m.meta.date).toDateString();
         const isCurrent = ev.title.includes(m.id);
         const highlightClass = isCurrent ? 'te-current' : '';
         const dotClass = ev.type === 'LOGGED' ? 'te-log' : 'te-sch';
@@ -1541,12 +1545,29 @@
     function openRunwaySurveyHistoryModal() {
       const el = document.getElementById('runway-survey-history-modal');
       if (!el) return;
+      // Close the Materialize parent modal first so its overlay doesn't block inputs
+      const parentModal = document.getElementById('runway-survey-review-modal');
+      if (parentModal && window.M && M.Modal) {
+        const instance = M.Modal.getInstance(parentModal);
+        if (instance) instance.close();
+      }
       el.style.display = 'flex';
+      // Focus ICAO input after a short delay for iOS keyboard
+      setTimeout(function() {
+        const icaoEl = document.getElementById('rsh-icao');
+        if (icaoEl) icaoEl.focus();
+      }, 200);
     }
 
     function closeRunwaySurveyHistoryModal() {
       const el = document.getElementById('runway-survey-history-modal');
       if (el) el.style.display = 'none';
+      // Reopen the parent Materialize modal
+      const parentModal = document.getElementById('runway-survey-review-modal');
+      if (parentModal && window.M && M.Modal) {
+        const instance = M.Modal.getInstance(parentModal);
+        if (instance) instance.open();
+      }
     }
 
     function loadRunwaySurveyHistory() {
@@ -1569,6 +1590,8 @@
             if (body) body.innerHTML = '<div style="color:#d32f2f; padding:12px;">' + ((resp && resp.error) || 'Load failed') + '</div>';
             return;
           }
+          // Update sub-header with pair label (e.g. "09/27") if available
+          if (sub) sub.textContent = resp.icao + ' · RWY ' + (resp.rwyPairLabel || resp.rwyIdent);
           _renderRunwaySurveyHistory_(resp);
         })
         .withFailureHandler(function(err) {

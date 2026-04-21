@@ -719,6 +719,9 @@ function calculateBriefFuelTally() {
     updatedAt: new Date().toISOString()
   };
 
+  // Persist whenever values change so they survive tab switches
+  briefWriteFuelCache_(window.briefFuelSnapshot);
+
   // Show mismatch warning with explicit liters above/below planned launch fuel.
   if (launch > 0) {
     const diff = Math.round(total - launch);
@@ -820,6 +823,59 @@ window.briefKeypadCancel_ = function() {
   if (modalEl) modalEl.style.display = 'none';
   window._briefKeypadEl = null;
 };
+
+// ── Fuel cache helpers ────────────────────────────────────────────────────────
+function briefFuelCacheKey_() {
+  const mission = window.currentBriefingMission || {};
+  const missionId = String(mission.id || '').trim();
+  if (missionId) return 'mba_cache_tab2_fuel_' + missionId;
+  const firstLeg = Array.isArray(mission.legs) ? mission.legs[0] : null;
+  const fallbackId = String(firstLeg && firstLeg.flightLegId || '').trim();
+  return fallbackId ? ('mba_cache_tab2_fuel_' + fallbackId) : '';
+}
+
+function briefReadFuelCache_() {
+  try {
+    const key = briefFuelCacheKey_();
+    if (!key) return null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+function briefWriteFuelCache_(snap) {
+  try {
+    const key = briefFuelCacheKey_();
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify(snap));
+  } catch (e) {}
+}
+
+window.briefHydrateFuelInputs_ = function() {
+  const cached = briefReadFuelCache_();
+  if (!cached) return;
+  // Restore each tank: update the hidden input AND the visible button
+  document.querySelectorAll('#briefing-content .brief-tank-input').forEach(function(input) {
+    const key = String(input.dataset.tankKey || '').trim().toUpperCase();
+    if (!key || cached[key] == null) return;
+    input.value = String(cached[key]);
+    var wrap = input.closest('.brief-tank');
+    if (wrap) {
+      var btn = wrap.querySelector('.brief-tank-btn');
+      if (btn) btn.textContent = String(Math.round(Number(cached[key])) || '');
+    }
+  });
+  // Restore startup tank selection
+  if (cached.activeMain) {
+    const stInput = document.getElementById('brief_startup_tank');
+    if (stInput) stInput.value = String(cached.activeMain);
+    window.briefRefreshStartupTankUi_();
+  }
+  // Recompute totals (will also re-persist with current values)
+  calculateBriefFuelTally();
+};
+// ──────────────────────────────────────────────────────────────────────────────
 
 function briefLegInputsCacheKey_() {
   const mission = window.currentBriefingMission || {};
@@ -1414,6 +1470,8 @@ window.setupBriefing = function(mission) {
   };
   window.briefRefreshStartupTankUi_();
   calculateBriefFuelTally();
+  // Restore any previously entered fuel values (survives tab switches)
+  window.briefHydrateFuelInputs_();
   window.bindBriefingInteractions_();
 };
 

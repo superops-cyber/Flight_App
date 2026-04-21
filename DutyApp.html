@@ -59,6 +59,23 @@
     .banner.warn { background: #fff3e0; border-color: #ffe0b2; color: var(--warn); }
     .banner.bad { background: #ffebee; border-color: #ffcdd2; color: var(--bad); }
 
+    /* GEOFENCE BANNER */
+    #duty-geo-banner {
+      display: none; margin-bottom: 10px; border-radius: 10px;
+      padding: 10px 12px; font-size: 0.84rem; font-weight: 700;
+      border: 2px solid #a5d6a7; background: #e8f5e9; color: #1b5e20;
+    }
+    #duty-geo-banner.show { display: block; }
+    #duty-geo-banner.outside { background: #fff8e1; border-color: #ffe082; color: #e65100; }
+    .geo-banner-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .geo-banner-text { flex: 1; }
+    .geo-banner-btn {
+      background: #2e7d32; color: #fff; border: none; border-radius: 6px;
+      padding: 6px 12px; font-size: 0.78rem; font-weight: 900;
+      text-transform: uppercase; cursor: pointer; white-space: nowrap;
+    }
+    .geo-banner-btn:hover { background: #1b5e20; }
+
     .card {
       background: var(--card);
       border: 1px solid var(--line);
@@ -318,6 +335,13 @@
   <div class="wrap">
     <h1>Registro de Horas</h1>
     <div id="duty-banner" class="banner"></div>
+    <div id="duty-geo-banner">
+      <div class="geo-banner-row">
+        <div class="geo-banner-text" id="duty-geo-banner-text"></div>
+        <button class="geo-banner-btn" type="button" id="duty-geo-action-btn" style="display:none" onclick="dutyGeoQuickStart_()">Registrar início</button>
+      </div>
+      <div id="duty-geo-accuracy" style="font-size:0.7rem; font-weight:400; margin-top:3px; opacity:0.75;"></div>
+    </div>
 
     <section class="card">
       <div class="meta-grid">
@@ -372,7 +396,20 @@
     </section>
 
     <section class="card">
-      <div style="margin-bottom:8px; font-size:0.82rem; font-weight:900; text-transform:uppercase; color:#0b5394;">Ultimos registros</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="font-size:0.82rem; font-weight:900; text-transform:uppercase; color:#0b5394;">Ultimos registros</div>
+        <button class="primary" type="button" onclick="dutyShowAddDay()" style="min-height:32px; font-size:0.75rem; padding:0 12px;">+ Adicionar dia</button>
+      </div>
+      <div id="add-day-row" style="display:none; margin-bottom:10px;">
+        <div class="field" style="margin-bottom:6px;">
+          <label for="add-day-date">Data do dia a adicionar</label>
+          <input id="add-day-date" type="date">
+        </div>
+        <div class="btn-row">
+          <button class="primary" type="button" onclick="dutyConfirmAddDay()">Abrir</button>
+          <button class="secondary" type="button" onclick="dutyHideAddDay()">Cancelar</button>
+        </div>
+      </div>
       <div id="recent-list" class="registry-list"></div>
     </section>
   </div>
@@ -432,7 +469,8 @@
       shifts: [],
       editingDateYmd: '',
       editingShifts: [],
-      loading: false
+      loading: false,
+      dutyConfig: {}
     };
 
     function dutySetBanner(text, tone) {
@@ -629,7 +667,7 @@
       if (unlocked) lockClass += ' unlocked-override';
       return ''
         + '<div class="field ' + lockClass + '" id="' + scope + '-field-' + index + '-' + kind + '">'
-        + '  <label>' + (kind === 'start' ? 'Inicio' : 'Fim') + '</label>'
+        + '  <label>' + (kind === 'start' ? 'Inicio' : 'Fim') + ' <span style="font-size:0.68rem;font-weight:400;opacity:0.65;">(BSB)</span></label>'
         + '  <input id="' + inputId + '" type="time" value="' + dutyEscape(value || '') + '" ' + (locked && !unlocked ? 'readonly' : '') + '>'
         + '  <span class="lock-icon" id="' + lockId + '" title="Campo bloqueado. Toque para sobrescrever." onclick="dutyToggleLock(\'' + scope + '\',' + index + ',\'' + kind + '\')">' + (unlocked ? '🔓' : '🔒') + '</span>'
         + '</div>';
@@ -842,6 +880,7 @@
         dutyState.staff = Array.isArray(res.staff) ? res.staff : [];
         dutyState.snapshot = res.snapshot || null;
         dutyState.logs = Array.isArray(res.logs) ? res.logs : [];
+        dutyState.dutyConfig = res.dutyConfig || {};
 
         dutyApplyHeader();
         dutyBindPilotSelector();
@@ -921,6 +960,36 @@
       }
     }
 
+    function dutyShowAddDay() {
+      const row = document.getElementById('add-day-row');
+      const dateInput = document.getElementById('add-day-date');
+      if (!row || !dateInput) return;
+      const today = dutyNowBsb().ymd;
+      const d = new Date(today + 'T12:00:00');
+      d.setDate(d.getDate() - 1);
+      const yesterday = new Intl.DateTimeFormat('sv-SE').format(d);
+      dateInput.value = yesterday;
+      dateInput.max = today;
+      row.style.display = 'block';
+      dateInput.focus();
+    }
+
+    function dutyHideAddDay() {
+      const row = document.getElementById('add-day-row');
+      if (row) row.style.display = 'none';
+    }
+
+    function dutyConfirmAddDay() {
+      const dateInput = document.getElementById('add-day-date');
+      const dateVal = String(dateInput && dateInput.value || '').trim();
+      if (!dateVal || !/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
+        dutySetBanner('Selecione uma data válida.', 'warn');
+        return;
+      }
+      dutyHideAddDay();
+      dutyOpenEditModal(dateVal);
+    }
+
     function dutyOpenEditModal(dateYmd) {
       const targetDate = String(dateYmd || '').trim();
       const rows = (dutyState.logs || []).filter(function(row) {
@@ -950,7 +1019,8 @@
       const editDesc = document.getElementById('edit-description');
       const editDept = document.getElementById('edit-department');
 
-      if (title) title.textContent = 'Editar registro - ' + dutyFormatDatePt(targetDate);
+      const isNew = rows.length === 0;
+      if (title) title.textContent = (isNew ? 'Adicionar registro - ' : 'Editar registro - ') + dutyFormatDatePt(targetDate);
       if (editHours) editHours.value = document.getElementById('flight-hours').value || '';
       if (editDesc) editDesc.value = dutyDescriptionWithoutDepartment(mergedDescription);
       if (editDept) editDept.value = dutyDepartmentFromDescription(mergedDescription);
@@ -979,7 +1049,157 @@
       }
 
       dutyLoadBootstrap();
+      dutyGeoInit_();
     });
+
+    // =====================================================================
+    // GEOFENCE DETECTION
+    // =====================================================================
+    var _dutyGeoWatchId = null;
+    var _dutyGeoLastInside = null;  // null | true | false — debounce state
+    var _dutyGeoZoneName = '';
+
+    function dutyGeoInit_() {
+      if (!navigator.geolocation) {
+        dutyGeoSetBanner_('GPS não disponível neste dispositivo.', false);
+        return;
+      }
+      // Ask for permission immediately so the prompt appears on load
+      navigator.geolocation.getCurrentPosition(
+        function(pos) { dutyGeoHandlePosition_(pos); },
+        function(err) { dutyGeoHandleError_(err); },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+      );
+      // Keep watching
+      _dutyGeoWatchId = navigator.geolocation.watchPosition(
+        function(pos) { dutyGeoHandlePosition_(pos); },
+        function(err) { dutyGeoHandleError_(err); },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+      );
+    }
+
+    function dutyGeoParseCoords_(coordsRaw) {
+      var lines = String(coordsRaw || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+      var out = [];
+      lines.forEach(function(line) {
+        var cleaned = line.replace(/[°′'″"]/g, ' ').replace(/\s+/g, ' ').trim();
+        // DMS: handles "45 33 34.73 N 93 36 19.50 W" and "N 45 33 34 W 93 36 19"
+        var dmsRe = /([NS]?)\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*([NS]?)\s+([EW]?)\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*([EW]?)/i;
+        var dm = cleaned.match(dmsRe);
+        if (dm) {
+          var lat = parseFloat(dm[2]) + parseFloat(dm[3])/60 + parseFloat(dm[4])/3600;
+          var lng = parseFloat(dm[7]) + parseFloat(dm[8])/60 + parseFloat(dm[9])/3600;
+          var latDir = (dm[1] || dm[5] || '').toUpperCase();
+          var lngDir = (dm[6] || dm[10] || '').toUpperCase();
+          if (latDir === 'S') lat = -lat;
+          if (lngDir === 'W') lng = -lng;
+          if (!isNaN(lat) && !isNaN(lng)) { out.push({ lat: lat, lng: lng, label: line }); return; }
+        }
+        // Decimal
+        var decRe = /([NS]?)\s*(-?[\d.]+)\s*([NS]?)[,\s]+([EW]?)\s*(-?[\d.]+)\s*([EW]?)/i;
+        var de = cleaned.match(decRe);
+        if (de) {
+          var lat2 = parseFloat(de[2]);
+          var lng2 = parseFloat(de[5]);
+          if ((de[1]||de[3]||'').toUpperCase()==='S') lat2 = -Math.abs(lat2);
+          if ((de[4]||de[6]||'').toUpperCase()==='W') lng2 = -Math.abs(lng2);
+          if (!isNaN(lat2) && !isNaN(lng2)) { out.push({ lat: lat2, lng: lng2, label: line }); }
+        }
+      });
+      return out;
+    }
+
+    function dutyGeoHaversineM_(lat1, lng1, lat2, lng2) {
+      var R = 6371000; // Earth radius in metres
+      var dLat = (lat2 - lat1) * Math.PI / 180;
+      var dLng = (lng2 - lng1) * Math.PI / 180;
+      var a = Math.sin(dLat/2)*Math.sin(dLat/2)
+            + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)
+            * Math.sin(dLng/2)*Math.sin(dLng/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function dutyGeoHandlePosition_(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      var acc = pos.coords.accuracy;
+
+      var cfg = dutyState.dutyConfig || {};
+      var coordsRaw = String(cfg.DUTY_GEOFENCE_COORDS || '');
+      var radiusRaw = parseFloat(cfg.DUTY_GEOFENCE_RADIUS_KM || '0');
+      // If <= 50 treat as legacy km, convert to metres
+      var radiusM = radiusRaw > 50 ? radiusRaw : radiusRaw * 1000;
+      if (!radiusM || radiusM < 50) radiusM = 8000; // fallback 8 km
+
+      var zones = dutyGeoParseCoords_(coordsRaw);
+      if (!zones.length) {
+        dutyGeoSetBanner_('Nenhum ponto de geofence configurado.', false);
+        return;
+      }
+
+      var nearest = null;
+      var nearestDist = Infinity;
+      zones.forEach(function(z) {
+        var d = dutyGeoHaversineM_(lat, lng, z.lat, z.lng);
+        if (d < nearestDist) { nearestDist = d; nearest = z; }
+      });
+
+      var inside = nearestDist <= radiusM;
+      var accEl = document.getElementById('duty-geo-accuracy');
+      if (accEl) accEl.textContent = 'GPS: ±' + Math.round(acc) + ' m  |  Área mais próxima: ' + Math.round(nearestDist) + ' m (raio: ' + Math.round(radiusM) + ' m)';
+
+      // Only update banner on state change to avoid spamming
+      if (_dutyGeoLastInside === inside) return;
+      _dutyGeoLastInside = inside;
+
+      if (inside) {
+        _dutyGeoZoneName = nearest ? nearest.label : 'área configurada';
+        dutyGeoSetBanner_('📍 Você está dentro da área operacional. Registre seu início de jornada.', true);
+        var btn = document.getElementById('duty-geo-action-btn');
+        if (btn) btn.style.display = '';
+        // Vibrate if supported
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+      } else {
+        var distKm = (nearestDist / 1000).toFixed(1);
+        dutyGeoSetBanner_('Fora da área operacional (' + distKm + ' km da área mais próxima).', false);
+        var btn2 = document.getElementById('duty-geo-action-btn');
+        if (btn2) btn2.style.display = 'none';
+      }
+    }
+
+    function dutyGeoHandleError_(err) {
+      var msgs = {
+        1: 'Permissão de localização negada. Ative o GPS nas configurações do dispositivo.',
+        2: 'Localização indisponível.',
+        3: 'Tempo de espera do GPS esgotado.'
+      };
+      dutyGeoSetBanner_(msgs[err && err.code] || 'Erro de GPS.', false);
+    }
+
+    function dutyGeoSetBanner_(text, inside) {
+      var el = document.getElementById('duty-geo-banner');
+      var textEl = document.getElementById('duty-geo-banner-text');
+      if (!el || !textEl) return;
+      textEl.textContent = String(text || '');
+      el.className = inside ? 'show' : 'show outside';
+    }
+
+    function dutyGeoQuickStart_() {
+      // Populate start time with current time and scroll to shift list
+      var now = dutyNowBsb().hhmm;
+      var shifts = dutyState.shifts;
+      if (shifts.length === 0) {
+        dutyAddShift(false);
+      }
+      var lastShift = shifts[shifts.length - 1];
+      if (!lastShift.startTime) {
+        lastShift.startTime = now;
+        dutyRenderShiftList(false);
+      }
+      var shiftList = document.getElementById('shift-list');
+      if (shiftList) shiftList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      dutySetBanner('Início ' + now + ' preenchido. Confirme e salve.', 'ok');
+    }
   </script>
 </body>
 </html>

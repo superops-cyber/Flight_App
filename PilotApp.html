@@ -56,6 +56,7 @@
           <span id="rdot-missions" style="width:8px; height:8px; border-radius:999px; background:#bdbdbd; flex-shrink:0; display:inline-block;"></span>
           <span style="font-weight:800; color:#37474f; min-width:88px;">Missions</span>
           <span id="rlabel-missions" style="color:#5d6d7a; font-weight:700; flex:1;">—</span>
+          <button onclick="downloadOfflineCacheNow()" style="height:22px;line-height:22px;padding:0 7px;font-size:0.68rem;font-weight:800;border-radius:5px;border:none;background:#0d47a1;color:#fff;cursor:pointer;flex-shrink:0;">↺ MISSIONS</button>
         </div>
         <div style="display:flex; align-items:center; gap:7px; font-size:0.78rem;">
           <span id="rdot-cg" style="width:8px; height:8px; border-radius:999px; background:#bdbdbd; flex-shrink:0; display:inline-block;"></span>
@@ -71,6 +72,7 @@
           <span id="rdot-mapdb" style="width:8px; height:8px; border-radius:999px; background:#bdbdbd; flex-shrink:0; display:inline-block;"></span>
           <span style="font-weight:800; color:#37474f; min-width:88px;">Map DB</span>
           <span id="rlabel-mapdb" style="color:#5d6d7a; font-weight:700; flex:1;">Checking…</span>
+          <button onclick="if(typeof window.downloadMapPack==='function')window.downloadMapPack('base')" style="height:22px;line-height:22px;padding:0 7px;font-size:0.68rem;font-weight:800;border-radius:5px;border:none;background:#0d47a1;color:#fff;cursor:pointer;flex-shrink:0;">↺ MAPS</button>
         </div>
       </div>
       <div id="readiness-progress" style="display:none; margin-top:5px;">
@@ -123,6 +125,10 @@
         <i class="material-icons">straighten</i>
         <span>Inclinometer</span>
       </div>
+      <div id="btn-acft-docs" class="action-btn" onclick="openAircraftDocsModal()">
+        <i class="material-icons">menu_book</i>
+        <span>Manuals</span>
+      </div>
     </div>
     <div id="incl-cache-status" style="margin: -12px 10px 8px 10px; font-size: 0.72rem; font-weight: 700; color: #7d8b97; text-transform: uppercase;">Inclinometer offline cache: checking...</div>
     <div id="tab1-version-board" class="tab1-version-board">
@@ -147,11 +153,39 @@
   <div id="tab7" class="app-tab"><?!= include('Tab7_Arrival'); ?></div>
   <div id="tab8" class="app-tab"><?!= include('Tab8_Debrief'); ?></div>
 
+  <?!= include('RunwayBriefingCard'); ?>
+
 </div> <div class="footer-nav">
   <button class="btn-flat grey-text" id="btnBack" onclick="prevTab()" style="visibility:hidden">Back</button>
   <button class="btn-big blue darken-3 waves-effect waves-light w-100" id="btnNext" onclick="nextTab()">
     CONFIRM & PROCEED
   </button>
+</div>
+
+<div id="modal-acft-docs" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:12100; align-items:flex-start; justify-content:center; padding:16px; overflow-y:auto;">
+  <div style="width:100%; max-width:640px; background:#fff; border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,0.28); margin-top:24px; margin-bottom:24px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px 16px; border-bottom:1px solid #e3e8ed;">
+      <div>
+        <div style="font-size:1.05rem; font-weight:900; color:#0b5394; display:flex; align-items:center; gap:8px;">
+          <i class="material-icons" style="font-size:1.2rem; vertical-align:middle;">menu_book</i>
+          <span id="acft-docs-title">Aircraft Manuals &amp; Documents</span>
+        </div>
+        <div id="acft-docs-subtitle" style="font-size:0.74rem; color:#607d8b; font-weight:700; margin-top:2px;"></div>
+      </div>
+      <button type="button" onclick="closeAircraftDocsModal()" style="background:none; border:none; cursor:pointer; padding:4px; color:#607d8b;">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div id="acft-docs-body" style="padding:12px 16px 18px 16px; min-height:80px;">
+      <p class="grey-text center-align" style="margin-top:18px;">Loading...</p>
+    </div>
+    <div id="acft-docs-folder-row" style="display:none; padding:0 16px 14px 16px; border-top:1px solid #eef1f4;">
+      <a id="acft-docs-folder-link" href="#" target="_blank" rel="noopener noreferrer"
+         style="display:inline-flex; align-items:center; gap:6px; font-size:0.82rem; font-weight:800; color:#1565c0; text-decoration:none; padding:6px 0;">
+        <i class="material-icons" style="font-size:1rem;">folder_open</i> OPEN DRIVE FOLDER
+      </a>
+    </div>
+  </div>
 </div>
 
 <div id="modalFuel" class="modal modal-fixed-footer">
@@ -417,7 +451,8 @@
       SCHEDULED_MISSIONS: 'mba_cache_scheduled_missions_v1',
       PREFETCH_META: 'mba_cache_prefetch_meta_v1',
       OUTBOX: 'mba_outbox_v1',
-      DUTY_PROMPT_STATE: 'mba_duty_prompt_state_v1'
+      DUTY_PROMPT_STATE: 'mba_duty_prompt_state_v1',
+      AIRCRAFT_DOCS: 'mba_cache_aircraft_docs_v1'
     };
     const NEW_FLIGHT_URL = '';
     const WEB_APP_URL = <?!= JSON.stringify(typeof webAppUrl === 'string' ? webAppUrl : '') ?>;
@@ -438,7 +473,9 @@
     }
 
     function _pilotFormatDateMonDayYear_(value, fallback) {
-      const date = new Date(value || '');
+      const s = value instanceof Date ? value : String(value || '').trim();
+      // Parse date-only strings as local time (not UTC) to avoid timezone off-by-one
+      const date = (typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)) ? new Date(s + 'T00:00:00') : new Date(s);
       if (isNaN(date.getTime())) return fallback || '';
       const month = _pilotMonthAbbrev_(date.getMonth());
       const day = String(date.getDate());
@@ -1924,7 +1961,7 @@
       const ready = _isMissionReadyForLock_();
       const actionButtons = document.querySelectorAll('#tab1 .action-grid .action-btn');
       actionButtons.forEach(function(btn) {
-        if (!btn) return;
+        if (!btn || btn.id === 'btn-acft-docs') return; // manuals always accessible
         btn.classList.toggle('readiness-locked', !ready);
         btn.title = ready ? 'Mission ready' : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.';
       });
@@ -2190,7 +2227,9 @@
       const meta = getOfflinePrefetchMeta_();
       const syncedAt = meta && meta.syncedAt ? new Date(meta.syncedAt).getTime() : 0;
       if (!syncedAt || Number.isNaN(syncedAt)) return false;
-      return (Date.now() - syncedAt) <= OFFLINE_CACHE_STALE_MS;
+      // Use a 30-minute gate for auto-sync on open so missions are always fresh,
+      // but rapid reopens within 30 min don't hammer the server.
+      return (Date.now() - syncedAt) <= (30 * 60 * 1000);
     }
 
     function _isMapPackStale_() {
@@ -2260,6 +2299,13 @@
             updateOfflineCacheStatus({ state: 'syncing', progress: 35, total: 100, cachedCount: getCachedMissionCount(), message: `Caching ${list.length} mission details...` });
             prefetchScheduledMissionDetails(list, true);
             syncEnvelopeCacheForAircraftRegs_(_knownAircraftRegsForEnvelopeSync_().concat(_knownAircraftRegsFromMissions_(list)), { forceRefresh: true });
+            // Cache all aircraft docs for all tails — works offline, survives last-minute aircraft switch
+            google.script.run
+              .withSuccessHandler(function(docsResult) {
+                if (docsResult && docsResult.success) cacheSet(OFFLINE_CACHE_KEYS.AIRCRAFT_DOCS, docsResult);
+              })
+              .withFailureHandler(function() { /* silent — docs cache best-effort */ })
+              .getAircraftDocsForTools('');
             finalizeDownloadSuccess_();
           })
           .withFailureHandler(function(err) {
@@ -6039,6 +6085,180 @@
 
   function openTab1Inclinometer() {
     rwyInclinometerOpenStandaloneTab_('tab1-inclinometer-angle', 'Salvar ângulo');
+  }
+
+  function openAircraftDocsModal() {
+    const overlay = document.getElementById('modal-acft-docs');
+    if (!overlay) return;
+
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Resolve active mission's aircraft tail (may be empty if no mission selected)
+    const missions = cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || [];
+    const mission = missions.find(function(m) { return String(m && m.id || '') === String(activeMission || ''); });
+    const activeTail = String((mission && mission.acft) || '').trim().toUpperCase();
+
+    const cached = cacheGet(OFFLINE_CACHE_KEYS.AIRCRAFT_DOCS);
+    _renderAircraftDocsModal_(cached, activeTail);
+
+    // Background refresh when online — re-render silently when done
+    if (window.google && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.success) {
+            cacheSet(OFFLINE_CACHE_KEYS.AIRCRAFT_DOCS, result);
+            // Only re-render if modal is still open
+            if (document.getElementById('modal-acft-docs').style.display !== 'none') {
+              _renderAircraftDocsModal_(result, activeTail);
+            }
+          }
+        })
+        .withFailureHandler(function() { /* silent — already showing cached */ })
+        .getAircraftDocsForTools('');
+    }
+  }
+
+  function _renderAircraftDocsModal_(result, activeTail) {
+    const title = document.getElementById('acft-docs-title');
+    const sub = document.getElementById('acft-docs-subtitle');
+    const body = document.getElementById('acft-docs-body');
+    const folderRow = document.getElementById('acft-docs-folder-row');
+    const folderLink = document.getElementById('acft-docs-folder-link');
+
+    if (folderRow) folderRow.style.display = 'none';
+
+    if (!result || !result.success || !result.docs || result.docs.length === 0) {
+      if (title) title.textContent = 'Aircraft Manuals & Documents';
+      if (sub) sub.textContent = '';
+      if (body) body.innerHTML = '<p class="orange-text" style="margin-top:18px; font-weight:700; text-align:center;">No documents cached yet.<br><span style="font-size:0.82rem; color:#607d8b; font-weight:500;">Press DOWNLOAD on Tab 1 to sync documents.</span></p>';
+      return;
+    }
+
+    const allDocs = result.docs;
+
+    // Collect all unique tails, active tail first
+    const tailSet = {};
+    allDocs.forEach(function(d) { tailSet[d.tail] = true; });
+    const allTails = Object.keys(tailSet).sort();
+    if (activeTail && tailSet[activeTail]) {
+      allTails.splice(allTails.indexOf(activeTail), 1);
+      allTails.unshift(activeTail);
+    }
+    const selectedTail = (activeTail && tailSet[activeTail]) ? activeTail : (allTails[0] || '');
+
+    if (title) title.textContent = 'Manuals & Documents';
+
+    // Build tail filter pills
+    let filterHtml = '<div id="acft-docs-filter" style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:14px;">';
+    allTails.forEach(function(t) {
+      const isActive = t === selectedTail;
+      filterHtml += '<button type="button" onclick="_acftDocsFilterTail_(\'' + _escAttr_(t) + '\')" '
+        + 'id="acft-docs-pill-' + _escAttr_(t) + '" '
+        + 'style="height:30px; padding:0 13px; border-radius:20px; border:2px solid ' + (isActive ? '#0b5394' : '#cfd8dc') + '; '
+        + 'background:' + (isActive ? '#0b5394' : '#fff') + '; color:' + (isActive ? '#fff' : '#455a64') + '; '
+        + 'font-size:0.78rem; font-weight:900; cursor:pointer;">' + _escHtml_(t) + '</button>';
+    });
+    filterHtml += '</div>';
+
+    if (body) body.innerHTML = filterHtml + '<div id="acft-docs-list"></div>';
+
+    if (sub) {
+      const verified = result.lastVerifiedOffline ? 'Cached · last verified ' + result.lastVerifiedOffline : 'Cached offline';
+      sub.textContent = allTails.length + ' aircraft  ·  ' + allDocs.length + ' total docs  ·  ' + verified;
+    }
+
+    _acftDocsRenderList_(allDocs, selectedTail, folderLink, folderRow);
+  }
+
+  // Store docs in closure so filter pills can access them
+  let _acftDocsAllDocs_ = [];
+
+  function _acftDocsFilterTail_(tail) {
+    // Update pill styles
+    document.querySelectorAll('#acft-docs-filter button').forEach(function(btn) {
+      const isActive = btn.id === 'acft-docs-pill-' + tail;
+      btn.style.background = isActive ? '#0b5394' : '#fff';
+      btn.style.color = isActive ? '#fff' : '#455a64';
+      btn.style.borderColor = isActive ? '#0b5394' : '#cfd8dc';
+    });
+    const folderRow = document.getElementById('acft-docs-folder-row');
+    const folderLink = document.getElementById('acft-docs-folder-link');
+    _acftDocsRenderList_(_acftDocsAllDocs_, tail, folderLink, folderRow);
+  }
+
+  function _acftDocsRenderList_(allDocs, tail, folderLink, folderRow) {
+    _acftDocsAllDocs_ = allDocs;
+    const list = document.getElementById('acft-docs-list');
+    if (!list) return;
+
+    const docs = allDocs.filter(function(d) { return d.tail === tail; });
+
+    // Update folder link
+    const cached = cacheGet(OFFLINE_CACHE_KEYS.AIRCRAFT_DOCS);
+    const folderUrl = cached && cached.folderUrl ? cached.folderUrl : '';
+    if (folderRow && folderLink) {
+      if (folderUrl) {
+        folderLink.href = folderUrl;
+        folderRow.style.display = '';
+      } else {
+        folderRow.style.display = 'none';
+      }
+    }
+
+    if (docs.length === 0) {
+      list.innerHTML = '<p class="grey-text" style="margin-top:12px; text-align:center;">No documents on file for ' + _escHtml_(tail) + '.</p>';
+      return;
+    }
+
+    // Group by docType
+    const groups = {};
+    docs.forEach(function(d) {
+      const grp = d.docType || 'Other';
+      if (!groups[grp]) groups[grp] = [];
+      groups[grp].push(d);
+    });
+
+    let html = '';
+    Object.keys(groups).sort().forEach(function(grp) {
+      html += '<div style="margin-top:14px;">';
+      html += '<div style="font-size:0.72rem; font-weight:900; text-transform:uppercase; color:#7d8b97; letter-spacing:0.06em; margin-bottom:6px;">' + _escHtml_(grp) + '</div>';
+      groups[grp].forEach(function(d) {
+        const hasLink = !!d.driveUrl;
+        const isExpired = d.expiryDate && (new Date(d.expiryDate) < new Date());
+        const iconColor = isExpired ? '#c62828' : (d.critical ? '#e65100' : '#1565c0');
+        html += '<div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f0f3f5;">';
+        html += '<i class="material-icons" style="font-size:1.3rem; color:' + iconColor + ';">' + (hasLink ? 'description' : 'insert_drive_file') + '</i>';
+        html += '<div style="flex:1; min-width:0;">';
+        if (hasLink) {
+          html += '<a href="' + _escAttr_(d.driveUrl) + '" target="_blank" rel="noopener noreferrer" style="font-weight:800; color:#0b5394; text-decoration:none; font-size:0.9rem; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + _escHtml_(d.docName || d.docType) + '</a>';
+        } else {
+          html += '<span style="font-weight:800; color:#37474f; font-size:0.9rem;">' + _escHtml_(d.docName || d.docType) + '</span>';
+        }
+        const meta = [];
+        if (d.revision) meta.push('Rev ' + _escHtml_(d.revision));
+        if (d.effectiveDate) meta.push('Eff ' + _escHtml_(d.effectiveDate));
+        if (d.expiryDate) meta.push((isExpired ? '⚠ Expired ' : 'Exp ') + _escHtml_(d.expiryDate));
+        if (meta.length) html += '<div style="font-size:0.72rem; color:#78909c; margin-top:2px;">' + meta.join('  ·  ') + '</div>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    });
+    list.innerHTML = html;
+  }
+
+  function closeAircraftDocsModal() {
+    const overlay = document.getElementById('modal-acft-docs');
+    if (overlay) overlay.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function _escHtml_(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function _escAttr_(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   const INCLINOMETER_HTML_CACHE_KEY = 'mba_cache_inclinometer_standalone_v1';
