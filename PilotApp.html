@@ -2206,8 +2206,6 @@
           setTimeout(function() {
             updateOfflineCacheStatus();
             updateOfflineFlightButtonState();
-            // Auto-refresh map pack if stale
-            _maybeRefreshMapPackNow_();
           }, 1800);
         })
         .withFailureHandler(function() {
@@ -2244,9 +2242,10 @@
     }
 
     function _maybeRefreshMapPackNow_() {
-      if (!_isMapPackStale_()) return; // fresh — skip
-      if (typeof window.downloadMapPack === 'function') {
-        window.downloadMapPack('base');
+      // Maps are only downloaded manually via the ↺ MAPS button.
+      // Just refresh the displayed status here — never auto-download.
+      if (typeof window.refreshOfflineMapPackStatus === 'function') {
+        window.refreshOfflineMapPackStatus();
       }
     }
 
@@ -2275,8 +2274,6 @@
             btn.disabled = false;
             btn.textContent = 'DOWNLOAD';
           }
-          // Also refresh map pack if stale (>15 days)
-          _maybeRefreshMapPackNow_();
         }, 1200);
       };
 
@@ -4116,7 +4113,8 @@
           return;
         }
         container.innerHTML = missions.map(m => {
-          const dateObj = new Date(m.date);
+          const dateRaw = String(m.date || '');
+          const dateObj = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw + 'T00:00:00' : dateRaw);
           const dateStr = !isNaN(dateObj) ? formatStatusDate(dateObj) : '---';
           const origin = String(m.from || m.origin || '').trim().toUpperCase();
           const destination = String(m.to || m.destination || '').trim().toUpperCase();
