@@ -2951,7 +2951,7 @@ for (let i = 1; i < logData.length; i++) {
    let d = logData[i][DUTY_LOG_COL.DATE];
    if (d instanceof Date && d >= startDate && d <= endDate) {
      events.push({
-       date: d.toISOString(), // Safe String
+       date: Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'), // Local date, not UTC
        type: "LOGGED",
        title: String(logData[i][DUTY_LOG_COL.TITLE]),
        desc: String(logData[i][DUTY_LOG_COL.DESC_PRIMARY] || logData[i][DUTY_LOG_COL.DESC_FALLBACK]),
@@ -2974,7 +2974,7 @@ for (let i = 1; i < dispData.length; i++) {
        const mId = dispData[i][DISPATCH_COL.MISSION_ID];
        if(!tracker[mId]) {
          tracker[mId] = {
-           date: d.toISOString(), // Safe String
+           date: Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'), // Local date, not UTC
            type: "SCHEDULED",
            title: mId,
            desc: dispData[i][DISPATCH_COL.ROUTE],
@@ -3000,7 +3000,7 @@ function _dutyNormalizePilotName_(pilotName) {
 function _dutyYmd_(value) {
   const d = (value instanceof Date) ? value : new Date(value || '');
   if (isNaN(d.getTime())) return '';
-  return d.toISOString().split('T')[0];
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
 function _dutyParseHhmmToHours_(raw) {
