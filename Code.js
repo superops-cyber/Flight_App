@@ -3959,10 +3959,20 @@ const result = Object.values(missions).map(m => {
   const fromIcao = routeTokens[0] || '';
   const toIcao = routeTokens.length ? routeTokens[routeTokens.length - 1] : '';
   const statusRaw = String(m.status || '').toUpperCase() || 'PENDING';
-  const allLegsComplete = m.flightLegIds.length > 0 && m.flightLegIds.every(function(legId) {
+  const legCount = m.flightLegIds.length;
+  const legsFlown = m.flightLegIds.filter(function(legId) {
     return !!completedLegMap_[String(legId || '').trim()];
-  });
-  const effectiveStatus = (flownStatuses_[statusRaw] || allLegsComplete) ? 'FLOWN' : statusRaw;
+  }).length;
+  const allLegsComplete = legCount > 0 && legsFlown === legCount;
+  const someLegsComplete = legsFlown > 0 && !allLegsComplete;
+  let effectiveStatus;
+  if (flownStatuses_[statusRaw] || allLegsComplete) {
+    effectiveStatus = 'FLOWN';
+  } else if (someLegsComplete) {
+    effectiveStatus = legsFlown + '/' + legCount + ' LEGS';
+  } else {
+    effectiveStatus = statusRaw;
+  }
 
   return {
     id: m.id,
@@ -3970,6 +3980,8 @@ const result = Object.values(missions).map(m => {
     acft: m.acft,
     pilot: m.pilot,
     status: effectiveStatus,
+    legsFlown: legsFlown,
+    legCount: legCount,
     from: fromIcao,
     to: toIcao,
     route: m.routeStr

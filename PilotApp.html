@@ -4128,12 +4128,13 @@
           // Check if status exists and is "APPROVED" (case insensitive)
           const statusRaw = String(m.status || '').toUpperCase();
           const isFlown = statusRaw === 'FLOWN' || statusRaw === 'COMPLETE' || statusRaw === 'COMPLETED';
+          const isPartial = /\/.*LEGS/.test(statusRaw);
           const isApproved = statusRaw === 'APPROVED';
           const isOfflineDraft = statusRaw === 'DRAFT_OFFLINE';
-          const isLoadable = isApproved || isOfflineDraft || isFlown;
+          const isLoadable = isApproved || isOfflineDraft || isFlown || isPartial;
           
-          const statusText = isFlown ? 'FLOWN' : (isApproved ? 'APPROVED' : (isOfflineDraft ? 'OFFLINE FLIGHT' : 'PENDING'));
-          const statusClass = isFlown ? 'text-flown' : (isApproved ? 'text-approved' : 'text-pending');
+          const statusText = isFlown ? 'FLOWN' : (isPartial ? m.status : (isApproved ? 'APPROVED' : (isOfflineDraft ? 'OFFLINE FLIGHT' : 'PENDING')));
+          const statusClass = isFlown ? 'text-flown' : (isPartial ? 'text-partial' : (isApproved ? 'text-approved' : 'text-pending'));
 
           return `
             <div class="mission-row" id="row-${m.id}" data-loadable="${isLoadable ? '1' : '0'}" data-status="${statusRaw}" onclick="selectMission('${m.id}')" style="${isLoadable ? '' : 'opacity:0.7;'}">
