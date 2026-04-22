@@ -74,6 +74,13 @@
           <span id="rlabel-mapdb" style="color:#5d6d7a; font-weight:700; flex:1;">Checking…</span>
           <button onclick="if(typeof window.downloadMapPack==='function')window.downloadMapPack('base')" style="height:22px;line-height:22px;padding:0 7px;font-size:0.68rem;font-weight:800;border-radius:5px;border:none;background:#0d47a1;color:#fff;cursor:pointer;flex-shrink:0;">↺ MAPS</button>
         </div>
+        <!-- Map pack download progress bar (Tab 1) -->
+        <div id="tab1-map-pack-progress" style="display:none; margin-top:4px; padding:4px 0 0 15px;">
+          <div style="background:#e3f2fd; border-radius:6px; height:7px; overflow:hidden;">
+            <div id="tab1-map-pack-bar" style="background:#1565c0; height:100%; width:0%; transition:width 0.15s;"></div>
+          </div>
+          <div id="tab1-map-pack-text" style="font-size:0.7rem; color:#1565c0; margin-top:2px;">0 tiles</div>
+        </div>
       </div>
       <div id="readiness-progress" style="display:none; margin-top:5px;">
         <div style="background:#e3f2fd; border-radius:6px; height:8px; overflow:hidden;">
@@ -437,12 +444,12 @@
     let appData = {};
     let _activeLessonContext = null;
     const PILOT_TAB_VERSIONS = Object.freeze({
-      1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 102 }),
+      1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 105 }),
       2: Object.freeze({ shortLabel: 'Brief', fullLabel: 'Briefing', version: 180 }),
       3: Object.freeze({ shortLabel: 'W&B', fullLabel: 'Weight & Balance', version: 103 }),
       4: Object.freeze({ shortLabel: 'Perf', fullLabel: 'Performance', version: 104 }),
       5: Object.freeze({ shortLabel: 'Release', fullLabel: 'Release', version: 105 }),
-      6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 126 }),
+      6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 130 }),
       7: Object.freeze({ shortLabel: 'Arrv', fullLabel: 'Arrival', version: 107 }),
       8: Object.freeze({ shortLabel: 'Log', fullLabel: 'Debrief Log', version: 123 })
     });
@@ -1954,7 +1961,7 @@
 
     function _isMissionReadyForLock_() {
       const s = window._readinessState || {};
-      return s.missions === 'ok' && s.cg === 'ok' && s.unknown === 'ok' && s.mapdb === 'ok';
+      return s.missions === 'ok' && s.cg === 'ok' && s.unknown === 'ok';
     }
 
     function _updateMissionReadyLockUI_() {
@@ -1989,9 +1996,8 @@
       const aircraft = Array.isArray(source.aircraft) ? source.aircraft.length : 0;
       const pilots = Array.isArray(source.pilots) ? source.pilots.length : 0;
       const envelopes = getCachedEnvelopeCount();
-      const mapReady = !!(window._readinessState && window._readinessState.mapdb === 'ok');
 
-      const ready = airports > 0 && waypoints > 0 && routes > 0 && aircraft > 0 && pilots > 0 && envelopes > 0 && mapReady;
+      const ready = airports > 0 && waypoints > 0 && routes > 0 && aircraft > 0 && pilots > 0 && envelopes > 0;
       const missing = [];
       if (airports <= 0) missing.push('airports');
       if (waypoints <= 0) missing.push('waypoints');
@@ -1999,7 +2005,6 @@
       if (aircraft <= 0) missing.push('aircraft');
       if (pilots <= 0) missing.push('pilots');
       if (envelopes <= 0) missing.push('envelopes');
-      if (!mapReady) missing.push('map');
 
       return {
         ready: ready,
@@ -2030,8 +2035,8 @@
       const s = window._readinessState;
       const icon = document.getElementById('readiness-overall-icon');
       const label = document.getElementById('readiness-overall-label');
-      const allOk = s.missions === 'ok' && s.cg === 'ok' && s.unknown === 'ok' && s.mapdb === 'ok';
-      const anySyncing = s.missions === 'sync' || s.cg === 'sync' || s.unknown === 'sync' || s.mapdb === 'sync';
+      const allOk = s.missions === 'ok' && s.cg === 'ok' && s.unknown === 'ok';
+      const anySyncing = s.missions === 'sync' || s.cg === 'sync' || s.unknown === 'sync';
       if (anySyncing) {
         if (icon) {
           icon.textContent = 'Syncing';
@@ -2216,6 +2221,289 @@
     }
 
     const MAP_PACK_STALE_DAYS = 15;
+
+    // ============================================================
+    // OFFLINE MAP PACK ENGINE — available from startup, Tab 1+
+    // ============================================================
+    (function() {
+      const _IDB_NAME  = 'enrouteMapPackDB';
+      const _IDB_STORE = 'tiles';
+      let   _idbInst   = null;
+      let   _packDownloadActive = false;
+
+      function _idbOpen() {
+        return new Promise(function(resolve, reject) {
+          if (_idbInst) { resolve(_idbInst); return; }
+          const req = indexedDB.open(_IDB_NAME, 1);
+          req.onupgradeneeded = function(e) {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(_IDB_STORE)) db.createObjectStore(_IDB_STORE);
+          };
+          req.onsuccess = function(e) { _idbInst = e.target.result; resolve(_idbInst); };
+          req.onerror   = function(e) { reject(e.target.error); };
+        });
+      }
+      function _idbPut(key, val) {
+        return _idbOpen().then(function(db) {
+          return new Promise(function(resolve, reject) {
+            const tx = db.transaction(_IDB_STORE, 'readwrite');
+            tx.objectStore(_IDB_STORE).put(val, key);
+            tx.oncomplete = resolve;
+            tx.onerror    = function(e) { reject(e.target.error); };
+          });
+        });
+      }
+      function _idbGet(key) {
+        return _idbOpen().then(function(db) {
+          return new Promise(function(resolve, reject) {
+            const tx  = db.transaction(_IDB_STORE, 'readonly');
+            const req = tx.objectStore(_IDB_STORE).get(key);
+            req.onsuccess = function(e) { resolve(e.target.result || null); };
+            req.onerror   = function(e) { reject(e.target.error); };
+          });
+        });
+      }
+      function _idbClearAll() {
+        return _idbOpen().then(function(db) {
+          return new Promise(function(resolve) {
+            try {
+              const tx = db.transaction(_IDB_STORE, 'readwrite');
+              tx.objectStore(_IDB_STORE).clear();
+              tx.oncomplete = resolve; tx.onerror = resolve;
+            } catch(e) { resolve(); }
+          });
+        }).catch(function() {});
+      }
+
+      // Expose IDB helpers globally so Tab 6 tile rendering can use them
+      window._mapIdb = {
+        get:       function(k)          { return _idbGet(k); },
+        put:       function(k, v)       { return _idbPut(k, v); },
+        getTile:   function(z, x, y)    { return _idbGet('t_'+z+'_'+x+'_'+y).catch(function(){return null;}); },
+        putTile:   function(z, x, y, b) { return _idbPut('t_'+z+'_'+x+'_'+y, b); },
+        getMeta:   function()           { return _idbGet('meta_pack').catch(function(){return null;}); },
+        putMeta:   function(m)          { return _idbPut('meta_pack', m).catch(function(){}); },
+        clearAll:  function()           { return _idbClearAll(); }
+      };
+
+      // Tile coordinate math
+      function _latLonToTile(lat, lon, zoom) {
+        const n = Math.pow(2, zoom);
+        const x = Math.floor((lon + 180) / 360 * n);
+        const lRad = lat * Math.PI / 180;
+        const y = Math.floor((1 - Math.log(Math.tan(lRad) + 1/Math.cos(lRad)) / Math.PI) / 2 * n);
+        return { x: Math.max(0, Math.min(n-1, x)), y: Math.max(0, Math.min(n-1, y)) };
+      }
+      function _enumTiles(minLat, minLon, maxLat, maxLon, minZ, maxZ) {
+        const tiles = [];
+        for (let z = minZ; z <= maxZ; z++) {
+          const tl = _latLonToTile(maxLat, minLon, z);
+          const br = _latLonToTile(minLat, maxLon, z);
+          for (let x = tl.x; x <= br.x; x++)
+            for (let y = tl.y; y <= br.y; y++)
+              tiles.push({ z:z, x:x, y:y });
+        }
+        return tiles;
+      }
+      function _enumTilesForBboxes(bboxes, minZ, maxZ) {
+        const seen = new Set(), out = [];
+        (Array.isArray(bboxes) ? bboxes : []).forEach(function(b) {
+          if (!b) return;
+          const minLat=Number(b.minLat), minLon=Number(b.minLon), maxLat=Number(b.maxLat), maxLon=Number(b.maxLon);
+          if (![minLat,minLon,maxLat,maxLon].every(isFinite)) return;
+          _enumTiles(minLat,minLon,maxLat,maxLon,minZ,maxZ).forEach(function(t) {
+            const k=t.z+'_'+t.x+'_'+t.y;
+            if (!seen.has(k)) { seen.add(k); out.push(t); }
+          });
+        });
+        return out;
+      }
+      function _tileUrlFromTemplate(template, z, x, y) {
+        const s = ['a','b','c'][Math.floor(Math.random()*3)];
+        return template.replace('{z}',z).replace('{x}',x).replace('{y}',y).replace('{s}',s);
+      }
+      function _getTileTemplate() {
+        // Tab 6 may store its chosen template; fall back to OSM
+        return (window.enroute6 && window.enroute6.tileTemplate) ||
+               String(localStorage.getItem('enrouteTileTemplate') || '').trim() ||
+               'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      }
+
+      // Coverage bboxes
+      function _offlineWacBbox() {
+        return { minLat: -34.0, maxLat: 6.0, minLon: -74.0, maxLon: -28.0 };
+      }
+      function _offlineAirportCoverageBboxes(bufferDeg) {
+        const buf = Math.max(0.08, Number(bufferDeg || 0.2));
+        const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+        const out = airports.map(function(apt) {
+          const lat=Number(apt&&apt.lat), lon=Number(apt&&apt.lon);
+          if (!isFinite(lat)||!isFinite(lon)) return null;
+          return { minLat:Math.max(-85,lat-buf), maxLat:Math.min(85,lat+buf), minLon:Math.max(-180,lon-buf), maxLon:Math.min(180,lon+buf) };
+        }).filter(Boolean);
+        return out.length ? out : [_offlineWacBbox()];
+      }
+
+      // Status display
+      function _packDateLabel(isoDate) {
+        const d = new Date(isoDate||'');
+        if (isNaN(d.getTime())) return '';
+        const mo = ['Jan.','Feb.','Mar.','Apr.','May.','Jun.','Jul.','Aug.','Sep.','Oct.','Nov.','Dec.'][d.getMonth()]||'---';
+        return mo+' '+d.getDate()+', '+d.getFullYear();
+      }
+      function _setOfflineMapDbIndicator(state, label) {
+        const dot  = document.getElementById('rdot-mapdb');
+        const text = document.getElementById('rlabel-mapdb');
+        if (text) text.textContent = label || 'Not downloaded';
+        if (dot) {
+          const colors = { none:'#bdbdbd', ok:'#2e7d32', warn:'#f9a825', expired:'#d32f2f', syncing:'#1565c0' };
+          dot.style.background = colors[state] || colors.none;
+        }
+        const stateMap = { ok:'ok', syncing:'sync', expired:'bad', warn:'warn', none:'none' };
+        if (window._readinessState) window._readinessState.mapdb = stateMap[state] || 'none';
+        if (typeof window._recomputeOverallReadiness_ === 'function') window._recomputeOverallReadiness_();
+      }
+      window._setOfflineMapDbIndicator = _setOfflineMapDbIndicator;
+
+      function _renderPackStatusFromMeta(meta) {
+        const els = [
+          document.getElementById('enroute-mappack-status'),
+          document.getElementById('offline-map-status')
+        ].filter(Boolean);
+        if (!meta || !meta.savedAt) {
+          els.forEach(function(el){ el.textContent='Maps not downloaded.'; el.className='pack-status pack-none'; });
+          _setOfflineMapDbIndicator('none', 'Not downloaded');
+          return;
+        }
+        const ageDays = Math.floor((Date.now()-new Date(meta.savedAt).getTime())/86400000);
+        const dateLabel = _packDateLabel(meta.savedAt);
+        if (ageDays > MAP_PACK_STALE_DAYS) {
+          els.forEach(function(el){ el.textContent='✖ MAPS EXPIRED — last download '+(dateLabel||'unknown date'); el.className='pack-status pack-expired'; });
+          _setOfflineMapDbIndicator('expired', 'Expired');
+        } else {
+          els.forEach(function(el){ el.textContent='✔ MAPS DOWNLOADED — '+(dateLabel||'date unavailable'); el.className='pack-status pack-ok'; });
+          _setOfflineMapDbIndicator('ok', 'Ready — '+dateLabel);
+        }
+      }
+
+      function _updatePackStatus() {
+        const metaRaw = localStorage.getItem('enrouteMapPackMeta');
+        if (metaRaw) {
+          let meta; try { meta = JSON.parse(metaRaw); } catch(e) { meta = null; }
+          _renderPackStatusFromMeta(meta);
+          return;
+        }
+        const els = [document.getElementById('enroute-mappack-status'), document.getElementById('offline-map-status')].filter(Boolean);
+        els.forEach(function(el){ el.textContent='Maps not downloaded.'; el.className='pack-status pack-none'; });
+        _setOfflineMapDbIndicator('none', 'Not downloaded');
+      }
+      window.refreshOfflineMapPackStatus = _updatePackStatus;
+
+      // Download progress UI (Tab 1 panel elements + Tab 6 elements, whichever exist)
+      function _progEl(id) { return document.getElementById(id); }
+      function _updateDownloadProgress(done, failed, total) {
+        const pct = Math.round((done+failed)/total*100);
+        ['enroute-pack-bar',  'tab1-map-pack-bar' ].forEach(function(id){ const el=_progEl(id); if(el) el.style.width=pct+'%'; });
+        ['enroute-pack-progress-text','tab1-map-pack-text'].forEach(function(id){ const el=_progEl(id); if(el) el.textContent=(done+failed)+'/'+total+' tiles ('+failed+' failed)'; });
+      }
+
+      // Main download function — works from any tab
+      window.downloadMapPack = async function(scope) {
+        if (_packDownloadActive) {
+          if (window.M) M.toast({ html: 'Maps downloading — see progress below', classes: 'blue darken-2' });
+          return;
+        }
+        const isRoute = String(scope||'base').toLowerCase() === 'route';
+        const defaults = isRoute ? { minZoom:7, maxZoom:11, label:'Route pack' } : { minZoom:6, maxZoom:10, label:'Airport coverage pack' };
+        // For route scope we need Tab 6 waypoints — fall back to base if not available
+        let bboxes;
+        if (isRoute && window.enroute6 && Array.isArray(window.enroute6.waypoints) && window.enroute6.waypoints.length) {
+          const wps = window.enroute6.waypoints;
+          const coords = wps.map(function(wp){
+            if (typeof window._lookupFix === 'function') return window._lookupFix(wp.fix);
+            const airports = window.appData && window.appData.airports || [];
+            const waypoints = window.appData && window.appData.waypoints || [];
+            return [...airports,...waypoints].find(function(a){ return (a.icao||a.fix||a.id||'').toUpperCase() === String(wp.fix||'').toUpperCase(); }) || null;
+          }).filter(Boolean);
+          if (coords.length) {
+            const lats=coords.map(function(c){return c.lat;}), lons=coords.map(function(c){return c.lon;});
+            bboxes = [{ minLat:Math.min.apply(null,lats)-0.5, maxLat:Math.max.apply(null,lats)+0.5, minLon:Math.min.apply(null,lons)-0.5, maxLon:Math.max.apply(null,lons)+0.5 }];
+          }
+        }
+        if (!bboxes || !bboxes.length) bboxes = _offlineAirportCoverageBboxes(0.2);
+        if (!bboxes.length) { if (window.M) M.toast({ html: 'No airport data loaded yet — sync missions first', classes: 'orange' }); return; }
+
+        const template = _getTileTemplate();
+        const minZ = defaults.minZoom, maxZ = defaults.maxZoom;
+        const tiles = _enumTilesForBboxes(bboxes, minZ, maxZ);
+        if (tiles.length > 2000) {
+          const ok = await window.flightAppConfirm(defaults.label+' download: ~'+tiles.length+' tiles (~'+Math.round(tiles.length*22/1024)+' MB). Proceed?', { title:'Offline Map Pack', okText:'Download' });
+          if (!ok) return;
+        }
+
+        _packDownloadActive = true;
+        _setOfflineMapDbIndicator('syncing', 'Downloading…');
+        // Show progress in whichever panel is visible
+        ['enroute-pack-progress','tab1-map-pack-progress'].forEach(function(id){ const el=_progEl(id); if(el) el.style.display='block'; });
+        ['enroute-pack-btn','tab1-map-pack-btn'].forEach(function(id){ const el=_progEl(id); if(el){ el.textContent='DOWNLOADING…'; el.disabled=true; } });
+
+        let done=0, failed=0;
+        const BATCH=6;
+        for (let i=0; i<tiles.length; i+=BATCH) {
+          if (!_packDownloadActive) break;
+          await Promise.all(tiles.slice(i,i+BATCH).map(async function(t) {
+            try {
+              const url = _tileUrlFromTemplate(template, t.z, t.x, t.y);
+              const resp = await fetch(url, { cache:'no-store' });
+              if (!resp.ok) throw new Error('HTTP '+resp.status);
+              const blob = await resp.blob();
+              await window._mapIdb.putTile(t.z, t.x, t.y, blob);
+              done++;
+            } catch(e) { failed++; }
+            _updateDownloadProgress(done, failed, tiles.length);
+          }));
+        }
+
+        _packDownloadActive = false;
+        ['enroute-pack-btn','tab1-map-pack-btn'].forEach(function(id){ const el=_progEl(id); if(el){ el.textContent='SYNC MAPS'; el.disabled=false; } });
+        const meta = {
+          scope: String(scope||'base').toLowerCase(),
+          savedAt: new Date().toISOString(),
+          tileCount: done, failedCount: failed,
+          bboxes: bboxes, minZoom: minZ, maxZoom: maxZ,
+          tileTemplate: template
+        };
+        localStorage.setItem('enrouteMapPackMeta', JSON.stringify(meta));
+        window._mapIdb.putMeta(meta);
+        _updatePackStatus();
+        if (window.M) M.toast({
+          html: '\uD83D\uDDFA '+defaults.label+' ready: '+done+' tiles'+(failed?' ('+failed+' failed)':''),
+          classes: done>0?'green':'orange', displayLength:6000
+        });
+        // If Tab 6 map is already rendered, refresh its tile layer
+        if (done>0 && typeof window._enrouteApplyOfflineTileLayer === 'function') window._enrouteApplyOfflineTileLayer();
+      };
+
+      window.clearMapPack = async function() {
+        const ok = await window.flightAppConfirm('Clear all cached map tiles?', { title:'Offline Map Pack', okText:'Clear' });
+        if (!ok) return;
+        await _idbClearAll();
+        localStorage.removeItem('enrouteMapPackMeta');
+        _packDownloadActive = false;
+        _updatePackStatus();
+        if (typeof window._enrouteApplyOfflineTileLayer === 'function') window._enrouteApplyOfflineTileLayer();
+        if (window.M) M.toast({ html:'Map pack cleared', classes:'orange' });
+      };
+      window.clearMapPackDirect = async function() {
+        await _idbClearAll();
+        localStorage.removeItem('enrouteMapPackMeta');
+        _packDownloadActive = false;
+        _updatePackStatus();
+      };
+    })();
+    // ============================================================
+    // END OFFLINE MAP PACK ENGINE
+    // ============================================================
 
     function getOfflinePrefetchMeta_() {
       return cacheGet(OFFLINE_CACHE_KEYS.PREFETCH_META) || {};
@@ -2688,6 +2976,14 @@
             cachedCount: getCachedMissionCount(),
             syncedAt: syncedAtIso
           });
+
+          // Queue a base-pack map download if maps have never been cached.
+          // The download itself runs the first time Tab 6 opens (code lives there).
+          if (!localStorage.getItem('enrouteMapPackMeta')) {
+            window._pendingMapPackDownload = 'base';
+            const mapLbl = document.getElementById('rlabel-mapdb');
+            if (mapLbl) mapLbl.textContent = 'Will download when Tab 6 opens';
+          }
 
           const summaryClass = failedCount ? 'orange' : 'green';
           M.toast({

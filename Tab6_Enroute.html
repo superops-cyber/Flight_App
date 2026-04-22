@@ -1,5 +1,5 @@
 <style>
-  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v122 ===== */
+  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v123 ===== */
 
   #enroute6-wrap {
     background:
@@ -1522,6 +1522,7 @@
         bearing:   Number(e.bearing || 0),
         gsKts:     Number(e.gsKts   || 0)
       });
+  }
 
   function _enrouteMaybeRefreshDbLayers(force) {
     var e = window.enroute6;
@@ -2065,285 +2066,46 @@
     return window.enroute6.tileTemplate || String(localStorage.getItem('enrouteTileTemplate') || '').trim() || _enrouteDefaultTileTemplate();
   }
 
+  function _enrouteTileUrlFromTemplate(template, z, x, y) {
+    const subs = ['a', 'b', 'c'];
+    const s = subs[Math.floor(Math.random() * subs.length)];
+    return String(template || _enrouteDefaultTileTemplate())
+      .replace('{z}', String(z))
+      .replace('{x}', String(x))
+      .replace('{y}', String(y))
+      .replace('{s}', s);
+  }
+
+  function _updatePackStatus() {
+    if (typeof window.refreshOfflineMapPackStatus === 'function') {
+      window.refreshOfflineMapPackStatus();
+    }
+  }
+
   function _enrouteApplyTileLayer() {
     _enrouteApplyOfflineTileLayer();
   }
 
   // ============================================================
   // PHASE 3 — Offline Map Pack (IndexedDB tile cache)
+  // Engine lives in PilotApp.html (_mapIdb, downloadMapPack, etc.)
+  // Tab 6 only needs: local aliases, tile rendering, and status UI.
   // ============================================================
 
+  // Local aliases to global engine so Tab-6-internal code keeps working
   const _IDB_NAME  = 'enrouteMapPackDB';
   const _IDB_STORE = 'tiles';
-  let   _idbInst   = null;
-  let   _packDownloadActive = false;
-
-  function _idbOpen() {
-    return new Promise(function(resolve, reject) {
-      if (_idbInst) { resolve(_idbInst); return; }
-      const req = indexedDB.open(_IDB_NAME, 1);
-      req.onupgradeneeded = function(e) {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(_IDB_STORE)) db.createObjectStore(_IDB_STORE);
-      };
-      req.onsuccess = function(e) { _idbInst = e.target.result; resolve(_idbInst); };
-      req.onerror   = function(e) { reject(e.target.error); };
-    });
-  }
-
-  function _idbPut(key, val) {
-    return _idbOpen().then(function(db) {
-      return new Promise(function(resolve, reject) {
-        const tx = db.transaction(_IDB_STORE, 'readwrite');
-        tx.objectStore(_IDB_STORE).put(val, key);
-        tx.oncomplete = resolve;
-        tx.onerror    = function(e) { reject(e.target.error); };
-      });
-    });
-  }
-
-  function _idbGet(key) {
-    return _idbOpen().then(function(db) {
-      return new Promise(function(resolve, reject) {
-        const tx  = db.transaction(_IDB_STORE, 'readonly');
-        const req = tx.objectStore(_IDB_STORE).get(key);
-        req.onsuccess = function(e) { resolve(e.target.result || null); };
-        req.onerror   = function(e) { reject(e.target.error); };
-      });
-    });
-  }
-
-  function _idbGetTile(z, x, y) {
-    return _idbGet('t_' + z + '_' + x + '_' + y).catch(function() { return null; });
-  }
-
-  function _idbPutTile(z, x, y, blob) {
-    return _idbPut('t_' + z + '_' + x + '_' + y, blob);
-  }
-
-  function _idbGetPackMeta() {
-    return _idbGet('meta_pack').catch(function() { return null; });
-  }
-
-  function _idbPutPackMeta(meta) {
-    return _idbPut('meta_pack', meta).catch(function() {});
-  }
-
-  function _idbClearAll() {
-    return _idbOpen().then(function(db) {
-      return new Promise(function(resolve) {
-        try {
-          const tx = db.transaction(_IDB_STORE, 'readwrite');
-          tx.objectStore(_IDB_STORE).clear();
-          tx.oncomplete = resolve;
-          tx.onerror    = resolve;
-        } catch(e) { resolve(); }
-      });
-    }).catch(function() {});
-  }
-
-  function _idbCountTiles() {
-    return _idbOpen().then(function(db) {
-      return new Promise(function(resolve) {
-        try {
-          const tx = db.transaction(_IDB_STORE, 'readonly');
-          const req = tx.objectStore(_IDB_STORE).count();
-          req.onsuccess = function(e) { resolve(Number(e.target.result || 0)); };
-          req.onerror = function() { resolve(0); };
-        } catch (e) {
-          resolve(0);
-        }
-      });
-    }).catch(function() { return 0; });
-  }
-
-  // --- Tile coordinate math (slippy map standard) ---
-
-  function _latLonToTile(lat, lon, zoom) {
-    const n    = Math.pow(2, zoom);
-    const x    = Math.floor((lon + 180) / 360 * n);
-    const lRad = lat * Math.PI / 180;
-    const y    = Math.floor((1 - Math.log(Math.tan(lRad) + 1 / Math.cos(lRad)) / Math.PI) / 2 * n);
-    return { x: Math.max(0, Math.min(n - 1, x)), y: Math.max(0, Math.min(n - 1, y)) };
-  }
-
-  function _enumTiles(minLat, minLon, maxLat, maxLon, minZoom, maxZoom) {
-    const tiles = [];
-    for (let z = minZoom; z <= maxZoom; z++) {
-      const tl = _latLonToTile(maxLat, minLon, z);
-      const br = _latLonToTile(minLat, maxLon, z);
-      for (let x = tl.x; x <= br.x; x++) {
-        for (let y = tl.y; y <= br.y; y++) {
-          tiles.push({ z: z, x: x, y: y });
-        }
-      }
-    }
-    return tiles;
-  }
-
-  function _enumTilesForBboxes(bboxes, minZoom, maxZoom) {
-    const seen = new Set();
-    const out = [];
-    (Array.isArray(bboxes) ? bboxes : []).forEach(function(b) {
-      if (!b) return;
-      const minLat = Number(b.minLat);
-      const minLon = Number(b.minLon);
-      const maxLat = Number(b.maxLat);
-      const maxLon = Number(b.maxLon);
-      if (![minLat, minLon, maxLat, maxLon].every(isFinite)) return;
-      _enumTiles(minLat, minLon, maxLat, maxLon, minZoom, maxZoom).forEach(function(t) {
-        const key = t.z + '_' + t.x + '_' + t.y;
-        if (seen.has(key)) return;
-        seen.add(key);
-        out.push(t);
-      });
-    });
-    return out;
-  }
-
-  function _tileUrlFromTemplate(template, z, x, y) {
-    const subs = ['a', 'b', 'c'];
-    const s    = subs[Math.floor(Math.random() * 3)];
-    return template.replace('{z}', z).replace('{x}', x).replace('{y}', y).replace('{s}', s);
-  }
-
-  function _enrouteWaypointsBbox(bufferDeg) {
-    const buf    = Number(bufferDeg || 0.5);
-    const wps    = Array.isArray(window.enroute6.waypoints) ? window.enroute6.waypoints : [];
-    const coords = wps.map(function(wp) { return _lookupFix(wp.fix); }).filter(Boolean);
-    if (!coords.length) return null;
-    const lats = coords.map(function(c) { return c.lat; });
-    const lons = coords.map(function(c) { return c.lon; });
-    return {
-      minLat: Math.min.apply(null, lats) - buf,
-      maxLat: Math.max.apply(null, lats) + buf,
-      minLon: Math.min.apply(null, lons) - buf,
-      maxLon: Math.max.apply(null, lons) + buf
-    };
-  }
-
-  function _offlineWacBbox() {
-    return { minLat: -34.0, maxLat: 6.0, minLon: -74.0, maxLon: -28.0 };
-  }
-
-  function _offlineAirportCoverageBboxes(bufferDeg) {
-    const buf = Math.max(0.08, Number(bufferDeg || 0.2));
-    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
-    const withCoords = airports.map(function(apt) {
-      const lat = Number(apt && apt.lat);
-      const lon = Number(apt && apt.lon);
-      if (!isFinite(lat) || !isFinite(lon)) return null;
-      return {
-        minLat: Math.max(-85, lat - buf),
-        maxLat: Math.min(85, lat + buf),
-        minLon: Math.max(-180, lon - buf),
-        maxLon: Math.min(180, lon + buf)
-      };
-    }).filter(Boolean);
-    return withCoords.length ? withCoords : [_offlineWacBbox()];
-  }
-
-  function _offlinePackDefaults(scope) {
-    if (String(scope || 'base').toLowerCase() === 'route') {
-      return { minZoom: 7, maxZoom: 11, label: 'Route pack' };
-    }
-    return { minZoom: 6, maxZoom: 10, label: 'Airport coverage pack' };
-  }
-
-  function _packDateLabel(isoDate) {
-    const d = new Date(isoDate || '');
-    if (isNaN(d.getTime())) return '';
-    const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May.', 'Jun.', 'Jul.', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
-    const month = months[d.getMonth()] || '---';
-    return month + ' ' + d.getDate() + ', ' + d.getFullYear();
-  }
-
-  function _offlinePackBboxes(scope) {
-    if (String(scope || 'base').toLowerCase() === 'route') {
-      const route = _enrouteWaypointsBbox(0.5);
-      return route ? [route] : [];
-    }
-    return _offlineAirportCoverageBboxes(0.2);
-  }
-
+  function _idbGetTile(z, x, y)    { return window._mapIdb ? window._mapIdb.getTile(z,x,y)    : Promise.resolve(null); }
+  function _idbPutTile(z, x, y, b) { return window._mapIdb ? window._mapIdb.putTile(z,x,y,b)  : Promise.resolve(); }
+  function _idbGetPackMeta()        { return window._mapIdb ? window._mapIdb.getMeta()          : Promise.resolve(null); }
+  function _idbPutPackMeta(m)       { return window._mapIdb ? window._mapIdb.putMeta(m)         : Promise.resolve(); }
+  function _idbClearAll()           { return window._mapIdb ? window._mapIdb.clearAll()         : Promise.resolve(); }
   function _setOfflineMapDbIndicator(state, label) {
-    const dot = document.getElementById('rdot-mapdb');
-    const text = document.getElementById('rlabel-mapdb');
-    if (text) text.textContent = label || 'Checking…';
-    if (dot) {
-      const colors = { none: '#bdbdbd', ok: '#2e7d32', warn: '#f9a825', expired: '#d32f2f', syncing: '#1565c0' };
-      dot.style.background = colors[state] || colors.none;
-    }
-    // Update shared readiness state
-    const stateMap = { ok: 'ok', syncing: 'sync', expired: 'bad', warn: 'warn', none: 'none' };
-    if (window._readinessState) window._readinessState.mapdb = stateMap[state] || 'none';
-    if (typeof window._recomputeOverallReadiness_ === 'function') window._recomputeOverallReadiness_();
+    if (typeof window._setOfflineMapDbIndicator === 'function') window._setOfflineMapDbIndicator(state, label);
   }
 
-  // --- Pack status display ---
-
-  function _renderPackStatusFromMeta(meta) {
-    const els = [document.getElementById('enroute-mappack-status'), document.getElementById('offline-map-status')].filter(Boolean);
-    if (!meta || !meta.savedAt) {
-      els.forEach(function(el) {
-        el.textContent = 'Maps not downloaded.';
-        el.className   = 'pack-status pack-none';
-      });
-      _setOfflineMapDbIndicator('none', 'Not downloaded');
-      return;
-    }
-    const ageDays = Math.floor((Date.now() - new Date(meta.savedAt).getTime()) / 86400000);
-    const dateLabel = _packDateLabel(meta.savedAt);
-    const maxFreshDays = 15;
-    if (ageDays > maxFreshDays) {
-      els.forEach(function(el) {
-        el.textContent = '✖ MAPS EXPIRED — last download ' + (dateLabel || 'unknown date');
-        el.className   = 'pack-status pack-expired';
-      });
-      _setOfflineMapDbIndicator('expired', 'Expired');
-    } else {
-      els.forEach(function(el) {
-        el.textContent = '✔ MAPS DOWNLOADED — ' + (dateLabel || 'date unavailable');
-        el.className   = 'pack-status pack-ok';
-      });
-      _setOfflineMapDbIndicator('ok', 'Ready');
-    }
-  }
-
-  function _updatePackStatus() {
-    const els = [document.getElementById('enroute-mappack-status'), document.getElementById('offline-map-status')].filter(Boolean);
-    const metaRaw = localStorage.getItem('enrouteMapPackMeta');
-    if (!metaRaw) {
-      _idbGetPackMeta().then(function(idbMeta) {
-        if (idbMeta && idbMeta.savedAt) {
-          try { localStorage.setItem('enrouteMapPackMeta', JSON.stringify(idbMeta)); } catch (e) {}
-          _renderPackStatusFromMeta(idbMeta);
-          return;
-        }
-        _idbCountTiles().then(function(tileCount) {
-          if (tileCount > 0) {
-            els.forEach(function(el) {
-              el.textContent = '✔ Maps cached — tap ↺ MAPS to verify / re-sync';
-              el.className   = 'pack-status pack-ok';
-            });
-            _setOfflineMapDbIndicator('ok', 'Maps cached');
-          } else {
-            els.forEach(function(el) {
-              el.textContent = 'Maps not downloaded.';
-              el.className   = 'pack-status pack-none';
-            });
-            _setOfflineMapDbIndicator('none', 'Not downloaded');
-          }
-        });
-      });
-      return;
-    }
-    let meta;
-    try { meta = JSON.parse(metaRaw); } catch(e) { meta = null; }
-    _renderPackStatusFromMeta(meta);
-  }
-
-  window.refreshOfflineMapPackStatus = _updatePackStatus;
+  // refreshOfflineMapPackStatus is set by the engine in PilotApp.html.
+  // Expose _enrouteApplyOfflineTileLayer globally so the engine can call it after download.
 
   // --- Custom Leaflet offline-first tile layer ---
 
@@ -2354,10 +2116,42 @@
       window.enroute6.mapTiles = null;
     }
     const template = _enrouteGetTileTemplate();
-    
-    // Use standard L.TileLayer - OpenStreetMap tiles
+
+    // Offline-first tile layer: IDB cache first, network second.
+    // Use plain .onload/.onerror — do NOT use L.DomEvent.on which would
+    // double-fire done() alongside our manual handler, causing Leaflet errors.
     try {
-      window.enroute6.mapTiles = window.L.tileLayer(template, {
+      const OfflineFirstTileLayer = window.L.TileLayer.extend({
+        createTile: function(coords, done) {
+          const img = document.createElement('img');
+          img.alt = '';
+          const networkUrl = this.getTileUrl(coords);
+          const z = Number(coords.z);
+          const x = Number(coords.x);
+          const y = Number(coords.y);
+
+          _idbGetTile(z, x, y).then(function(blob) {
+            if (blob) {
+              const objUrl = URL.createObjectURL(blob);
+              img.onload  = function() { try { URL.revokeObjectURL(objUrl); } catch(e){} done(null, img); };
+              img.onerror = function() { try { URL.revokeObjectURL(objUrl); } catch(e){} img.src = networkUrl; };
+              img.src = objUrl;
+            } else {
+              img.onload  = function() { done(null, img); };
+              img.onerror = function(e) { done(e, img); };
+              img.src = networkUrl;
+            }
+          }).catch(function() {
+            img.onload  = function() { done(null, img); };
+            img.onerror = function(e) { done(e, img); };
+            img.src = networkUrl;
+          });
+
+          return img;
+        }
+      });
+
+      window.enroute6.mapTiles = new OfflineFirstTileLayer(template, {
         maxZoom: 18,
         minZoom: 2,
         attribution: '© OpenStreetMap contributors',
@@ -2383,127 +2177,13 @@
       }
     }
   }
-
-  // --- Estimate ---
-
-  window.estimateMapPack = function(scope) {
-    const defaults = _offlinePackDefaults(scope);
-    const bboxes = _offlinePackBboxes(scope);
-    if (!bboxes.length) { if (window.M) M.toast({ html: 'No map coverage data available yet', classes: 'orange' }); return; }
-    const minZ = Math.max(4,  Number(document.getElementById('enroute-pack-minzoom')?.value || defaults.minZoom));
-    const maxZ = Math.max(minZ, Number(document.getElementById('enroute-pack-maxzoom')?.value || defaults.maxZoom));
-    const tiles = _enumTilesForBboxes(bboxes, minZ, maxZ);
-    const estMB = Math.round(tiles.length * 22 / 1024);
-    if (window.M) M.toast({
-      html: defaults.label + ': ~' + tiles.length + ' tiles (~' + estMB + ' MB) for zooms ' + minZ + '–' + maxZ + ' across ' + bboxes.length + ' areas',
-      classes: 'blue darken-2', displayLength: 6000
-    });
-    _enrouteDiag(defaults.label + ' estimate: ' + tiles.length + ' tiles z' + minZ + '-' + maxZ);
-  };
-
-  // --- Download ---
-
-  window.downloadMapPack = async function(scope) {
-    if (_packDownloadActive) {
-      if (window.M) M.toast({ html: 'Maps downloading — check progress in Tab 6', classes: 'blue darken-2' });
-      return;
-    }
-    const defaults = _offlinePackDefaults(scope);
-    const bboxes = _offlinePackBboxes(scope);
-    if (!bboxes.length) { if (window.M) M.toast({ html: 'No map coverage data available yet', classes: 'orange' }); return; }
-    const template = _enrouteGetTileTemplate();
-    if (!template || template.indexOf('{z}') < 0) {
-      if (window.M) M.toast({ html: 'Set a valid tile URL template first', classes: 'orange' });
-      return;
-    }
-    const minEl = document.getElementById('enroute-pack-minzoom');
-    const maxEl = document.getElementById('enroute-pack-maxzoom');
-    const minZ  = Math.max(4,    Math.min(12, Number(minEl?.value || defaults.minZoom)));
-    const maxZ  = Math.max(minZ, Math.min(12, Number(maxEl?.value || defaults.maxZoom)));
-    const tiles = _enumTilesForBboxes(bboxes, minZ, maxZ);
-    if (tiles.length > 2000) {
-      const ok = await window.flightAppConfirm(defaults.label + ' download: ~' + tiles.length + ' tiles (~' + Math.round(tiles.length * 22 / 1024) + ' MB). Proceed?', { title: 'Offline Map Pack', okText: 'Download' });
-      if (!ok) return;
-    }
-    _packDownloadActive = true;
-    _setOfflineMapDbIndicator('syncing', 'Syncing…');
-    const progDiv = document.getElementById('enroute-pack-progress');
-    const progBar = document.getElementById('enroute-pack-bar');
-    const progTxt = document.getElementById('enroute-pack-progress-text');
-    const packBtn = document.getElementById('enroute-pack-btn');
-    if (progDiv) progDiv.style.display = 'block';
-    if (packBtn) { packBtn.textContent = 'SYNCING...'; packBtn.disabled = true; }
-    let done = 0, failed = 0;
-    const BATCH = 6;
-    const updateProg = function() {
-      const pct = Math.round((done + failed) / tiles.length * 100);
-      if (progBar) progBar.style.width = pct + '%';
-      if (progTxt) progTxt.textContent = (done + failed) + '/' + tiles.length + ' tiles (' + failed + ' failed)';
-    };
-    for (let i = 0; i < tiles.length; i += BATCH) {
-      if (!_packDownloadActive) break;
-      await Promise.all(tiles.slice(i, i + BATCH).map(async function(t) {
-        try {
-          const url  = _tileUrlFromTemplate(template, t.z, t.x, t.y);
-          const resp = await fetch(url, { cache: 'no-store' });
-          if (!resp.ok) throw new Error('HTTP ' + resp.status);
-          const blob = await resp.blob();
-          await _idbPutTile(t.z, t.x, t.y, blob);
-          done++;
-        } catch(e) { failed++; }
-        updateProg();
-      }));
-    }
-    _packDownloadActive = false;
-    if (packBtn) { packBtn.textContent = 'SYNC MAPS'; packBtn.disabled = false; }
-    const meta = {
-      missionId:  window.enroute6.missionId || 'unknown',
-      scope:      String(scope || 'base').toLowerCase(),
-      savedAt:    new Date().toISOString(),
-      tileCount:  done,
-      failedCount: failed,
-      bboxes:     bboxes,
-      minZoom:    minZ,
-      maxZoom:    maxZ,
-      tileTemplate: template
-    };
-    localStorage.setItem('enrouteMapPackMeta', JSON.stringify(meta));
-    _idbPutPackMeta(meta);
-    _updatePackStatus();
-    _enrouteDiag('Pack downloaded: ' + done + '/' + tiles.length + ' tiles');
-    if (window.M) M.toast({
-      html: '\uD83D\uDCE6 ' + defaults.label + ' ready: ' + done + ' tiles' + (failed ? ' (' + failed + ' failed)' : ''),
-      classes: done > 0 ? 'green' : 'orange', displayLength: 6000
-    });
-    if (done > 0) _enrouteApplyOfflineTileLayer();
-  };
-
-  // --- Clear ---
-
-  window.clearMapPack = async function() {
-    const ok = await window.flightAppConfirm('Clear all cached map tiles?', { title: 'Offline Map Pack', okText: 'Clear' });
-    if (!ok) return;
-    await _idbClearAll();
-    localStorage.removeItem('enrouteMapPackMeta');
-    _packDownloadActive = false;
-    _updatePackStatus();
-    _enrouteApplyTileLayer();
-    if (window.M) M.toast({ html: 'Map pack cleared', classes: 'orange' });
-    _enrouteDiag('Pack cleared');
-  };
-
-  // Silent clear used by the combined Tab1 CLEAR button (confirm already shown there)
-  window.clearMapPackDirect = async function() {
-    await _idbClearAll();
-    localStorage.removeItem('enrouteMapPackMeta');
-    _packDownloadActive = false;
-    _updatePackStatus();
-    if (typeof _enrouteApplyTileLayer === 'function') _enrouteApplyTileLayer();
-    _enrouteDiag('Map pack cleared (direct)');
-  };
+  // Expose globally so the engine in PilotApp.html can refresh the tile layer after download
+  window._enrouteApplyOfflineTileLayer = _enrouteApplyOfflineTileLayer;
 
   // ============================================================
   // END PHASE 3
+  // (downloadMapPack / clearMapPack / clearMapPackDirect are
+  //  defined globally in PilotApp.html — available from Tab 1)
   // ============================================================
 
   function _enrouteWaypointPoints() {
@@ -2569,8 +2249,9 @@
     }
 
     window.enroute6.waypointLayer = window.L.layerGroup();
-    const _routeAirports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
-    const _routeFuelCaches = (window.appData && Array.isArray(window.appData.fuelCaches)) ? window.appData.fuelCaches : [];
+    const _routeSrc = _enrouteGetNavSource_();
+    const _routeAirports = Array.isArray(_routeSrc.airports) ? _routeSrc.airports : [];
+    const _routeFuelCaches = Array.isArray(_routeSrc.fuelCaches) ? _routeSrc.fuelCaches : [];
     points.forEach(function(p) {
       const passed = p.idx <= Number(window.enroute6.passedIndex || -1);
       const aptRecord = _routeAirports.find(function(a) {
@@ -2807,8 +2488,9 @@
     var e = window.enroute6;
     if (!e.mapObj || !window.L) return;
 
-    var airports  = (window.appData && Array.isArray(window.appData.airports))  ? window.appData.airports  : [];
-    var wps       = (window.appData && Array.isArray(window.appData.waypoints)) ? window.appData.waypoints : [];
+    var src = _enrouteGetNavSource_();
+    var airports  = Array.isArray(src.airports) ? src.airports : [];
+    var wps       = Array.isArray(src.waypoints) ? src.waypoints : [];
 
     var centerLat = isFinite(Number(e.lat)) ? Number(e.lat) : Number(e.mapObj.getCenter().lat);
     var centerLon = isFinite(Number(e.lon)) ? Number(e.lon) : Number(e.mapObj.getCenter().lng);
@@ -3027,11 +2709,29 @@
     window.enroute6.pollTimer = setInterval(pollOnce, 5000);
   };
 
+  function _enrouteGetNavSource_() {
+    const live = (window.appData && typeof window.appData === 'object') ? window.appData : {};
+    if (Array.isArray(live.airports) && live.airports.length && Array.isArray(live.waypoints) && live.waypoints.length) {
+      return live;
+    }
+    try {
+      const raw = localStorage.getItem('mba_cache_dropdown_data_v1');
+      if (!raw) return live;
+      const parsed = JSON.parse(raw);
+      const payload = parsed && Object.prototype.hasOwnProperty.call(parsed, 'value') ? parsed.value : parsed;
+      if (payload && typeof payload === 'object') {
+        return Object.assign({}, payload, live);
+      }
+    } catch (e) {}
+    return live;
+  }
+
   function _lookupFix(fixName) {
     const name = String(fixName || '').trim().toUpperCase();
     if (!name) return null;
 
-    const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
+    const src = _enrouteGetNavSource_();
+    const airports = Array.isArray(src.airports) ? src.airports : [];
     const airport = airports.find(a => String(a.icao || '').trim().toUpperCase() === name);
     if (airport) {
       const lat = Number(airport.lat);
@@ -3039,8 +2739,11 @@
       if (!isNaN(lat) && !isNaN(lon)) return { lat: lat, lon: lon };
     }
 
-    const waypoints = (window.appData && Array.isArray(window.appData.waypoints)) ? window.appData.waypoints : [];
-    const waypoint = waypoints.find(w => String(w.wp_id || '').trim().toUpperCase() === name);
+    const waypoints = Array.isArray(src.waypoints) ? src.waypoints : [];
+    const waypoint = waypoints.find(w => {
+      const cands = [w && w.wp_id, w && w.fix, w && w.ident, w && w.name, w && w.icao];
+      return cands.some(function(v) { return String(v || '').trim().toUpperCase() === name; });
+    });
     if (waypoint) {
       const lat = Number(waypoint.lat);
       const lon = Number(waypoint.lon);
@@ -3435,8 +3138,11 @@
       window.enroute6.waypoints = [];
     }
     const gs = Number(window.enroute6.gsKts || 0);
+    const MIN_GS_KTS = 20; // below this GS, ETEs are meaningless (GPS noise / taxi)
+    const gsValid = gs >= MIN_GS_KTS;
     const now = new Date();
-    const startIdx = Math.max(0, Number(window.enroute6.passedIndex || -1) + 1);
+    // Index 0 is origin; ETA chain should always start from the next waypoint after origin.
+    const startIdx = Math.max(1, Number(window.enroute6.passedIndex || -1) + 1);
     const dtTargetIdx = Number(window.enroute6.directToTargetIdx);
     let cumulativeMin = 0;
 
@@ -3458,11 +3164,11 @@
       } else if (idx !== startIdx) {
         delete wp.remainingNm; // clear stale countdown for non-active legs
       }
-      const ete = (gs > 0 && shouldCompute) ? Math.max(1, Math.round((dist / gs) * 60)) : 0;
+      const ete = (gsValid && shouldCompute) ? Math.max(1, Math.round((dist / gs) * 60)) : 0;
       if (shouldCompute) cumulativeMin += ete;
       const etaDate = new Date(now.getTime() + cumulativeMin * 60000);
       wp.eteMin = ete;
-      wp.eta = (gs > 0 && shouldCompute) ? _enrouteFmtHhmm(etaDate) : '--:--';
+      wp.eta = (gsValid && shouldCompute) ? _enrouteFmtHhmm(etaDate) : '--:--';
     });
 
     renderEnrouteWaypointRows();
@@ -3518,9 +3224,12 @@
     const isDestinationWaypoint = Number(idx) === window.enroute6.waypoints.length - 1;
     const wasPassed = idx <= Number(window.enroute6.passedIndex || -1) || !!window.enroute6.waypoints[idx].passedAt;
     window.enroute6.passedIndex = Math.max(window.enroute6.passedIndex, idx);
-    const ata = _enrouteFmtHhmm(new Date());
-    window.enroute6.waypoints[idx].passedAt = ata;
-    window.enroute6.waypoints[idx].ata = ata;
+    // Origin is a departure reference only; do not stamp ATA on origin.
+    if (!isTakeoffWaypoint) {
+      const ata = _enrouteFmtHhmm(new Date());
+      window.enroute6.waypoints[idx].passedAt = ata;
+      window.enroute6.waypoints[idx].ata = ata;
+    }
     if (Number(window.enroute6.directToTargetIdx) === idx) {
       window.enroute6.directToTargetIdx = null;
       window.enroute6.hideDirectToLine = true;
@@ -3556,6 +3265,11 @@
       const bypassed = !passed && !!wp.bypassedAt;
       const isNext = idx === window.enroute6.passedIndex + 1;
       const canDelete = idx > 0 && idx < waypoints.length - 1;
+      // Fuel cell shows on the "from" row of the current active leg (passedIndex),
+      // but not on the last leg (when destination is the next stop).
+      const passedIdx = Number(window.enroute6.passedIndex || 0);
+      const onLastLeg = (passedIdx + 1) >= waypoints.length - 1;
+      const isFuelRow = idx === passedIdx && !onLastLeg;
       const legClass = passed ? ' passed' : (bypassed ? ' bypassed' : '');
       // For the active leg, show live countdown distance & time; otherwise total leg ETE
       const isActiveLeg = isNext && idx > 0;
@@ -3601,7 +3315,7 @@
         + '<td colspan="3"></td>'
         + '<td>' + (wp.eta || '--:--') + '</td>'
         + '<td>' + ataDisplay + '</td>'
-        + '<td style="font-size:0.65rem;">' + _enrouteFuelCellHtml_(idx, isNext) + '</td>'
+        + '<td style="font-size:0.65rem;">' + _enrouteFuelCellHtml_(idx, isFuelRow) + '</td>'
         + '<td>' + (wp.fuelUsedL ? ('<span class="fuel-used-badge">' + Math.round(Number(wp.fuelUsedL || 0)) + 'L</span>') : '--') + '</td>'
         + '<td>' + directBtn + passBtn + delBtn + '</td>'
         + '</tr>';
@@ -4468,7 +4182,8 @@
                   waypoints: (Array.isArray(data.waypoints) && data.waypoints.length) ? data.waypoints : legWaypoints
                 };
                 window.enroute6.waypoints = _buildInitialWaypoints(merged);
-                window.enroute6.passedIndex = -1;
+                // Origin is already departed when Enroute is active.
+                window.enroute6.passedIndex = 0;
                 recalcWaypointsFromGs();
                 _enrouteRefreshRouteLayer();
                 _enrouteDiag('Server route applied for legId=' + String(flightLegId || 'N/A'));
