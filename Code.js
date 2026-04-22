@@ -16520,7 +16520,19 @@ function pushLivePosition(payload) {
     var now = new Date();
     var row = headers.map(function() { return ''; });
     if (ri >= 0)   row[ri]   = reg;
-    if (mi >= 0)   row[mi]   = String(body.missionId || '');
+    
+    // Extract missionId correctly: if body.missionId looks like a full flight leg ID (has 3+ parts),
+    // extract just the mission ID portion (first 2 parts)
+    var missionId = String(body.missionId || '').trim();
+    if (missionId) {
+      var parts = missionId.split('-');
+      if (parts.length > 2) {
+        // This looks like a full flight leg ID (e.g., "OFL240422-12345-01"), extract mission ID
+        missionId = parts[0] + '-' + parts[1];
+      }
+    }
+    
+    if (mi >= 0)   row[mi]   = missionId;
     if (lati >= 0) row[lati] = Number(body.lat  || 0);
     if (lngi >= 0) row[lngi] = Number(body.lng  || 0);
     if (beari >= 0) row[beari] = Number(body.bearing || 0);

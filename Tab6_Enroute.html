@@ -1511,12 +1511,22 @@
       (window.currentBriefingMission && window.currentBriefingMission.acft) || ''
     ).trim().toUpperCase();
     if (!reg) return;
+    
+    // Extract missionId from flightLegId if missionId is empty (safety for offline flights)
+    var missionId = String(e.missionId || '').trim();
+    if (!missionId && e.flightLegId) {
+      var parts = String(e.flightLegId).split('-');
+      if (parts.length >= 2) {
+        missionId = parts[0] + '-' + parts[1];
+      }
+    }
+    
     google.script.run
       .withSuccessHandler(function() {})
       .withFailureHandler(function() {})
       .pushLivePosition({
         reg:       reg,
-        missionId: String(e.missionId || e.flightLegId || ''),
+        missionId: missionId,
         lat:       Number(e.lat),
         lng:       Number(e.lon),
         bearing:   Number(e.bearing || 0),
