@@ -943,11 +943,13 @@
   var _GIBS_LAYERS = {
     geocolor: {
       label: 'GeoColor',
-      url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES_East_GeoColor/default/{time}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.jpg'
+      url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES-East_ABI_GeoColor/default/{time}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png',
+      maxNativeZoom: 7
     },
     ir: {
       label: 'IR Band 13',
-      url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES_East_ABI_Band13_Clean_IR_Longwave_Window_2km/default/{time}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.jpg'
+      url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES-East_ABI_Band13_Clean_Infrared/default/{time}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png',
+      maxNativeZoom: 6
     }
   };
 
@@ -1001,12 +1003,13 @@
     if (!ws || !ws.enabled || !ws.frames.length) return;
     var map = state.leafletMapsByKey[key];
     if (!map) return;
+    var cfg = _GIBS_LAYERS[ws.layerKey] || _GIBS_LAYERS.geocolor;
     var url = _ffWxBuildUrl(ws.layerKey, ws.frames[ws.frameIdx]);
     if (ws.layer) {
       ws.layer.setUrl(url);
     } else {
       ws.layer = L.tileLayer(url, {
-        tileSize: 256, maxNativeZoom: 6, maxZoom: 13,
+        tileSize: 256, maxNativeZoom: cfg.maxNativeZoom || 6, maxZoom: 13,
         opacity: 0.75, attribution: 'NOAA GOES-16 / NASA GIBS'
       }).addTo(map);
     }
