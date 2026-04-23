@@ -230,6 +230,54 @@
   .ff-live-map-wrap  { position: relative; }
   .ff-inreach-wrap   { position: relative; }
   .ff-leaflet-map    { height: 220px; }
+  .ff-map-content-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 0;
+    background: #d9e4ee;
+  }
+  .ff-map-primary-col {
+    min-width: 0;
+    border-right: 1px solid #b3c5d4;
+  }
+  .ff-sat-wrap {
+    position: relative;
+    display: none;
+    min-width: 0;
+    background: #0c1118;
+  }
+  .ff-sat-wrap.active { display: block; }
+  .ff-sat-map {
+    height: 220px;
+    background: #0c1118;
+  }
+  .ff-sat-label {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 500;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(7, 14, 24, 0.8);
+    color: #d9e7f5;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .ff-sat-empty {
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #90a4ae;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 14px;
+    background: radial-gradient(circle at center, rgba(41, 62, 82, 0.45), rgba(7, 14, 24, 0.96));
+  }
   .ff-inreach-iframe { width: 100%; height: 220px; border: none; display: block; }
   .ff-inreach-fallback {
     height: 220px; background: #263238; color: #90a4ae;
@@ -350,6 +398,11 @@
     .ff-cards-grid { grid-template-columns: 1fr; }
   }
 
+  @media (max-width: 980px) {
+    .ff-map-content-grid { grid-template-columns: 1fr; }
+    .ff-map-primary-col { border-right: none; border-bottom: 1px solid #b3c5d4; }
+  }
+
   /* ── NOAA GOES-16 WX Overlay controls ─────────────────────────────────── */
   .ff-wx-bar {
     display: flex;
@@ -445,7 +498,8 @@
     mapModeByKey: {},       // key -> 'inhouse' | 'inreach' | 'both'
     inreachUrlByKey: {},    // key -> url string
     leafletMapsByKey: {},   // key -> L.map instance
-    leafletMarkersByKey: {} // key -> L.marker instance
+    leafletMarkersByKey: {}, // key -> L.marker instance
+    satMapsByKey: {}        // key -> L.map instance (satellite-only pane)
   };
   var _ffPollTimer = null;
   var _ffLeafletReady = false;
@@ -528,6 +582,43 @@
     document.head.appendChild(script);
   }
 
+  function _ffPlotMissionTrace(map, mission, opts) {
+    if (!map || !mission) return false;
+    var options = opts || {};
+    var color = options.color || '#1565c0';
+    var weight = options.weight || 2;
+    var opacity = options.opacity || 0.7;
+    var dashArray = options.dashArray || '5 5';
+    var addEndpoints = !!options.addEndpoints;
+
+    var waypoints = Array.isArray(mission.resolvedWaypoints) ? mission.resolvedWaypoints : [];
+    var lls = waypoints.filter(function(w){ return isFinite(w.lat) && isFinite(w.lon); }).map(function(w){ return [w.lat, w.lon]; });
+    if (lls.length >= 2) {
+      L.polyline(lls, { color: color, weight: weight, opacity: opacity, dashArray: dashArray }).addTo(map);
+      if (addEndpoints) {
+        L.circleMarker(lls[0], { radius: 4, color: color, fillColor: color, fillOpacity: 0.95, weight: 2 }).addTo(map);
+        L.circleMarker(lls[lls.length - 1], { radius: 4, color: color, fillColor: color, fillOpacity: 0.95, weight: 2 }).addTo(map);
+      }
+      map.fitBounds(L.latLngBounds(lls), { padding: [20, 20] });
+      return true;
+    }
+
+    var fromCoord = mission.fromCoord && isFinite(mission.fromCoord.lat) && isFinite(mission.fromCoord.lon)
+      ? [mission.fromCoord.lat, mission.fromCoord.lon] : null;
+    var toCoord = mission.toCoord && isFinite(mission.toCoord.lat) && isFinite(mission.toCoord.lon)
+      ? [mission.toCoord.lat, mission.toCoord.lon] : null;
+    if (fromCoord && toCoord) {
+      L.polyline([fromCoord, toCoord], { color: color, weight: weight, opacity: opacity, dashArray: dashArray }).addTo(map);
+      if (addEndpoints) {
+        L.circleMarker(fromCoord, { radius: 4, color: color, fillColor: color, fillOpacity: 0.95, weight: 2 }).addTo(map);
+        L.circleMarker(toCoord, { radius: 4, color: color, fillColor: color, fillOpacity: 0.95, weight: 2 }).addTo(map);
+      }
+      map.fitBounds(L.latLngBounds([fromCoord, toCoord]), { padding: [20, 20] });
+      return true;
+    }
+    return false;
+  }
+
   function _ffInitMap(key, reg, mission) {
     if (state.leafletMapsByKey[key]) return; // already initialized
     var sreg = safeId(reg);
@@ -537,29 +628,22 @@
       var map = L.map('ff-live-map-' + sreg, { zoomControl: true, attributionControl: false });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16, minZoom: 2 }).addTo(map);
       state.leafletMapsByKey[key] = map;
-      // Plot route line from waypoints if available
-      var waypoints = mission && Array.isArray(mission.resolvedWaypoints) ? mission.resolvedWaypoints : [];
-      if (waypoints.length >= 2) {
-        var lls = waypoints.filter(function(w){ return w.lat && w.lon; }).map(function(w){ return [w.lat, w.lon]; });
-        if (lls.length >= 2) {
-          L.polyline(lls, { color: '#1565c0', weight: 2, opacity: 0.6, dashArray: '5 5' }).addTo(map);
-          map.fitBounds(L.latLngBounds(lls), { padding: [20, 20] });
-          return;
-        }
-      }
-      var fromCoord = mission && mission.fromCoord && isFinite(mission.fromCoord.lat) && isFinite(mission.fromCoord.lon)
-        ? [mission.fromCoord.lat, mission.fromCoord.lon] : null;
-      var toCoord = mission && mission.toCoord && isFinite(mission.toCoord.lat) && isFinite(mission.toCoord.lon)
-        ? [mission.toCoord.lat, mission.toCoord.lon] : null;
-      if (fromCoord && toCoord) {
-        L.polyline([fromCoord, toCoord], { color: '#1565c0', weight: 2, opacity: 0.7, dashArray: '8 6' }).addTo(map);
-        L.circleMarker(fromCoord, { radius: 4, color: '#0d47a1', fillColor: '#42a5f5', fillOpacity: 0.95, weight: 2 }).addTo(map);
-        L.circleMarker(toCoord, { radius: 4, color: '#0d47a1', fillColor: '#42a5f5', fillOpacity: 0.95, weight: 2 }).addTo(map);
-        map.fitBounds(L.latLngBounds([fromCoord, toCoord]), { padding: [20, 20] });
-        return;
-      }
+      if (_ffPlotMissionTrace(map, mission, { color: '#1565c0', weight: 2, opacity: 0.7, dashArray: '8 6', addEndpoints: true })) return;
       map.setView([-3.5, -60.0], 5); // Default: central Brazil
     });
+  }
+
+  function _ffInitSatMap(key, reg, mission) {
+    if (state.satMapsByKey[key]) return state.satMapsByKey[key];
+    var sreg = safeId(reg);
+    var mapEl = document.getElementById('ff-sat-map-' + sreg);
+    if (!mapEl) return null;
+    var satMap = L.map('ff-sat-map-' + sreg, { zoomControl: true, attributionControl: false });
+    state.satMapsByKey[key] = satMap;
+    if (!_ffPlotMissionTrace(satMap, mission, { color: '#8ad4ff', weight: 2, opacity: 0.95, dashArray: '7 6', addEndpoints: true })) {
+      satMap.setView([-3.5, -60.0], 5);
+    }
+    return satMap;
   }
 
   function _ffUpdateMapMarker(key, reg, pos) {
@@ -615,6 +699,8 @@
       var map = state.leafletMapsByKey[key];
       if (map) setTimeout(function(){ map.invalidateSize(); }, 50);
     }
+    var satMap = state.satMapsByKey[key];
+    if (satMap) setTimeout(function(){ satMap.invalidateSize(); }, 50);
     // Load InReach iframe if url set
     if (showInreach) _ffRenderInreachFrame(key, reg);
   }
@@ -849,13 +935,22 @@
             '<input class="ff-map-inreach-url" id="ff-inreach-url-' + sreg + '" type="url" placeholder="share.garmin.com/DeviceID" onblur="ffSetInreachUrl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\')ffSetInreachUrl(\''+key+'\',this.value)">' +
           '</div>' +
           _ffBuildWxBar(key, sreg) +
-          '<div class="ff-live-map-wrap" id="ff-live-wrap-' + sreg + '">' +
-            '<div class="ff-leaflet-map" id="ff-live-map-' + sreg + '"></div>' +
-          '</div>' +
-          '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + sreg + '" style="display:none">' +
-            '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + sreg + '">' +
-              'Paste the Garmin MapShare URL above<br>' +
-              '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">e.g. share.garmin.com/YourDevice</span>' +
+          '<div class="ff-map-content-grid">' +
+            '<div class="ff-map-primary-col">' +
+              '<div class="ff-live-map-wrap" id="ff-live-wrap-' + sreg + '">' +
+                '<div class="ff-leaflet-map" id="ff-live-map-' + sreg + '"></div>' +
+              '</div>' +
+              '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + sreg + '" style="display:none">' +
+                '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + sreg + '">' +
+                  'Paste the Garmin MapShare URL above<br>' +
+                  '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">e.g. share.garmin.com/YourDevice</span>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="ff-sat-wrap" id="ff-sat-wrap-' + sreg + '">' +
+              '<div class="ff-sat-label" id="ff-sat-label-' + sreg + '">Visible</div>' +
+              '<div class="ff-sat-map" id="ff-sat-map-' + sreg + '"></div>' +
+              '<div class="ff-sat-empty" id="ff-sat-empty-' + sreg + '">Satellite weather frames load here.<br>Use Visible / Infrared and Play when needed.</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -964,7 +1059,7 @@
     }
   };
 
-  var _wxByKey = {};  // key → { enabled, frames, frameIdx, playing, timer, layer, layerKey, fallbackToken }
+  var _wxByKey = {};  // key → { enabled, frames, frameIdx, playing, timer, layer, pendingLayer, layerKey, opacity, mission }
 
   function _ffWxBuildUrl(layerKey, time) {
     var cfg = _GIBS_LAYERS[layerKey] || _GIBS_LAYERS.geocolor;
@@ -998,6 +1093,8 @@
     }
     var playBtn = document.getElementById('ff-wx-play-' + sreg);
     if (playBtn) playBtn.textContent = ws.playing ? '⏸' : '▶';
+    var satLabel = document.getElementById('ff-sat-label-' + sreg);
+    if (satLabel) satLabel.textContent = ws.layerKey === 'ir' ? 'Infrared' : 'Visible';
     var dotsEl = document.getElementById('ff-wx-dots-' + sreg);
     if (dotsEl && ws.frames.length) {
       var html = '';
@@ -1009,46 +1106,63 @@
     }
   }
 
-  function _ffWxBindLayerEvents(key, layer) {
-    if (!layer) return;
-    layer.on('tileerror', function() {
-      var ws = _wxByKey[key];
-      if (!ws || !ws.enabled || ws.playing || ws.frameIdx <= 0 || ws.fallbackToken) return;
-      ws.fallbackToken = setTimeout(function() {
-        ws.fallbackToken = null;
-        if (!ws || !ws.enabled || ws.playing || ws.frameIdx <= 0) return;
-        ws.frameIdx -= 1;
-        _ffWxRenderFrame(key);
-      }, 250);
-    });
-    layer.on('load', function() {
-      var ws = _wxByKey[key];
-      if (ws && ws.fallbackToken) {
-        clearTimeout(ws.fallbackToken);
-        ws.fallbackToken = null;
-      }
-    });
-  }
-
   function _ffWxRenderFrame(key) {
     var ws = _wxByKey[key];
     if (!ws || !ws.enabled || !ws.frames.length) return;
-    var map = state.leafletMapsByKey[key];
+    var reg = key.split('|')[0];
+    var map = state.satMapsByKey[key] || _ffInitSatMap(key, reg, ws.mission || null);
     if (!map) return;
     var cfg = _GIBS_LAYERS[ws.layerKey] || _GIBS_LAYERS.geocolor;
     var url = _ffWxBuildUrl(ws.layerKey, ws.frames[ws.frameIdx]);
-    if (ws.layer) {
-      ws.layer.setUrl(url);
-    } else {
-      ws.layer = L.tileLayer(url, {
-        tileSize: 256, maxNativeZoom: cfg.maxNativeZoom || 6, maxZoom: 13,
-        opacity: 0.75, attribution: 'NOAA GOES-16 / NASA GIBS',
-        updateWhenIdle: true,
-        keepBuffer: 2
-      }).addTo(map);
-      _ffWxBindLayerEvents(key, ws.layer);
+    var nextLayer = L.tileLayer(url, {
+      tileSize: 256,
+      maxNativeZoom: cfg.maxNativeZoom || 6,
+      maxZoom: 13,
+      opacity: 0,
+      attribution: 'NOAA GOES-16 / NASA GIBS',
+      updateWhenIdle: true,
+      keepBuffer: 2
+    }).addTo(map);
+
+    if (ws.pendingLayer) {
+      try { map.removeLayer(ws.pendingLayer); } catch(e2) {}
+      ws.pendingLayer = null;
     }
-    _ffWxUpdateDisplay(key);
+    ws.pendingLayer = nextLayer;
+
+    nextLayer.on('load', function() {
+      var current = _wxByKey[key];
+      if (!current || current.pendingLayer !== nextLayer) return;
+      nextLayer.setOpacity(current.opacity == null ? 0.85 : current.opacity);
+      if (current.layer) {
+        try { map.removeLayer(current.layer); } catch(e3) {}
+      }
+      current.layer = nextLayer;
+      current.pendingLayer = null;
+      _ffWxUpdateDisplay(key);
+    });
+
+    nextLayer.on('tileerror', function() {
+      var current = _wxByKey[key];
+      if (!current || current.pendingLayer !== nextLayer) return;
+      try { map.removeLayer(nextLayer); } catch(e4) {}
+      current.pendingLayer = null;
+      if (!current.playing && current.frameIdx > 0) {
+        current.frameIdx -= 1;
+        _ffWxRenderFrame(key);
+        return;
+      }
+      _ffWxUpdateDisplay(key);
+    });
+
+    if (!ws.layer) {
+      nextLayer.setOpacity(ws.opacity == null ? 0.85 : ws.opacity);
+      ws.layer = nextLayer;
+      ws.pendingLayer = null;
+      _ffWxUpdateDisplay(key);
+    } else {
+      _ffWxUpdateDisplay(key);
+    }
   }
 
   function _ffBuildWxBar(key, sreg) {
@@ -1062,36 +1176,51 @@
         '<span class="ff-wx-time" id="ff-wx-time-' + sreg + '">--/-- --:--Z</span>' +
         '<span id="ff-wx-dots-' + sreg + '" style="margin:0 3px;"></span>' +
         '<select class="ff-wx-select" onchange="ffWxSetLayer(\'' + k + '\',this.value)">' +
-          '<option value="geocolor">GeoColor</option>' +
-          '<option value="ir">IR Band 13</option>' +
+          '<option value="geocolor">Visible</option>' +
+          '<option value="ir">Infrared</option>' +
         '</select>' +
-        '<input type="range" min="0.2" max="1" step="0.05" value="0.75" class="ff-wx-opacity" title="Opacity" oninput="ffWxSetOpacity(\'' + k + '\',this.value)">' +
+        '<input type="range" min="0.25" max="1" step="0.05" value="0.85" class="ff-wx-opacity" title="Opacity" oninput="ffWxSetOpacity(\'' + k + '\',this.value)">' +
       '</span>' +
     '</div>';
   }
 
   window.ffToggleWx = function(key) {
     if (!_wxByKey[key]) {
-      _wxByKey[key] = { enabled: false, frames: [], frameIdx: 0, playing: false, timer: null, layer: null, layerKey: 'geocolor' };
+      _wxByKey[key] = { enabled: false, frames: [], frameIdx: 0, playing: false, timer: null, layer: null, pendingLayer: null, layerKey: 'geocolor', opacity: 0.85, mission: null };
     }
     var ws = _wxByKey[key];
     ws.enabled = !ws.enabled;
     var sreg     = safeId(key.split('|')[0]);
     var btn      = document.getElementById('ff-wx-toggle-'   + sreg);
     var controls = document.getElementById('ff-wx-controls-' + sreg);
+    var satWrap  = document.getElementById('ff-sat-wrap-' + sreg);
+    var satEmpty = document.getElementById('ff-sat-empty-' + sreg);
     if (ws.enabled) {
       ws.frames   = _ffWxBuildTimes(8, 10);
       ws.frameIdx = ws.frames.length - 1;
+      ws.mission  = (state.missionsByReg[key.split('|')[0]] || []).find(function(m) { return m.missionId === key.split('|')[1]; }) || null;
       if (btn)      { btn.classList.add('active'); btn.innerHTML = 'SAT &#9729; ON'; }
       if (controls) controls.style.display = '';
-      _ffEnsureLeaflet(function() { _ffWxRenderFrame(key); });
+      if (satWrap) satWrap.classList.add('active');
+      if (satEmpty) satEmpty.style.display = 'none';
+      _ffEnsureLeaflet(function() {
+        _ffInitSatMap(key, key.split('|')[0], ws.mission || null);
+        var satMap = state.satMapsByKey[key];
+        if (satMap) setTimeout(function(){ satMap.invalidateSize(); }, 60);
+        _ffWxRenderFrame(key);
+      });
     } else {
       if (ws.timer) { clearInterval(ws.timer); ws.timer = null; }
       ws.playing = false;
-      var map = state.leafletMapsByKey[key];
-      if (map && ws.layer) { try { map.removeLayer(ws.layer); } catch(e2) {} ws.layer = null; }
+      var map = state.satMapsByKey[key];
+      if (map && ws.layer) { try { map.removeLayer(ws.layer); } catch(e2) {} }
+      if (map && ws.pendingLayer) { try { map.removeLayer(ws.pendingLayer); } catch(e3) {} }
+      ws.layer = null;
+      ws.pendingLayer = null;
       if (btn)      { btn.classList.remove('active'); btn.innerHTML = 'SAT &#9729;'; }
       if (controls) controls.style.display = 'none';
+      if (satWrap) satWrap.classList.remove('active');
+      if (satEmpty) satEmpty.style.display = '';
     }
   };
 
@@ -1122,17 +1251,19 @@
     var ws = _wxByKey[key];
     if (!ws) return;
     ws.layerKey = layerKey;
-    if (ws.enabled && ws.layer) {
-      var map = state.leafletMapsByKey[key];
-      if (map) { try { map.removeLayer(ws.layer); } catch(e2) {} }
-      ws.layer = null;
+    if (ws.enabled) {
       _ffWxRenderFrame(key);
+    } else {
+      _ffWxUpdateDisplay(key);
     }
   };
 
   window.ffWxSetOpacity = function(key, val) {
     var ws = _wxByKey[key];
-    if (ws && ws.layer) ws.layer.setOpacity(Number(val));
+    if (!ws) return;
+    ws.opacity = Number(val);
+    if (ws.layer) ws.layer.setOpacity(ws.opacity);
+    if (ws.pendingLayer) ws.pendingLayer.setOpacity(0);
   };
 
 })();
