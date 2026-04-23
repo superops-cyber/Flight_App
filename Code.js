@@ -6550,8 +6550,8 @@ function getFlightFollowMissionsForAcft(reg) {
   var data = sheet.getDataRange().getValues();
   if (data.length < 2) return [];
 
-  // Build airport fuel lookup map (icao → hasFuel boolean)
-  var airportFuelMap = {};
+  // Build airport lookup map (icao → fuel + coordinates)
+  var airportMetaMap = {};
   try {
     var airSheet = ss.getSheetByName(APP_SHEETS.AIRPORTS);
     if (airSheet) {
@@ -6560,12 +6560,20 @@ function getFlightFollowMissionsForAcft(reg) {
         var airH = airData[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
         var icaoIdx = airH.indexOf('ICAO');
         var fuelIdx = airH.indexOf('FUEL_AVAILABLE');
-        if (icaoIdx >= 0 && fuelIdx >= 0) {
+        var latIdx = airH.indexOf('LATITUDE');
+        var lonIdx = airH.indexOf('LONGITUDE');
+        if (icaoIdx >= 0) {
           for (var ai = 1; ai < airData.length; ai++) {
             var aIcao = String(airData[ai][icaoIdx] || '').trim().toUpperCase();
-            var aFuel = String(airData[ai][fuelIdx] || '').trim().toUpperCase();
+            var aFuel = fuelIdx >= 0 ? String(airData[ai][fuelIdx] || '').trim().toUpperCase() : '';
+            var aLat = latIdx >= 0 ? Number(airData[ai][latIdx]) : NaN;
+            var aLon = lonIdx >= 0 ? Number(airData[ai][lonIdx]) : NaN;
             if (aIcao) {
-              airportFuelMap[aIcao] = !!(aFuel && aFuel !== 'NONE' && aFuel !== 'N' && aFuel !== 'NO' && aFuel !== '0');
+              airportMetaMap[aIcao] = {
+                hasFuel: !!(aFuel && aFuel !== 'NONE' && aFuel !== 'N' && aFuel !== 'NO' && aFuel !== '0'),
+                lat: isFinite(aLat) ? aLat : null,
+                lon: isFinite(aLon) ? aLon : null
+              };
             }
           }
         }
@@ -6639,12 +6647,21 @@ function getFlightFollowMissionsForAcft(reg) {
     if (!waypoints.length || waypoints[0].fix !== from) waypoints.unshift({ fix: from, distNm: 0 });
     if (waypoints[waypoints.length - 1].fix !== to)    waypoints.push({ fix: to, distNm: 0 });
 
-    // Annotate each waypoint with fuel availability from airports DB
+    // Annotate each waypoint with airport metadata when available.
     waypoints = waypoints.map(function(w) {
-      var hasFuel = Object.prototype.hasOwnProperty.call(airportFuelMap, w.fix)
-        ? airportFuelMap[w.fix] : null; // null = unknown (not an airport in DB)
-      return { fix: w.fix, distNm: w.distNm, hasFuel: hasFuel };
+      var airportMeta = Object.prototype.hasOwnProperty.call(airportMetaMap, w.fix)
+        ? airportMetaMap[w.fix] : null;
+      return {
+        fix: w.fix,
+        distNm: w.distNm,
+        hasFuel: airportMeta ? airportMeta.hasFuel : null,
+        lat: airportMeta ? airportMeta.lat : null,
+        lon: airportMeta ? airportMeta.lon : null
+      };
     });
+
+    var fromMeta = Object.prototype.hasOwnProperty.call(airportMetaMap, from) ? airportMetaMap[from] : null;
+    var toMeta   = Object.prototype.hasOwnProperty.call(airportMetaMap, to) ? airportMetaMap[to] : null;
 
     // Planned fuel
     var fuel = Number(leg.fuel || leg.plannedFuel || raw.fuel || 0);
@@ -6667,6 +6684,9 @@ function getFlightFollowMissionsForAcft(reg) {
         noPlan:      noPlan,
         fuelL:       fuel,
         waypoints:   waypoints,
+        resolvedWaypoints: waypoints.filter(function(w) { return isFinite(w.lat) && isFinite(w.lon); }),
+        fromCoord:   fromMeta && isFinite(fromMeta.lat) && isFinite(fromMeta.lon) ? { lat: fromMeta.lat, lon: fromMeta.lon } : null,
+        toCoord:     toMeta && isFinite(toMeta.lat) && isFinite(toMeta.lon) ? { lat: toMeta.lat, lon: toMeta.lon } : null,
         status:      String(row[DISPATCH_COL.STATUS] || '').trim()
       };
     }

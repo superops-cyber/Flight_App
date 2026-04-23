@@ -547,6 +547,17 @@
           return;
         }
       }
+      var fromCoord = mission && mission.fromCoord && isFinite(mission.fromCoord.lat) && isFinite(mission.fromCoord.lon)
+        ? [mission.fromCoord.lat, mission.fromCoord.lon] : null;
+      var toCoord = mission && mission.toCoord && isFinite(mission.toCoord.lat) && isFinite(mission.toCoord.lon)
+        ? [mission.toCoord.lat, mission.toCoord.lon] : null;
+      if (fromCoord && toCoord) {
+        L.polyline([fromCoord, toCoord], { color: '#1565c0', weight: 2, opacity: 0.7, dashArray: '8 6' }).addTo(map);
+        L.circleMarker(fromCoord, { radius: 4, color: '#0d47a1', fillColor: '#42a5f5', fillOpacity: 0.95, weight: 2 }).addTo(map);
+        L.circleMarker(toCoord, { radius: 4, color: '#0d47a1', fillColor: '#42a5f5', fillOpacity: 0.95, weight: 2 }).addTo(map);
+        map.fitBounds(L.latLngBounds([fromCoord, toCoord]), { padding: [20, 20] });
+        return;
+      }
       map.setView([-3.5, -60.0], 5); // Default: central Brazil
     });
   }
@@ -953,7 +964,7 @@
     }
   };
 
-  var _wxByKey = {};  // key → { enabled, frames, frameIdx, playing, timer, layer, layerKey }
+  var _wxByKey = {};  // key → { enabled, frames, frameIdx, playing, timer, layer, layerKey, fallbackToken }
 
   function _ffWxBuildUrl(layerKey, time) {
     var cfg = _GIBS_LAYERS[layerKey] || _GIBS_LAYERS.geocolor;
@@ -963,8 +974,8 @@
   function _ffWxBuildTimes(numFrames, intervalMin) {
     var times = [];
     var interval = intervalMin * 60000;
-    // Subtract 20-min publication delay, round down to nearest interval boundary
-    var latest = Math.floor((Date.now() - 20 * 60000) / interval) * interval;
+    // Use a conservative lag so selected GOES frames are actually published.
+    var latest = Math.floor((Date.now() - 90 * 60000) / interval) * interval;
     for (var i = numFrames - 1; i >= 0; i--) {
       var d = new Date(latest - i * interval);
       times.push(d.toISOString().replace(/\.\d{3}Z$/, 'Z'));
@@ -998,6 +1009,27 @@
     }
   }
 
+  function _ffWxBindLayerEvents(key, layer) {
+    if (!layer) return;
+    layer.on('tileerror', function() {
+      var ws = _wxByKey[key];
+      if (!ws || !ws.enabled || ws.playing || ws.frameIdx <= 0 || ws.fallbackToken) return;
+      ws.fallbackToken = setTimeout(function() {
+        ws.fallbackToken = null;
+        if (!ws || !ws.enabled || ws.playing || ws.frameIdx <= 0) return;
+        ws.frameIdx -= 1;
+        _ffWxRenderFrame(key);
+      }, 250);
+    });
+    layer.on('load', function() {
+      var ws = _wxByKey[key];
+      if (ws && ws.fallbackToken) {
+        clearTimeout(ws.fallbackToken);
+        ws.fallbackToken = null;
+      }
+    });
+  }
+
   function _ffWxRenderFrame(key) {
     var ws = _wxByKey[key];
     if (!ws || !ws.enabled || !ws.frames.length) return;
@@ -1010,8 +1042,11 @@
     } else {
       ws.layer = L.tileLayer(url, {
         tileSize: 256, maxNativeZoom: cfg.maxNativeZoom || 6, maxZoom: 13,
-        opacity: 0.75, attribution: 'NOAA GOES-16 / NASA GIBS'
+        opacity: 0.75, attribution: 'NOAA GOES-16 / NASA GIBS',
+        updateWhenIdle: true,
+        keepBuffer: 2
       }).addTo(map);
+      _ffWxBindLayerEvents(key, ws.layer);
     }
     _ffWxUpdateDisplay(key);
   }
@@ -1045,7 +1080,7 @@
     var btn      = document.getElementById('ff-wx-toggle-'   + sreg);
     var controls = document.getElementById('ff-wx-controls-' + sreg);
     if (ws.enabled) {
-      ws.frames   = _ffWxBuildTimes(12, 10);
+      ws.frames   = _ffWxBuildTimes(8, 10);
       ws.frameIdx = ws.frames.length - 1;
       if (btn)      { btn.classList.add('active'); btn.innerHTML = 'SAT &#9729; ON'; }
       if (controls) controls.style.display = '';
@@ -1076,7 +1111,7 @@
       ws.timer = setInterval(function() {
         ws.frameIdx = (ws.frameIdx + 1) % ws.frames.length;
         _ffWxRenderFrame(key);
-      }, 700);
+      }, 1800);
     } else {
       if (ws.timer) { clearInterval(ws.timer); ws.timer = null; }
     }
