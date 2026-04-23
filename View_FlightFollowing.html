@@ -264,7 +264,8 @@
     font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
   }
   .ff-sat-empty {
     height: 220px;
@@ -948,7 +949,7 @@
               '</div>' +
             '</div>' +
             '<div class="ff-sat-wrap" id="ff-sat-wrap-' + sreg + '">' +
-              '<div class="ff-sat-label" id="ff-sat-label-' + sreg + '">Visible</div>' +
+              '<div class="ff-sat-label" id="ff-sat-label-' + sreg + '" onclick="ffWxCycleLayer(\'' + key + '\')" title="Click to switch Visible / Infrared">Visible</div>' +
               '<div class="ff-sat-map" id="ff-sat-map-' + sreg + '"></div>' +
               '<div class="ff-sat-empty" id="ff-sat-empty-' + sreg + '">Satellite weather frames load here.<br>Use Visible / Infrared and Play when needed.</div>' +
             '</div>' +
@@ -1069,8 +1070,8 @@
   function _ffWxBuildTimes(numFrames, intervalMin) {
     var times = [];
     var interval = intervalMin * 60000;
-    // Use a conservative lag so selected GOES frames are actually published.
-    var latest = Math.floor((Date.now() - 90 * 60000) / interval) * interval;
+    // Keep frames fresh while leaving enough ingest time for GIBS publishing.
+    var latest = Math.floor((Date.now() - 30 * 60000) / interval) * interval;
     for (var i = numFrames - 1; i >= 0; i--) {
       var d = new Date(latest - i * interval);
       times.push(d.toISOString().replace(/\.\d{3}Z$/, 'Z'));
@@ -1095,6 +1096,8 @@
     if (playBtn) playBtn.textContent = ws.playing ? '⏸' : '▶';
     var satLabel = document.getElementById('ff-sat-label-' + sreg);
     if (satLabel) satLabel.textContent = ws.layerKey === 'ir' ? 'Infrared' : 'Visible';
+    var modeSel = document.querySelector('#ff-wx-controls-' + sreg + ' .ff-wx-select');
+    if (modeSel) modeSel.value = ws.layerKey;
     var dotsEl = document.getElementById('ff-wx-dots-' + sreg);
     if (dotsEl && ws.frames.length) {
       var html = '';
@@ -1256,6 +1259,12 @@
     } else {
       _ffWxUpdateDisplay(key);
     }
+  };
+
+  window.ffWxCycleLayer = function(key) {
+    var ws = _wxByKey[key];
+    if (!ws) return;
+    window.ffWxSetLayer(key, ws.layerKey === 'ir' ? 'geocolor' : 'ir');
   };
 
   window.ffWxSetOpacity = function(key, val) {
