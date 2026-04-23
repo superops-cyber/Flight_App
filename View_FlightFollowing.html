@@ -349,6 +349,71 @@
   @media (max-width: 1200px) {
     .ff-cards-grid { grid-template-columns: 1fr; }
   }
+
+  /* ── NOAA GOES-16 WX Overlay controls ─────────────────────────────────── */
+  .ff-wx-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: #1a2332;
+    border-bottom: 1px solid #253040;
+    flex-wrap: wrap;
+    min-height: 30px;
+  }
+  .ff-wx-toggle {
+    background: #253040;
+    color: #90a4ae;
+    border: 1px solid #37474f;
+    border-radius: 3px;
+    padding: 2px 9px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .ff-wx-toggle.active {
+    background: #0d47a1;
+    color: #bbdefb;
+    border-color: #1565c0;
+  }
+  .ff-wx-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .ff-wx-btn {
+    background: #253040;
+    color: #cfd8dc;
+    border: 1px solid #37474f;
+    border-radius: 3px;
+    padding: 1px 7px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    min-width: 24px;
+  }
+  .ff-wx-btn:hover { background: #37474f; }
+  .ff-wx-time {
+    font-family: monospace;
+    font-size: 0.72rem;
+    color: #b0bec5;
+    min-width: 110px;
+  }
+  .ff-wx-select {
+    background: #253040;
+    color: #cfd8dc;
+    border: 1px solid #37474f;
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 0.7rem;
+  }
+  .ff-wx-opacity {
+    width: 60px;
+    cursor: pointer;
+    accent-color: #42a5f5;
+  }
 </style>
 
 <div id="ff-container">
@@ -772,6 +837,7 @@
             '<button class="ff-map-toggle-btn" id="ff-maptab-both-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'both\')">Both</button>' +
             '<input class="ff-map-inreach-url" id="ff-inreach-url-' + sreg + '" type="url" placeholder="share.garmin.com/DeviceID" onblur="ffSetInreachUrl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\')ffSetInreachUrl(\''+key+'\',this.value)">' +
           '</div>' +
+          _ffBuildWxBar(key, sreg) +
           '<div class="ff-live-map-wrap" id="ff-live-wrap-' + sreg + '">' +
             '<div class="ff-leaflet-map" id="ff-live-map-' + sreg + '"></div>' +
           '</div>' +
@@ -872,5 +938,164 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
+
+  // ── NOAA GOES-16 Satellite WX Overlay (NASA GIBS WMTS) ────────────────────
+  var _GIBS_LAYERS = {
+    geocolor: {
+      label: 'GeoColor',
+      url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES_East_GeoColor/default/{time}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.jpg'
+    },
+    ir: {
+      label: 'IR Band 13',
+      url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES_East_ABI_Band13_Clean_IR_Longwave_Window_2km/default/{time}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.jpg'
+    }
+  };
+
+  var _wxByKey = {};  // key → { enabled, frames, frameIdx, playing, timer, layer, layerKey }
+
+  function _ffWxBuildUrl(layerKey, time) {
+    var cfg = _GIBS_LAYERS[layerKey] || _GIBS_LAYERS.geocolor;
+    return cfg.url.replace('{time}', time);
+  }
+
+  function _ffWxBuildTimes(numFrames, intervalMin) {
+    var times = [];
+    var interval = intervalMin * 60000;
+    // Subtract 20-min publication delay, round down to nearest interval boundary
+    var latest = Math.floor((Date.now() - 20 * 60000) / interval) * interval;
+    for (var i = numFrames - 1; i >= 0; i--) {
+      var d = new Date(latest - i * interval);
+      times.push(d.toISOString().replace(/\.\d{3}Z$/, 'Z'));
+    }
+    return times;
+  }
+
+  function _ffWxUpdateDisplay(key) {
+    var ws = _wxByKey[key];
+    if (!ws) return;
+    var sreg = safeId(key.split('|')[0]);
+    var timeEl = document.getElementById('ff-wx-time-' + sreg);
+    if (timeEl && ws.frames.length) {
+      var d   = new Date(ws.frames[ws.frameIdx]);
+      var mon = String(d.getUTCMonth() + 1).padStart(2, '0');
+      var day = String(d.getUTCDate()).padStart(2, '0');
+      var hh  = String(d.getUTCHours()).padStart(2, '0');
+      var mn  = String(d.getUTCMinutes()).padStart(2, '0');
+      timeEl.textContent = mon + '/' + day + ' ' + hh + ':' + mn + 'Z';
+    }
+    var playBtn = document.getElementById('ff-wx-play-' + sreg);
+    if (playBtn) playBtn.textContent = ws.playing ? '⏸' : '▶';
+    var dotsEl = document.getElementById('ff-wx-dots-' + sreg);
+    if (dotsEl && ws.frames.length) {
+      var html = '';
+      for (var i = 0; i < ws.frames.length; i++) {
+        html += '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;' +
+          'margin:0 1px;background:' + (i === ws.frameIdx ? '#42a5f5' : '#37474f') + '"></span>';
+      }
+      dotsEl.innerHTML = html;
+    }
+  }
+
+  function _ffWxRenderFrame(key) {
+    var ws = _wxByKey[key];
+    if (!ws || !ws.enabled || !ws.frames.length) return;
+    var map = state.leafletMapsByKey[key];
+    if (!map) return;
+    var url = _ffWxBuildUrl(ws.layerKey, ws.frames[ws.frameIdx]);
+    if (ws.layer) {
+      ws.layer.setUrl(url);
+    } else {
+      ws.layer = L.tileLayer(url, {
+        tileSize: 256, maxNativeZoom: 6, maxZoom: 13,
+        opacity: 0.75, attribution: 'NOAA GOES-16 / NASA GIBS'
+      }).addTo(map);
+    }
+    _ffWxUpdateDisplay(key);
+  }
+
+  function _ffBuildWxBar(key, sreg) {
+    var k = esc(key);
+    return '<div class="ff-wx-bar">' +
+      '<button class="ff-wx-toggle" id="ff-wx-toggle-' + sreg + '" onclick="ffToggleWx(\'' + k + '\')">SAT &#9729;</button>' +
+      '<span class="ff-wx-controls" id="ff-wx-controls-' + sreg + '" style="display:none;">' +
+        '<button class="ff-wx-btn" id="ff-wx-play-' + sreg + '" onclick="ffWxPlayPause(\'' + k + '\')">&#9654;</button>' +
+        '<button class="ff-wx-btn" onclick="ffWxStep(\'' + k + '\',-1)">&#9664;</button>' +
+        '<button class="ff-wx-btn" onclick="ffWxStep(\'' + k + '\',1)">&#9654;&#9654;</button>' +
+        '<span class="ff-wx-time" id="ff-wx-time-' + sreg + '">--/-- --:--Z</span>' +
+        '<span id="ff-wx-dots-' + sreg + '" style="margin:0 3px;"></span>' +
+        '<select class="ff-wx-select" onchange="ffWxSetLayer(\'' + k + '\',this.value)">' +
+          '<option value="geocolor">GeoColor</option>' +
+          '<option value="ir">IR Band 13</option>' +
+        '</select>' +
+        '<input type="range" min="0.2" max="1" step="0.05" value="0.75" class="ff-wx-opacity" title="Opacity" oninput="ffWxSetOpacity(\'' + k + '\',this.value)">' +
+      '</span>' +
+    '</div>';
+  }
+
+  window.ffToggleWx = function(key) {
+    if (!_wxByKey[key]) {
+      _wxByKey[key] = { enabled: false, frames: [], frameIdx: 0, playing: false, timer: null, layer: null, layerKey: 'geocolor' };
+    }
+    var ws = _wxByKey[key];
+    ws.enabled = !ws.enabled;
+    var sreg     = safeId(key.split('|')[0]);
+    var btn      = document.getElementById('ff-wx-toggle-'   + sreg);
+    var controls = document.getElementById('ff-wx-controls-' + sreg);
+    if (ws.enabled) {
+      ws.frames   = _ffWxBuildTimes(12, 10);
+      ws.frameIdx = ws.frames.length - 1;
+      if (btn)      { btn.classList.add('active'); btn.innerHTML = 'SAT &#9729; ON'; }
+      if (controls) controls.style.display = '';
+      _ffEnsureLeaflet(function() { _ffWxRenderFrame(key); });
+    } else {
+      if (ws.timer) { clearInterval(ws.timer); ws.timer = null; }
+      ws.playing = false;
+      var map = state.leafletMapsByKey[key];
+      if (map && ws.layer) { try { map.removeLayer(ws.layer); } catch(e2) {} ws.layer = null; }
+      if (btn)      { btn.classList.remove('active'); btn.innerHTML = 'SAT &#9729;'; }
+      if (controls) controls.style.display = 'none';
+    }
+  };
+
+  window.ffWxStep = function(key, dir) {
+    var ws = _wxByKey[key];
+    if (!ws || !ws.enabled || !ws.frames.length) return;
+    if (ws.playing) { window.ffWxPlayPause(key); }
+    ws.frameIdx = (ws.frameIdx + dir + ws.frames.length) % ws.frames.length;
+    _ffWxRenderFrame(key);
+  };
+
+  window.ffWxPlayPause = function(key) {
+    var ws = _wxByKey[key];
+    if (!ws || !ws.enabled) return;
+    ws.playing = !ws.playing;
+    if (ws.playing) {
+      ws.timer = setInterval(function() {
+        ws.frameIdx = (ws.frameIdx + 1) % ws.frames.length;
+        _ffWxRenderFrame(key);
+      }, 700);
+    } else {
+      if (ws.timer) { clearInterval(ws.timer); ws.timer = null; }
+    }
+    _ffWxUpdateDisplay(key);
+  };
+
+  window.ffWxSetLayer = function(key, layerKey) {
+    var ws = _wxByKey[key];
+    if (!ws) return;
+    ws.layerKey = layerKey;
+    if (ws.enabled && ws.layer) {
+      var map = state.leafletMapsByKey[key];
+      if (map) { try { map.removeLayer(ws.layer); } catch(e2) {} }
+      ws.layer = null;
+      _ffWxRenderFrame(key);
+    }
+  };
+
+  window.ffWxSetOpacity = function(key, val) {
+    var ws = _wxByKey[key];
+    if (ws && ws.layer) ws.layer.setOpacity(Number(val));
+  };
+
 })();
 </script>
