@@ -17,3 +17,5 @@ credentials.json
 token.json
 package.json
 package-lock.json
+_check_scripts.js
+_find_line.js
