@@ -19,3 +19,4 @@ package.json
 package-lock.json
 _check_scripts.js
 _find_line.js
+_map_unicode_tab3.js
