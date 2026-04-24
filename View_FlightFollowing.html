@@ -53,8 +53,155 @@
 
   .ff-body {
     flex: 1;
+    overflow: hidden;
+    padding: 12px;
+  }
+
+  .ff-layout {
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.6fr);
+    gap: 12px;
+  }
+
+  .ff-list-pane,
+  .ff-detail-pane {
+    background: #fff;
+    border: 1px solid #d8e2ea;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .ff-pane-head {
+    background: #eceff1;
+    border-bottom: 1px solid #cfd8dc;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #0b5394;
+    letter-spacing: 0.04em;
+  }
+
+  .ff-list-scroll {
+    flex: 1;
     overflow-y: auto;
-    padding: 16px;
+  }
+
+  .ff-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .ff-list-table th,
+  .ff-list-table td {
+    border-bottom: 1px solid #edf2f6;
+    padding: 8px 10px;
+    text-align: left;
+  }
+
+  .ff-list-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f6f9fc;
+    color: #607d8b;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .ff-list-row {
+    cursor: pointer;
+  }
+
+  .ff-list-row:hover {
+    background: #f1f7ff;
+  }
+
+  .ff-list-row.active {
+    background: #e3f2fd;
+    box-shadow: inset 3px 0 0 #1976d2;
+  }
+
+  .ff-detail-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    background: #f7fafc;
+  }
+
+  .ff-focus-card {
+    background: #fff;
+    border: 1px solid #d8e2ea;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(12, 43, 58, 0.08);
+    padding: 12px;
+    min-height: 50vh;
+  }
+
+  .ff-focus-title {
+    margin: 0 0 10px 0;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #0b5394;
+    text-transform: uppercase;
+  }
+
+  .ff-focus-grid-top,
+  .ff-focus-grid-mid {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .ff-focus-grid-top {
+    grid-template-columns: repeat(6, minmax(120px, 1fr));
+  }
+
+  .ff-focus-grid-mid {
+    grid-template-columns: repeat(6, minmax(120px, 1fr));
+  }
+
+  .ff-field {
+    border: 1px solid #d7e0e8;
+    border-radius: 7px;
+    background: #fff;
+    padding: 7px 8px;
+  }
+
+  .ff-field-label {
+    font-size: 0.66rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #607d8b;
+    margin-bottom: 4px;
+    letter-spacing: 0.03em;
+  }
+
+  .ff-field-value {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #1f2d38;
+    min-height: 18px;
+  }
+
+  .ff-field-input {
+    width: 100%;
+    border: 1px solid #cfd8dc;
+    border-radius: 4px;
+    padding: 5px 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .ff-field-input:focus {
+    outline: 2px solid #90caf9;
+    border-color: #64b5f6;
   }
 
   .ff-cards-grid {
@@ -397,9 +544,15 @@
 
   @media (max-width: 1200px) {
     .ff-cards-grid { grid-template-columns: 1fr; }
+    .ff-focus-grid-top,
+    .ff-focus-grid-mid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
   }
 
   @media (max-width: 980px) {
+    .ff-layout { grid-template-columns: 1fr; }
+    .ff-list-pane { max-height: 40vh; }
+    .ff-focus-grid-top,
+    .ff-focus-grid-mid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
     .ff-map-content-grid { grid-template-columns: 1fr; }
     .ff-map-primary-col { border-right: none; border-bottom: 1px solid #b3c5d4; }
   }
@@ -473,16 +626,22 @@
 <div id="ff-container">
   <div class="ff-toolbar">
     <label class="ff-toolbar-label">FLIGHT FOLLOW</label>
-    <select class="ff-selector" id="ff-flight-selector" onchange="ffSelectFlight()">
-      <option value="">Select flight to follow...</option>
-    </select>
-    <button class="ff-btn-primary" onclick="ffLoadFlights()">LOAD FLIGHTS</button>
-    <button class="ff-btn-primary" onclick="ffToggleAllFlights()">CLEAR ALL</button>
+    <button class="ff-btn-primary" onclick="ffLoadFlights()">ATUALIZAR LISTA</button>
+    <button class="ff-btn-primary" onclick="ffToggleAllFlights()">LIMPAR SELECAO</button>
   </div>
 
   <div class="ff-body">
-    <div class="ff-cards-grid" id="ff-cards-grid">
-      <div class="ff-empty-state">No flights loaded. Select a flight or click LOAD FLIGHTS.</div>
+    <div class="ff-layout">
+      <section class="ff-list-pane">
+        <div class="ff-pane-head">Voos do dia</div>
+        <div class="ff-list-scroll" id="ff-flight-list"></div>
+      </section>
+      <section class="ff-detail-pane">
+        <div class="ff-pane-head">Flight Following</div>
+        <div class="ff-detail-scroll" id="ff-detail-host">
+          <div class="ff-empty-state">Selecione um voo na lista para abrir o painel de acompanhamento.</div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -493,6 +652,7 @@
     aircraft: [],
     missionsByReg: {},
     activeFlights: new Set(),
+    selectedFlightKey: '',
     messagesByReg: {},
     checksByReg: {},
     livePositions: {},      // reg -> { lat, lng, bearing, gsKts, updatedAtMs }
@@ -730,76 +890,166 @@
     if (!url) { /* leave fallback text */ return; }
     var existing = wrap.querySelector('iframe');
     if (existing && existing.src === url) return; // already loaded
-    wrap.innerHTML = '<iframe class="ff-inreach-iframe" src="' + url.replace(/"/g,'&quot;') + '" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms"></iframe>';
+    wrap.innerHTML = '<iframe class="ff-inreach-iframe" src="' + url.replace(/"/g,'&quot;') + '" allowfullscreen sandbox="allow-scripts allow-forms"></iframe>';
   }
 
   function loadAircraftAndMissions() {
     google.script.run
       .withSuccessHandler(function(data) {
         state.aircraft = Array.isArray(data && data.aircraft) ? data.aircraft : [];
-        populateSelector();
-        renderGrid();
+        renderFlightList();
+        renderSelectedFlight();
 
         state.aircraft.forEach(function(acft) {
           google.script.run
             .withSuccessHandler(function(missions) {
               state.missionsByReg[acft.reg] = Array.isArray(missions) ? missions : [];
-              populateSelector();
+              renderFlightList();
             })
             .withFailureHandler(function() {
               state.missionsByReg[acft.reg] = [];
-              populateSelector();
+              renderFlightList();
             })
             .getFlightFollowMissionsForAcft(acft.reg);
         });
       })
       .withFailureHandler(function(err) {
-        renderEmpty('Failed to load flights: ' + esc(String((err && err.message) || err || 'unknown error')));
+        renderEmpty('Falha ao carregar voos: ' + esc(String((err && err.message) || err || 'erro desconhecido')));
       })
       .getFlightFollowInit();
   }
 
-  function populateSelector() {
-    var sel = document.getElementById('ff-flight-selector');
-    if (!sel) return;
+  function renderFlightList() {
+    var host = document.getElementById('ff-flight-list');
+    if (!host) return;
 
-    var options = ['<option value="">Select flight to follow...</option>'];
+    var rows = [];
     state.aircraft.forEach(function(acft) {
       var missions = state.missionsByReg[acft.reg] || [];
       missions.forEach(function(mission) {
-        var key = flightKey(acft.reg, mission.missionId);
-        var label = acft.reg + ' | ' + mission.missionId + ' | ' + mission.from + '-' + mission.to + ' | PIC: ' + (mission.pilot || '');
-        options.push('<option value="' + esc(key) + '">' + esc(label) + '</option>');
+        rows.push({
+          key: flightKey(acft.reg, mission.missionId),
+          reg: acft.reg,
+          missionId: mission.missionId,
+          route: (mission.from || '--') + ' - ' + (mission.to || '--'),
+          pilot: mission.pilot || '--',
+          date: mission.date || '--'
+        });
       });
     });
-    sel.innerHTML = options.join('');
+
+    if (!rows.length) {
+      host.innerHTML = '<div class="ff-empty-state" style="padding:26px 10px;">Nenhum voo encontrado para hoje.</div>';
+      return;
+    }
+
+    host.innerHTML = '<table class="ff-list-table"><thead><tr><th>Aeronave</th><th>Missao</th><th>Rota</th><th>PIC</th></tr></thead><tbody>' +
+      rows.map(function(r) {
+        var isActive = r.key === state.selectedFlightKey;
+        return '<tr class="ff-list-row' + (isActive ? ' active' : '') + '" onclick="ffOpenFlight(\'' + esc(r.key) + '\')">' +
+          '<td>' + esc(r.reg) + '</td>' +
+          '<td>' + esc(r.missionId) + '</td>' +
+          '<td>' + esc(r.route) + '</td>' +
+          '<td>' + esc(r.pilot) + '</td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table>';
   }
 
-  window.ffSelectFlight = function() {
-    var sel = document.getElementById('ff-flight-selector');
-    if (!sel || !sel.value) return;
-    state.activeFlights.add(sel.value);
-    renderGrid();
-    var parts = sel.value.split('|');
-    if (parts[0]) loadMessages(parts[0]);
-    sel.value = '';
+  window.ffOpenFlight = function(key) {
+    state.selectedFlightKey = String(key || '');
+    state.activeFlights = new Set();
+    if (state.selectedFlightKey) state.activeFlights.add(state.selectedFlightKey);
+    renderFlightList();
+    renderSelectedFlight();
+    var reg = state.selectedFlightKey.split('|')[0] || '';
+    if (reg) loadMessages(reg);
+    _ffPollLivePositions();
   };
 
   window.ffLoadFlights = function() {
-    state.activeFlights = new Set();
-    state.aircraft.forEach(function(acft) {
-      (state.missionsByReg[acft.reg] || []).forEach(function(mission) {
-        state.activeFlights.add(flightKey(acft.reg, mission.missionId));
-        loadMessages(acft.reg);
-      });
-    });
-    renderGrid();
+    loadAircraftAndMissions();
   };
 
   window.ffToggleAllFlights = function() {
     state.activeFlights = new Set();
-    renderGrid();
+    state.selectedFlightKey = '';
+    renderFlightList();
+    renderSelectedFlight();
   };
+
+  function renderSelectedFlight() {
+    var host = document.getElementById('ff-detail-host');
+    if (!host) return;
+    if (!state.selectedFlightKey) {
+      host.innerHTML = '<div class="ff-empty-state">Selecione um voo na lista para abrir o painel de acompanhamento.</div>';
+      return;
+    }
+
+    var parts = state.selectedFlightKey.split('|');
+    var reg = parts[0] || '';
+    var missionId = parts[1] || '';
+    var acft = state.aircraft.find(function(a) { return a.reg === reg; }) || { reg: reg, type: '' };
+    var mission = (state.missionsByReg[reg] || []).find(function(m) { return m.missionId === missionId; }) || null;
+    if (!mission) {
+      host.innerHTML = '<div class="ff-empty-state">Dados do voo ainda carregando. Tente novamente em alguns segundos.</div>';
+      return;
+    }
+    host.innerHTML = buildFocusCard(acft, mission);
+  }
+
+  function ffFormatDuration_(hours) {
+    var h = Number(hours);
+    if (!isFinite(h) || h <= 0) return '--:--';
+    var totalMin = Math.round(h * 60);
+    var hh = Math.floor(totalMin / 60);
+    var mm = totalMin % 60;
+    return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  }
+
+  function buildFocusCard(acft, mission) {
+    var reg = String(acft && acft.reg || '').trim();
+    var burnLph = Number(acft && (acft.burnLph || acft.burn) || 0);
+    var fuelL = Number(mission && mission.fuelL || 0);
+    var range = (burnLph > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burnLph) : '--:--';
+    var plannedTime = String(mission && mission.takeoffUTC || '').trim();
+    var dateText = String(mission && mission.date || '--').trim();
+    var planCode = mission && mission.noPlan ? 'NO PLAN' : String(mission && mission.planId || '--').trim();
+    var roleText = String(mission && mission.copilot || '').trim() || 'Sem co-piloto/aluno';
+    var pob = 1 + (Array.isArray(mission && mission.pax) ? mission.pax.length : 0);
+    return '<div class="ff-focus-card">' +
+      '<h3 class="ff-focus-title">' + esc(reg) + ' | Missao ' + esc(String(mission.missionId || '--')) + ' | ' + esc((mission.from || '--') + ' - ' + (mission.to || '--')) + '</h3>' +
+      '<div class="ff-focus-grid-top">' +
+        ffFieldReadonly_('Piloto', mission.pilot || '--') +
+        ffFieldInput_('Flight Follower', 'Nome do acompanhante') +
+        ffFieldReadonly_('Data', dateText) +
+        ffFieldReadonly_('PLVO Codigo', planCode) +
+        ffFieldReadonly_('PLVO Horario', plannedTime ? plannedTime + 'Z' : '--') +
+        ffFieldInput_('Horario de Decolagem', '00:00') +
+      '</div>' +
+      '<div class="ff-focus-grid-mid">' +
+        ffFieldReadonly_('Callsign', reg || '--') +
+        ffFieldReadonly_('Co-piloto / Aluno', roleText) +
+        ffFieldInput_('Follower Backup', 'Nome (opcional)') +
+        ffFieldInput_('ETE', '00:00') +
+        ffFieldReadonly_('Combustivel a bordo (L)', isFinite(fuelL) && fuelL > 0 ? String(Math.round(fuelL)) : '--') +
+        ffFieldReadonly_('Range (combustivel/burn)', range) +
+      '</div>' +
+      '<div class="ff-focus-grid-mid" style="grid-template-columns: repeat(3, minmax(120px, 1fr)); margin-bottom:0;">' +
+        ffFieldReadonly_('POB (piloto + pax)', String(pob)) +
+        ffFieldReadonly_('Burn rate (DB_Aircraft)', isFinite(burnLph) && burnLph > 0 ? burnLph.toFixed(1) + ' L/h' : '--') +
+        ffFieldReadonly_('Aeronave', acft.type || '--') +
+      '</div>' +
+    '</div>';
+  }
+
+  function ffFieldReadonly_(label, value) {
+    return '<div class="ff-field"><div class="ff-field-label">' + esc(label) + '</div><div class="ff-field-value">' + esc(value) + '</div></div>';
+  }
+
+  function ffFieldInput_(label, placeholder) {
+    return '<div class="ff-field"><div class="ff-field-label">' + esc(label) + '</div><input class="ff-field-input" type="text" placeholder="' + esc(placeholder || '') + '"></div>';
+  }
 
   function renderGrid() {
     var grid = document.getElementById('ff-cards-grid');
@@ -1025,8 +1275,8 @@
   };
 
   function renderEmpty(msg) {
-    var grid = document.getElementById('ff-cards-grid');
-    if (grid) grid.innerHTML = '<div class="ff-empty-state">' + esc(msg) + '</div>';
+    var host = document.getElementById('ff-detail-host');
+    if (host) host.innerHTML = '<div class="ff-empty-state">' + esc(msg) + '</div>';
   }
 
   function flightKey(reg, missionId) {

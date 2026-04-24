@@ -3,16 +3,21 @@
 ================================================== */
 function doGet(e) {
  const view = (e && e.parameter && e.parameter.view ? e.parameter.view : "").toLowerCase();
- const pilotParamRaw = (e && e.parameter && e.parameter.pilot != null) ? String(e.parameter.pilot).toLowerCase().trim() : "";
- const pilotParamTrue = pilotParamRaw === "1" || pilotParamRaw === "true" || pilotParamRaw === "yes" || pilotParamRaw === "y";
  const isDuty = view === "duty" || view === "dutyapp";
- const isPilot = !isDuty && (view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue);
+ const isPilot = !isDuty && view === "dev_pilot";
+ const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', "yyyy-MM-dd HH:mm:ss") + ' | ' + Utilities.getUuid().slice(0, 8);
+
+ try {
+   console.log('[doGet] view=%s duty=%s pilot=%s hash=%s', view, isDuty, isPilot, (e && e.parameter && e.parameter.hash) ? e.parameter.hash : '');
+ } catch (logErr) {}
 
  const fileName = isDuty ? 'DutyApp' : (isPilot ? 'PilotApp' : 'Index');
  const title = isDuty ? 'Duty Time' : (isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal');
 
  const template = HtmlService.createTemplateFromFile(fileName);
  template.webAppUrl = ScriptApp.getService().getUrl();
+ template.buildStamp = stamp;
+ template.routeView = view;
 
  return template.evaluate()
    .setTitle(title)
@@ -6731,14 +6736,17 @@ function getFlightFollowInit() {
   var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
   var regIdx  = headers.indexOf('REGISTRATION');
   var typeIdx = headers.indexOf('AIRCRAFT_TYPE');
+  var burnIdx = headers.indexOf('BURN_LPH');
   if (regIdx < 0) return { aircraft: [] };
   var aircraft = [];
   for (var i = 1; i < data.length; i++) {
     var reg = String(data[i][regIdx] || '').trim();
     if (!reg) continue;
+    var burnVal = burnIdx >= 0 ? Number(data[i][burnIdx]) : NaN;
     aircraft.push({
       reg:  reg,
-      type: typeIdx >= 0 ? String(data[i][typeIdx] || '').trim() : ''
+      type: typeIdx >= 0 ? String(data[i][typeIdx] || '').trim() : '',
+      burnLph: isFinite(burnVal) ? burnVal : 0
     });
   }
   return { aircraft: aircraft };

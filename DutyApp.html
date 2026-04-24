@@ -43,6 +43,96 @@
       letter-spacing: 0.04em;
     }
 
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+    }
+
+    .info-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: none;
+      background: var(--brand);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .help-block {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f9fbfd;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .help-subtitle {
+      margin: 0 0 6px 0;
+      font-size: 0.78rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+
+    .help-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--ink);
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .help-note {
+      margin: 6px 0 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .help-step {
+      margin: 8px 0 4px 0;
+      font-size: 0.78rem;
+      font-weight: 900;
+      color: #263238;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .help-links {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .help-link-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px 9px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #263238;
+    }
+
+    .help-link-item a {
+      color: var(--brand);
+      text-decoration: none;
+      font-weight: 900;
+      word-break: break-all;
+    }
+
+    .help-link-item a:hover { text-decoration: underline; }
+
     .banner {
       display: none;
       margin-bottom: 10px;
@@ -333,7 +423,10 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Registro de Horas</h1>
+    <div class="topbar">
+      <h1>Registro de Horas</h1>
+      <button type="button" class="info-btn" title="Ajuda de lembretes no celular" aria-label="Ajuda de lembretes no celular" onclick="dutyOpenMobileHelp_()">i</button>
+    </div>
     <div id="duty-banner" class="banner"></div>
     <div id="duty-geo-banner">
       <div class="geo-banner-row">
@@ -453,6 +546,107 @@
       <div class="btn-row" style="margin-top:10px;">
         <button class="primary" type="button" onclick="dutyFinalizeDay(true)">Salvar edicao</button>
         <button class="secondary" type="button" onclick="dutyCloseEditModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobile-help-overlay" class="overlay" onclick="if(event.target===this) dutyCloseMobileHelp_()">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 class="modal-title">Ajuda de lembretes no celular</h3>
+        <button class="close-x" type="button" onclick="dutyCloseMobileHelp_()">X</button>
+      </div>
+
+      <div class="help-block">
+        <p class="help-subtitle">Automacao 1 - horario (lembrete diario)</p>
+        <p class="help-step">Passo 1 - abrir automacoes</p>
+        <ol class="help-list">
+          <li>Abra o app Atalhos.</li>
+          <li>Toque em Automacao (aba inferior).</li>
+          <li>Toque em +.</li>
+          <li>Toque em Criar Automacao Pessoal.</li>
+        </ol>
+        <p class="help-step">Passo 2 - escolher horario</p>
+        <ol class="help-list">
+          <li>Selecione Horario do Dia.</li>
+          <li>Defina o horario (exemplo: 07:00).</li>
+          <li>Escolha frequencia: Diario (recomendado) ou dias especificos.</li>
+          <li>Toque em Seguinte.</li>
+        </ol>
+        <p class="help-step">Passo 3 - adicionar acoes</p>
+        <ol class="help-list">
+          <li>Toque em Adicionar Acao.</li>
+          <li>Busque Mostrar Notificacao.</li>
+          <li>Mensagem sugerida: "Voce ja iniciou seu tempo hoje?"</li>
+          <li>Opcional: adicione Abrir App e selecione o app web na tela inicial.</li>
+        </ol>
+        <p class="help-step">Passo 4 - finalizar</p>
+        <ol class="help-list">
+          <li>Toque em Seguinte.</li>
+          <li>Desative Perguntar Antes de Executar.</li>
+          <li>Confirme Nao Perguntar.</li>
+          <li>Toque em OK.</li>
+        </ol>
+        <p class="help-note">No iPhone, alertas internos do navegador nao sao confiaveis em segundo plano. Automacao no Atalhos e o backup recomendado.</p>
+      </div>
+
+      <div class="help-block">
+        <p class="help-subtitle">Automacao 2 - localizacao (backup)</p>
+        <p class="help-step">Passo 1 - criar nova automacao</p>
+        <ol class="help-list">
+          <li>Abra Atalhos.</li>
+          <li>Toque em Automacao.</li>
+          <li>Toque em +.</li>
+          <li>Toque em Criar Automacao Pessoal.</li>
+        </ol>
+        <p class="help-step">Passo 2 - escolher local</p>
+        <ol class="help-list">
+          <li>Toque em Chegar.</li>
+          <li>Toque em Escolher.</li>
+          <li>Selecione o local (hangar, aeroporto, base).</li>
+          <li>Defina raio: 100 m.</li>
+          <li>Toque em Seguinte.</li>
+        </ol>
+        <p class="help-step">Passo 3 - adicionar acao</p>
+        <ol class="help-list">
+          <li>Toque em Adicionar Acao.</li>
+          <li>Busque Mostrar Notificacao.</li>
+          <li>Mensagem sugerida: "Voce ja iniciou seu tempo hoje?"</li>
+          <li>Opcional: adicionar Abrir App e selecionar o app web.</li>
+        </ol>
+        <p class="help-step">Passo 4 - finalizar</p>
+        <ol class="help-list">
+          <li>Toque em Seguinte.</li>
+          <li>Desative Perguntar Antes de Executar.</li>
+          <li>Confirme Nao Perguntar.</li>
+          <li>Toque em OK.</li>
+        </ol>
+      </div>
+
+      <div class="help-block">
+        <p class="help-subtitle">Locais sugeridos (Apple Maps)</p>
+        <p class="help-note">Abra o link do local para facilitar a selecao no Atalhos. Raio recomendado: 100 m.</p>
+        <div id="mobile-help-locations" class="help-links"></div>
+      </div>
+
+      <div class="help-block">
+        <p class="help-subtitle">Android - boas praticas de lembrete</p>
+        <ol class="help-list">
+          <li>Instale o app web na tela inicial.</li>
+          <li>Ative notificacoes do navegador/app.</li>
+          <li>Desative economia agressiva de bateria para o navegador/app.</li>
+          <li>Permita localizacao e hora automatica.</li>
+        </ol>
+        <p class="help-note">No Android o suporte costuma ser melhor, mas alarme/calendario ainda e recomendado como backup.</p>
+      </div>
+
+      <div class="help-block" style="margin-bottom:0;">
+        <p class="help-subtitle">Resumo rapido</p>
+        <ul class="help-list">
+          <li>Este app funciona melhor com a tela ativa para alertas internos.</li>
+          <li>Para não depender da memória do piloto, configure lembretes do sistema.</li>
+          <li>Se possível, use também lembrete externo (SMS/WhatsApp) da operação.</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -1037,6 +1231,17 @@
       dutyState.editingShifts = [];
     }
 
+    function dutyOpenMobileHelp_() {
+      dutyRenderMobileHelpLocations_();
+      const overlay = document.getElementById('mobile-help-overlay');
+      if (overlay) overlay.style.display = 'flex';
+    }
+
+    function dutyCloseMobileHelp_() {
+      const overlay = document.getElementById('mobile-help-overlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       dutyState.selectedDateYmd = dutyNowBsb().ymd;
 
@@ -1050,6 +1255,12 @@
 
       dutyLoadBootstrap();
       dutyGeoInit_();
+
+      document.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Escape') {
+          dutyCloseMobileHelp_();
+        }
+      });
     });
 
     // =====================================================================
@@ -1082,7 +1293,14 @@
       var lines = String(coordsRaw || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
       var out = [];
       lines.forEach(function(line) {
-        var cleaned = line.replace(/[°′'″"]/g, ' ').replace(/\s+/g, ' ').trim();
+        var labelName = '';
+        var coordLine = line;
+        var named = line.match(/^([^|:]+)\s*[|:]\s*(.+)$/);
+        if (named && /[0-9NSEW]/i.test(named[2])) {
+          labelName = String(named[1] || '').trim();
+          coordLine = String(named[2] || '').trim();
+        }
+        var cleaned = coordLine.replace(/[°′'″"]/g, ' ').replace(/\s+/g, ' ').trim();
         // DMS: handles "45 33 34.73 N 93 36 19.50 W" and "N 45 33 34 W 93 36 19"
         var dmsRe = /([NS]?)\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*([NS]?)\s+([EW]?)\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*([EW]?)/i;
         var dm = cleaned.match(dmsRe);
@@ -1093,7 +1311,10 @@
           var lngDir = (dm[6] || dm[10] || '').toUpperCase();
           if (latDir === 'S') lat = -lat;
           if (lngDir === 'W') lng = -lng;
-          if (!isNaN(lat) && !isNaN(lng)) { out.push({ lat: lat, lng: lng, label: line }); return; }
+          if (!isNaN(lat) && !isNaN(lng)) {
+            out.push({ lat: lat, lng: lng, label: labelName || line, sourceLine: line, name: labelName });
+            return;
+          }
         }
         // Decimal
         var decRe = /([NS]?)\s*(-?[\d.]+)\s*([NS]?)[,\s]+([EW]?)\s*(-?[\d.]+)\s*([EW]?)/i;
@@ -1103,10 +1324,49 @@
           var lng2 = parseFloat(de[5]);
           if ((de[1]||de[3]||'').toUpperCase()==='S') lat2 = -Math.abs(lat2);
           if ((de[4]||de[6]||'').toUpperCase()==='W') lng2 = -Math.abs(lng2);
-          if (!isNaN(lat2) && !isNaN(lng2)) { out.push({ lat: lat2, lng: lng2, label: line }); }
+          if (!isNaN(lat2) && !isNaN(lng2)) {
+            out.push({ lat: lat2, lng: lng2, label: labelName || line, sourceLine: line, name: labelName });
+          }
         }
       });
       return out;
+    }
+
+    function dutyAppleMapsLink_(zone) {
+      var lat = Number(zone && zone.lat);
+      var lng = Number(zone && zone.lng);
+      if (!isFinite(lat) || !isFinite(lng)) return '';
+      var q = encodeURIComponent(String(zone && zone.label || 'Local operacional'));
+      return 'https://maps.apple.com/?ll=' + lat.toFixed(6) + ',' + lng.toFixed(6) + '&q=' + q + '&z=19';
+    }
+
+    function dutyGuessZoneLabel_(zone, index) {
+      if (zone && String(zone.name || '').trim()) return String(zone.name || '').trim();
+      var raw = String(zone && zone.sourceLine || '').trim();
+      if (/[A-Za-z]/.test(raw)) {
+        var maybe = raw.replace(/[0-9.,\-+°′'" NSEWnsew]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (maybe) return maybe;
+      }
+      return 'Local ' + (index + 1);
+    }
+
+    function dutyRenderMobileHelpLocations_() {
+      var host = document.getElementById('mobile-help-locations');
+      if (!host) return;
+      var cfg = dutyState.dutyConfig || {};
+      var zones = dutyGeoParseCoords_(String(cfg.DUTY_GEOFENCE_COORDS || ''));
+      if (!zones.length) {
+        host.innerHTML = '<div class="help-link-item">Nenhuma coordenada configurada em Tools para gerar links.</div>';
+        return;
+      }
+      host.innerHTML = zones.map(function(zone, idx) {
+        var label = dutyGuessZoneLabel_(zone, idx);
+        var link = dutyAppleMapsLink_(zone);
+        if (!link) {
+          return '<div class="help-link-item">' + dutyEscape(label) + ': coordenada invalida.</div>';
+        }
+        return '<div class="help-link-item"><div style="margin-bottom:4px;">' + dutyEscape(label) + ' (raio recomendado: 100 m)</div><a href="' + dutyEscape(link) + '" target="_blank" rel="noopener noreferrer">' + dutyEscape(link) + '</a></div>';
+      }).join('');
     }
 
     function dutyGeoHaversineM_(lat1, lng1, lat2, lng2) {
