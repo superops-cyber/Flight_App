@@ -982,9 +982,10 @@
       var missions = state.missionsByReg[acft.reg] || [];
       missions.forEach(function(mission) {
         rows.push({
-          key: flightKey(acft.reg, mission.missionId),
+          key: flightKey(acft.reg, mission.flightLegId || mission.missionId),
           reg: acft.reg,
           missionId: mission.missionId,
+          flightLegId: mission.flightLegId || '',
           route: (mission.from || '--') + ' - ' + (mission.to || '--'),
           pilot: mission.pilot || '--',
           date: mission.date || '--',
@@ -1008,12 +1009,13 @@
       return;
     }
 
-    host.innerHTML = '<table class="ff-list-table"><thead><tr><th>Aeronave</th><th>Missao</th><th>Data</th><th>Rota</th><th>PIC</th><th></th></tr></thead><tbody>' +
+    host.innerHTML = '<table class="ff-list-table"><thead><tr><th>Aeronave</th><th>Missao</th><th>Flight ID</th><th>Data</th><th>Rota</th><th>PIC</th><th></th></tr></thead><tbody>' +
       rows.map(function(r) {
         var isActive = r.key === state.selectedFlightKey;
         return '<tr class="ff-list-row' + (isActive ? ' active' : '') + '" onclick="ffOpenFlight(\'' + esc(r.key) + '\')">' +
           '<td>' + esc(r.reg) + '</td>' +
           '<td>' + esc(r.missionId) + '</td>' +
+          '<td>' + esc(r.flightLegId || '--') + '</td>' +
           '<td>' + esc(r.date || '--') + '</td>' +
           '<td>' + esc(r.route) + '</td>' +
           '<td>' + esc(r.pilot) + '</td>' +
@@ -1079,9 +1081,11 @@
 
     var parts = state.selectedFlightKey.split('|');
     var reg = parts[0] || '';
-    var missionId = parts[1] || '';
+    var flightLegId = parts[1] || '';
     var acft = state.aircraft.find(function(a) { return a.reg === reg; }) || { reg: reg, type: '' };
-    var mission = (state.missionsByReg[reg] || []).find(function(m) { return m.missionId === missionId; }) || null;
+    var mission = (state.missionsByReg[reg] || []).find(function(m) {
+      return String(m && (m.flightLegId || m.missionId) || '') === String(flightLegId || '');
+    }) || null;
     if (!mission) {
       host.innerHTML = '<div class="ff-empty-state">Dados do voo ainda carregando. Tente novamente em alguns segundos.</div>';
       return;
@@ -1105,7 +1109,7 @@
   function buildFocusCard(acft, mission) {
     var reg = String(acft && acft.reg || '').trim();
     var sreg = safeId(reg);
-    var key = flightKey(reg, mission && mission.missionId || '');
+    var key = flightKey(reg, mission && (mission.flightLegId || mission.missionId) || '');
     var burnLph = Number(acft && (acft.burnLph || acft.burn) || 0);
     var fuelL = Number(mission && mission.fuelL || 0);
     var range = (burnLph > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burnLph) : '--:--';

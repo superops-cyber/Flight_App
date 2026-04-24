@@ -1380,7 +1380,7 @@ function saveMission(data) {
    }
  });
 
- CacheService.getScriptCache().remove('scheduledMissions:v1');
+ invalidateScheduledMissionsCache_();
 
 
  return "Success: " + missionId;
@@ -2378,7 +2378,7 @@ if (String(data[i][DISPATCH_COL.MISSION_ID]) === String(missionId)) {
  sheet.getRange(i + 1, DISPATCH_COL.STATUS + 1).setValue("APPROVED");
 }
 }
-CacheService.getScriptCache().remove('scheduledMissions:v1');
+invalidateScheduledMissionsCache_();
 const audit = ss.getSheetByName(APP_SHEETS.AUDIT);
 if(audit) audit.appendRow([new Date(), user, missionId, "APPROVE", "PENDING", "APPROVED", "Release"]);
 return "Approved";
@@ -2778,7 +2778,7 @@ function scheduleRunwayCheckFromSupervisor(payload, approvalPassword) {
     dispatchSheet.getRange(rowNo, DISPATCH_COL.RAW_DATA + 1).setValue(_supervisorApplyTrainingToDispatchRaw_(dispatchData[idx][DISPATCH_COL.RAW_DATA], trainingObj));
   });
 
-  CacheService.getScriptCache().remove('scheduledMissions:v1');
+  invalidateScheduledMissionsCache_();
 
   return {
     success: true,
@@ -3826,36 +3826,11 @@ function updateDutyAppLog(payload) {
 FIXED: SCHEDULED MISSIONS LIST (PURE JS)
 ================================================== */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function invalidateScheduledMissionsCache_() {
+ const cache = CacheService.getScriptCache();
+ cache.remove('scheduledMissions:v1');
+ cache.remove('scheduledMissions:v2');
+}
 
 function getScheduledMissions() {
 const cache = CacheService.getScriptCache();
@@ -3989,7 +3964,7 @@ const result = Object.values(missions).map(m => {
     legCount: legCount,
     from: fromIcao,
     to: toIcao,
-    route: m.routeStr
+    route: routeDisplay
   };
 }).reverse().slice(0, 15);
 
@@ -4019,7 +3994,7 @@ function cancelMissionFromDatabase(missionId) {
    dbData.slice(1).filter(r => String(r[DISPATCH_COL.MISSION_ID]) !== String(missionId))
  );
  rewriteSheetData_(dbSheet, keptDispatchRows);
- CacheService.getScriptCache().remove('scheduledMissions:v1');
+ invalidateScheduledMissionsCache_();
 
 
  // 3. DELETE FROM DB_TRANSACTIONS
@@ -6589,6 +6564,61 @@ function getFlightFollowMissionsForAcft(reg) {
   // Gather all rows for this registration (no day filter)
   var tz      = 'America/Sao_Paulo';
 
+  // Load per-leg fuel and leg plan fields from LOG_Flights (Tab 2 save), keyed by flight leg id.
+  var fuelByFlightId = {};
+  var planByFlightId = {};
+  try {
+    var logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+    if (logSheet) {
+      var logData = logSheet.getDataRange().getValues();
+      if (logData.length > 1) {
+        var logHeaders = logData[0].map(function(h) { return String(h || '').trim().toUpperCase().replace(/\s+/g, '_'); });
+        var col = function(name, fallbackIdx) {
+          var idx = logHeaders.indexOf(String(name || '').toUpperCase());
+          return idx >= 0 ? idx : fallbackIdx;
+        };
+        var fidIdx = col('FLIGHT_ID', LOG_FLIGHT_COL.FLIGHT_ID);
+        var fuelStartIdx = col('FUEL_START', LOG_FLIGHT_COL.FUEL_START);
+        var actualLoadIdx = col('ACTUAL_LOAD_JSON', LOG_FLIGHT_COL.ACTUAL_LOAD_JSON);
+        var toNum = function(v) {
+          var n = Number(v);
+          return isFinite(n) ? n : 0;
+        };
+
+        for (var li = 1; li < logData.length; li++) {
+          var fid = String(logData[li][fidIdx] || '').trim();
+          if (!fid) continue;
+
+          var fuelFromActualJson = 0;
+          try {
+            var rawLoad = String(logData[li][actualLoadIdx] || '').trim();
+            if (rawLoad) {
+              var loadObj = JSON.parse(rawLoad);
+              if (loadObj && loadObj.fuelTotal != null) fuelFromActualJson = toNum(loadObj.fuelTotal);
+              if (loadObj && Array.isArray(loadObj.legs) && loadObj.legs.length) {
+                var legFromLog = loadObj.legs.find(function(x) {
+                  return String(x && x.flightLegId || '').trim() === fid;
+                }) || loadObj.legs[0] || null;
+                if (legFromLog) {
+                  var p = String(legFromLog.planId || '').trim().toUpperCase();
+                  var t = String(legFromLog.takeoffUTC || '').trim().replace(/[^0-9]/g, '').slice(0, 4);
+                  var n = !!legFromLog.noPlan;
+                  if (p || t || n) {
+                    planByFlightId[fid] = { planId: p, takeoffUTC: t, noPlan: n };
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+
+          var fuelFromStartCol = toNum(logData[li][fuelStartIdx]);
+          var finalFuel = fuelFromActualJson > 0 ? fuelFromActualJson : fuelFromStartCol;
+          if (finalFuel > 0) fuelByFlightId[fid] = finalFuel;
+        }
+      }
+    }
+  } catch (e) {}
+
   var missions = {};
 
   for (var i = 1; i < data.length; i++) {
@@ -6621,6 +6651,12 @@ function getFlightFollowMissionsForAcft(reg) {
     var planId      = String(leg.planId || leg.planDI || raw.planId || '').trim().toUpperCase();
     var takeoffUTC  = String(leg.takeoffUTC || leg.takeoffZulu || raw.takeoffUTC || raw.time || '').trim().replace(/[^0-9]/g,'').slice(0,4);
     var noPlan      = !!(leg.noPlan || raw.noPlan);
+    var logPlan = planByFlightId[flightLegId] || null;
+    if (logPlan) {
+      if (logPlan.planId) planId = String(logPlan.planId || '').trim().toUpperCase();
+      if (logPlan.takeoffUTC) takeoffUTC = String(logPlan.takeoffUTC || '').trim().replace(/[^0-9]/g, '').slice(0, 4);
+      if (logPlan.noPlan) noPlan = true;
+    }
 
     // Waypoints
     var routeStr = String(row[DISPATCH_COL.ROUTE] || '').trim();
@@ -6664,11 +6700,13 @@ function getFlightFollowMissionsForAcft(reg) {
     var fromMeta = Object.prototype.hasOwnProperty.call(airportMetaMap, from) ? airportMetaMap[from] : null;
     var toMeta   = Object.prototype.hasOwnProperty.call(airportMetaMap, to) ? airportMetaMap[to] : null;
 
-    // Planned fuel
-    var fuel = Number(leg.fuel || leg.plannedFuel || raw.fuel || 0);
+    // Fuel precedence: Tab 2 logged total (LOG_Flights) > takeoff/planned from dispatch raw.
+    var fuelFromLog = Number(fuelByFlightId[flightLegId] || 0);
+    var fuelFromDispatch = Number(leg.takeoffFuel || leg.fuel || leg.plannedFuel || raw.fuel || 0);
+    var fuel = fuelFromLog > 0 ? fuelFromLog : fuelFromDispatch;
 
-    if (!missions[missionId]) {
-      missions[missionId] = {
+    if (!missions[flightLegId]) {
+      missions[flightLegId] = {
         missionId:   missionId,
         flightLegId: flightLegId,
         date:        dateStr,
@@ -6906,7 +6944,7 @@ function releaseBrakes(payload) {
       dispatchRowsUpdated++;
     }
   }
-  CacheService.getScriptCache().remove('scheduledMissions:v1');
+  invalidateScheduledMissionsCache_();
 
   const chatResult = _sendDispatchPreviewToChat(
     payload && payload.chatMessage,
