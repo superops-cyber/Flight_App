@@ -3908,22 +3908,30 @@ for (let i = 0; i < data.length; i++) {
      acft: row[DISPATCH_RANGE_COL.AIRCRAFT],
      pilot: row[DISPATCH_RANGE_COL.PILOT],
      status: row[DISPATCH_RANGE_COL.STATUS],
-     routeStr: "",
+     routeStops: [],
      flightLegIds: []
    };
  }
-  const flightLegId = String(row[DISPATCH_RANGE_COL.FLIGHT_ID] || '').trim();
-  if (flightLegId) missions[mId].flightLegIds.push(flightLegId);
-  const legRoute = String(row[DISPATCH_RANGE_COL.ROUTE] || '');
-  if (missions[mId].routeStr === "") {
-    missions[mId].routeStr = legRoute;
-  } else {
-    const prior = splitRoute_(missions[mId].routeStr);
-    const next = splitRoute_(legRoute);
-    if (next.to && next.to !== prior.to) {
-      missions[mId].routeStr += ',' + next.to;
-    }
-  }
+
+ const mission = missions[mId];
+ const flightLegId = String(row[DISPATCH_RANGE_COL.FLIGHT_ID] || '').trim();
+ if (flightLegId) mission.flightLegIds.push(flightLegId);
+
+ const legRoute = String(row[DISPATCH_RANGE_COL.ROUTE] || '');
+ const routeParts = splitRoute_(legRoute);
+ const legFrom = String(routeParts.from || '').trim().toUpperCase();
+ const legTo = String(routeParts.to || '').trim().toUpperCase();
+
+ if (legFrom) {
+   if (!mission.routeStops.length || mission.routeStops[mission.routeStops.length - 1] !== legFrom) {
+     mission.routeStops.push(legFrom);
+   }
+ }
+ if (legTo) {
+   if (!mission.routeStops.length || mission.routeStops[mission.routeStops.length - 1] !== legTo) {
+     mission.routeStops.push(legTo);
+   }
+ }
 }
 
 
@@ -3935,9 +3943,10 @@ for (let i = 0; i < data.length; i++) {
 
 // Convert the object back to an array for the frontend
 const result = Object.values(missions).map(m => {
-  const routeTokens = routeTokensFromString_(m.routeStr || '');
-  const fromIcao = routeTokens[0] || '';
-  const toIcao = routeTokens.length ? routeTokens[routeTokens.length - 1] : '';
+  const routeStops = Array.isArray(m.routeStops) ? m.routeStops.filter(Boolean) : [];
+  const fromIcao = routeStops[0] || '';
+  const toIcao = routeStops.length ? routeStops[routeStops.length - 1] : '';
+  const routeDisplay = routeStops.length ? routeStops.join(' - ') : '';
   const statusRaw = String(m.status || '').toUpperCase() || 'PENDING';
   const legCount = m.flightLegIds.length;
   const legsFlown = m.flightLegIds.filter(function(legId) {
@@ -6639,7 +6648,9 @@ function getFlightFollowMissionsForAcft(reg) {
     try { raw = JSON.parse(String(row[DISPATCH_COL.RAW_DATA] || '{}')); } catch(e) {}
 
     var legs = Array.isArray(raw.legs) ? raw.legs : [];
-    var leg  = legs[0] || {};
+    var leg = legs.find(function(l) {
+      return String(l && (l.flightLegId || l.flight_id || l.id) || '').trim() === flightLegId;
+    }) || legs[0] || {};
 
     var pax = Array.isArray(leg.pax) ? leg.pax : [];
     var paxFiltered = pax.filter(function(p) {
