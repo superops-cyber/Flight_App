@@ -6586,9 +6586,7 @@ function getFlightFollowMissionsForAcft(reg) {
     }
   } catch(e) {}
 
-  // Gather rows for this registration, today ± 1 day (catches night departures)
-  var now     = new Date();
-  var todayBsb = Utilities.formatDate(now, 'America/Sao_Paulo', 'yyyy-MM-dd');
+  // Gather all rows for this registration (no day filter)
   var tz      = 'America/Sao_Paulo';
 
   var missions = {};
@@ -6602,8 +6600,6 @@ function getFlightFollowMissionsForAcft(reg) {
     var dateStr = rawDate instanceof Date
       ? Utilities.formatDate(rawDate, tz, 'yyyy-MM-dd')
       : String(rawDate || '').trim().slice(0, 10);
-    if (dateStr !== todayBsb) continue;
-
     var missionId  = String(row[DISPATCH_COL.MISSION_ID] || '').trim();
     var flightLegId = String(row[DISPATCH_COL.FLIGHT_ID] || '').trim();
     if (!missionId || !flightLegId) continue;
@@ -6697,7 +6693,17 @@ function getFlightFollowMissionsForAcft(reg) {
     }
   }
 
-  return Object.values(missions);
+  var out = Object.values(missions);
+  out.sort(function(a, b) {
+    var ad = String(a.date || '');
+    var bd = String(b.date || '');
+    if (ad !== bd) return bd.localeCompare(ad); // newest date first
+    var at = String(a.takeoffUTC || '');
+    var bt = String(b.takeoffUTC || '');
+    if (at !== bt) return bt.localeCompare(at); // latest time first
+    return String(a.missionId || '').localeCompare(String(b.missionId || ''));
+  });
+  return out;
 }
 
 function getFlightFollowMessages(reg) {

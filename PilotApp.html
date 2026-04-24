@@ -13,6 +13,113 @@
 <body>
 
   <div id="connectivity-banner" style="display:none; position:sticky; top:0; z-index:1200; text-align:center; padding:8px 10px; font-weight:800; font-size:0.9rem;"></div>
+  <div id="pilot-build-stamp" style="margin:6px 10px 4px 10px; padding:4px 8px; border-radius:8px; background:#eceff1; color:#37474f; border:1px solid #cfd8dc; font-size:0.68rem; font-weight:700;">DEV payload: <?!= (typeof buildStamp === 'string' ? buildStamp : 'no-stamp') ?> | view=<?!= (typeof routeView === 'string' ? routeView : '') ?></div>
+  <div id="pilot-startup-diag" style="display:none; margin:6px 10px 4px 10px; padding:6px 8px; border-radius:8px; background:#fff3e0; color:#6d4c41; border:1px solid #ffcc80; font-size:0.72rem; font-weight:700;">Pilot startup diagnostics ready</div>
+  <div id="pilot-include-diag" style="display:none; margin:4px 10px 4px 10px; padding:5px 8px; border-radius:8px; background:#e3f2fd; color:#0d47a1; border:1px solid #90caf9; font-size:0.68rem; font-weight:700;">Include probes ready</div>
+
+  <script>
+    window.__pilotDiag = {
+      startedAt: Date.now(),
+      mainScriptReady: false,
+      mainScriptReadyAt: 0,
+      mainScriptStage: '',
+      parserReachedMainZone: false,
+      parserReachedMainZoneAt: 0,
+      firstStartupError: ''
+    };
+
+    (function() {
+      function showDiag(msg, level) {
+        try {
+          if (level === 'warn' && window.__pilotDiag && window.__pilotDiag.firstStartupError) return;
+          var el = document.getElementById('pilot-startup-diag');
+          if (!el) return;
+          el.style.display = 'block';
+          el.textContent = String(msg || 'Startup diagnostic');
+          if (level === 'error') {
+            el.style.background = '#ffebee';
+            el.style.borderColor = '#ef9a9a';
+            el.style.color = '#b71c1c';
+          } else if (level === 'warn') {
+            el.style.background = '#fff8e1';
+            el.style.borderColor = '#ffe082';
+            el.style.color = '#6d4c41';
+          } else {
+            el.style.background = '#e8f5e9';
+            el.style.borderColor = '#a5d6a7';
+            el.style.color = '#1b5e20';
+          }
+        } catch (_e) {}
+      }
+
+      window.__markPilotMainReady = function(stage) {
+        try {
+          if (!window.__pilotDiag) return;
+          window.__pilotDiag.mainScriptReady = true;
+          window.__pilotDiag.mainScriptReadyAt = Date.now();
+          window.__pilotDiag.mainScriptStage = String(stage || 'main-script');
+          showDiag('Startup OK: main script reached (' + window.__pilotDiag.mainScriptStage + ')', 'ok');
+        } catch (_e5) {}
+      };
+
+      window.__markPilotMainZone = function(stage) {
+        try {
+          if (!window.__pilotDiag) return;
+          window.__pilotDiag.parserReachedMainZone = true;
+          window.__pilotDiag.parserReachedMainZoneAt = Date.now();
+          window.__pilotDiag.mainScriptStage = String(stage || 'main-zone');
+        } catch (_e5b) {}
+      };
+
+      window.__pilotIncludeMarks = [];
+      window.__pilotMarkInclude = function(marker) {
+        try {
+          var id = String(marker || '').trim();
+          if (!id) return;
+          window.__pilotIncludeMarks.push(id);
+          var el = document.getElementById('pilot-include-diag');
+          if (!el) return;
+          el.style.display = 'block';
+          el.textContent = 'Include probes: ' + window.__pilotIncludeMarks.join(' > ');
+        } catch (_e6) {}
+      };
+
+      window.addEventListener('error', function(ev) {
+        try {
+          var src = (ev && ev.filename) ? String(ev.filename).split('/').pop() : 'unknown';
+          var ln = (ev && typeof ev.lineno === 'number') ? ev.lineno : 0;
+          var col = (ev && typeof ev.colno === 'number') ? ev.colno : 0;
+          var msg = (ev && ev.message) ? String(ev.message) : 'unknown error';
+          if (window.__pilotDiag && !window.__pilotDiag.firstStartupError) {
+            window.__pilotDiag.firstStartupError = msg + ' @ ' + src + ':' + ln + ':' + col;
+          }
+          showDiag('Startup error: ' + msg + ' @ ' + src + ':' + ln + ':' + col, 'error');
+        } catch (_e2) {}
+      });
+
+      window.addEventListener('unhandledrejection', function(ev) {
+        try {
+          var reason = ev && ev.reason ? ev.reason : null;
+          var msg = reason && reason.message ? String(reason.message) : String(reason || 'promise rejected');
+          showDiag('Unhandled rejection: ' + msg, 'warn');
+        } catch (_e3) {}
+      });
+
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          try {
+            if (!window.__pilotDiag || !window.__pilotDiag.mainScriptReady) {
+              if (window.__pilotDiag && window.__pilotDiag.parserReachedMainZone) {
+                showDiag('Startup note: main zone reached, waiting on main init (readyState=' + document.readyState + ')', 'warn');
+              } else {
+                showDiag('Startup warning: parser did not reach main zone (readyState=' + document.readyState + ')', 'warn');
+              }
+            }
+          } catch (_e4) {}
+        }, 6000);
+      });
+    })();
+  </script>
 
   <div id="pilot-time-trio" style="display:flex; justify-content:flex-end; gap:8px; background:#0b5394; color:#fff; padding:4px 10px; font-size:0.66rem; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; line-height:1;">
     <span style="display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); border-radius:999px; padding:3px 8px;">Z <b id="pilot-time-z" style="font-size:0.72rem; color:#fff;">--:--</b></span>
@@ -47,8 +154,7 @@
           <span id="readiness-overall-label" style="font-size:0.78rem; font-weight:900; color:#37474f; text-transform:uppercase; letter-spacing:0.03em;">Offline Pack</span>
         </div>
         <div style="display:flex; gap:6px;">
-          <button id="btn-refresh-offline-cache" class="btn blue darken-2" style="height:30px; line-height:30px; padding:0 10px; font-size:0.74rem; font-weight:800; border-radius:7px;" onclick="downloadOfflineCacheNow()">DOWNLOAD</button>
-          <button id="btn-clear-offline-cache" class="btn red darken-2" style="height:30px; line-height:30px; padding:0 10px; font-size:0.74rem; font-weight:800; border-radius:7px;" onclick="clearOfflineCacheNow()">CLEAR</button>
+          <button id="btn-clear-offline-cache" class="btn red darken-2" style="height:30px; line-height:30px; padding:0 10px; font-size:0.74rem; font-weight:800; border-radius:7px;" onclick="clearOfflineCacheNow()">CLEAR MISSIONS</button>
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:2px;">
@@ -73,6 +179,7 @@
           <span style="font-weight:800; color:#37474f; min-width:88px;">Map DB</span>
           <span id="rlabel-mapdb" style="color:#5d6d7a; font-weight:700; flex:1;">Checking…</span>
           <button onclick="if(typeof window.downloadMapPack==='function')window.downloadMapPack('base')" style="height:22px;line-height:22px;padding:0 7px;font-size:0.68rem;font-weight:800;border-radius:5px;border:none;background:#0d47a1;color:#fff;cursor:pointer;flex-shrink:0;">↺ MAPS</button>
+          <button onclick="clearMapsCacheNow()" style="height:22px;line-height:22px;padding:0 7px;font-size:0.68rem;font-weight:800;border-radius:5px;border:none;background:#b71c1c;color:#fff;cursor:pointer;flex-shrink:0;">CLEAR MAPS</button>
         </div>
         <!-- Map pack download progress bar (Tab 1) -->
         <div id="tab1-map-pack-progress" style="display:none; margin-top:4px; padding:4px 0 0 15px;">
@@ -149,18 +256,26 @@
   </div><div id="tab2" class="app-tab">
   <?!= include('Tab2_Briefing'); ?>
   </div>
+  <script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-tab2'); } catch (_e) {}</script>
   <div id="tab3" class="app-tab">
-  <?!= include('Tab3_WB'); ?>
+  <div style="margin:10px; padding:10px; border:1px dashed #90a4ae; border-radius:8px; color:#455a64; font-weight:700;">Tab 3 temporarily disabled for parser isolation build.</div>
   </div>
+  <script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-tab3'); } catch (_e) {}</script>
   <div id="tab4" class="app-tab">
-  <?!= include('Tab4_Performance'); ?>
+  <div style="margin:10px; padding:10px; border:1px dashed #90a4ae; border-radius:8px; color:#455a64; font-weight:700;">Tab 4 temporarily disabled for parser isolation build.</div>
   </div>
+  <script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-tab4'); } catch (_e) {}</script>
   <div id="tab5" class="app-tab"><?!= include('Tab5_Release'); ?></div>
+  <script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-tab5'); } catch (_e) {}</script>
   <div id="tab6" class="app-tab"><?!= include('Tab6_Enroute'); ?></div>
+  <script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-tab6'); } catch (_e) {}</script>
   <div id="tab7" class="app-tab"><?!= include('Tab7_Arrival'); ?></div>
+  <script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-tab7'); } catch (_e) {}</script>
   <div id="tab8" class="app-tab"><?!= include('Tab8_Debrief'); ?></div>
+  <script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-tab8'); } catch (_e) {}</script>
 
   <?!= include('RunwayBriefingCard'); ?>
+  <script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-runway-card'); } catch (_e) {}</script>
 
 </div> <div class="footer-nav">
   <button class="btn-flat grey-text" id="btnBack" onclick="prevTab()" style="visibility:hidden">Back</button>
@@ -436,9 +551,21 @@
     </div>
   </div>
 </div>
+<script>try { if (typeof window.__markPilotMainZone === 'function') window.__markPilotMainZone('before-materialize'); } catch (_e) {}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script>try { if (typeof window.__pilotMarkInclude === 'function') window.__pilotMarkInclude('after-materialize-src'); } catch (_e) {}</script>
 
 <script>
+  try {
+    if (typeof window.__markPilotMainReady === 'function') {
+      window.__markPilotMainReady('pilot-main-script-top');
+    } else if (window.__pilotDiag) {
+      window.__pilotDiag.mainScriptReady = true;
+      window.__pilotDiag.mainScriptReadyAt = Date.now();
+      window.__pilotDiag.mainScriptStage = 'pilot-main-script-top-fallback';
+    }
+  } catch (_e) {}
+
     let currentTab = 1;
     let activeMission = null;
     let appData = {};
@@ -818,6 +945,7 @@
     let hasPrefetchedMissionsThisSession = false;
     let missionPrefetchInProgress = false;
     let missionPrefetchProgress = { total: 0, progress: 0 };
+    let _lastMissionListServerFetchTs = 0;
     let outboxSyncInProgress = false;
     const OUTBOX_MAX_ATTEMPTS = 5;
     const OFFLINE_CACHE_STALE_MS = 24 * 60 * 60 * 1000;
@@ -1970,7 +2098,7 @@
       actionButtons.forEach(function(btn) {
         if (!btn || btn.id === 'btn-acft-docs') return; // manuals always accessible
         btn.classList.toggle('readiness-locked', !ready);
-        btn.title = ready ? 'Mission ready' : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.';
+        btn.title = ready ? 'Mission ready' : 'Offline pack not ready. Press REFRESH and wait for Mission Ready.';
       });
 
       for (let i = 2; i <= 8; i++) {
@@ -1983,7 +2111,7 @@
       if (btnNext && Number(currentTab || 1) === 1) {
         btnNext.disabled = !ready;
         btnNext.style.opacity = ready ? '1' : '0.6';
-        btnNext.title = ready ? '' : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.';
+        btnNext.title = ready ? '' : 'Offline pack not ready. Press REFRESH and wait for Mission Ready.';
       }
     }
 
@@ -2016,7 +2144,7 @@
 
     function tab1GuardedAction_(actionName) {
       if (!_isMissionReadyForLock_()) {
-        if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3500 });
+        if (window.M) M.toast({ html: 'Offline pack not ready. Press REFRESH and wait for MISSION READY.', classes: 'orange', displayLength: 3500 });
         return;
       }
       const fn = window[String(actionName || '').trim()];
@@ -2068,8 +2196,12 @@
 
     function updateOfflineCacheStatus(options) {
       const opts = options || {};
-      if (typeof window.refreshOfflineMapPackStatus === 'function') {
-        window.refreshOfflineMapPackStatus();
+      try {
+        if (typeof window.refreshOfflineMapPackStatus === 'function') {
+          window.refreshOfflineMapPackStatus();
+        }
+      } catch (e) {
+        try { if (window._setOfflineMapDbIndicator) window._setOfflineMapDbIndicator('warn', 'Status unavailable'); } catch (_) {}
       }
 
       const hasExplicitState = Object.prototype.hasOwnProperty.call(opts, 'state');
@@ -2157,26 +2289,43 @@
     }
 
     function clearOfflineCacheNow() {
-      const ok = window.confirm('Clear all offline data (missions, envelopes, W&B cache, map tiles, and queue)?');
+      const ok = window.confirm('Clear mission offline data (missions, envelopes, W&B/performance cache, and queue)? Maps will be kept.');
       if (!ok) return;
       try {
         const keys = Object.keys(localStorage || {});
         keys.forEach(function(key) {
           const k = String(key || '');
-          if (k.startsWith('mba_cache_') || k === OFFLINE_CACHE_KEYS.OUTBOX || k.startsWith('mba_outbox_')) {
+          if (k.startsWith('mba_cache_') || k.startsWith('mission_') || k.startsWith('mba_autolog_ldglog_') || k === OFFLINE_CACHE_KEYS.OUTBOX || k.startsWith('mba_outbox_')) {
             localStorage.removeItem(k);
           }
         });
       } catch (e) {}
-      // Clear map pack (IDB tiles + meta) without re-confirming
-      if (typeof window.clearMapPackDirect === 'function') {
-        window.clearMapPackDirect();
-      }
       updateOfflineCacheStatus({ state: 'empty', cachedCount: 0, total: 0, envelopeCount: 0 });
       updateOutboxStatusPanel();
       updateOutboxButtonState();
       updateOfflineFlightButtonState();
-      if (window.M) M.toast({ html: 'All offline data cleared', classes: 'orange' });
+      if (window.M) M.toast({ html: 'Mission offline data cleared (maps kept)', classes: 'orange' });
+    }
+
+    async function clearMapsCacheNow() {
+      let ok = false;
+      if (typeof window.flightAppConfirm === 'function') {
+        ok = await window.flightAppConfirm('Are you sure you want to clear all cached map tiles?', { title: 'Clear Maps', okText: 'Clear Maps' });
+      } else {
+        ok = window.confirm('Are you sure you want to clear all cached map tiles?');
+      }
+      if (!ok) return;
+
+      if (typeof window.clearMapPackDirect === 'function') {
+        await window.clearMapPackDirect();
+      } else {
+        try { localStorage.removeItem('enrouteMapPackMeta'); } catch (e) {}
+      }
+
+      if (typeof window.refreshOfflineMapPackStatus === 'function') {
+        window.refreshOfflineMapPackStatus();
+      }
+      if (window.M) M.toast({ html: 'Map cache cleared', classes: 'orange' });
     }
 
     function ensureEnvelopeCacheOnStartup() {
@@ -2387,15 +2536,19 @@
       }
 
       function _updatePackStatus() {
-        const metaRaw = localStorage.getItem('enrouteMapPackMeta');
-        if (metaRaw) {
-          let meta; try { meta = JSON.parse(metaRaw); } catch(e) { meta = null; }
-          _renderPackStatusFromMeta(meta);
-          return;
+        try {
+          const metaRaw = localStorage.getItem('enrouteMapPackMeta');
+          if (metaRaw) {
+            let meta; try { meta = JSON.parse(metaRaw); } catch(e) { meta = null; }
+            _renderPackStatusFromMeta(meta);
+            return;
+          }
+          const els = [document.getElementById('enroute-mappack-status'), document.getElementById('offline-map-status')].filter(Boolean);
+          els.forEach(function(el){ el.textContent='Maps not downloaded.'; el.className='pack-status pack-none'; });
+          _setOfflineMapDbIndicator('none', 'Not downloaded');
+        } catch (e) {
+          _setOfflineMapDbIndicator('warn', 'Status unavailable');
         }
-        const els = [document.getElementById('enroute-mappack-status'), document.getElementById('offline-map-status')].filter(Boolean);
-        els.forEach(function(el){ el.textContent='Maps not downloaded.'; el.className='pack-status pack-none'; });
-        _setOfflineMapDbIndicator('none', 'Not downloaded');
       }
       window.refreshOfflineMapPackStatus = _updatePackStatus;
 
@@ -2541,6 +2694,11 @@
       refreshOfflineCacheNow();
     }
 
+    // Explicitly expose handlers for inline onclick reliability across webview/browser variants.
+    window.downloadOfflineCacheNow = downloadOfflineCacheNow;
+    window.clearOfflineCacheNow = clearOfflineCacheNow;
+    window.clearMapsCacheNow = clearMapsCacheNow;
+
     function refreshOfflineCacheNow() {
       if (!isServerAvailable()) {
         M.toast({ html: 'Offline: unable to refresh cache right now', classes: 'orange' });
@@ -2550,7 +2708,7 @@
       const btn = document.getElementById('btn-refresh-offline-cache');
       if (btn) {
         btn.disabled = true;
-        btn.textContent = 'DOWNLOADING...';
+        btn.textContent = 'REFRESHING...';
       }
 
       updateOfflineCacheStatus({ state: 'syncing', progress: 0, total: 100, cachedCount: getCachedMissionCount(), message: 'Starting download...' });
@@ -2560,7 +2718,7 @@
           updateOfflineCacheStatus({ state: 'ready' });
           if (btn) {
             btn.disabled = false;
-            btn.textContent = 'DOWNLOAD';
+            btn.textContent = 'REFRESH';
           }
         }, 1200);
       };
@@ -2571,7 +2729,7 @@
         updateOfflineCacheStatus();
         if (btn) {
           btn.disabled = false;
-          btn.textContent = 'DOWNLOAD';
+          btn.textContent = 'REFRESH';
         }
       };
 
@@ -3657,12 +3815,12 @@
           const expiry = new Date(expiryStr + 'T00:00:00');
           const missionDate = new Date(date + 'T00:00:00');
           if (!isNaN(expiry.getTime()) && !isNaN(missionDate.getTime()) && expiry < missionDate) {
-            licenseWarning = ` [⚠ LICENSE ${required} EXPIRED ${expiryStr}]`;
+            licenseWarning = ` [WARN LICENSE ${required} EXPIRED ${expiryStr}]`;
           }
         }
       }
 
-      const dutyWarning = estDuty > 14 ? ` [⚠ DUTY EST ${estDuty.toFixed(1)}h > 14h]` : '';
+      const dutyWarning = estDuty > 14 ? ` [WARN DUTY EST ${estDuty.toFixed(1)}h > 14h]` : '';
 
       let routeTokens = _offfltParseRouteTokens(calc.routeText || `${from}, ${to}`);
       if (from && (!routeTokens.length || routeTokens[0] !== from)) routeTokens.unshift(from);
@@ -3763,8 +3921,8 @@
         updateOfflineFlightButtonState();
         ensureEnvelopeCacheOnStartup();
         processOutboxQueue();
-        // Auto-refresh mission list so status changes (e.g. PENDING→APPROVED) are visible immediately
-        if (typeof renderMissionList === 'function') renderMissionList();
+        // Auto-refresh mission list so status changes (e.g. PENDING->APPROVED) are visible immediately
+        if (typeof renderMissionList === 'function') renderMissionList({ forceServerList: true, skipPrefetch: true, silent: true });
       });
       window.addEventListener('offline', function() {
         updateOfflineCacheStatus();
@@ -4261,7 +4419,7 @@
       if (tabNum < 1 || tabNum > 8) return;
 
       if (tabNum > 1 && !_isMissionReadyForLock_()) {
-        if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3200 });
+        if (window.M) M.toast({ html: 'Offline pack not ready. Press REFRESH and wait for MISSION READY.', classes: 'orange', displayLength: 3200 });
         return;
       }
 
@@ -4310,6 +4468,14 @@
       document.getElementById('btnBack').style.visibility = (tabNum === 1) ? 'hidden' : 'visible';
       updateFooterButton(tabNum);
 
+      if (tabNum === 1 && isServerAvailable() && typeof renderMissionList === 'function') {
+        const now = Date.now();
+        if ((now - Number(_lastMissionListServerFetchTs || 0)) > 15000) {
+          _lastMissionListServerFetchTs = now;
+          renderMissionList({ forceServerList: true, skipPrefetch: true, silent: true });
+        }
+      }
+
       // 2. TRIGGER BRIEFING RENDER: If switching to Tab 2, load the data
       if (tabNum === 2) {
         initiateBriefing(activeMission);
@@ -4353,7 +4519,7 @@
     function nextTab() {
       if (currentTab === 1) {
         if (!_isMissionReadyForLock_()) {
-          if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3200 });
+          if (window.M) M.toast({ html: 'Offline pack not ready. Press REFRESH and wait for MISSION READY.', classes: 'orange', displayLength: 3200 });
           return;
         }
         tab1AcceptMissionThenAdvance();
@@ -4400,7 +4566,11 @@
       btn.innerText = labels[tab] || "NEXT";
     }
     // Mission Logic
-    function renderMissionList() {
+    function renderMissionList(options) {
+      const opts = (options && typeof options === 'object') ? options : {};
+      const forceServerList = !!opts.forceServerList;
+      const skipPrefetch = !!opts.skipPrefetch;
+      const silent = !!opts.silent;
       const render = function(missions) {
         const container = document.getElementById('mission-list-container');
         if (!missions || missions.length === 0) {
@@ -4451,19 +4621,19 @@
       }
 
       if (isServerAvailable()) {
-        if (cachedMissions.length && isOfflineCacheFresh_()) {
-          prefetchScheduledMissionDetails(cachedMissions, false);
+        if (!forceServerList && cachedMissions.length && isOfflineCacheFresh_()) {
+          if (!skipPrefetch) prefetchScheduledMissionDetails(cachedMissions, false);
           return;
         }
 
         google.script.run.withSuccessHandler(missions => {
           cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, missions || []);
           render(missions || []);
-          prefetchScheduledMissionDetails(missions || []);
+          if (!skipPrefetch) prefetchScheduledMissionDetails(missions || []);
         }).withFailureHandler(err => {
           const cached = cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || [];
           if (cached.length) {
-            M.toast({ html: 'Loaded cached missions', classes: 'orange' });
+            if (!silent && window.M) M.toast({ html: 'Loaded cached missions', classes: 'orange' });
             render(cached);
             return;
           }
@@ -6426,7 +6596,7 @@
     if (!result || !result.success || !result.docs || result.docs.length === 0) {
       if (title) title.textContent = 'Aircraft Manuals & Documents';
       if (sub) sub.textContent = '';
-      if (body) body.innerHTML = '<p class="orange-text" style="margin-top:18px; font-weight:700; text-align:center;">No documents cached yet.<br><span style="font-size:0.82rem; color:#607d8b; font-weight:500;">Press DOWNLOAD on Tab 1 to sync documents.</span></p>';
+      if (body) body.innerHTML = '<p class="orange-text" style="margin-top:18px; font-weight:700; text-align:center;">No documents cached yet.<br><span style="font-size:0.82rem; color:#607d8b; font-weight:500;">Press REFRESH on Tab 1 to sync documents.</span></p>';
       return;
     }
 

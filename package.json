@@ -13,5 +13,8 @@
   },
   "devDependencies": {
     "@types/google-apps-script": "^2.0.8"
+  },
+  "dependencies": {
+    "acorn": "^8.16.0"
   }
 }

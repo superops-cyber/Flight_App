@@ -145,7 +145,7 @@
         <button class="nav-arrow" onclick="goBack()"><i class="material-icons">arrow_back</i></button>
         <button class="nav-arrow" onclick="goForward()"><i class="material-icons">arrow_forward</i></button>
       </div>
-      <a href="javascript:void(0)" onclick="switchTab('view-home')" class="brand-logo" style="position:relative; left:0; transform:none;">
+      <a href="#" onclick="switchTab('view-home'); return false;" class="brand-logo" style="position:relative; left:0; transform:none;">
         <i class="material-icons" style="margin-right:10px;">flight_takeoff</i>FLIGHT OPS
       </a>
     </div>
@@ -156,13 +156,12 @@
         <span class="portal-time-pill">BSB <b id="portal-time-bsb">--:--</b></span>
       </div>
       <ul id="nav-mobile" class="right">
-        <li class="active" id="nav-home"><a href="javascript:void(0)" onclick="switchTab('view-home')">CALENDAR</a></li>
-        <li id="nav-dispatch"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-dispatch')">DISPATCH</a><a href="javascript:void(0)" class="nav-open-new" title="Open Dispatch in new tab" onclick="openViewInNewTab('view-dispatch'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
-        <li id="nav-supervisor"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-supervisor')">SUPERVISOR</a><a href="javascript:void(0)" class="nav-open-new" title="Open Supervisor in new tab" onclick="openViewInNewTab('view-supervisor'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
-        <li id="nav-tools"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-tools')">TOOLS</a><a href="javascript:void(0)" class="nav-open-new" title="Open Tools in new tab" onclick="openViewInNewTab('view-tools'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
-        <li id="nav-maintenance"><span class="nav-link-wrap"><a href="javascript:void(0)" onclick="switchTab('view-maintenance')">MAINTENANCE</a><a href="javascript:void(0)" class="nav-open-new" title="Open Maintenance in new tab" onclick="openViewInNewTab('view-maintenance'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
-        <li id="nav-flightfollow"><a href="javascript:void(0)" onclick="switchTab('view-flightfollow')">FLIGHT FOLLOW</a></li>
-        <li id="nav-pilot"><a href="javascript:void(0)" onclick="openPilotAppFromPortal()">PILOT APP</a></li>
+        <li class="active" id="nav-home"><a href="#" onclick="switchTab('view-home'); return false;">CALENDAR</a></li>
+        <li id="nav-dispatch"><span class="nav-link-wrap"><a href="#" onclick="switchTab('view-dispatch'); return false;">DISPATCH</a><a href="#" class="nav-open-new" title="Open Dispatch in new tab" onclick="openViewInNewTab('view-dispatch'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-supervisor"><span class="nav-link-wrap"><a href="#" onclick="switchTab('view-supervisor'); return false;">SUPERVISOR</a><a href="#" class="nav-open-new" title="Open Supervisor in new tab" onclick="openViewInNewTab('view-supervisor'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-tools"><span class="nav-link-wrap"><a href="#" onclick="switchTab('view-tools'); return false;">TOOLS</a><a href="#" class="nav-open-new" title="Open Tools in new tab" onclick="openViewInNewTab('view-tools'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-maintenance"><span class="nav-link-wrap"><a href="#" onclick="switchTab('view-maintenance'); return false;">MAINTENANCE</a><a href="#" class="nav-open-new" title="Open Maintenance in new tab" onclick="openViewInNewTab('view-maintenance'); return false;"><i class="material-icons">open_in_new</i></a></span></li>
+        <li id="nav-flightfollow"><a href="#" onclick="switchTab('view-flightfollow'); return false;">FLIGHT FOLLOW</a></li>
         <li>
           <div class="nav-dropdown-wrap" id="nav-apps-wrap">
             <button class="nav-dropdown-btn" onclick="navAppsToggle_(event)">
@@ -170,17 +169,14 @@
               <i class="material-icons" style="font-size:14px; margin-left:2px;">arrow_drop_down</i>
             </button>
             <div class="nav-dropdown-menu" id="nav-apps-menu">
-              <a class="nav-dropdown-item" href="javascript:void(0)" onclick="navOpenApp_('duty')">
+              <a class="nav-dropdown-item" href="#" onclick="navOpenApp_('duty'); return false;">
                 <i class="material-icons">schedule</i> Duty Time App
               </a>
-              <a class="nav-dropdown-item" href="javascript:void(0)" onclick="navOpenApp_('pilot')">
-                <i class="material-icons">flight</i> Pilot Flight Deck
-              </a>
               <div class="nav-dropdown-divider"></div>
-              <a class="nav-dropdown-item" id="nav-copy-duty-link" href="javascript:void(0)" onclick="navCopyAppLink_('duty')">
+              <a class="nav-dropdown-item" id="nav-copy-duty-link" href="#" onclick="navCopyAppLink_('duty'); return false;">
                 <i class="material-icons">link</i> Copy Duty App Link
               </a>
-              <a class="nav-dropdown-item" id="nav-copy-portal-link" href="javascript:void(0)" onclick="navCopyAppLink_('')">
+              <a class="nav-dropdown-item" id="nav-copy-portal-link" href="#" onclick="navCopyAppLink_(''); return false;">
                 <i class="material-icons">link</i> Copy Portal Link
               </a>
             </div>
@@ -207,7 +203,7 @@
     </div>
   </div>
   <div class="modal-footer" style="display:flex; justify-content:space-between; padding: 10px 24px;">
-    <a href="javascript:void(0)" class="modal-close waves-effect waves-grey btn-flat">Close</a>
+    <a href="#" onclick="return false;" class="modal-close waves-effect waves-grey btn-flat">Close</a>
     <div style="display:flex; gap:8px;">
       <button id="qvSupervisorBtn" class="waves-effect waves-light btn amber darken-3">OPEN IN SUPERVISOR</button>
       <button id="qvEditBtn" class="waves-effect waves-light btn blue darken-3">OPEN IN DISPATCH</button>
@@ -229,6 +225,46 @@
 
   <script>
     const WEB_APP_URL = <?!= JSON.stringify(typeof webAppUrl === 'string' ? webAppUrl : '') ?>;
+    const _portalDiagnostics = {
+      startedAt: new Date().toISOString(),
+      href: window.location.href,
+      userAgent: navigator.userAgent
+    };
+    window.__portalDiagnostics = _portalDiagnostics;
+
+    function _reportPortalDiag_(kind, details) {
+      try {
+        const payload = Object.assign({ kind: kind, ts: new Date().toISOString() }, details || {});
+        _portalDiagnostics.last = payload;
+        console.error('[PORTAL-DIAG]', payload);
+        let panel = document.getElementById('portal-diag-banner');
+        if (!panel) {
+          panel = document.createElement('div');
+          panel.id = 'portal-diag-banner';
+          panel.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;z-index:5000;background:#b71c1c;color:#fff;padding:8px 10px;border-radius:8px;font-size:0.78rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.35)';
+          document.body.appendChild(panel);
+        }
+        const line = payload.line ? (':' + payload.line + ':' + (payload.col || 0)) : '';
+        panel.textContent = 'Portal diagnostic [' + payload.kind + ']: ' + String(payload.message || 'unknown') + (payload.source ? (' @ ' + payload.source + line) : '');
+      } catch (e) {}
+    }
+
+    window.addEventListener('error', function(ev) {
+      _reportPortalDiag_('error', {
+        message: ev && ev.message ? String(ev.message) : 'unknown error',
+        source: ev && ev.filename ? String(ev.filename).split('/').pop() : '',
+        line: ev && typeof ev.lineno === 'number' ? ev.lineno : 0,
+        col: ev && typeof ev.colno === 'number' ? ev.colno : 0
+      });
+    });
+
+    window.addEventListener('unhandledrejection', function(ev) {
+      const reason = ev && ev.reason ? ev.reason : null;
+      _reportPortalDiag_('unhandledrejection', {
+        message: reason && reason.message ? String(reason.message) : String(reason || 'promise rejected')
+      });
+    });
+
     let _portalClockTimer = null;
 
     function _dispatchClockText_(timeZone) {
@@ -350,19 +386,6 @@
       if (viewId === 'view-maintenance' && typeof window.onMaintenanceShown === 'function') window.onMaintenanceShown();
     }
 
-    function openPilotAppFromPortal() {
-      try {
-        const base = _portalBaseUrl_();
-        const url = new URL(base);
-        url.searchParams.set('view', 'pilot');
-        url.searchParams.set('src', 'portal-nav');
-        url.hash = '';
-        window.location.href = url.toString();
-      } catch (e) {
-        window.location.href = String(_portalBaseUrl_() || window.location.pathname || '') + '?view=pilot';
-      }
-    }
-
     function openViewInNewTab(viewId) {
       try {
         const url = new URL(_portalBaseUrl_());
@@ -386,6 +409,8 @@
 
     function navOpenApp_(view) {
       document.getElementById('nav-apps-menu').classList.remove('open');
+      const allowedViews = { duty: true };
+      if (!allowedViews[String(view || '').trim()]) return;
       try {
         const url = new URL(_portalBaseUrl_());
         if (view) url.searchParams.set('view', view);
@@ -398,9 +423,12 @@
 
     function navCopyAppLink_(view) {
       document.getElementById('nav-apps-menu').classList.remove('open');
+      const allowedViews = { '': true, duty: true };
+      const normalized = String(view || '').trim();
+      if (!Object.prototype.hasOwnProperty.call(allowedViews, normalized)) return;
       try {
         const url = new URL(_portalBaseUrl_());
-        if (view) url.searchParams.set('view', view);
+        if (normalized) url.searchParams.set('view', normalized);
         url.hash = '';
         var link = url.toString();
         navigator.clipboard.writeText(link).then(function() {
@@ -409,7 +437,7 @@
           window.prompt('Copie o link abaixo:', link);
         });
       } catch(e) {
-        window.prompt('Copie o link abaixo:', String(_portalBaseUrl_() || '') + (view ? '?view=' + view : ''));
+        window.prompt('Copie o link abaixo:', String(_portalBaseUrl_() || '') + (normalized ? '?view=' + normalized : ''));
       }
     }
 

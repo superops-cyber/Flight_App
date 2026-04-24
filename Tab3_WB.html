@@ -1031,7 +1031,7 @@
       
       <!-- Passengers Waiting to be Loaded -->
       <div id="wb-waiting-passengers" class="wb-waiting-panel">
-        <div class="wb-waiting-title">📦 Passengers Waiting to be Loaded</div>
+        <div class="wb-waiting-title">≡ƒôª Passengers Waiting to be Loaded</div>
         <div id="wb-waiting-list"></div>
       </div>
 
@@ -1126,7 +1126,7 @@
           <th>Item</th>
           <th>Planned</th>
           <th>Actual</th>
-          <th>Δ</th>
+          <th>╬ö</th>
         </tr>
       </thead>
       <tbody id="wb-pax-cargo-table">
@@ -1182,7 +1182,7 @@
       <button onclick="window.wbKeypadPress_('3')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">3</button>
       <button onclick="window.wbKeypadPress_('C')" style="height:60px;border-radius:8px;border:2px solid #ffcdd2;background:#fff5f5;color:#c62828;font-size:1.1rem;font-weight:900;">CLEAR</button>
       <button onclick="window.wbKeypadPress_('0')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">0</button>
-      <button onclick="window.wbKeypadPress_('⌫')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">⌫</button>
+      <button onclick="window.wbKeypadPress_('BKSP')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1rem;font-weight:900;">BKSP</button>
     </div>
     <div id="wb-keypad-dot-row" style="display:none;margin-top:7px;">
       <button onclick="window.wbKeypadPress_('.')" style="width:100%;height:52px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">.</button>
@@ -1374,23 +1374,27 @@ function wbMissionPassengers_() {
 function wbEnsureInputId_(inputEl) {
   if (!inputEl) return '';
   if (inputEl.id) return inputEl.id;
-  const autoId = 'wb-num-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+  var autoId = 'wb-num-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
   inputEl.id = autoId;
   return autoId;
 }
 
 window.wbKeypadOpen_ = function(inputEl, label, opts) {
   if (!inputEl) return;
+
+  var safeOpts = opts || {};
   window._wbKeypadEl = inputEl;
-  window._wbKeypadOpts = opts || {};
+  window._wbKeypadOpts = safeOpts;
+
   var titleEl = document.getElementById('wb-keypad-title');
   var displayEl = document.getElementById('wb-keypad-display');
   var modalEl = document.getElementById('wb-keypad-modal');
   var dotRow = document.getElementById('wb-keypad-dot-row');
   if (!titleEl || !displayEl || !modalEl) return;
+
   titleEl.textContent = label || 'Entry';
   displayEl.textContent = '';
-  if (dotRow) dotRow.style.display = (opts && opts.decimal) ? '' : 'none';
+  if (dotRow) dotRow.style.display = safeOpts.decimal ? '' : 'none';
   modalEl.style.display = 'flex';
 };
 
@@ -1398,16 +1402,28 @@ window.wbKeypadPress_ = function(val) {
   var displayEl = document.getElementById('wb-keypad-display');
   var opts = window._wbKeypadOpts || {};
   if (!displayEl) return;
+
   var cur = displayEl.textContent || '';
-  if (val === '⌫') {
+  if (val === 'BKSP') {
     displayEl.textContent = cur.slice(0, -1);
-  } else if (val === 'C') {
+    return;
+  }
+
+  if (val === 'C') {
     displayEl.textContent = '';
-  } else if (val === '.') {
-    if (opts.decimal && !cur.includes('.')) displayEl.textContent = cur ? (cur + '.') : '0.';
-  } else {
-    var maxLen = opts.maxLen || 10;
-    if (cur.length < maxLen) displayEl.textContent = cur + val;
+    return;
+  }
+
+  if (val === '.') {
+    if (opts.decimal && cur.indexOf('.') === -1) {
+      displayEl.textContent = cur ? (cur + '.') : '0.';
+    }
+    return;
+  }
+
+  var maxLen = opts.maxLen || 10;
+  if (cur.length < maxLen) {
+    displayEl.textContent = cur + String(val || '');
   }
 };
 
@@ -1416,14 +1432,19 @@ window.wbKeypadOK_ = function() {
   var opts = window._wbKeypadOpts || {};
   var displayEl = document.getElementById('wb-keypad-display');
   var nextVal = displayEl ? (displayEl.textContent || '') : '';
+
   if (inputEl) {
     inputEl.value = nextVal;
     inputEl.dispatchEvent(new Event('input', { bubbles: true }));
     inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-    if (opts && typeof opts.onApply === 'function') {
-      try { opts.onApply(nextVal); } catch (e) {}
+    if (typeof opts.onApply === 'function') {
+      try {
+        opts.onApply(nextVal);
+      } catch (e) {
+      }
     }
   }
+
   window.wbKeypadCancel_();
 };
 
@@ -1436,28 +1457,27 @@ window.wbKeypadCancel_ = function() {
 
 function wbKeypadLabelForInput_(inputEl) {
   if (!inputEl) return 'Numeric Input';
-  if (inputEl.dataset && inputEl.dataset.keypadLabel) return inputEl.dataset.keypadLabel;
-  const field = inputEl.closest('.wb-field');
-  const fieldLabel = field && field.querySelector('.wb-field-label');
+  if (inputEl.dataset && inputEl.dataset.keypadLabel) return String(inputEl.dataset.keypadLabel);
+  var field = inputEl.closest('.wb-field');
+  var fieldLabel = field && field.querySelector('.wb-field-label');
   if (fieldLabel && fieldLabel.textContent) return String(fieldLabel.textContent).trim();
   return 'Numeric Input';
 }
 
 function wbOpenNumericKeypadForInput_(inputEl) {
   if (!inputEl || inputEl.disabled) return false;
-  const label = wbKeypadLabelForInput_(inputEl);
+  var label = wbKeypadLabelForInput_(inputEl);
 
   if (typeof window.wbKeypadOpen_ === 'function') {
-    window.wbKeypadOpen_(inputEl, label, {
-      decimal: true
-    });
+    window.wbKeypadOpen_(inputEl, label, { decimal: true });
     return true;
   }
 
   if (typeof window.flightDeckOpenNumericKeypad === 'function') {
-    const inputId = wbEnsureInputId_(inputEl);
+    var inputId = wbEnsureInputId_(inputEl);
     if (!inputId) return false;
-    const min = parseFloat(inputEl.min);
+
+    var min = parseFloat(inputEl.min);
     window.flightDeckOpenNumericKeypad(inputId, {
       title: label,
       allowSign: isFinite(min) && min < 0,
@@ -1467,9 +1487,7 @@ function wbOpenNumericKeypadForInput_(inputEl) {
   }
 
   if (typeof window.briefOpenKeypad_ === 'function') {
-    window.briefOpenKeypad_(inputEl, label, {
-      decimal: true
-    });
+    window.briefOpenKeypad_(inputEl, label, { decimal: true });
     return true;
   }
 
@@ -1481,7 +1499,7 @@ function wbBindNumericKeypad_() {
   window._wbNumericKeypadBound = true;
 
   document.addEventListener('pointerdown', function(e) {
-    const input = e.target && e.target.closest ? e.target.closest('#wb-container input[type="number"]') : null;
+    var input = e.target && e.target.closest ? e.target.closest('#wb-container input[type="number"]') : null;
     if (!input || input.disabled || input.dataset.keypad === 'off') return;
     if (wbOpenNumericKeypadForInput_(input)) {
       e.preventDefault();
@@ -1490,7 +1508,7 @@ function wbBindNumericKeypad_() {
   }, true);
 
   document.addEventListener('focusin', function(e) {
-    const input = e.target && e.target.matches && e.target.matches('#wb-container input[type="number"]') ? e.target : null;
+    var input = e.target && e.target.matches && e.target.matches('#wb-container input[type="number"]') ? e.target : null;
     if (!input || input.disabled || input.dataset.keypad === 'off') return;
     if (wbOpenNumericKeypadForInput_(input)) {
       input.blur();
@@ -2030,7 +2048,7 @@ function wbBuildOfflinePayload_(flightId) {
     pilotWeightEstimateReason: String(pilotWeightInfo.reason || ''),
     date: String(mission.date || ''),
     time: String(leg.time || mission.time || ''),
-    route: `${String(leg.from || '').trim().toUpperCase()}→${String(leg.to || '').trim().toUpperCase()}`,
+    route: `${String(leg.from || '').trim().toUpperCase()}ΓåÆ${String(leg.to || '').trim().toUpperCase()}`,
     airframeData: {
       Empty_Weight: emptyWeight,
       Empty_Arm: emptyArm,
@@ -2244,10 +2262,10 @@ window.addOfflineFreightToWb = function() {
 
 /**
  * Calculate moment for a single item
- * Arms are in inches, so moment = weight (kg) × arm (inches)
+ * Arms are in inches, so moment = weight (kg) ├ù arm (inches)
  */
 window.calculateMoment = function(weight, arm) {
-  return weight * arm; // Moment = Weight × Arm (kg-in)
+  return weight * arm; // Moment = Weight ├ù Arm (kg-in)
 };
 
 function wbSeatStowArm_() {
@@ -2583,7 +2601,7 @@ window.updateWBUI = function() {
     let routeText = window.wbData.route || '';
     if (!routeText && window.currentBriefingMission && Array.isArray(window.currentBriefingMission.legs) && window.currentBriefingMission.legs.length) {
       const firstLeg = window.currentBriefingMission.legs[0] || {};
-      routeText = `${String(firstLeg.from || '').trim().toUpperCase()}→${String(firstLeg.to || '').trim().toUpperCase()}`;
+      routeText = `${String(firstLeg.from || '').trim().toUpperCase()}ΓåÆ${String(firstLeg.to || '').trim().toUpperCase()}`;
     }
     document.getElementById('wb-route').textContent = routeText || '---';
   }
@@ -2603,13 +2621,13 @@ window.updateWBUI = function() {
   const envelopeEl = document.getElementById('wb-envelope-status');
   if (!hasRealEnvelope) {
     envelopeEl.className = 'envelope-status unsafe';
-    envelopeEl.textContent = '✗ NO REAL ENVELOPE DATA — FLIGHT MUST NOT PROCEED';
+    envelopeEl.textContent = 'Γ£ù NO REAL ENVELOPE DATA ΓÇö FLIGHT MUST NOT PROCEED';
   } else if (isSafe) {
     envelopeEl.className = 'envelope-status safe';
-    envelopeEl.textContent = '✓ WITHIN ENVELOPE';
+    envelopeEl.textContent = 'Γ£ô WITHIN ENVELOPE';
   } else {
     envelopeEl.className = 'envelope-status unsafe';
-    envelopeEl.textContent = '✗ OUTSIDE ENVELOPE - CG or Weight Limit Exceeded';
+    envelopeEl.textContent = 'Γ£ù OUTSIDE ENVELOPE - CG or Weight Limit Exceeded';
   }
 
   // Render passenger & cargo summary table
@@ -2911,9 +2929,9 @@ window.renderManifest = function() {
     // Seat name with weight in small font, and occupant
     let nameHTML = `<b>${seatId}</b> <small style="color:#999; font-weight:normal;">(${seatWeight}kg)</small>`;
     if (seat.passenger && seat.passenger.name) {
-      nameHTML += `<br><small style="color:#666; margin-left:8px;">└ ${seat.passenger.name}</small>`;
+      nameHTML += `<br><small style="color:#666; margin-left:8px;">Γöö ${seat.passenger.name}</small>`;
     } else if (!seat.locked) {
-      nameHTML += `<br><small style="color:#999; margin-left:8px;">└ Empty</small>`;
+      nameHTML += `<br><small style="color:#999; margin-left:8px;">Γöö Empty</small>`;
     }
     
     // Planned weight column - original dispatch weight
@@ -2950,26 +2968,26 @@ window.renderManifest = function() {
                   id="verify-btn-${seatId}"
                   title="Verify weight"
                   class="wb-check-btn" ${isVerified ? 'style="display:none;"' : ''}>
-            ✓
+            Γ£ô
           </button>
           <button onclick="window.editPassengerWeight('${seatId}')" 
                   id="edit-btn-${seatId}"
                   title="Edit weight"
                   class="wb-manifest-btn edit" ${isVerified ? '' : 'style="display:none;"'}>
-            ✏️
+            Γ£Å∩╕Å
           </button>
                   `}
           <button onclick="window.savePassengerWeight('${seatId}')" 
                   id="save-btn-${seatId}"
                   title="Save weight"
                   class="wb-manifest-btn save" style="display:none;">
-            ✓
+            Γ£ô
           </button>
           <button onclick="window.cancelEditWeight('${seatId}')" 
                   id="cancel-btn-${seatId}"
                   title="Cancel"
                   class="wb-manifest-btn cancel" style="display:none;">
-            ✕
+            Γ£ò
           </button>
         </div>
       `;
@@ -2984,7 +3002,7 @@ window.renderManifest = function() {
     // Controls column
     let controlsHTML = '';
     if (seat.locked) {
-      controlsHTML = '<span style="color:#999; font-size:1.35rem;">🔒 Locked</span>';
+      controlsHTML = '<span style="color:#999; font-size:1.35rem;">≡ƒöÆ Locked</span>';
     } else {
       controlsHTML = `<div style="display:flex; justify-content:flex-end;">${wbStatusCycleButtonHtml_(seatId, seat.status)}</div>`;
     }
@@ -3053,7 +3071,7 @@ window.renderManifest = function() {
     
     let areaLabel = `<b>${area.name}</b>${maxDisplay}`;
     if (maxExceeded) {
-      areaLabel += ` <span style="color:#d32f2f; font-weight:bold; font-size:1.26rem;">⚠️ EXCEEDS MAX</span>`;
+      areaLabel += ` <span style="color:#d32f2f; font-weight:bold; font-size:1.26rem;">ΓÜá∩╕Å EXCEEDS MAX</span>`;
     }
     
     rows.push(`
@@ -3070,7 +3088,7 @@ window.renderManifest = function() {
                    const val = parseFloat(this.value) || 0;
                    const max = ${maxWeightKg} || 0;
                    if (max > 0 && val > max) {
-                     M.toast({html: '⚠️ Exceeds max weight of ' + Math.round(max) + 'kg', displayLength: 3000});
+                     M.toast({html: 'ΓÜá∩╕Å Exceeds max weight of ' + Math.round(max) + 'kg', displayLength: 3000});
                      this.value = '${actualWeight}';
                      return;
                    }
@@ -3114,11 +3132,11 @@ window.renderManifest = function() {
     
     let nameHTML = `<b>${seatId}</b> <small style="color:#999; font-weight:normal;">(${seatWeight}kg)</small>`;
     if (seat.passenger && seat.passenger.name) {
-      nameHTML += `<br><small style="color:#666; margin-left:8px;">└ ${seat.passenger.name}</small>`;
+      nameHTML += `<br><small style="color:#666; margin-left:8px;">Γöö ${seat.passenger.name}</small>`;
     }
     
     const controlsHTML = seat.locked
-      ? '<span style="color:#999; font-size:1.35rem;">🔒 Locked</span>'
+      ? '<span style="color:#999; font-size:1.35rem;">≡ƒöÆ Locked</span>'
       : `<div style="display:flex; justify-content:flex-end;">${wbStatusCycleButtonHtml_(seatId, seat.status)}</div>`;
     
     rows.push(`
@@ -3144,10 +3162,10 @@ window.renderManifest = function() {
     const seatWeight = seat.weight || 0;
     
     let nameHTML = `<b>${seatId}</b> <small style="color:#999; font-weight:normal;">(${seatWeight}kg)</small>`;
-    nameHTML += `<br><small style="color:#999; margin-left:8px;">└ Left at base</small>`;
+    nameHTML += `<br><small style="color:#999; margin-left:8px;">Γöö Left at base</small>`;
     
     const controlsHTML = seat.locked
-      ? '<span style="color:#999; font-size:1.35rem;">🔒 Locked</span>'
+      ? '<span style="color:#999; font-size:1.35rem;">≡ƒöÆ Locked</span>'
       : `<div style="display:flex; justify-content:flex-end;">${wbStatusCycleButtonHtml_(seatId, seat.status)}</div>`;
     
     rows.push(`
@@ -3178,7 +3196,7 @@ window.renderManifest = function() {
           }).map(seatId => `
             <button onclick="window.assignPassengerToSeat('${seatId}', '${p.name}')" 
                     class="wb-manifest-btn edit">
-              → ${seatId}
+              ΓåÆ ${seatId}
             </button>
           `).join('')}
         </div>
@@ -3384,7 +3402,7 @@ window.renderSeatToggles = function() {
       
       passengerInfo = `
         <div class="seat-passenger-info">
-          👤 ${seat.passenger.name} (${seat.occupiedWeight || 0}kg)
+          ≡ƒæñ ${seat.passenger.name} (${seat.occupiedWeight || 0}kg)
           ${paxDropdown}
         </div>
       `;
@@ -3417,7 +3435,7 @@ window.renderSeatToggles = function() {
 
     // Hide controls for locked seats (e.g., pilot)
     const controlsHTML = seat.locked
-      ? `<div class="seat-controls" style="color:#999; font-size:1.275rem; font-style:italic;">🔒 Locked - cannot modify</div>`
+      ? `<div class="seat-controls" style="color:#999; font-size:1.275rem; font-style:italic;">≡ƒöÆ Locked - cannot modify</div>`
       : `<div class="seat-controls">
           <button onclick="window.changeSeatStatus('${seatName}', 'installed')" 
                   ${status === 'installed' ? 'disabled' : ''}>
@@ -3916,7 +3934,7 @@ window.renderAircraftDiagram = function() {
   fuselageHTML += `<span style="margin-right:4px;">Zone D:</span>`;
   if (storedSeats.length > 0) {
     storedSeats.forEach(abbr => {
-      fuselageHTML += `<div class="stored-seat-label">💺 ${abbr}</div>`;
+      fuselageHTML += `<div class="stored-seat-label">≡ƒÆ║ ${abbr}</div>`;
     });
   } else {
     fuselageHTML += `<span style="font-size:13.5px; color:#999;">Available</span>`;
@@ -3930,7 +3948,7 @@ window.renderAircraftDiagram = function() {
     baseBoxHTML = `
       <div style="margin-top:10px; padding:6px 10px; border:2px dashed #999; border-radius:8px; background:#e8e8e8; display:flex; flex-wrap:wrap; gap:4px; align-items:center; justify-content:center;">
         <span style="margin-right:4px; color:#666; font-weight:bold; font-size:16.5px;">BASE:</span>
-        ${baseSeats.map(abbr => `<div class="stored-seat-label" style="background:#9e9e9e;">💺 ${abbr}</div>`).join('')}
+        ${baseSeats.map(abbr => `<div class="stored-seat-label" style="background:#9e9e9e;">≡ƒÆ║ ${abbr}</div>`).join('')}
       </div>
     `;
   }
@@ -4056,7 +4074,7 @@ window.saveWBLog = function(options) {
       },
       onFailure: function(err) {
         console.error('Save failed', err);
-        if (!silent && window.M) M.toast({ html: 'Failed to save W&B — check console', classes: 'red' });
+        if (!silent && window.M) M.toast({ html: 'Failed to save W&B ΓÇö check console', classes: 'red' });
       }
     });
     return;
@@ -4135,7 +4153,7 @@ function applyWBPayload_(data) {
   }
 
   const missionRoute = (window.currentBriefingMission && Array.isArray(window.currentBriefingMission.legs) && window.currentBriefingMission.legs.length)
-    ? `${String(window.currentBriefingMission.legs[0].from || '').trim().toUpperCase()}→${String(window.currentBriefingMission.legs[0].to || '').trim().toUpperCase()}`
+    ? `${String(window.currentBriefingMission.legs[0].from || '').trim().toUpperCase()}ΓåÆ${String(window.currentBriefingMission.legs[0].to || '').trim().toUpperCase()}`
     : '';
 
   const aircraftReg = String(data.aircraft || '').trim();

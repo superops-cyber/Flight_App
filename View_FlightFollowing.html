@@ -144,6 +144,25 @@
     min-height: 50vh;
   }
 
+  #ff-container.ff-standalone {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: #f5f7fb;
+  }
+
+  #ff-container.ff-standalone .ff-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #ff-container.ff-standalone .ff-list-pane {
+    display: none;
+  }
+
+  #ff-container.ff-standalone .ff-detail-pane {
+    height: 100%;
+  }
+
   .ff-focus-title {
     margin: 0 0 10px 0;
     font-size: 0.95rem;
@@ -633,7 +652,7 @@
   <div class="ff-body">
     <div class="ff-layout">
       <section class="ff-list-pane">
-        <div class="ff-pane-head">Voos do dia</div>
+        <div class="ff-pane-head">Todos os voos</div>
         <div class="ff-list-scroll" id="ff-flight-list"></div>
       </section>
       <section class="ff-detail-pane">
@@ -653,6 +672,8 @@
     missionsByReg: {},
     activeFlights: new Set(),
     selectedFlightKey: '',
+    pendingOpenKey: '',
+    standaloneMode: false,
     messagesByReg: {},
     checksByReg: {},
     livePositions: {},      // reg -> { lat, lng, bearing, gsKts, updatedAtMs }
@@ -664,7 +685,35 @@
   };
   var _ffPollTimer = null;
   var _ffLeafletReady = false;
+  var _ffMissingGoogleWarned = false;
 
+  function _ffHasGoogleScriptRun_() {
+    return !!(window.google && google.script && google.script.run);
+  }
+
+  function _ffWarnGoogleMissing_() {
+    if (_ffMissingGoogleWarned) return;
+    _ffMissingGoogleWarned = true;
+    renderEmpty('Flight Following indisponivel neste contexto: google.script.run nao encontrado.');
+  }
+
+  function _ffGetUrlParams_() {
+    try {
+      return new URLSearchParams(window.location.search || '');
+    } catch (e) {
+      return { get: function() { return ''; } };
+    }
+  }
+
+  function _ffApplyStandaloneMode_() {
+    var params = _ffGetUrlParams_();
+    state.standaloneMode = params.get('ffStandalone') === '1';
+    state.pendingOpenKey = String(params.get('ffKey') || '').trim();
+    var host = document.getElementById('ff-container');
+    if (host && state.standaloneMode) host.classList.add('ff-standalone');
+  }
+
+  _ffApplyStandaloneMode_();
   loadAircraftAndMissions();
   _ffStartPolling();
 
@@ -675,6 +724,7 @@
 
   function _ffPollLivePositions() {
     if (!state.activeFlights.size) return;
+    if (!_ffHasGoogleScriptRun_()) return;
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) return;
@@ -894,6 +944,10 @@
   }
 
   function loadAircraftAndMissions() {
+    if (!_ffHasGoogleScriptRun_()) {
+      _ffWarnGoogleMissing_();
+      return;
+    }
     google.script.run
       .withSuccessHandler(function(data) {
         state.aircraft = Array.isArray(data && data.aircraft) ? data.aircraft : [];
@@ -933,27 +987,49 @@
           missionId: mission.missionId,
           route: (mission.from || '--') + ' - ' + (mission.to || '--'),
           pilot: mission.pilot || '--',
-          date: mission.date || '--'
+          date: mission.date || '--',
+          takeoffUTC: mission.takeoffUTC || ''
         });
       });
     });
 
+    rows.sort(function(a, b) {
+      var ad = String(a.date || '');
+      var bd = String(b.date || '');
+      if (ad !== bd) return bd.localeCompare(ad);
+      var at = String(a.takeoffUTC || '');
+      var bt = String(b.takeoffUTC || '');
+      if (at !== bt) return bt.localeCompare(at);
+      return String(a.missionId || '').localeCompare(String(b.missionId || ''));
+    });
+
     if (!rows.length) {
-      host.innerHTML = '<div class="ff-empty-state" style="padding:26px 10px;">Nenhum voo encontrado para hoje.</div>';
+      host.innerHTML = '<div class="ff-empty-state" style="padding:26px 10px;">Nenhum voo encontrado.</div>';
       return;
     }
 
-    host.innerHTML = '<table class="ff-list-table"><thead><tr><th>Aeronave</th><th>Missao</th><th>Rota</th><th>PIC</th></tr></thead><tbody>' +
+    host.innerHTML = '<table class="ff-list-table"><thead><tr><th>Aeronave</th><th>Missao</th><th>Data</th><th>Rota</th><th>PIC</th><th></th></tr></thead><tbody>' +
       rows.map(function(r) {
         var isActive = r.key === state.selectedFlightKey;
         return '<tr class="ff-list-row' + (isActive ? ' active' : '') + '" onclick="ffOpenFlight(\'' + esc(r.key) + '\')">' +
           '<td>' + esc(r.reg) + '</td>' +
           '<td>' + esc(r.missionId) + '</td>' +
+          '<td>' + esc(r.date || '--') + '</td>' +
           '<td>' + esc(r.route) + '</td>' +
           '<td>' + esc(r.pilot) + '</td>' +
+          '<td><button class="ff-btn-primary" style="padding:4px 8px; font-size:0.68rem;" onclick="event.stopPropagation(); ffOpenFlightInNewTab(\'' + esc(r.key) + '\')">FULL</button></td>' +
         '</tr>';
       }).join('') +
       '</tbody></table>';
+
+    if (state.pendingOpenKey) {
+      var found = rows.some(function(r) { return r.key === state.pendingOpenKey; });
+      if (found) {
+        var keyToOpen = state.pendingOpenKey;
+        state.pendingOpenKey = '';
+        window.ffOpenFlight(keyToOpen);
+      }
+    }
   }
 
   window.ffOpenFlight = function(key) {
@@ -965,6 +1041,21 @@
     var reg = state.selectedFlightKey.split('|')[0] || '';
     if (reg) loadMessages(reg);
     _ffPollLivePositions();
+  };
+
+  window.ffOpenFlightInNewTab = function(key) {
+    var k = String(key || '').trim();
+    if (!k) return;
+    try {
+      var u = new URL(window.location.href);
+      u.searchParams.set('ffStandalone', '1');
+      u.searchParams.set('ffKey', k);
+      u.hash = '#view-flightfollow';
+      window.open(u.toString(), '_blank', 'noopener');
+    } catch (e) {
+      var q = '?ffStandalone=1&ffKey=' + encodeURIComponent(k) + '#view-flightfollow';
+      window.open(String(window.location.pathname || '') + q, '_blank', 'noopener');
+    }
   };
 
   window.ffLoadFlights = function() {
@@ -996,6 +1087,10 @@
       return;
     }
     host.innerHTML = buildFocusCard(acft, mission);
+    setTimeout(function() {
+      _ffInitMap(state.selectedFlightKey, reg, mission);
+      renderMessages(reg);
+    }, 80);
   }
 
   function ffFormatDuration_(hours) {
@@ -1009,6 +1104,8 @@
 
   function buildFocusCard(acft, mission) {
     var reg = String(acft && acft.reg || '').trim();
+    var sreg = safeId(reg);
+    var key = flightKey(reg, mission && mission.missionId || '');
     var burnLph = Number(acft && (acft.burnLph || acft.burn) || 0);
     var fuelL = Number(mission && mission.fuelL || 0);
     var range = (burnLph > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burnLph) : '--:--';
@@ -1039,6 +1136,44 @@
         ffFieldReadonly_('POB (piloto + pax)', String(pob)) +
         ffFieldReadonly_('Burn rate (DB_Aircraft)', isFinite(burnLph) && burnLph > 0 ? burnLph.toFixed(1) + ' L/h' : '--') +
         ffFieldReadonly_('Aeronave', acft.type || '--') +
+      '</div>' +
+
+      '<div class="ff-map-panel" id="ff-map-panel-' + sreg + '" style="margin-top:10px;">' +
+        '<div class="ff-map-toolbar">' +
+          '<span class="ff-map-source-badge none" id="ff-map-badge-' + sreg + '">No data</span>' +
+          '<button class="ff-map-toggle-btn active" id="ff-maptab-inhouse-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inhouse\')">In-House</button>' +
+          '<button class="ff-map-toggle-btn" id="ff-maptab-inreach-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inreach\')">InReach</button>' +
+          '<button class="ff-map-toggle-btn" id="ff-maptab-both-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'both\')">Both</button>' +
+          '<input class="ff-map-inreach-url" id="ff-inreach-url-' + sreg + '" type="url" placeholder="share.garmin.com/DeviceID" onblur="ffSetInreachUrl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\')ffSetInreachUrl(\''+key+'\',this.value)">' +
+        '</div>' +
+        _ffBuildWxBar(key, sreg) +
+        '<div class="ff-map-content-grid">' +
+          '<div class="ff-map-primary-col">' +
+            '<div class="ff-live-map-wrap" id="ff-live-wrap-' + sreg + '">' +
+              '<div class="ff-leaflet-map" id="ff-live-map-' + sreg + '"></div>' +
+            '</div>' +
+            '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + sreg + '" style="display:none">' +
+              '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + sreg + '">' +
+                'Paste the Garmin MapShare URL above<br>' +
+                '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">e.g. share.garmin.com/YourDevice</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="ff-sat-wrap" id="ff-sat-wrap-' + sreg + '">' +
+            '<div class="ff-sat-label" id="ff-sat-label-' + sreg + '" onclick="ffWxCycleLayer(\'' + key + '\')" title="Click to switch Visible / Infrared">Visible</div>' +
+            '<div class="ff-sat-map" id="ff-sat-map-' + sreg + '"></div>' +
+            '<div class="ff-sat-empty" id="ff-sat-empty-' + sreg + '">Satellite weather frames load here.<br>Use Visible / Infrared and Play when needed.</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="ff-chat-container" style="margin-top:10px;">' +
+        '<div class="ff-chat-header">InReach Messages</div>' +
+        '<div class="ff-chat-messages" id="ff-chat-' + sreg + '"></div>' +
+        '<div class="ff-chat-input-group">' +
+          '<input class="ff-chat-input" id="ff-chat-input-' + sreg + '" placeholder="Message to aircraft via inReach email" onkeypress="if(event.key===\'Enter\'){ffSendChat(\'' + esc(reg) + '\');}">' +
+          '<button class="ff-chat-send" onclick="ffSendChat(\'' + esc(reg) + '\')">Send</button>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }
@@ -1219,6 +1354,7 @@
   }
 
   function loadMessages(reg) {
+    if (!_ffHasGoogleScriptRun_()) return;
     google.script.run
       .withSuccessHandler(function(messages) {
         state.messagesByReg[reg] = Array.isArray(messages) ? messages : [];

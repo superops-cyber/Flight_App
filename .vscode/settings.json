@@ -4,6 +4,9 @@
             "approve": true,
             "matchCommandLine": true
         },
-        "clasp": true
+        "clasp": true,
+        "New-Object": true,
+        "Test-Path": true,
+        "Set-Content": true
     }
 }
