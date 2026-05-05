@@ -244,7 +244,10 @@ font-weight: bold;
 </div>
 <div id="timeline"></div>
 <button id="btnFinalize" class="btn-large green darken-3" style="width:100%; margin-top:20px;" onclick="finalizeMission()" disabled>FINALIZE & LOG MISSION</button>
-<div class="section-title">Scheduled Missions</div>
+<div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">
+  <span>Scheduled Missions</span>
+  <button onclick="syncMissionStatuses_()" style="border:none; border-radius:5px; background:#0b5394; color:#fff; padding:3px 9px; font-size:0.7rem; font-weight:800; cursor:pointer;">SYNC STATUS</button>
+</div>
 <div id="missionList" style="background:#fff; border:1px solid #ddd; border-radius:4px; max-height: 400px; overflow-y: auto;"></div>
 
 <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; padding-right:0;">
@@ -1725,7 +1728,9 @@ if (!visibleMissions.length) {
 box.innerHTML = "<p style='padding:8px;'>No scheduled missions found.</p>";
 return;
 }
-box.innerHTML = visibleMissions.map(m => `
+box.innerHTML = visibleMissions.map(m => {
+const routeLabel = String(m.route || '').trim() || [m.from, m.to].filter(Boolean).join(' - ') || m.to || 'N/A';
+return `
 <div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; transition: background 0.2s; position: relative;"
      onclick="loadDispatchMission('${m.id}')"
      onmouseover="this.style.background='#f0f7ff'"
@@ -1743,12 +1748,28 @@ box.innerHTML = visibleMissions.map(m => `
     ${m.date} | PIC: ${m.pilot}
   </div>
   <div style="font-size:0.75rem; color:#0b5394; margin-top:4px;">
-    ${m.to}
+    ${routeLabel}
   </div>
 </div>
-`).join('');
+`;
+}).join('');
 }
 
+
+function syncMissionStatuses_() {
+  document.getElementById('loader').style.display = 'flex';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      document.getElementById('loader').style.display = 'none';
+      google.script.run.withSuccessHandler(renderMissionList).getScheduledMissions();
+      if (window.M) M.toast({ html: 'Statuses synced (' + (res && res.rowsUpdated || 0) + ' rows updated)', classes: 'green' });
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('loader').style.display = 'none';
+      if (window.M) M.toast({ html: 'Sync failed: ' + (err && err.message || err), classes: 'red' });
+    })
+    .syncAllMissionStatuses();
+}
 
 function deleteMission(mId) {
 if (!confirm(`Are you sure you want to cancel Mission ${mId}?`)) return;

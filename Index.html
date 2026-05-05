@@ -115,6 +115,10 @@
     .view-section { display: none; height: 100%; width: 100%; overflow-y: auto; }
     .view-active { display: block; }
 
+    /* Prevent runway briefing overlay from rendering outside its open state */
+    #rbc-overlay { display: none !important; }
+    #rbc-overlay.rbc-open { display: block !important; }
+
     /* CALENDAR SPECIFIC */
     #view-home { padding: 20px; }
     #calendar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 100%; }
@@ -205,6 +209,7 @@
   <div class="modal-footer" style="display:flex; justify-content:space-between; padding: 10px 24px;">
     <a href="#" onclick="return false;" class="modal-close waves-effect waves-grey btn-flat">Close</a>
     <div style="display:flex; gap:8px;">
+      <button id="qvReportsBtn" class="waves-effect waves-light btn teal darken-2" style="display:none;">OPEN IN REPORTS</button>
       <button id="qvSupervisorBtn" class="waves-effect waves-light btn amber darken-3">OPEN IN SUPERVISOR</button>
       <button id="qvEditBtn" class="waves-effect waves-light btn blue darken-3">OPEN IN DISPATCH</button>
     </div>
@@ -214,7 +219,7 @@
   <div id="app-content">
     <div id="view-home" class="view-section view-active"><div id="calendar"></div></div>
     <div id="view-dispatch" class="view-section"><?!= include('View_Dispatch'); ?></div>
-    <div id="view-supervisor" class="view-section"><?!= include('View_Supervisor'); ?></div>
+    <div id="view-supervisor" class="view-section"><?!= include('View_Supervisor'); ?><?!= include('RunwayBriefingCard'); ?></div>
     <div id="view-flightfollow" class="view-section"><?!= include('View_FlightFollowing'); ?></div>
     <div id="view-tools" class="view-section"><?!= include('View_Tools'); ?></div>
     <div id="view-maintenance" class="view-section"><?!= include('View_Maintenance'); ?></div>
@@ -360,6 +365,48 @@
         loadSupervisorMission(missionId, selectedItem);
         if (window.M) M.toast({ html: 'Opening Mission ' + missionId + ' in Supervisor' });
       }, 140);
+    }
+
+    function jumpToReports(missionId) {
+      var openTools = function(opts) {
+        switchTab('view-tools');
+        setTimeout(function() {
+          if (typeof window.toolsOpenReportsPanel === 'function') window.toolsOpenReportsPanel();
+          if (typeof window.toolsSetReportCategory === 'function') window.toolsSetReportCategory('flight');
+          var startEl = document.getElementById('tools-report-start-date');
+          var endEl = document.getElementById('tools-report-end-date');
+          if (opts && opts.dateYmd) {
+            if (startEl) startEl.value = opts.dateYmd;
+            if (endEl) endEl.value = opts.dateYmd;
+          }
+          if (typeof window.toolsLoadReports === 'function') window.toolsLoadReports();
+          if (opts && opts.flightId) {
+            var flightInput = document.getElementById('tools-report-flight-id');
+            if (flightInput) flightInput.value = opts.flightId;
+            if (typeof window.toolsLoadFlightDetailReport_ === 'function') window.toolsLoadFlightDetailReport_();
+          }
+          if (window.M) M.toast({ html: 'Opening Mission ' + missionId + ' in Reports' });
+        }, 180);
+      };
+
+      if (typeof google === 'object' && google && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(mission) {
+            var firstFlightId = '';
+            if (mission && Array.isArray(mission.legs) && mission.legs.length) {
+              firstFlightId = String((mission.legs[0] && mission.legs[0].flightLegId) || '').trim();
+            }
+            var dateYmd = String((mission && mission.date) || '').trim();
+            openTools({ dateYmd: dateYmd, flightId: firstFlightId });
+          })
+          .withFailureHandler(function() {
+            openTools({});
+          })
+          .getMissionById(missionId);
+        return;
+      }
+
+      openTools({});
     }
 
     let navHistory = ['view-home'];
@@ -538,6 +585,8 @@
           let p = info.event.extendedProps;
           if (p.type === 'mission') {
             const fmt = (num) => (parseFloat(num) || 0).toFixed(1);
+            const missionStatus = String((p && p.status) || '').trim().toUpperCase();
+            const isFlown = missionStatus === 'FLOWN' || missionStatus === 'COMPLETE' || missionStatus === 'COMPLETED';
             document.getElementById('qvId').innerText = p.id;
             document.getElementById('qvAcft').innerText = p.acft;
             document.getElementById('qvPilot').innerText = p.fullPilot || p.pilot || 'PILOT TBD';
@@ -545,6 +594,14 @@
             document.getElementById('qvFlt').innerText = fmt(p.fltTime) + " hr";
             document.getElementById('qvDuty').innerText = fmt(p.dutyTime) + " hr";
             document.getElementById('qvRoute').innerText = p.route;
+
+            var qvDispatchBtn = document.getElementById('qvEditBtn');
+            var qvSupervisorBtn = document.getElementById('qvSupervisorBtn');
+            var qvReportsBtn = document.getElementById('qvReportsBtn');
+
+            if (qvReportsBtn) qvReportsBtn.style.display = isFlown ? '' : 'none';
+            if (qvDispatchBtn) qvDispatchBtn.style.display = isFlown ? 'none' : '';
+            if (qvSupervisorBtn) qvSupervisorBtn.style.display = isFlown ? 'none' : '';
 
             document.getElementById('qvEditBtn').onclick = function() {
               M.Modal.getInstance(document.getElementById('quickViewModal')).close();
@@ -554,6 +611,12 @@
               M.Modal.getInstance(document.getElementById('quickViewModal')).close();
               jumpToSupervisor(p.id);
             };
+            if (qvReportsBtn) {
+              qvReportsBtn.onclick = function() {
+                M.Modal.getInstance(document.getElementById('quickViewModal')).close();
+                jumpToReports(p.id);
+              };
+            }
             M.Modal.getInstance(document.getElementById('quickViewModal')).open();
           } else if (p.type === 'maintenance') {
             switchTab('view-maintenance');

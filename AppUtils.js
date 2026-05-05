@@ -53,7 +53,8 @@ const APP_SHEETS = {
   FORM3_SPREADSHEET_ID: '1kc_SJAitPgTgfZUo09tuhLJKG-qo_b1TTCNZSAmgnf0',
   LIABILITY_RELEASES: 'DB_Liability_Releases',
   FORM_IMPORT_LOG: 'DB_Form_Import_Log',
-  LIVE_TRACK: 'LIVE_Track'
+  LIVE_TRACK: 'LIVE_Track',
+  FF_MESSAGES: 'DB_FF_Messages'
 };
 
 const DISPATCH_COL = {

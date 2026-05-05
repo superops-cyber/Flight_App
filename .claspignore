@@ -21,5 +21,6 @@ _check_scripts.js
 _find_line.js
 _map_unicode_tab3.js
 _*.js
+extracted_script.js
 extracted_scripts.js
 temp_script_check.js

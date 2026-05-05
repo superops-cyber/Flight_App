@@ -4,7 +4,8 @@
 function doGet(e) {
  const view = (e && e.parameter && e.parameter.view ? e.parameter.view : "").toLowerCase();
  const isDuty = view === "duty" || view === "dutyapp";
- const isPilot = !isDuty && view === "dev_pilot";
+ const pilotParamTrue = String(e && e.parameter && e.parameter.pilot || '').toLowerCase() === 'true';
+ const isPilot = !isDuty && (view === "dev_pilot" || view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue);
  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', "yyyy-MM-dd HH:mm:ss") + ' | ' + Utilities.getUuid().slice(0, 8);
 
  try {
@@ -836,6 +837,8 @@ let missions = {};
 
 const flownStatuses_ = { FLOWN: true, COMPLETE: true, COMPLETED: true };
 const completedLegMap_ = {};
+const departedLegMap_ = {};
+const dispatchLegStateMap_ = {};
 try {
   const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
   if (logSheet) {
@@ -844,9 +847,12 @@ try {
       const lr = logRows[li];
       const legId = String(lr[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
       if (!legId) continue;
+      const released = lr[LOG_FLIGHT_COL.BRAKES_RELEASE];
+      const landed = lr[LOG_FLIGHT_COL.LANDED];
       const onBlocks = lr[LOG_FLIGHT_COL.ON_BLOCKS];
       const brakesApplied = lr[LOG_FLIGHT_COL.BRAKES_APPLIED];
-      if (onBlocks || brakesApplied) completedLegMap_[legId] = true;
+      if (released) departedLegMap_[legId] = true;
+      if (landed || onBlocks || brakesApplied) completedLegMap_[legId] = true;
     }
   }
 } catch (e) {}
@@ -1039,6 +1045,7 @@ Object.values(missions).forEach(m => {
    extendedProps: {
      type: 'mission',
      id: m.id,
+     status: status,
      acft: m.acft,
      pilot: String(m.pilot || '').trim() ? String(m.pilot).trim().split(' ')[0] : 'PILOT TBD',
      fullPilot: String(m.pilot || '').trim() || 'PILOT TBD',
@@ -1771,8 +1778,11 @@ missionMap[mId].legs.push(legSummary);
 
 
 
-// Sort
-const missions = Object.values(missionMap).sort((a,b) => {
+// Sort (exclude completed/cancelled missions from supervisor sidebar)
+const missions = Object.values(missionMap).filter(function(m) {
+  var s = String(m.status || '').toUpperCase();
+  return s !== 'FLOWN' && s !== 'COMPLETE' && s !== 'COMPLETED' && s !== 'CANCELLED';
+}).sort((a,b) => {
 if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
 if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
 return String(b.date).localeCompare(String(a.date));
@@ -1933,6 +1943,8 @@ function getMissionDetailsForSupervisor(missionId) {
 const ss = SpreadsheetApp.getActiveSpreadsheet();
 const sheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
 const data = sheet.getDataRange().getValues();
+let airportLookup = null;
+try { airportLookup = _supervisorBuildAirportLookup_(); } catch (e) { airportLookup = null; }
 // 1. SMART SEARCH (Check Mission ID, then Flight ID)
 let missionRows = data.filter(r => String(r[DISPATCH_COL.MISSION_ID]) === String(missionId));
 console.log('getMissionById: rows matching missionId=', missionRows.length);
@@ -2141,6 +2153,7 @@ legs: missionRows.map((r) => {
 
  // Parse route string using comma-delimited policy with legacy-safe fallback.
  const parsedRoute = splitRoute_(r[DISPATCH_COL.ROUTE]);
+ const runwayGap = _supervisorBuildRunwayGapForLeg_(airportLookup, parsedRoute, legPayload, r[DISPATCH_COL.ROUTE]);
 
 
 
@@ -2191,7 +2204,8 @@ legs: missionRows.map((r) => {
     pax: legPayload.pax || [],
    limitType: legPayload.limitType || "",
    isOver: legPayload.isOver || false,
-   missionTime: legPayload.missionTime || "08:00"
+     missionTime: legPayload.missionTime || "08:00",
+     runwayGap: runwayGap
  };
 })
 };
@@ -2238,6 +2252,167 @@ mission: missionData,
 timeline: timeline,
 authorizedAirports: authString
 };
+}
+
+function _supervisorBuildAirportLookup_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('DB_Airports');
+  if (!sh) return null;
+  var data = sh.getDataRange().getValues();
+  if (!data || data.length < 2) return null;
+  var cols = _runwayDbFindCols_(data[0]);
+  if (cols.icao < 0 || cols.runway < 0 || cols.knownFeatures < 0) return null;
+  var byIcao = {};
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var icao = _supervisorNormalizeIcao_(row[cols.icao]);
+    if (!icao) continue;
+    if (!byIcao[icao]) byIcao[icao] = [];
+    byIcao[icao].push(row);
+  }
+  return { rowsByIcao: byIcao, cols: cols };
+}
+
+function _supervisorNormalizeIcao_(value) {
+  var raw = String(value || '').trim().toUpperCase();
+  var m = raw.match(/[A-Z]{4}/);
+  return m ? m[0] : raw;
+}
+
+function _supervisorNormalizeRwyIdent_(value) {
+  var raw = String(value || '').trim().toUpperCase();
+  var m = raw.match(/(\d{1,2}[LCR]?)/);
+  if (!m) return raw;
+  var num = String(parseInt(m[1], 10));
+  if (!num || num === 'NaN') return raw;
+  var suffix = m[1].replace(/\d/g, '');
+  return num.padStart(2, '0') + suffix;
+}
+
+function _supervisorExtractLegRunway_(legPayload, parsedRoute, rawRoute) {
+  var candidates = [];
+  if (legPayload && typeof legPayload === 'object') {
+    candidates.push(legPayload.rwyIdent, legPayload.runway, legPayload.toRunway, legPayload.destRunway, legPayload.destinationRunway);
+  }
+  if (parsedRoute && parsedRoute.to) candidates.push(parsedRoute.to);
+  candidates.push(rawRoute);
+  for (var i = 0; i < candidates.length; i++) {
+    var txt = String(candidates[i] || '').trim().toUpperCase();
+    if (!txt) continue;
+    var m = txt.match(/RWY\s*([0-9]{1,2}[LCR]?)/);
+    if (m && m[1]) return _supervisorNormalizeRwyIdent_(m[1]);
+    if (/^[0-9]{1,2}[LCR]?$/.test(txt)) return _supervisorNormalizeRwyIdent_(txt);
+  }
+  return '';
+}
+
+function _supervisorBuildRunwayGapForLeg_(lookup, parsedRoute, legPayload, rawRoute) {
+  var toIcao = _supervisorNormalizeIcao_(parsedRoute && parsedRoute.to);
+  var desiredRwy = _supervisorExtractLegRunway_(legPayload, parsedRoute, rawRoute);
+  var baseMissing = ['cutdown area', 'obstacle profile', 'slope profile'];
+  if (!toIcao || !lookup || !lookup.rowsByIcao) {
+    return {
+      icao: toIcao || '',
+      rwyIdent: desiredRwy || '',
+      missingItems: baseMissing.slice(),
+      hasInternalData: false,
+      needsAttention: true,
+      summary: 'No internal runway dataset found in DB_Airports.',
+      runway: null
+    };
+  }
+
+  var rows = lookup.rowsByIcao[toIcao] || [];
+  if (!rows.length) {
+    return {
+      icao: toIcao,
+      rwyIdent: desiredRwy || '',
+      missingItems: baseMissing.slice(),
+      hasInternalData: false,
+      needsAttention: true,
+      summary: 'Airport not found in DB_Airports.',
+      runway: null
+    };
+  }
+
+  var cols = lookup.cols;
+  var selected = rows[0];
+  var selectedRwy = _supervisorNormalizeRwyIdent_(selected[cols.runway]);
+  if (desiredRwy) {
+    for (var i = 0; i < rows.length; i++) {
+      var rowRwy = _supervisorNormalizeRwyIdent_(rows[i][cols.runway]);
+      if (rowRwy && rowRwy === desiredRwy) {
+        selected = rows[i];
+        selectedRwy = rowRwy;
+        break;
+      }
+    }
+  }
+  // If still no runway ident, scan all rows for any row with a non-empty ident.
+  if (!selectedRwy) {
+    for (var j = 0; j < rows.length; j++) {
+      var anyRwy = _supervisorNormalizeRwyIdent_(rows[j][cols.runway]);
+      if (anyRwy) { selected = rows[j]; selectedRwy = anyRwy; break; }
+    }
+  }
+
+  var knownRaw = String(selected[cols.knownFeatures] || '').trim();
+  var knownObj = _parseJsonLoose_(knownRaw, {});
+  var knownNorm = Array.isArray(knownObj) ? { features: knownObj } : (knownObj || {});
+  var verified = (knownNorm.verifiedOperational && typeof knownNorm.verifiedOperational === 'object') ? knownNorm.verifiedOperational : {};
+
+  var features = Array.isArray(verified.features) ? verified.features : (Array.isArray(knownNorm.features) ? knownNorm.features : []);
+  var slopeSegs = Array.isArray(verified.slopeSegments) ? verified.slopeSegments : (Array.isArray(knownNorm.slopeSegments) ? knownNorm.slopeSegments : []);
+  var obstacleList = Array.isArray(verified.obstacleAngles50m) ? verified.obstacleAngles50m
+    : (Array.isArray(verified.obstacleAngles) ? verified.obstacleAngles
+    : (Array.isArray(knownNorm.obstacleAngles50m) ? knownNorm.obstacleAngles50m
+    : (Array.isArray(knownNorm.obstacleAngles) ? knownNorm.obstacleAngles : [])));
+  var cutdown = Number(verified.cutdownAreaM != null ? verified.cutdownAreaM : knownNorm.cutdownAreaM || 0) || 0;
+
+  var hasCutdown = cutdown > 0;
+  var hasObstacles = obstacleList.length > 0;
+  var hasSlope = slopeSegs.length > 0;
+  var hasInternalData = hasCutdown || hasObstacles || hasSlope || features.length > 0;
+  var missing = [];
+  if (!hasCutdown) missing.push('cutdown area');
+  if (!hasObstacles) missing.push('obstacle profile');
+  if (!hasSlope) missing.push('slope profile');
+
+  var needsAttention = !hasCutdown && !hasObstacles && !hasSlope;
+  var summary = needsAttention
+    ? 'No internal cutdown / obstacle / slope data for this runway.'
+    : (missing.length ? ('Missing: ' + missing.join(', ') + '.') : 'Internal runway dataset is populated.');
+
+  var official = _dbAirportOfficialSnapshot_(selected, cols);
+  var runwayObj = {
+    icao: toIcao,
+    rwyIdent: selectedRwy || desiredRwy || '',
+    length: Number(selected[cols.length] || 0) || 0,
+    width: Number(selected[cols.width] || 0) || 0,
+    slope: Number(verified.slopePercent || knownNorm.slopePercent || 0) || 0,
+    surface: String(selected[cols.surface] || '').trim(),
+    elevation: Number((cols.elevation >= 0 ? selected[cols.elevation] : null) || verified.elevationFt || knownNorm.elevationFt || 0) || 0,
+    knownFeatures: Array.isArray(features) ? features : [],
+    surveySlopeSegments: Array.isArray(slopeSegs) ? slopeSegs : [],
+    obstacleAngles: Array.isArray(obstacleList) ? obstacleList : [],
+    officialReference: official,
+    verifiedOperational: verified,
+    cutdownAreaM: cutdown,
+    airstripPhoto: String(knownNorm.airstripPhoto || '').trim(),
+    internalUpdatedAt: String(verified.verifiedAt || knownNorm.updatedAt || '').trim(),
+    surveyPilot: String(verified.verifiedBy || knownNorm.updatedBy || '').trim(),
+    knownFeaturesRaw: knownRaw || JSON.stringify(knownNorm || {})
+  };
+
+  return {
+    icao: toIcao,
+    rwyIdent: runwayObj.rwyIdent,
+    missingItems: missing,
+    hasInternalData: hasInternalData,
+    needsAttention: needsAttention,
+    summary: summary,
+    runway: runwayObj
+  };
 }
 
 
@@ -2948,30 +3123,68 @@ if (!(centerDate instanceof Date) || isNaN(centerDate)) centerDate = new Date();
 const startDate = new Date(centerDate.getTime() - (7 * oneDay));
 const endDate = new Date(centerDate.getTime() + (7 * oneDay));
 let events = [];
+const pilotTarget = String(pilotName || '').trim().toUpperCase();
 const logSheet = ss.getSheetByName(APP_SHEETS.DUTY_LOG);
 if (logSheet) {
 const logData = logSheet.getDataRange().getValues();
+const actualByDay = {};
 for (let i = 1; i < logData.length; i++) {
- if (logData[i][DUTY_LOG_COL.PILOT] === pilotName) {
-   let d = logData[i][DUTY_LOG_COL.DATE];
-   if (d instanceof Date && d >= startDate && d <= endDate) {
-     events.push({
-       date: Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'), // Local date, not UTC
-       type: "LOGGED",
-       title: String(logData[i][DUTY_LOG_COL.TITLE]),
-       desc: String(logData[i][DUTY_LOG_COL.DESC_PRIMARY] || logData[i][DUTY_LOG_COL.DESC_FALLBACK]),
-       flightHrs: 0, dutyHrs: 0
-     });
-   }
+ const rowPilot = String(logData[i][DUTY_LOG_COL.PILOT] || '').trim().toUpperCase();
+ if (rowPilot !== pilotTarget) continue;
+ let d = logData[i][DUTY_LOG_COL.DATE];
+ if (!(d instanceof Date)) continue;
+ const dayDate = new Date(d.getTime());
+ dayDate.setHours(0,0,0,0);
+ if (dayDate < startDate || dayDate > endDate) continue;
+
+ const titleRaw = String(logData[i][DUTY_LOG_COL.TITLE] || '').trim().toUpperCase();
+ let payload = {};
+ try {
+   const jsonRaw = String(logData[i][5] || '').trim();
+   payload = jsonRaw ? JSON.parse(jsonRaw) : {};
+ } catch (e) {
+   payload = {};
  }
+ const statusRaw = String((payload && payload.status) || titleRaw || '').trim().toUpperCase();
+ const isClosed = statusRaw.indexOf('CLOSED') >= 0 || titleRaw.indexOf('DUTY_CLOSED') >= 0;
+ if (!isClosed) continue;
+
+ const ymd = Utilities.formatDate(dayDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+ const startH = _dutyParseHhmmToHours_((payload && payload.startTime) || '');
+ const endH = _dutyParseHhmmToHours_((payload && payload.endTime) || '');
+ let dutyHrs = 0;
+ if (startH > 0 && endH > 0) {
+   dutyHrs = endH - startH;
+   if (dutyHrs < 0) dutyHrs += 24;
+ }
+ if (!isFinite(dutyHrs) || dutyHrs < 0) dutyHrs = 0;
+
+ if (!actualByDay[ymd]) {
+   actualByDay[ymd] = {
+     date: ymd,
+     type: 'LOGGED',
+     title: 'DUTY_CLOSED',
+     desc: 'Actual duty report',
+     flightHrs: 0,
+     dutyHrs: 0
+   };
+ }
+ actualByDay[ymd].dutyHrs += dutyHrs;
 }
+
+ Object.keys(actualByDay).forEach(function(ymd) {
+   const daily = _dutyDailyFlightSummary_(ss, pilotName, ymd);
+   actualByDay[ymd].flightHrs = Number((daily && daily.totalFlightHours) || 0);
+   events.push(actualByDay[ymd]);
+ });
 }
 const dispSheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
 if (dispSheet) {
 const dispData = dispSheet.getDataRange().getValues();
 const tracker = {};
 for (let i = 1; i < dispData.length; i++) {
- if (dispData[i][DISPATCH_COL.PILOT] === pilotName) {
+ const rowPilot = String(dispData[i][DISPATCH_COL.PILOT] || '').trim().toUpperCase();
+ if (rowPilot === pilotTarget) {
    let d = dispData[i][DISPATCH_COL.DATE];
    if (d instanceof Date) {
      d.setHours(0,0,0,0);
@@ -3178,8 +3391,8 @@ function getPilotDutyPromptSnapshot(pilotName, dateYmd) {
   const autofill = _dutyDailyFlightSummary_(ss, pilot, ymd);
 
   const closed = !!entry.endTime && String(entry.status || '').indexOf('CLOSE') >= 0;
-  const shouldMorningPrompt = !entry.startTime && !entry.ignoredMorning && !closed;
-  const shouldEveningPrompt = !!entry.startTime && !entry.endTime && !entry.ignoredEvening;
+  const shouldMorningPrompt = !entry.startTime && !closed;
+  const shouldEveningPrompt = !!entry.startTime && !entry.endTime;
 
   return {
     success: true,
@@ -3206,8 +3419,8 @@ function savePilotDutyReport(payload) {
   const endTime = String(p.endTime || '').trim();
   const description = String(p.description || '').trim();
   const flightHours = (p.flightHours == null || p.flightHours === '') ? '' : Number(p.flightHours);
-  const ignoredMorning = !!p.ignoredMorning;
-  const ignoredEvening = !!p.ignoredEvening;
+  const ignoredMorning = false;
+  const ignoredEvening = false;
   const autoSummary = (p.autoSummary && typeof p.autoSummary === 'object') ? p.autoSummary : {};
 
   if (!pilot) throw new Error('savePilotDutyReport: pilotName is required');
@@ -3348,6 +3561,80 @@ function _toolsDutyConfigDescriptions_() {
     DUTY_GEOFENCE_RADIUS_KM: 'Raio de proximidade (metros) para gatilho por localização.',
     DUTY_ALERT_RECIPIENTS: 'Emails para alertas de duty time (separados por vírgula).'
   };
+}
+
+function _flightFollowConfigDefaults_() {
+  return {
+    FLIGHT_FOLLOW_RECIPIENTS: 'acompanhamento@asasdesocorro.org.br',
+    FLIGHT_FOLLOW_OUTBOUND_MAP: ''
+  };
+}
+
+function _flightFollowConfigDescriptions_() {
+  return {
+    FLIGHT_FOLLOW_RECIPIENTS: 'Email(s) de destino do Flight Following (separados por vírgula). Primeiro email também é usado para leitura do inbox.',
+    FLIGHT_FOLLOW_OUTBOUND_MAP: 'Mapeamento por aeronave para outbound (uma linha por registro: PTABC=email@dominio.com).'
+  };
+}
+
+function _flightFollowReadConfigMap_() {
+  var out = _flightFollowConfigDefaults_();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var cfgSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', '_flightFollowReadConfigMap_');
+  var cfg = _schedulerReadConfigMap_(cfgSheet);
+  Object.keys(out).forEach(function(key) {
+    if (Object.prototype.hasOwnProperty.call(cfg, key)) {
+      out[key] = String(cfg[key] == null ? '' : cfg[key]).trim();
+    }
+  });
+  return out;
+}
+
+function getToolsFlightFollowConfig() {
+  try {
+    var ctx = _toolsDutyContext_();
+    var cfg = _flightFollowReadConfigMap_();
+    return {
+      success: true,
+      canManageConfig: !!ctx.canManageConfig,
+      ffConfig: cfg
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function saveToolsFlightFollowConfig(payload) {
+  try {
+    var ctx = _toolsDutyContext_();
+    if (!ctx.canManageConfig) {
+      return { success: false, error: 'Permissão insuficiente para alterar a configuração Flight Following.' };
+    }
+
+    var input = (payload && typeof payload === 'object' && payload.config && typeof payload.config === 'object')
+      ? payload.config
+      : {};
+    var defaults = _flightFollowConfigDefaults_();
+    var descMap = _flightFollowConfigDescriptions_();
+    var entries = Object.keys(defaults).map(function(key) {
+      return {
+        key: key,
+        value: Object.prototype.hasOwnProperty.call(input, key) ? input[key] : defaults[key],
+        description: descMap[key] || ''
+      };
+    });
+
+    var writeRes = _toolsDutySaveConfigMap_(entries, ctx.userEmail || 'tools');
+    var cfg = _flightFollowReadConfigMap_();
+    return {
+      success: true,
+      updated: Number(writeRes.updated || 0),
+      created: Number(writeRes.created || 0),
+      ffConfig: cfg
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
 }
 
 function _toolsDutyReadConfigMap_() {
@@ -3500,6 +3787,7 @@ function getToolsDutyLogs(payload) {
     }
 
     var out = [];
+    var dailyFlightCache = {};
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       var pilot = String(row[DUTY_LOG_COL.PILOT] || '').trim();
@@ -3517,6 +3805,17 @@ function getToolsDutyLogs(payload) {
       var jsonRaw = String(row[5] || '').trim();
       var parsed = {};
       try { parsed = jsonRaw ? JSON.parse(jsonRaw) : {}; } catch (e0) { parsed = {}; }
+      var cacheKey = String(pilot || '').trim().toUpperCase() + '|' + dateYmd;
+      if (!dailyFlightCache[cacheKey]) {
+        dailyFlightCache[cacheKey] = _dutyDailyFlightSummary_(ss, pilot, dateYmd);
+      }
+      var dailyFlight = dailyFlightCache[cacheKey] || {};
+      var parsedFlightHours = String(parsed.flightHours == null ? '' : parsed.flightHours).trim();
+      var derivedFlightHours = Number(dailyFlight.totalFlightHours || 0);
+      var resolvedFlightHours = parsedFlightHours;
+      if (resolvedFlightHours === '' && isFinite(derivedFlightHours) && derivedFlightHours > 0) {
+        resolvedFlightHours = String(Number(derivedFlightHours.toFixed(2)));
+      }
 
       out.push({
         rowNumber: i + 1,
@@ -3525,10 +3824,14 @@ function getToolsDutyLogs(payload) {
         status: String(parsed.status || status || '').trim(),
         startTime: String(parsed.startTime || '').trim(),
         endTime: String(parsed.endTime || '').trim(),
-        flightHours: String(parsed.flightHours == null ? '' : parsed.flightHours).trim(),
+        flightHours: resolvedFlightHours,
+        storedFlightHours: parsedFlightHours,
+        derivedFlightHours: isFinite(derivedFlightHours) ? Number(derivedFlightHours.toFixed(2)) : 0,
         description: String(parsed.description || descPrimary || '').trim(),
         summaryText: String(parsed.summaryText || summaryText || '').trim(),
-        updatedAt: String(parsed.updatedAt || '').trim()
+        updatedAt: String(parsed.updatedAt || '').trim(),
+        flightSummary: String(dailyFlight.summaryLine || '').trim(),
+        flights: Array.isArray(dailyFlight.flights) ? dailyFlight.flights : []
       });
     }
 
@@ -3733,8 +4036,8 @@ function saveDutyAppEntry(payload) {
       endTime: String(body.endTime || '').trim(),
       description: String(body.description || '').trim(),
       summaryText: String(body.summaryText || '').trim(),
-      ignoredMorning: !!body.ignoredMorning,
-      ignoredEvening: !!body.ignoredEvening,
+      ignoredMorning: false,
+      ignoredEvening: false,
       autoSummary: (body.autoSummary && typeof body.autoSummary === 'object') ? body.autoSummary : {}
     };
 
@@ -3871,9 +4174,10 @@ try {
       const lr = logRows[li];
       const legId = String(lr[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
       if (!legId) continue;
+      const landed = lr[LOG_FLIGHT_COL.LANDED];
       const onBlocks = lr[LOG_FLIGHT_COL.ON_BLOCKS];
       const brakesApplied = lr[LOG_FLIGHT_COL.BRAKES_APPLIED];
-      if (onBlocks || brakesApplied) completedLegMap_[legId] = true;
+      if (landed || onBlocks || brakesApplied) completedLegMap_[legId] = true;
     }
   }
 } catch (e) {}
@@ -3916,6 +4220,13 @@ for (let i = 0; i < data.length; i++) {
  const mission = missions[mId];
  const flightLegId = String(row[DISPATCH_RANGE_COL.FLIGHT_ID] || '').trim();
  if (flightLegId) mission.flightLegIds.push(flightLegId);
+ const rowStatusRaw = String(row[DISPATCH_RANGE_COL.STATUS] || '').trim().toUpperCase();
+ if (flightLegId) {
+   const rowState = flownStatuses_[rowStatusRaw]
+     ? 2
+     : ((rowStatusRaw === 'IN-FLIGHT' || rowStatusRaw === 'IN FLIGHT' || rowStatusRaw === 'DEPARTED') ? 1 : 0);
+   dispatchLegStateMap_[flightLegId] = Math.max(Number(dispatchLegStateMap_[flightLegId] || 0), rowState);
+ }
 
  const legRoute = String(row[DISPATCH_RANGE_COL.ROUTE] || '');
  const routeParts = splitRoute_(legRoute);
@@ -3948,17 +4259,29 @@ const result = Object.values(missions).map(m => {
   const toIcao = routeStops.length ? routeStops[routeStops.length - 1] : '';
   const routeDisplay = routeStops.length ? routeStops.join(' - ') : '';
   const statusRaw = String(m.status || '').toUpperCase() || 'PENDING';
-  const legCount = m.flightLegIds.length;
-  const legsFlown = m.flightLegIds.filter(function(legId) {
-    return !!completedLegMap_[String(legId || '').trim()];
-  }).length;
+  const legIds = Array.isArray(m.flightLegIds) ? m.flightLegIds.map(function(v) { return String(v || '').trim(); }).filter(Boolean) : [];
+  const legCount = legIds.length;
+  const legStates = legIds.map(function(legId) {
+    if (completedLegMap_[legId]) return 2;
+    if (Number(dispatchLegStateMap_[legId] || 0) >= 2) return 2;
+    if (departedLegMap_[legId] || Number(dispatchLegStateMap_[legId] || 0) === 1) return 1;
+    return 0;
+  });
+  let legsFlown = legStates.filter(function(st) { return st >= 2; }).length;
+  // If a later leg is already departed, infer prior legs as complete even if logs are sparse.
+  let inferredCompleteCount = 0;
+  for (let si = 0; si < legStates.length; si++) {
+    if (legStates[si] >= 1) inferredCompleteCount = Math.max(inferredCompleteCount, si);
+  }
+  legsFlown = Math.max(legsFlown, inferredCompleteCount);
+  if (legsFlown > legCount) legsFlown = legCount;
   const allLegsComplete = legCount > 0 && legsFlown === legCount;
   const someLegsComplete = legsFlown > 0 && !allLegsComplete;
   let effectiveStatus;
   if (flownStatuses_[statusRaw] || allLegsComplete) {
     effectiveStatus = 'FLOWN';
   } else if (someLegsComplete) {
-    effectiveStatus = legsFlown + '/' + legCount + ' LEGS';
+    effectiveStatus = legsFlown + ' OF ' + legCount + ' LEGS';
   } else {
     effectiveStatus = statusRaw;
   }
@@ -3986,6 +4309,57 @@ return result;
 MISSION-WIDE DELETION & FUEL REVERSAL
 ================================================== */
 
+
+function syncAllMissionStatuses() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var dispatchSheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
+  var logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (!dispatchSheet || !logSheet) return { success: false, error: 'missing sheet' };
+
+  var dispatchData = dispatchSheet.getDataRange().getValues();
+  if (!dispatchData || dispatchData.length < 2) return { success: false, error: 'dispatch empty' };
+
+  var logData = logSheet.getDataRange().getValues();
+  var completedLegMap = {};
+  for (var li = 1; li < logData.length; li++) {
+    var lr = logData[li];
+    var lid = String(lr[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
+    if (!lid) continue;
+    if (lr[LOG_FLIGHT_COL.LANDED] || lr[LOG_FLIGHT_COL.ON_BLOCKS] || lr[LOG_FLIGHT_COL.BRAKES_APPLIED]) {
+      completedLegMap[lid] = true;
+    }
+  }
+
+  var missionMap = {};
+  for (var i = 1; i < dispatchData.length; i++) {
+    var mid = String(dispatchData[i][DISPATCH_COL.MISSION_ID] || '').trim();
+    var lid2 = String(dispatchData[i][DISPATCH_COL.FLIGHT_ID] || '').trim();
+    if (!mid) continue;
+    if (!missionMap[mid]) missionMap[mid] = { rows: [], legs: [] };
+    missionMap[mid].rows.push(i + 1);
+    if (lid2) missionMap[mid].legs.push(lid2);
+  }
+
+  var updated = 0;
+  Object.keys(missionMap).forEach(function(mid) {
+    var entry = missionMap[mid];
+    var legCount = entry.legs.length;
+    var legsComplete = entry.legs.filter(function(l) { return !!completedLegMap[l]; }).length;
+    var targetStatus = (legCount > 0 && legsComplete === legCount) ? 'FLOWN'
+      : (legsComplete > 0 ? 'In-Flight' : null);
+    if (!targetStatus) return;
+    entry.rows.forEach(function(rowNum) {
+      var existing = String(dispatchSheet.getRange(rowNum, DISPATCH_COL.STATUS + 1).getValue() || '').trim().toUpperCase();
+      if (existing === 'CANCELLED') return;
+      if (existing === targetStatus.toUpperCase()) return;
+      dispatchSheet.getRange(rowNum, DISPATCH_COL.STATUS + 1).setValue(targetStatus);
+      updated++;
+    });
+  });
+
+  if (updated > 0) invalidateScheduledMissionsCache_();
+  return { success: true, missionsScanned: Object.keys(missionMap).length, rowsUpdated: updated };
+}
 
 function cancelMissionFromDatabase(missionId) {
  const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -6081,19 +6455,25 @@ if (logSheetForStatus_) {
     const lid = String(r[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
     if (!lid) return;
     const released = r[LOG_FLIGHT_COL.BRAKES_RELEASE];
+    const landed = r[LOG_FLIGHT_COL.LANDED];
     const onBlks   = r[LOG_FLIGHT_COL.ON_BLOCKS];
+    const brakesApplied = r[LOG_FLIGHT_COL.BRAKES_APPLIED];
     const relStr = (released instanceof Date) ? released.toISOString() : (released ? String(released).trim() : null);
+    const ldStr  = (landed   instanceof Date) ? landed.toISOString()   : (landed   ? String(landed).trim()   : null);
     const obStr  = (onBlks   instanceof Date) ? onBlks.toISOString()   : (onBlks   ? String(onBlks).trim()   : null);
+    const baStr  = (brakesApplied instanceof Date) ? brakesApplied.toISOString() : (brakesApplied ? String(brakesApplied).trim() : null);
     logStatusMap_[lid] = {
       bracesRelease: relStr || null,
       onBlocks:      obStr  || null,
-      logStatus: obStr ? 'COMPLETE' : (relStr ? 'DEPARTED' : 'PENDING')
+      brakesApplied: baStr || null,
+      logStatus: (ldStr || obStr || baStr) ? 'COMPLETE' : (relStr ? 'DEPARTED' : 'PENDING')
     };
   });
   missionData.legs.forEach(function(leg) {
     const s = logStatusMap_[leg.flightLegId] || {};
     leg.bracesRelease = s.bracesRelease || null;
     leg.onBlocks      = s.onBlocks      || null;
+    leg.brakesApplied = s.brakesApplied || null;
     leg.logStatus     = s.logStatus     || 'PENDING';
   });
 }
@@ -6261,6 +6641,26 @@ function getFlightLogData(flightLegId) {
         numLdgs: numLdgsCol >= 0 ? data[i][numLdgsCol] : '',
         numTouchAndGos: numTgCol >= 0 ? data[i][numTgCol] : '',
         squawks: squawksCol >= 0 ? data[i][squawksCol] : '',
+        landingLog: (function() {
+          var raw = actualLoadCol >= 0 ? data[i][actualLoadCol] : '';
+          try {
+            var parsed = raw ? JSON.parse(String(raw)) : {};
+            var list = parsed && parsed.debrief && Array.isArray(parsed.debrief.landingLog) ? parsed.debrief.landingLog : [];
+            return list.map(function(entry) {
+              return {
+                timeZ: String(entry && entry.timeZ || '').trim(),
+                icao: String(entry && entry.icao || '').trim().toUpperCase(),
+                name: String(entry && entry.name || '').trim(),
+                locDesc: String(entry && entry.locDesc || '').trim(),
+                type: String(entry && entry.type || 'FULL').trim().toUpperCase()
+              };
+            }).filter(function(entry) {
+              return !!(entry.timeZ || entry.icao || entry.locDesc);
+            });
+          } catch (e) {
+            return [];
+          }
+        })(),
         actualLoadJSON: actualLoadCol >= 0 ? data[i][actualLoadCol] : ''
       };
     }
@@ -6474,6 +6874,695 @@ function sendDispatchEmail(payload) {
 
 // ── Flight Following ──────────────────────────────────────────────────────────
 var FF_RECIPIENTS_ = ['acompanhamento@asasdesocorro.org.br', 'supervisor.voo@asasdesocorro.org.br'];
+var FF_MESSAGES_SPREADSHEET_ID_PROP_ = 'FF_MESSAGES_SPREADSHEET_ID';
+var FF_MESSAGES_SPREADSHEET_ID_DEFAULT_ = '1LcpCPau14b_ugcWufBRPwrIV5q-juWB_P6XETDaP3JM';
+var FF_MESSAGES_HEADERS_ = [
+  'TIMESTAMP',
+  'REG',
+  'REG_NORM',
+  'DIRECTION',
+  'FROM_ADDR',
+  'TO_ADDR',
+  'SUBJECT',
+  'BODY',
+  'VERIFIED',
+  'THREAD_ID',
+  'MESSAGE_ID',
+  'SOURCE',
+  'SYNCED_AT'
+];
+
+function _flightFollowSpreadsheet_() {
+  var configuredId = '';
+  try {
+    configuredId = String(PropertiesService.getScriptProperties().getProperty(FF_MESSAGES_SPREADSHEET_ID_PROP_) || '').trim();
+  } catch (e0) {}
+
+  var targetId = configuredId || String(FF_MESSAGES_SPREADSHEET_ID_DEFAULT_ || '').trim();
+
+  if (targetId) {
+    try {
+      return SpreadsheetApp.openById(targetId);
+    } catch (e1) {
+      throw new Error('Flight Follow spreadsheet ID is configured/defaulted but inaccessible: ' + targetId + ' | ' + String(e1 && e1.message || e1));
+    }
+  }
+
+  try {
+    var active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) return active;
+  } catch (e2) {}
+
+  throw new Error('Flight Follow spreadsheet unavailable. Set script property ' + FF_MESSAGES_SPREADSHEET_ID_PROP_ + ' to a shared spreadsheet ID.');
+}
+
+function setFlightFollowMessagesSpreadsheetId(spreadsheetId) {
+  var id = String(spreadsheetId || '').trim();
+  var ss;
+  if (!id) {
+    id = String(FF_MESSAGES_SPREADSHEET_ID_DEFAULT_ || '').trim();
+    if (id) {
+      ss = SpreadsheetApp.openById(id);
+    } else {
+      ss = SpreadsheetApp.getActiveSpreadsheet();
+      if (!ss) throw new Error('spreadsheetId is required (no default or active spreadsheet found)');
+      id = ss.getId();
+    }
+  } else {
+    ss = SpreadsheetApp.openById(id);
+  }
+  PropertiesService.getScriptProperties().setProperty(FF_MESSAGES_SPREADSHEET_ID_PROP_, id);
+  return {
+    success: true,
+    property: FF_MESSAGES_SPREADSHEET_ID_PROP_,
+    spreadsheetId: ss.getId(),
+    spreadsheetName: ss.getName()
+  };
+}
+
+function getFlightFollowMessagesSpreadsheetTarget() {
+  var configuredId = String(PropertiesService.getScriptProperties().getProperty(FF_MESSAGES_SPREADSHEET_ID_PROP_) || '').trim();
+  var ss = _flightFollowSpreadsheet_();
+  return {
+    success: true,
+    property: FF_MESSAGES_SPREADSHEET_ID_PROP_,
+    configuredId: configuredId || '',
+    spreadsheetId: ss.getId(),
+    spreadsheetName: ss.getName()
+  };
+}
+
+function _flightFollowNormalizeReg_(value) {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function _flightFollowTokenVariants_(regNorm) {
+  var v = [];
+  var norm = _flightFollowNormalizeReg_(regNorm);
+  if (!norm) return v;
+  v.push(norm);
+  if (norm.length >= 5) v.push(norm.slice(0, 2) + '-' + norm.slice(2));
+  return v;
+}
+
+function _flightFollowContainsAnyToken_(text, tokens) {
+  var hay = String(text || '').toUpperCase();
+  if (!hay || !tokens || !tokens.length) return false;
+  for (var i = 0; i < tokens.length; i++) {
+    if (hay.indexOf(String(tokens[i] || '').toUpperCase()) >= 0) return true;
+  }
+  return false;
+}
+
+function _flightFollowLooksInreach_(sender) {
+  var s = String(sender || '').toLowerCase();
+  return s.indexOf('inreachmail.com') >= 0 || s.indexOf('@garmin.com') >= 0;
+}
+
+function _flightFollowInferRegFromText_(text) {
+  var upper = String(text || '').toUpperCase();
+  if (!upper) return '';
+  var m = upper.match(/\b(?:PT|PR|PP|PU)-?[A-Z0-9]{3,4}\b/);
+  return m && m[0] ? String(m[0]).replace(/[^A-Z0-9]/g, '') : '';
+}
+
+function _flightFollowMessagesSheet_() {
+  var ss = _flightFollowSpreadsheet_();
+  var name = APP_SHEETS.FF_MESSAGES || 'DB_FF_Messages';
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+  }
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 1) {
+    sheet.getRange(1, 1, 1, FF_MESSAGES_HEADERS_.length).setValues([FF_MESSAGES_HEADERS_]);
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+
+  var currentHeaders = sheet.getRange(1, 1, 1, FF_MESSAGES_HEADERS_.length).getValues()[0].map(function(h) {
+    return String(h || '').trim().toUpperCase();
+  });
+  var expectedHeaders = FF_MESSAGES_HEADERS_.map(function(h) { return String(h || '').trim().toUpperCase(); });
+  var mismatch = false;
+  for (var i = 0; i < expectedHeaders.length; i++) {
+    if (currentHeaders[i] !== expectedHeaders[i]) {
+      mismatch = true;
+      break;
+    }
+  }
+  if (mismatch) {
+    sheet.getRange(1, 1, 1, FF_MESSAGES_HEADERS_.length).setValues([FF_MESSAGES_HEADERS_]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function _flightFollowThreadRegMap_(sheet, maxRows) {
+  var targetSheet = sheet || _flightFollowMessagesSheet_();
+  var lastRow = targetSheet.getLastRow();
+  if (lastRow < 2) return {};
+
+  var limit = Number(maxRows || 2000);
+  if (!isFinite(limit) || limit < 1) limit = 2000;
+  var startRow = Math.max(2, lastRow - limit + 1);
+  var values = targetSheet.getRange(startRow, 1, lastRow - startRow + 1, FF_MESSAGES_HEADERS_.length).getValues();
+  var out = {};
+
+  values.forEach(function(r) {
+    var regNorm = _flightFollowNormalizeReg_(r[2]);
+    var threadId = String(r[9] || '').trim();
+    if (!regNorm || !threadId || out[threadId]) return;
+    out[threadId] = regNorm;
+  });
+
+  return out;
+}
+
+function _flightFollowAppendMessages_(messages) {
+  var rows = Array.isArray(messages) ? messages : [];
+  if (!rows.length) return 0;
+  var sheet = _flightFollowMessagesSheet_();
+  var nowIso = new Date().toISOString();
+  var threadRegMap = _flightFollowThreadRegMap_(sheet, 2500);
+  var values = rows.map(function(m) {
+    var ts = m.timestamp ? new Date(m.timestamp) : new Date();
+    var tsIso = isNaN(ts.getTime()) ? nowIso : ts.toISOString();
+    var threadId = String(m.threadId || '').trim();
+    var regNorm = _flightFollowNormalizeReg_(m.regNorm || m.reg || threadRegMap[threadId] || _flightFollowInferRegFromText_([
+      m.subject,
+      m.text,
+      m.from,
+      m.to
+    ].join('\n')));
+    return [
+      tsIso,
+      regNorm ? (regNorm.length >= 5 ? regNorm.slice(0, 2) + '-' + regNorm.slice(2) : regNorm) : '',
+      regNorm,
+      String(m.direction || 'INBOUND').trim().toUpperCase(),
+      String(m.from || '').trim(),
+      String(m.to || '').trim(),
+      String(m.subject || '').trim(),
+      String(m.text || '').trim().slice(0, 8000),
+      m.verified ? 'TRUE' : 'FALSE',
+      threadId,
+      String(m.messageId || '').trim(),
+      String(m.source || '').trim() || 'FF_SYNC',
+      nowIso
+    ];
+  });
+
+  sheet.getRange(sheet.getLastRow() + 1, 1, values.length, FF_MESSAGES_HEADERS_.length).setValues(values);
+  return values.length;
+}
+
+function ensureFlightFollowMessageStore() {
+  var sheet = _flightFollowMessagesSheet_();
+  return {
+    success: true,
+    sheetName: sheet.getName(),
+    headers: FF_MESSAGES_HEADERS_.slice(),
+    rowCount: Math.max(0, sheet.getLastRow() - 1)
+  };
+}
+
+function ensureFlightFollowInboxSyncTrigger() {
+  var handler = 'syncFlightFollowInboxToSheet';
+  var triggers = ScriptApp.getProjectTriggers();
+  var exists = triggers.some(function(t) {
+    return t.getHandlerFunction && t.getHandlerFunction() === handler;
+  });
+  if (!exists) {
+    ScriptApp.newTrigger(handler).timeBased().everyMinutes(1).create();
+  }
+  var triggerCount = ScriptApp.getProjectTriggers().filter(function(t) {
+    return t.getHandlerFunction && t.getHandlerFunction() === handler;
+  }).length;
+  return {
+    success: true,
+    exists: exists,
+    handler: handler,
+    triggerCount: triggerCount,
+    note: 'Run this under the hidden FF mailbox account.'
+  };
+}
+
+function _flightFollowOutboundRecipientList_() {
+  // Parse outbound map and return unique email targets.
+  var out = [];
+  try {
+    var ss = _flightFollowSpreadsheet_();
+    var sheet = ss.getSheetByName(APP_SHEETS.SCHED_CONFIG || 'SCHED_Config');
+    if (!sheet) return out;
+    var cfg = _schedulerReadConfigMap_(sheet);
+    var raw = String(cfg.FLIGHT_FOLLOW_OUTBOUND_MAP || '').trim();
+    if (!raw) return out;
+
+    var seen = {};
+    raw.split(/\r?\n/).forEach(function(line) {
+      var cleaned = String(line || '').trim();
+      if (!cleaned || cleaned.indexOf('#') === 0) return;
+      var parts = cleaned.split(/[=:]/);
+      if (parts.length < 2) return;
+      var addr = String(parts.slice(1).join(':') || '').trim().toLowerCase();
+      if (!addr || seen[addr]) return;
+      seen[addr] = true;
+      out.push(addr);
+    });
+  } catch (e) {}
+  return out;
+}
+
+function _flightFollowIsSyncRelevantMessage_(from, to, cc, subj, body, primaryInbox, ffInboxes, outboundAddrs) {
+  var fromLower = String(from || '').toLowerCase();
+  var toLower = String(to || '').toLowerCase();
+  var ccLower = String(cc || '').toLowerCase();
+  var subjUpper = String(subj || '').toUpperCase();
+  var bodyUpper = String(body || '').toUpperCase();
+  var subjUpperFlat = subjUpper.replace(/[^A-Z0-9]/g, ' ');
+  var bodyUpperFlat = bodyUpper.replace(/[^A-Z0-9]/g, ' ');
+
+  var hasInreachDomain = fromLower.indexOf('inreachmail.com') >= 0 || fromLower.indexOf('@garmin.com') >= 0 ||
+    toLower.indexOf('inreachmail.com') >= 0 || toLower.indexOf('@garmin.com') >= 0 ||
+    ccLower.indexOf('inreachmail.com') >= 0 || ccLower.indexOf('@garmin.com') >= 0;
+
+  var hasFfTag = subjUpper.indexOf('[FF CHAT]') >= 0 || subjUpper.indexOf('FF CHAT') >= 0 ||
+    subjUpperFlat.indexOf('FF CHAT') >= 0 || bodyUpper.indexOf('FLIGHT FOLLOW') >= 0 ||
+    bodyUpperFlat.indexOf('FLIGHT FOLLOW') >= 0;
+
+  var hasRegToken = /\b(?:PT|PR|PP|PU)-?[A-Z0-9]{3,4}\b/.test(subjUpper) ||
+    /\b(?:PT|PR|PP|PU)-?[A-Z0-9]{3,4}\b/.test(bodyUpper);
+
+  // Hard gate: only enforce if primaryInbox is provided. When executing as the
+  // primary inbox account and searching in:inbox, the Gmail query already
+  // guarantees delivery to that inbox — BCC/forwarded msgs won't have the
+  // address in To:/CC: headers, so skip the gate when primaryInbox is falsy.
+  var touchesPrimaryInbox = !!primaryInbox && (
+    fromLower.indexOf(primaryInbox) >= 0 ||
+    toLower.indexOf(primaryInbox) >= 0 ||
+    ccLower.indexOf(primaryInbox) >= 0
+  );
+  if (primaryInbox && !touchesPrimaryInbox) return false;
+
+  var touchesFfInbox = (ffInboxes || []).some(function(addr) {
+    return !!addr && (fromLower.indexOf(addr) >= 0 || toLower.indexOf(addr) >= 0 || ccLower.indexOf(addr) >= 0);
+  });
+
+  var touchesOutbound = (outboundAddrs || []).some(function(addr) {
+    return !!addr && (fromLower.indexOf(addr) >= 0 || toLower.indexOf(addr) >= 0 || ccLower.indexOf(addr) >= 0 ||
+      String(subj || '').toLowerCase().indexOf(addr) >= 0 || String(body || '').toLowerCase().indexOf(addr) >= 0);
+  });
+
+  // Single source of truth: require routing through primary inbox and FF-related signal.
+  return hasInreachDomain || touchesOutbound || touchesFfInbox || hasFfTag || hasRegToken;
+}
+
+function _flightFollowSyncIdentityGate_(primaryInbox) {
+  var requiredInbox = String(primaryInbox || '').trim().toLowerCase();
+  var effectiveUser = '';
+  var activeUser = '';
+  try { effectiveUser = String(Session.getEffectiveUser().getEmail() || '').trim().toLowerCase(); } catch (e0) {}
+  try { activeUser = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase(); } catch (e1) {}
+
+  var allowed = !!requiredInbox && !!effectiveUser && effectiveUser === requiredInbox;
+  return {
+    allowed: allowed,
+    requiredInbox: requiredInbox,
+    effectiveUser: effectiveUser,
+    activeUser: activeUser
+  };
+}
+
+function syncFlightFollowInboxToSheet(options) {
+  // Trigger-ready inbox collector. Run this as the hidden FF mailbox identity.
+  var opts = (options && typeof options === 'object') ? options : {};
+  var days = Number(opts.days || 1);
+  if (!isFinite(days) || days < 1) days = 1;
+  if (days > 90) days = 90;
+  var maxThreads = Number(opts.maxThreads || 50);
+  if (!isFinite(maxThreads) || maxThreads < 5) maxThreads = 50;
+  if (maxThreads > 200) maxThreads = 200;
+
+  var syncStartTime = new Date();
+  var primaryInbox = String(_flightFollowPrimaryInbox_() || '').trim().toLowerCase();
+  var identityGate = _flightFollowSyncIdentityGate_(primaryInbox);
+  if (!identityGate.allowed) {
+    _flightFollowRecordSyncMetadata_({
+      syncTime: new Date().toISOString(),
+      scanned: 0,
+      inserted: 0,
+      threadCount: 0,
+      durationMs: 0,
+      query: '',
+      primaryInbox: primaryInbox,
+      ffInboxCount: 0,
+      outboundCount: 0,
+      executor: identityGate.effectiveUser,
+      blocked: true,
+      blockReason: 'SYNC_EXECUTOR_MISMATCH'
+    });
+    return {
+      success: false,
+      blocked: true,
+      error: 'Flight Follow sync is restricted to the primary inbox account: ' + primaryInbox,
+      requiredInbox: primaryInbox,
+      effectiveUser: identityGate.effectiveUser,
+      activeUser: identityGate.activeUser
+    };
+  }
+  var defaultQuery = [
+    'in:inbox',
+    'newer_than:' + String(Math.floor(days)) + 'd'
+  ].join(' ');
+  var query = String(opts.query || defaultQuery).trim();
+  var sheet = _flightFollowMessagesSheet_();
+  var ss = sheet.getParent();
+  var sheetRowsBefore = Math.max(0, sheet.getLastRow() - 1);
+  var ffInboxes = _flightFollowRecipientsList_().map(function(v) { return String(v || '').toLowerCase(); });
+  var outboundAddrs = _flightFollowOutboundRecipientList_();
+  var existingIds = {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var existingVals = sheet.getRange(2, 11, lastRow - 1, 1).getValues();
+    existingVals.forEach(function(r) {
+      var id = String((r && r[0]) || '').trim();
+      if (id) existingIds[id] = true;
+    });
+  }
+
+  var threads = GmailApp.search(query, 0, maxThreads);
+  var rowsToAppend = [];
+  var scanned = 0;
+
+  // Batch-fetch all messages in one API call to minimize quota usage.
+  var allThreadMessages = GmailApp.getMessagesForThreads(threads);
+  allThreadMessages.forEach(function(msgs, tIdx) {
+    var threadId = String(threads[tIdx].getId() || '');
+    msgs.forEach(function(msg) {
+      // Note: isInInbox() can return false for BCC/filter-delivered messages
+      // even when the in:inbox search found them. Rely on the query instead.
+      scanned++;
+      var messageId = String(msg.getId() || '').trim();
+      if (!messageId || existingIds[messageId]) return;
+
+      var from = String(msg.getFrom() || '');
+      var to = String(msg.getTo() || '');
+      var cc = String(msg.getCc() || '');
+      var subj = String(msg.getSubject() || '');
+      var body = String(msg.getPlainBody() || '');
+
+      // Pass empty string for primaryInbox so the hard gate is skipped —
+      // the Gmail search already constrains to this account's inbox.
+      if (!_flightFollowIsSyncRelevantMessage_(from, to, cc, subj, body, '', ffInboxes, outboundAddrs)) return;
+
+      var regNorm = _flightFollowInferRegFromText_([subj, body, from, to, cc].join('\n'));
+
+      rowsToAppend.push({
+        timestamp: msg.getDate().toISOString(),
+        regNorm: regNorm,
+        direction: 'INBOUND',
+        from: from,
+        to: [to, cc].filter(Boolean).join(', '),
+        subject: subj,
+        text: body,
+        verified: _flightFollowLooksInreach_(from),
+        threadId: threadId,
+        messageId: messageId,
+        source: 'FF_SYNC'
+      });
+      existingIds[messageId] = true;
+    });
+  });
+
+  var insertStartRow = sheet.getLastRow() + 1;
+  var inserted = _flightFollowAppendMessages_(rowsToAppend);
+  var insertEndRow = inserted > 0 ? (insertStartRow + inserted - 1) : 0;
+  var sheetRowsAfter = Math.max(0, sheet.getLastRow() - 1);
+  var syncEndTime = new Date();
+  var durationMs = syncEndTime.getTime() - syncStartTime.getTime();
+
+  Logger.log('FF Sync complete — executor: %s | spreadsheetId: %s | sheet: %s | rows(before->after): %s->%s | appendRows: %s-%s | threads: %s | scanned: %s | passed filter: %s | inserted: %s | query: %s',
+    Session.getEffectiveUser().getEmail(), ss.getId(), sheet.getName(), sheetRowsBefore, sheetRowsAfter, insertStartRow, insertEndRow,
+    threads.length, scanned, rowsToAppend.length, inserted, query);
+
+  _flightFollowRecordSyncMetadata_({
+    syncTime: syncEndTime.toISOString(),
+    scanned: scanned,
+    inserted: inserted,
+    threadCount: threads.length,
+    durationMs: durationMs,
+    query: query,
+    primaryInbox: primaryInbox,
+    ffInboxCount: ffInboxes.length,
+    outboundCount: outboundAddrs.length,
+    executor: Session.getEffectiveUser().getEmail()
+  });
+
+  return {
+    success: true,
+    query: query,
+    scannedMessages: scanned,
+    insertedMessages: inserted,
+    threadCount: threads.length,
+    sheetName: sheet.getName(),
+    sheetRowsBefore: sheetRowsBefore,
+    sheetRowsAfter: sheetRowsAfter,
+    appendStartRow: insertStartRow,
+    appendEndRow: insertEndRow,
+    durationMs: durationMs,
+    effectiveUser: identityGate.effectiveUser,
+    activeUser: identityGate.activeUser,
+    spreadsheetId: ss.getId(),
+    spreadsheetName: ss.getName()
+  };
+}
+
+function testSyncFlightFollowInboxToSheet() {
+  var result = syncFlightFollowInboxToSheet();
+  Logger.log(JSON.stringify(result, null, 2));
+}
+
+function _flightFollowRecordSyncMetadata_(metadata) {
+  // Store last sync time and stats in config sheet for UI display.
+  try {
+    var ss = _flightFollowSpreadsheet_();
+    var sheet = ss.getSheetByName(APP_SHEETS.SCHED_CONFIG || 'SCHED_Config');
+    if (!sheet) return;
+
+    var data = sheet.getDataRange().getValues();
+    var keyColIdx = -1;
+    var valColIdx = -1;
+    if (data.length > 0) {
+      var headerRow = data[0];
+      for (var i = 0; i < headerRow.length; i++) {
+        var h = String(headerRow[i] || '').trim().toUpperCase();
+        if (h === 'KEY') keyColIdx = i;
+        if (h === 'VALUE') valColIdx = i;
+      }
+    }
+    if (keyColIdx < 0 || valColIdx < 0) return;
+
+    var metaKey = 'FF_SYNC_META';
+    var metaValue = JSON.stringify(metadata);
+    var found = false;
+    for (var ri = 1; ri < data.length; ri++) {
+      if (String(data[ri][keyColIdx] || '').trim() === metaKey) {
+        sheet.getRange(ri + 1, valColIdx + 1).setValue(metaValue);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      sheet.appendRow([metaKey, metaValue]);
+    }
+  } catch (e) {}
+}
+
+function getFlightFollowSyncMetadata() {
+  // Return last sync status for UI display.
+  try {
+    var ss = _flightFollowSpreadsheet_();
+    var sheet = ss.getSheetByName(APP_SHEETS.SCHED_CONFIG || 'SCHED_Config');
+    if (!sheet) return null;
+
+    var data = sheet.getDataRange().getValues();
+    var keyColIdx = -1;
+    var valColIdx = -1;
+    if (data.length > 0) {
+      var headerRow = data[0];
+      for (var i = 0; i < headerRow.length; i++) {
+        var h = String(headerRow[i] || '').trim().toUpperCase();
+        if (h === 'KEY') keyColIdx = i;
+        if (h === 'VALUE') valColIdx = i;
+      }
+    }
+    if (keyColIdx < 0 || valColIdx < 0) return null;
+
+    for (var ri = 1; ri < data.length; ri++) {
+      if (String(data[ri][keyColIdx] || '').trim() === 'FF_SYNC_META') {
+        var raw = String(data[ri][valColIdx] || '');
+        try {
+          return JSON.parse(raw);
+        } catch (e) {
+          return null;
+        }
+      }
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function runFlightFollowManualSync(options) {
+  // Manual sync entrypoint for UI button.
+  var opts = (options && typeof options === 'object') ? options : {};
+  if (!Object.prototype.hasOwnProperty.call(opts, 'maxThreads')) opts.maxThreads = 50;
+  if (!Object.prototype.hasOwnProperty.call(opts, 'days')) opts.days = 1;
+  return syncFlightFollowInboxToSheet(opts);
+}
+
+function debugFlightFollowSyncHealth(token) {
+  // One-shot health report for trigger/account/query/sheet diagnostics.
+  var tkn = String(token || 'KPS').trim();
+  var out = {
+    token: tkn,
+    primaryInbox: _flightFollowPrimaryInbox_(),
+    recipients: _flightFollowRecipientsList_(),
+    effectiveUser: Session.getEffectiveUser().getEmail(),
+    activeUser: Session.getActiveUser().getEmail(),
+    triggerCount: 0,
+    triggerHandlers: [],
+    sheetName: APP_SHEETS.FF_MESSAGES || 'DB_FF_Messages',
+    sheetExists: false,
+    sheetRows: 0,
+    lastSyncMeta: null,
+    query: '',
+    threadCount: 0,
+    inboxMessageCount: 0,
+    sampleSubjects: [],
+    error: ''
+  };
+
+  try {
+    var triggers = ScriptApp.getProjectTriggers();
+    out.triggerCount = triggers.filter(function(tr) {
+      return tr.getHandlerFunction && tr.getHandlerFunction() === 'syncFlightFollowInboxToSheet';
+    }).length;
+    out.triggerHandlers = triggers.map(function(tr) {
+      return tr.getHandlerFunction ? tr.getHandlerFunction() : '';
+    }).filter(Boolean);
+  } catch (e1) {
+    out.error = 'trigger check failed: ' + String(e1 && e1.message || e1);
+  }
+
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(out.sheetName);
+    out.sheetExists = !!sh;
+    out.sheetRows = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
+    out.lastSyncMeta = getFlightFollowSyncMetadata();
+  } catch (e2) {
+    out.error = (out.error ? out.error + ' | ' : '') + 'sheet check failed: ' + String(e2 && e2.message || e2);
+  }
+
+  try {
+    var variants = [tkn.toUpperCase(), tkn.toUpperCase().replace(/[^A-Z0-9]/g, '')].filter(Boolean);
+    var unique = {};
+    variants = variants.filter(function(v) {
+      if (unique[v]) return false;
+      unique[v] = true;
+      return true;
+    });
+    var clauses = variants.map(function(v) { return '"' + v + '"'; });
+    out.query = 'in:inbox newer_than:7d (' + clauses.join(' OR ') + ')';
+    var threads = GmailApp.search(out.query, 0, 120);
+    out.threadCount = threads.length;
+    var msgCount = 0;
+    var sample = [];
+    threads.forEach(function(th) {
+      var msgs = th.getMessages();
+      msgs.forEach(function(m) {
+        if (!m.isInInbox()) return;
+        msgCount++;
+        if (sample.length < 10) sample.push(String(m.getSubject() || ''));
+      });
+    });
+    out.inboxMessageCount = msgCount;
+    out.sampleSubjects = sample;
+  } catch (e3) {
+    out.error = (out.error ? out.error + ' | ' : '') + 'gmail check failed: ' + String(e3 && e3.message || e3);
+  }
+
+  return out;
+}
+
+function testFlightFollowSyncHealth() {
+  Logger.log(JSON.stringify(debugFlightFollowSyncHealth('KPS'), null, 2));
+}
+
+function _flightFollowRecipientsList_() {
+  var fallback = (FF_RECIPIENTS_ || []).map(function(v) {
+    return String(v || '').trim().toLowerCase();
+  }).filter(Boolean);
+
+  try {
+    var ss = _flightFollowSpreadsheet_();
+    var sheet = ss.getSheetByName(APP_SHEETS.SCHED_CONFIG || 'SCHED_Config');
+    if (!sheet) return fallback;
+    var cfg = _schedulerReadConfigMap_(sheet);
+    var raw = String(cfg.FLIGHT_FOLLOW_RECIPIENTS || '').trim();
+    if (!raw) return fallback;
+
+    var list = raw.split(/[;,\n]+/).map(function(v) {
+      return String(v || '').trim().toLowerCase();
+    }).filter(Boolean);
+    if (!list.length) return fallback;
+
+    var seen = {};
+    return list.filter(function(email) {
+      if (seen[email]) return false;
+      seen[email] = true;
+      return true;
+    });
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function _flightFollowPrimaryInbox_() {
+  var list = _flightFollowRecipientsList_();
+  return list.length ? list[0] : 'acompanhamento@asasdesocorro.org.br';
+}
+
+function _flightFollowOutboundRecipientForReg_(reg) {
+  var regNorm = String(reg || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!regNorm) return '';
+  try {
+    var ss = _flightFollowSpreadsheet_();
+    var sheet = ss.getSheetByName(APP_SHEETS.SCHED_CONFIG || 'SCHED_Config');
+    if (!sheet) return '';
+    var cfg = _schedulerReadConfigMap_(sheet);
+    var raw = String(cfg.FLIGHT_FOLLOW_OUTBOUND_MAP || '').trim();
+    if (!raw) return '';
+
+    var lines = raw.split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var line = String(lines[i] || '').trim();
+      if (!line || line.indexOf('#') === 0) continue;
+      var parts = line.split(/[=:]/);
+      if (parts.length < 2) continue;
+      var key = String(parts[0] || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var value = String(parts.slice(1).join(':') || '').trim().toLowerCase();
+      if (!key || !value) continue;
+      if (key === regNorm) return value;
+    }
+    return '';
+  } catch (e) {
+    return '';
+  }
+}
 
 function sendFlightFollowEvent(payload) {
   // payload: { event, reg, type, pic, route, pob, depTime, eta, notes, confirmedBy }
@@ -6525,10 +7614,92 @@ function sendFlightFollowEvent(payload) {
     (notes ? ' ' + notes.replace(/\n/g, ' ') : '') +
     ' BY:' + confirmedBy;
 
-  var recipients = FF_RECIPIENTS_.join(',');
-  MailApp.sendEmail({ to: recipients, subject: subject, body: fullBody });
+  var recipients = _flightFollowRecipientsList_().join(',');
+  var replyInbox = _flightFollowPrimaryInbox_();
+  MailApp.sendEmail({
+    to: recipients,
+    subject: subject,
+    body: fullBody,
+    replyTo: replyInbox
+  });
 
   return { success: true, compact: compact, subject: subject };
+}
+
+function sendFlightFollowMessage(payload) {
+  // payload: { reg, missionId, flightLegId, route, sender, text }
+  var body = (payload && typeof payload === 'object') ? payload : {};
+  var reg = String(body.reg || '').trim().toUpperCase();
+  var text = String(body.text || '').trim();
+  if (!reg) throw new Error('sendFlightFollowMessage: reg required');
+  if (!text) throw new Error('sendFlightFollowMessage: text required');
+
+  var missionId = String(body.missionId || '').trim();
+  var flightLegId = String(body.flightLegId || '').trim();
+  var route = String(body.route || '').trim();
+  var sender = String(body.sender || 'Dispatch UI').trim();
+  var isAutoLogInbound = sender.toLowerCase() === 'autolog';
+  var directionOverride = String(body.direction || '').trim().toUpperCase();
+  if (directionOverride !== 'INBOUND' && directionOverride !== 'OUTBOUND') directionOverride = 'OUTBOUND';
+  var recipients = _flightFollowRecipientsList_();
+  if (!recipients.length) throw new Error('sendFlightFollowMessage: no configured recipients');
+  var outbound = isAutoLogInbound ? '' : _flightFollowOutboundRecipientForReg_(reg);
+  var toRecipients = outbound ? [outbound] : recipients;
+  var ccRecipients = outbound ? recipients.filter(function(addr) {
+    return String(addr || '').trim().toLowerCase() !== String(outbound || '').trim().toLowerCase();
+  }) : [];
+
+  var now = new Date();
+  var zuluTime = Utilities.formatDate(now, 'UTC', 'HHmm') + 'Z';
+  var localTime = Utilities.formatDate(now, 'America/Manaus', 'HH:mm');
+  var subject = '[FF CHAT] ' + reg + ' ' + zuluTime + (route ? ' ' + route : '');
+
+  var lines = [
+    'FLIGHT FOLLOW MESSAGE',
+    'Aircraft : ' + reg,
+    'Time     : ' + localTime + ' MAO / ' + zuluTime
+  ];
+  if (missionId) lines.push('Mission  : ' + missionId);
+  if (flightLegId) lines.push('Leg      : ' + flightLegId);
+  if (route) lines.push('Route    : ' + route);
+  lines.push('From     : ' + sender);
+  lines.push('');
+  lines.push(text);
+
+  MailApp.sendEmail({
+    to: toRecipients.join(','),
+    cc: ccRecipients.join(','),
+    subject: subject,
+    body: lines.join('\n'),
+    replyTo: _flightFollowPrimaryInbox_()
+  });
+
+  // For AutoLog events we rely on Gmail sync (FF_SYNC) as the single message source
+  // to avoid duplicate rows (FF_UI + FF_SYNC) for the same auto-generated event.
+  if (!isAutoLogInbound) {
+    try {
+      _flightFollowAppendMessages_([{
+        timestamp: now.toISOString(),
+        reg: reg,
+        regNorm: reg,
+        direction: directionOverride,
+        from: Session.getEffectiveUser().getEmail() || sender,
+        to: toRecipients.concat(ccRecipients).join(','),
+        subject: subject,
+        text: text,
+        verified: false,
+        source: 'FF_UI'
+      }]);
+    } catch (storeErr) {}
+  }
+
+  return {
+    success: true,
+    to: toRecipients,
+    cc: ccRecipients,
+    subject: subject,
+    timestamp: now.toISOString()
+  };
 }
 
 function getFlightFollowMissionsForAcft(reg) {
@@ -6539,8 +7710,9 @@ function getFlightFollowMissionsForAcft(reg) {
   var data = sheet.getDataRange().getValues();
   if (data.length < 2) return [];
 
-  // Build airport lookup map (icao → fuel + coordinates)
+  // Build airport and waypoint lookup maps for route plotting.
   var airportMetaMap = {};
+  var waypointMetaMap = {};
   try {
     var airSheet = ss.getSheetByName(APP_SHEETS.AIRPORTS);
     if (airSheet) {
@@ -6551,6 +7723,12 @@ function getFlightFollowMissionsForAcft(reg) {
         var fuelIdx = airH.indexOf('FUEL_AVAILABLE');
         var latIdx = airH.indexOf('LATITUDE');
         var lonIdx = airH.indexOf('LONGITUDE');
+        var surfIdx = airH.indexOf('SURFACE_ACTUAL');
+        if (surfIdx < 0) surfIdx = airH.indexOf('RUNWAY_SURFACE_ACTUAL');
+        if (surfIdx < 0) surfIdx = airH.indexOf('SURFACE_OFFICIAL');
+        if (surfIdx < 0) surfIdx = airH.indexOf('RUNWAY_SURFACE');
+        if (surfIdx < 0) surfIdx = airH.indexOf('SURFACE');
+        var nameIdx = airH.indexOf('NOME');
         if (icaoIdx >= 0) {
           for (var ai = 1; ai < airData.length; ai++) {
             var aIcao = String(airData[ai][icaoIdx] || '').trim().toUpperCase();
@@ -6559,11 +7737,43 @@ function getFlightFollowMissionsForAcft(reg) {
             var aLon = lonIdx >= 0 ? Number(airData[ai][lonIdx]) : NaN;
             if (aIcao) {
               airportMetaMap[aIcao] = {
+                icao: aIcao,
+                name: nameIdx >= 0 ? String(airData[ai][nameIdx] || '').trim() : '',
                 hasFuel: !!(aFuel && aFuel !== 'NONE' && aFuel !== 'N' && aFuel !== 'NO' && aFuel !== '0'),
+                fuelAvailable: aFuel,
+                runwaySurfaceActual: surfIdx >= 0 ? String(airData[ai][surfIdx] || '').trim() : '',
                 lat: isFinite(aLat) ? aLat : null,
-                lon: isFinite(aLon) ? aLon : null
+                lon: isFinite(aLon) ? aLon : null,
+                kind: 'airport'
               };
             }
+          }
+        }
+      }
+    }
+
+    var wpSheet = ss.getSheetByName(APP_SHEETS.WAYPOINTS);
+    if (wpSheet) {
+      var wpData = wpSheet.getDataRange().getValues();
+      if (wpData.length > 1) {
+        var wpH = wpData[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
+        var wpIdIdx = wpH.indexOf('WP_ID');
+        var wpLatIdx = wpH.indexOf('LATITUDE');
+        var wpLonIdx = wpH.indexOf('LONGITUDE');
+        var wpTypeIdx = wpH.indexOf('TYPE');
+        if (wpIdIdx >= 0 && wpLatIdx >= 0 && wpLonIdx >= 0) {
+          for (var wi = 1; wi < wpData.length; wi++) {
+            var wpId = String(wpData[wi][wpIdIdx] || '').trim().toUpperCase();
+            if (!wpId) continue;
+            var wpLat = Number(wpData[wi][wpLatIdx]);
+            var wpLon = Number(wpData[wi][wpLonIdx]);
+            waypointMetaMap[wpId] = {
+              wp_id: wpId,
+              lat: isFinite(wpLat) ? wpLat : null,
+              lon: isFinite(wpLon) ? wpLon : null,
+              type: wpTypeIdx >= 0 ? String(wpData[wi][wpTypeIdx] || '').trim() : '',
+              kind: 'waypoint'
+            };
           }
         }
       }
@@ -6634,6 +7844,8 @@ function getFlightFollowMissionsForAcft(reg) {
     var row   = data[i];
     var acft  = String(row[DISPATCH_COL.AIRCRAFT] || '').trim().toUpperCase();
     if (acft !== String(reg || '').trim().toUpperCase()) continue;
+    var statusRaw = String(row[DISPATCH_COL.STATUS] || '').trim().toUpperCase();
+    if (statusRaw === 'FLOWN' || statusRaw === 'COMPLETE' || statusRaw === 'COMPLETED' || statusRaw === 'CANCELLED') continue;
 
     var rawDate = row[DISPATCH_COL.DATE];
     var dateStr = rawDate instanceof Date
@@ -6699,12 +7911,18 @@ function getFlightFollowMissionsForAcft(reg) {
     waypoints = waypoints.map(function(w) {
       var airportMeta = Object.prototype.hasOwnProperty.call(airportMetaMap, w.fix)
         ? airportMetaMap[w.fix] : null;
+      var wpMeta = !airportMeta && Object.prototype.hasOwnProperty.call(waypointMetaMap, w.fix)
+        ? waypointMetaMap[w.fix] : null;
       return {
         fix: w.fix,
         distNm: w.distNm,
         hasFuel: airportMeta ? airportMeta.hasFuel : null,
-        lat: airportMeta ? airportMeta.lat : null,
-        lon: airportMeta ? airportMeta.lon : null
+        fuelAvailable: airportMeta ? airportMeta.fuelAvailable : '',
+        surface: airportMeta ? airportMeta.runwaySurfaceActual : '',
+        lat: airportMeta ? airportMeta.lat : (wpMeta ? wpMeta.lat : null),
+        lon: airportMeta ? airportMeta.lon : (wpMeta ? wpMeta.lon : null),
+        type: wpMeta ? wpMeta.type : '',
+        kind: airportMeta ? 'airport' : (wpMeta ? 'waypoint' : 'fix')
       };
     });
 
@@ -6755,39 +7973,521 @@ function getFlightFollowMissionsForAcft(reg) {
   return out;
 }
 
-function getFlightFollowMessages(reg) {
-  // Read InReach device replies from Gmail for the given registration
-  // Returns array of message objects: { timestamp, from, text, verified }
-  // In production, this would parse emails from inreach devices
+function _flightFollowScanMessages_(reg, debugMode) {
+  // Read inbox replies arriving to Flight Following and keep only messages tied to this aircraft.
+  // Returns messages list or debug object when debugMode=true.
+  var regNorm = String(reg || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!regNorm) {
+    return debugMode ? {
+      reg: '',
+      regNorm: '',
+      inboxAddress: _flightFollowPrimaryInbox_(),
+      search: '',
+      effectiveUser: Session.getEffectiveUser().getEmail(),
+      activeUser: Session.getActiveUser().getEmail(),
+      threadCount: 0,
+      messageCount: 0,
+      matchedCount: 0,
+      samples: [],
+      note: 'Missing reg parameter'
+    } : [];
+  }
+
+  var inboxAddress = _flightFollowPrimaryInbox_();
+  var outboundAddress = String(_flightFollowOutboundRecipientForReg_(reg) || '').trim().toLowerCase();
+  var dashedReg = regNorm.length >= 5 ? (regNorm.slice(0, 2) + '-' + regNorm.slice(2)) : regNorm;
+  var search = [
+    'in:inbox',
+    'newer_than:30d'
+  ].join(' ');
+  var fallbackSearch = [
+    'in:anywhere',
+    'newer_than:30d',
+    '("' + regNorm + '" OR "' + dashedReg + '")'
+  ].join(' ');
+  var outboundFallbackSearch = outboundAddress ? [
+    'in:anywhere',
+    'newer_than:30d',
+    '"' + outboundAddress + '"'
+  ].join(' ') : '';
+
+  var tokenVariants = [regNorm];
+  // Add dashed variant (e.g., PTABC) -> PT-ABC for easier text matching.
+  if (regNorm.length >= 5) {
+    tokenVariants.push(regNorm.slice(0, 2) + '-' + regNorm.slice(2));
+  }
+
+  var containsReg_ = function(text) {
+    var t = String(text || '').toUpperCase();
+    if (!t) return false;
+    return tokenVariants.some(function(tok) {
+      return t.indexOf(tok) >= 0;
+    });
+  };
+
+  var looksInreach_ = function(sender) {
+    var s = String(sender || '').toLowerCase();
+    return s.indexOf('inreachmail.com') >= 0 || s.indexOf('@garmin.com') >= 0;
+  };
+
   try {
-    var threads = GmailApp.search('label:flight-follow from:inreachmail.com');
-    var messages = [];
-    
-    threads.slice(0, 20).forEach(function(thread) {
+    var threads = GmailApp.search(search, 0, 120);
+    var threadSeen = {};
+    threads.forEach(function(t) {
+      threadSeen[t.getId()] = true;
+    });
+
+    // Fallback: include reg-linked threads from anywhere (including Sent) so replies
+    // can still be discovered even when inbox first-message subjects are noisy.
+    var fallbackThreads = GmailApp.search(fallbackSearch, 0, 120);
+    fallbackThreads.forEach(function(t) {
+      if (threadSeen[t.getId()]) return;
+      threads.push(t);
+      threadSeen[t.getId()] = true;
+    });
+
+    if (outboundFallbackSearch) {
+      var outboundThreads = GmailApp.search(outboundFallbackSearch, 0, 120);
+      outboundThreads.forEach(function(t) {
+        if (threadSeen[t.getId()]) return;
+        threads.push(t);
+        threadSeen[t.getId()] = true;
+      });
+    }
+
+    var out = [];
+    var sample = [];
+    var msgCount = 0;
+    var sourceThreadCount = threads.length;
+
+    threads.forEach(function(thread) {
+      var subject = String(thread.getFirstMessageSubject() || '');
+      var threadHasReg = containsReg_(subject);
       var msgs = thread.getMessages();
+      var threadHasOutboundAddress = false;
+      if (outboundAddress) {
+        for (var mi = 0; mi < msgs.length; mi++) {
+          var tm = msgs[mi];
+          var tFrom = String(tm.getFrom() || '').toLowerCase();
+          var tTo = String(tm.getTo() || '').toLowerCase();
+          if (tFrom.indexOf(outboundAddress) >= 0 || tTo.indexOf(outboundAddress) >= 0) {
+            threadHasOutboundAddress = true;
+            break;
+          }
+        }
+      }
       msgs.forEach(function(msg) {
-        messages.push({
+        if (!msg.isInInbox()) return;
+        msgCount++;
+
+        var from = String(msg.getFrom() || '');
+        var subj = String(msg.getSubject() || '');
+        var body = String(msg.getPlainBody() || '');
+        var to = String(msg.getTo() || '');
+        var toNormLower = String(to || '').toLowerCase();
+        var fromNormLower = String(from || '').toLowerCase();
+        var addressMatched = !!outboundAddress && (
+          toNormLower.indexOf(outboundAddress) >= 0 ||
+          fromNormLower.indexOf(outboundAddress) >= 0 ||
+          String(subj || '').toLowerCase().indexOf(outboundAddress) >= 0 ||
+          String(body || '').toLowerCase().indexOf(outboundAddress) >= 0
+        );
+
+        // Match by explicit reg in subject/body or in a reg-matched thread.
+        var matched = threadHasReg || containsReg_(subj) || containsReg_(body) || containsReg_(to) || containsReg_(from) || threadHasOutboundAddress || addressMatched;
+        if (!matched) return;
+
+        // Prefer FF mailbox routing but still allow reg-matched replies that lost explicit To headers.
+        var isToPrimaryInbox = !!inboxAddress && toNormLower.indexOf(String(inboxAddress || '').toLowerCase()) >= 0;
+        var isLikelyReplyInThread = threadHasReg || threadHasOutboundAddress || addressMatched;
+        if (!isToPrimaryInbox && !isLikelyReplyInThread) return;
+
+        if (debugMode && sample.length < 30) {
+          sample.push({
+            date: msg.getDate().toISOString(),
+            from: from,
+            to: to,
+            subject: subj,
+            threadHasReg: threadHasReg,
+            threadHasOutboundAddress: threadHasOutboundAddress,
+            outboundAddressMatched: addressMatched,
+            isToPrimaryInbox: isToPrimaryInbox,
+            bodyPreview: body.substring(0, 180)
+          });
+        }
+
+        out.push({
           timestamp: msg.getDate().toISOString(),
-          from: msg.getFrom(),
-          subject: msg.getSubject(),
-          text: msg.getPlainBody().substring(0, 500),
-          verified: false
+          from: from,
+          subject: subj,
+          text: body.substring(0, 1200),
+          verified: looksInreach_(from)
         });
       });
     });
-    
-    return messages;
-  } catch(e) {
+
+    out.sort(function(a, b) {
+      return String(a.timestamp || '').localeCompare(String(b.timestamp || ''));
+    });
+
+    if (debugMode) {
+      return {
+        reg: reg,
+        regNorm: regNorm,
+        tokenVariants: tokenVariants,
+        inboxAddress: inboxAddress,
+        outboundAddress: outboundAddress,
+        search: search,
+        fallbackSearch: fallbackSearch,
+        outboundFallbackSearch: outboundFallbackSearch,
+        effectiveUser: Session.getEffectiveUser().getEmail(),
+        activeUser: Session.getActiveUser().getEmail(),
+        threadCount: sourceThreadCount,
+        messageCount: msgCount,
+        matchedCount: out.length,
+        samples: sample
+      };
+    }
+
+    return out.slice(-200);
+  } catch (e) {
+    return debugMode ? {
+      reg: reg,
+      regNorm: regNorm,
+      inboxAddress: inboxAddress,
+      outboundAddress: outboundAddress,
+      search: search,
+    fallbackSearch: fallbackSearch,
+      outboundFallbackSearch: outboundFallbackSearch,
+      effectiveUser: Session.getEffectiveUser().getEmail(),
+      activeUser: Session.getActiveUser().getEmail(),
+      threadCount: 0,
+      messageCount: 0,
+      matchedCount: 0,
+      samples: [],
+      error: String(e && e.message || e)
+    } : [];
+  }
+}
+
+function getFlightFollowMessages(reg) {
+  var regNorm = _flightFollowNormalizeReg_(reg);
+  if (!regNorm) return [];
+
+  var outboundAddress = String(_flightFollowOutboundRecipientForReg_(reg) || '').trim().toLowerCase();
+  var tokens = _flightFollowTokenVariants_(regNorm);
+
+  try {
+    var sheet = _flightFollowMessagesSheet_();
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+
+    var maxRows = 1500;
+    var startRow = Math.max(2, lastRow - maxRows + 1);
+    var values = sheet.getRange(startRow, 1, lastRow - startRow + 1, FF_MESSAGES_HEADERS_.length).getValues();
+    var threadRegMap = _flightFollowThreadRegMap_(sheet, maxRows);
+    var out = [];
+
+    var previewTextForBody = function(body, subject) {
+      var raw = String(body || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+      if (!raw) return '';
+
+      var cutMarkers = [
+        /\n\s*>\s*On .+ wrote:/i,
+        /\s+>\s*On .+ wrote:/i,
+        /\nOn .+ wrote:/i,
+        /\n-+\s*Original Message\s*-+/i,
+        /\nFrom:\s/i,
+        /\nSent:\s/i
+      ];
+      cutMarkers.forEach(function(rx) {
+        raw = raw.replace(rx, '\n__FF_QUOTE_BREAK__');
+      });
+      raw = String(raw.split('__FF_QUOTE_BREAK__')[0] || '').trim();
+
+      var lines = raw.split('\n').map(function(line) {
+        return String(line || '').trim();
+      }).filter(function(line) {
+        return !!line;
+      });
+
+      var subjectText = String(subject || '').trim().toLowerCase();
+      lines = lines.filter(function(line) {
+        var norm = String(line || '').trim().toLowerCase();
+        if (!norm) return false;
+        if (subjectText && norm === subjectText) return false;
+        if (/^re:\s*\[ff chat\]/i.test(line)) return false;
+        if (/^\[ff chat\]/i.test(line)) return false;
+        return true;
+      });
+
+      return lines.join(' ').replace(/\s+/g, ' ').trim();
+    };
+
+    values.forEach(function(r) {
+      var ts = String(r[0] || '');
+      var direction = String(r[3] || '').trim().toUpperCase();
+      var threadId = String(r[9] || '').trim();
+      var rowRegNorm = _flightFollowNormalizeReg_(r[2]) || _flightFollowNormalizeReg_(threadRegMap[threadId]);
+      var from = String(r[4] || '');
+      var to = String(r[5] || '');
+      var subject = String(r[6] || '');
+      var text = String(r[7] || '');
+      var verified = String(r[8] || '').toUpperCase() === 'TRUE';
+      var fullText = [from, to, subject, text].join('\n');
+
+      var regMatched = rowRegNorm === regNorm || _flightFollowContainsAnyToken_(fullText, tokens);
+      var addressMatched = !!outboundAddress && String(fullText || '').toLowerCase().indexOf(outboundAddress) >= 0;
+      if (!regMatched && !addressMatched) return;
+
+      out.push({
+        timestamp: ts,
+        direction: direction || (_flightFollowLooksInreach_(from) ? 'INBOUND' : 'OUTBOUND'),
+        from: from || 'unknown',
+        subject: subject,
+        text: text,
+        previewText: previewTextForBody(text, subject),
+        verified: verified
+      });
+    });
+
+    out.sort(function(a, b) {
+      return String(a.timestamp || '').localeCompare(String(b.timestamp || ''));
+    });
+    return out.slice(-200);
+  } catch (e) {
     return [];
   }
+}
+
+function debugFlightFollowSheetMessages(reg) {
+  var regNorm = _flightFollowNormalizeReg_(reg);
+  if (!regNorm) {
+    return { success: false, reason: 'Missing reg', rows: [] };
+  }
+
+  var outboundAddress = String(_flightFollowOutboundRecipientForReg_(reg) || '').trim().toLowerCase();
+  var tokens = _flightFollowTokenVariants_(regNorm);
+
+  try {
+    var sheet = _flightFollowMessagesSheet_();
+    var ss = sheet.getParent();
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) {
+      return {
+        success: true,
+        reg: regNorm,
+        spreadsheetId: ss.getId(),
+        spreadsheetName: ss.getName(),
+        sheetName: sheet.getName(),
+        lastRow: lastRow,
+        rowCount: 0,
+        matchedCount: 0,
+        rows: [],
+        tailRows: []
+      };
+    }
+
+    var maxRows = 1500;
+    var startRow = Math.max(2, lastRow - maxRows + 1);
+    var values = sheet.getRange(startRow, 1, lastRow - startRow + 1, FF_MESSAGES_HEADERS_.length).getValues();
+    var threadRegMap = _flightFollowThreadRegMap_(sheet, maxRows);
+    var matched = [];
+    var tailStart = Math.max(2, lastRow - 14);
+    var tailValues = sheet.getRange(tailStart, 1, lastRow - tailStart + 1, FF_MESSAGES_HEADERS_.length).getValues();
+    var tailRows = tailValues.map(function(r, idx) {
+      return {
+        sheetRow: tailStart + idx,
+        timestamp: String(r[0] || ''),
+        regNorm: _flightFollowNormalizeReg_(r[2]),
+        direction: String(r[3] || ''),
+        from: String(r[4] || ''),
+        to: String(r[5] || ''),
+        subject: String(r[6] || ''),
+        threadId: String(r[9] || ''),
+        messageId: String(r[10] || ''),
+        source: String(r[11] || '')
+      };
+    });
+
+    values.forEach(function(r, idx) {
+      var ts = String(r[0] || '');
+      var rowRegNorm = _flightFollowNormalizeReg_(r[2]);
+      var direction = String(r[3] || '');
+      var from = String(r[4] || '');
+      var to = String(r[5] || '');
+      var subject = String(r[6] || '');
+      var text = String(r[7] || '');
+      var threadId = String(r[9] || '').trim();
+      var fullText = [from, to, subject, text].join('\n');
+      var effectiveRegNorm = rowRegNorm || _flightFollowNormalizeReg_(threadRegMap[threadId]);
+      var regMatched = effectiveRegNorm === regNorm || _flightFollowContainsAnyToken_(fullText, tokens);
+      var addressMatched = !!outboundAddress && String(fullText || '').toLowerCase().indexOf(outboundAddress) >= 0;
+      if (!regMatched && !addressMatched) return;
+
+      matched.push({
+        sheetRow: startRow + idx,
+        timestamp: ts,
+        direction: direction,
+        rowRegNorm: rowRegNorm,
+        effectiveRegNorm: effectiveRegNorm,
+        threadId: threadId,
+        from: from,
+        to: to,
+        subject: subject,
+        textPreview: text.slice(0, 160),
+        regMatched: regMatched,
+        addressMatched: addressMatched
+      });
+    });
+
+    matched.sort(function(a, b) {
+      return String(a.timestamp || '').localeCompare(String(b.timestamp || ''));
+    });
+
+    return {
+      success: true,
+      reg: regNorm,
+      spreadsheetId: ss.getId(),
+      spreadsheetName: ss.getName(),
+      sheetName: sheet.getName(),
+      lastRow: lastRow,
+      outboundAddress: outboundAddress,
+      rowCount: values.length,
+      matchedCount: matched.length,
+      rows: matched.slice(-25),
+      tailRows: tailRows
+    };
+  } catch (e) {
+    return { success: false, reg: regNorm, error: String(e && e.message || e) };
+  }
+}
+
+function testFlightFollowSheetMessages() {
+  Logger.log(JSON.stringify(debugFlightFollowSheetMessages('PT-KPS'), null, 2));
+}
+
+function debugFlightFollowInbox(reg) {
+  // Admin diagnostic helper to confirm mailbox context and matching logic.
+  return _flightFollowScanMessages_(reg, true);
+}
+
+function testFFDebug() {
+  // Default diagnostic registration used in current FF operations.
+  Logger.log(JSON.stringify(debugFlightFollowInbox('PT-KPS'), null, 2));
+}
+
+function testFFDebugFromOutboundMap() {
+  // Picks the first registration key from FLIGHT_FOLLOW_OUTBOUND_MAP.
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(APP_SHEETS.SCHED_CONFIG || 'SCHED_Config');
+  if (!sheet) {
+    Logger.log('SCHED_Config not found');
+    return;
+  }
+
+  var cfg = _schedulerReadConfigMap_(sheet);
+  var raw = String(cfg.FLIGHT_FOLLOW_OUTBOUND_MAP || '').trim();
+  if (!raw) {
+    Logger.log('FLIGHT_FOLLOW_OUTBOUND_MAP is empty');
+    return;
+  }
+
+  var reg = '';
+  raw.split(/\r?\n/).some(function(line) {
+    var cleaned = String(line || '').trim();
+    if (!cleaned || cleaned.indexOf('#') === 0) return false;
+    var parts = cleaned.split(/[=:]/);
+    if (parts.length < 2) return false;
+    reg = String(parts[0] || '').trim();
+    return !!reg;
+  });
+
+  if (!reg) {
+    Logger.log('No registration keys found in FLIGHT_FOLLOW_OUTBOUND_MAP');
+    return;
+  }
+
+  Logger.log(JSON.stringify(debugFlightFollowInbox(reg), null, 2));
+}
+
+function debugFlightFollowInboxByToken(token) {
+  // Diagnostic helper to inspect inbox visibility by arbitrary token (e.g., KPS).
+  var rawToken = String(token || '').trim();
+  if (!rawToken) rawToken = 'KPS';
+
+  var variants = [rawToken.toUpperCase()];
+  var compact = rawToken.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (compact && variants.indexOf(compact) < 0) variants.push(compact);
+  if (compact.length >= 5) {
+    var dashed = compact.slice(0, 2) + '-' + compact.slice(2);
+    if (variants.indexOf(dashed) < 0) variants.push(dashed);
+  }
+
+  var clauses = variants.map(function(v) { return '"' + v + '"'; });
+  var query = 'in:inbox newer_than:30d (' + clauses.join(' OR ') + ')';
+
+  try {
+    var threads = GmailApp.search(query, 0, 120);
+    var rows = [];
+
+    threads.forEach(function(thread) {
+      var msgs = thread.getMessages();
+      msgs.forEach(function(msg) {
+        if (!msg.isInInbox()) return;
+        var from = String(msg.getFrom() || '');
+        var to = String(msg.getTo() || '');
+        var subj = String(msg.getSubject() || '');
+        var body = String(msg.getPlainBody() || '');
+        rows.push({
+          timestamp: msg.getDate().toISOString(),
+          from: from,
+          to: to,
+          subject: subj,
+          bodyPreview: body.substring(0, 180)
+        });
+      });
+    });
+
+    rows.sort(function(a, b) {
+      return String(b.timestamp || '').localeCompare(String(a.timestamp || ''));
+    });
+
+    return {
+      token: rawToken,
+      variants: variants,
+      query: query,
+      effectiveUser: Session.getEffectiveUser().getEmail(),
+      activeUser: Session.getActiveUser().getEmail(),
+      threadCount: threads.length,
+      inboxMessageCount: rows.length,
+      messages: rows.slice(0, 200)
+    };
+  } catch (e) {
+    return {
+      token: rawToken,
+      variants: variants,
+      query: query,
+      effectiveUser: Session.getEffectiveUser().getEmail(),
+      activeUser: Session.getActiveUser().getEmail(),
+      threadCount: 0,
+      inboxMessageCount: 0,
+      messages: [],
+      error: String(e && e.message || e)
+    };
+  }
+}
+
+function testFFDebugKPS() {
+  Logger.log(JSON.stringify(debugFlightFollowInboxByToken('KPS'), null, 2));
 }
 
 function getFlightFollowInit() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('DB_Aircraft');
-  if (!sheet) return { aircraft: [] };
+  if (!sheet) return { aircraft: [], airports: [], waypoints: [], fuelCaches: [] };
   var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return { aircraft: [] };
+  if (data.length < 2) return { aircraft: [], airports: [], waypoints: [], fuelCaches: [] };
   var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
   var regIdx  = headers.indexOf('REGISTRATION');
   var typeIdx = headers.indexOf('AIRCRAFT_TYPE');
@@ -6804,7 +8504,72 @@ function getFlightFollowInit() {
       burnLph: isFinite(burnVal) ? burnVal : 0
     });
   }
-  return { aircraft: aircraft };
+
+  var airports = [];
+  try {
+    var airSheet = ss.getSheetByName(APP_SHEETS.AIRPORTS);
+    if (airSheet) {
+      var airVals = airSheet.getDataRange().getValues();
+      if (airVals.length > 1) {
+        var airHeaders = airVals[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
+        airports = airVals.slice(1).map(function(r) {
+          return _airportMapRow_(airHeaders, r);
+        }).filter(function(a) {
+          return String(a && a.icao || '').trim();
+        });
+      }
+    }
+  } catch (e) {}
+
+  var waypoints = [];
+  try {
+    var wpSheet = ss.getSheetByName(APP_SHEETS.WAYPOINTS);
+    if (wpSheet) {
+      var wpVals = wpSheet.getDataRange().getValues();
+      if (wpVals.length > 1) {
+        var wpHeaders = wpVals[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
+        var wpIdIdx = wpHeaders.indexOf('WP_ID');
+        var wpLatIdx = wpHeaders.indexOf('LATITUDE');
+        var wpLonIdx = wpHeaders.indexOf('LONGITUDE');
+        var wpTypeIdx = wpHeaders.indexOf('TYPE');
+        if (wpIdIdx >= 0 && wpLatIdx >= 0 && wpLonIdx >= 0) {
+          waypoints = wpVals.slice(1).map(function(r) {
+            return {
+              wp_id: String(r[wpIdIdx] || '').trim().toUpperCase(),
+              lat: Number(r[wpLatIdx]),
+              lon: Number(r[wpLonIdx]),
+              type: wpTypeIdx >= 0 ? String(r[wpTypeIdx] || '').trim() : ''
+            };
+          }).filter(function(w) {
+            return !!w.wp_id && isFinite(w.lat) && isFinite(w.lon);
+          });
+        }
+      }
+    }
+  } catch (e2) {}
+
+  var fuelCaches = [];
+  try {
+    var cacheSheet = ss.getSheetByName(APP_SHEETS.FUEL_CACHES);
+    if (cacheSheet) {
+      var cacheVals = cacheSheet.getDataRange().getValues();
+      if (cacheVals.length > 1) {
+        var cacheHeaders = cacheVals[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
+        var icaoIdx = cacheHeaders.indexOf('ICAO');
+        var qtyIdx = cacheHeaders.indexOf('CURRENT_QTY');
+        if (icaoIdx >= 0 && qtyIdx >= 0) {
+          fuelCaches = cacheVals.slice(1).map(function(r) {
+            return {
+              icao: String(r[icaoIdx] || '').trim().toUpperCase(),
+              qty: Number(r[qtyIdx] || 0)
+            };
+          }).filter(function(c) { return !!c.icao; });
+        }
+      }
+    }
+  } catch (e3) {}
+
+  return { aircraft: aircraft, airports: airports, waypoints: waypoints, fuelCaches: fuelCaches };
 }
 
 function saveMissionFplToDrive(missionId, fplXml) {
@@ -6946,6 +8711,61 @@ function releaseBrakes(payload) {
   logSheet.getRange(logRow, LOG_FLIGHT_COL.TO_RISK_MATRIX + 1).setValue(riskTotal);
   logSheet.getRange(logRow, LOG_FLIGHT_COL.BRAKES_RELEASE + 1).setValue(now);
 
+  // Persist takeoff performance data from runwaySnapshot + wbSnapshot into ACTUAL_LOAD_JSON
+  const runwaySnap = (payload && payload.runwaySnapshot && typeof payload.runwaySnapshot === 'object') ? payload.runwaySnapshot : null;
+  const wbSnap = (payload && payload.wbSnapshot && typeof payload.wbSnapshot === 'object') ? payload.wbSnapshot : null;
+  if (runwaySnap || wbSnap) {
+    const logHeaders = logData[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
+    const actualLoadColIdx = logHeaders.indexOf('ACTUAL_LOAD_JSON') >= 0 ? logHeaders.indexOf('ACTUAL_LOAD_JSON') : LOG_FLIGHT_COL.ACTUAL_LOAD_JSON;
+    const existingRaw = String(logData[logRow - 1][actualLoadColIdx] || '');
+    let existingLoad = {};
+    try { existingLoad = existingRaw ? JSON.parse(existingRaw) : {}; } catch (e2) { existingLoad = {}; }
+    const surfCond = String((runwaySnap && runwaySnap.surfaceCondition) || '').trim().toUpperCase();
+    const numericOrExisting = function(value, fallback) {
+      return (value != null && value !== '' && isFinite(Number(value))) ? Number(value) : fallback;
+    };
+    const mergedLoad = Object.assign({}, existingLoad, {
+      runwayIdent: String((runwaySnap && runwaySnap.runwayIdent) || existingLoad.runwayIdent || '').trim(),
+      fromIcao: String((runwaySnap && runwaySnap.fromIcao) || existingLoad.fromIcao || '').trim().toUpperCase(),
+      surface: String((runwaySnap && runwaySnap.surface) || existingLoad.surface || '').trim(),
+      surfaceCondition: surfCond || existingLoad.surfaceCondition || '',
+      wet: surfCond ? (surfCond === 'WET') : existingLoad.wet,
+      runwayLengthM: numericOrExisting(runwaySnap && runwaySnap.runwayLengthM, existingLoad.runwayLengthM),
+      runwayWidthM: numericOrExisting(runwaySnap && runwaySnap.runwayWidthM, existingLoad.runwayWidthM),
+      officialRunwayLengthM: numericOrExisting(runwaySnap && runwaySnap.officialRunwayLengthM, existingLoad.officialRunwayLengthM),
+      officialRunwayWidthM: numericOrExisting(runwaySnap && runwaySnap.officialRunwayWidthM, existingLoad.officialRunwayWidthM),
+      elevationFt: numericOrExisting(runwaySnap && runwaySnap.elevationFt, existingLoad.elevationFt),
+      slopePct: numericOrExisting(runwaySnap && runwaySnap.slopePct, existingLoad.slopePct),
+      cutdownAreaM: numericOrExisting(runwaySnap && runwaySnap.cutdownAreaM, existingLoad.cutdownAreaM),
+      heading: numericOrExisting(runwaySnap && runwaySnap.heading, existingLoad.heading),
+      windDir: numericOrExisting(runwaySnap && runwaySnap.windDir, existingLoad.windDir),
+      windSpd: numericOrExisting(runwaySnap && runwaySnap.windSpd, existingLoad.windSpd),
+      tempC: numericOrExisting(runwaySnap && runwaySnap.tempC, existingLoad.tempC),
+      qnhHpa: numericOrExisting((runwaySnap && (runwaySnap.qnhHpa != null ? runwaySnap.qnhHpa : runwaySnap.qnh)) != null
+        ? (runwaySnap.qnhHpa != null ? runwaySnap.qnhHpa : runwaySnap.qnh)
+        : (payload && payload.qnhHpa), existingLoad.qnhHpa),
+      flaps: numericOrExisting(runwaySnap && runwaySnap.flaps, existingLoad.flaps),
+      humidity: numericOrExisting(runwaySnap && runwaySnap.humidity, existingLoad.humidity),
+      headTailKts: numericOrExisting(runwaySnap && runwaySnap.headTailKts, existingLoad.headTailKts),
+      crosswindKts: numericOrExisting(runwaySnap && runwaySnap.crosswindKts, existingLoad.crosswindKts),
+      calcToRoll: (runwaySnap && runwaySnap.takeoffRollM != null) ? Number(runwaySnap.takeoffRollM) : (existingLoad.calcToRoll != null ? existingLoad.calcToRoll : null),
+      landingRollM: numericOrExisting(runwaySnap && runwaySnap.landingRollM, existingLoad.landingRollM),
+      combinedRollM: numericOrExisting(runwaySnap && runwaySnap.rollStopM, existingLoad.combinedRollM),
+      abortPointM: numericOrExisting(runwaySnap && runwaySnap.abortPointM, existingLoad.abortPointM),
+      vrDistM: (runwaySnap && runwaySnap.vrDistM != null) ? Number(runwaySnap.vrDistM) : (existingLoad.vrDistM != null ? existingLoad.vrDistM : null),
+      mapDistM: (runwaySnap && runwaySnap.mapDistM != null) ? Number(runwaySnap.mapDistM) : (existingLoad.mapDistM != null ? existingLoad.mapDistM : null),
+      densityAltitudeFt: numericOrExisting(runwaySnap && runwaySnap.densityAltitudeFt, existingLoad.densityAltitudeFt),
+      pressureAltitudeFt: numericOrExisting(runwaySnap && runwaySnap.pressureAltitudeFt, existingLoad.pressureAltitudeFt),
+      isaDeviationC: numericOrExisting(runwaySnap && runwaySnap.isaDeviationC, existingLoad.isaDeviationC),
+      blocking: typeof (runwaySnap && runwaySnap.blocking) === 'boolean' ? runwaySnap.blocking : existingLoad.blocking,
+      warnings: Array.isArray(runwaySnap && runwaySnap.warnings) ? runwaySnap.warnings.slice() : (Array.isArray(existingLoad.warnings) ? existingLoad.warnings : []),
+      releasedAt: now.toISOString()
+    });
+    if (wbSnap && Number(wbSnap.weightKg) > 0) mergedLoad.weightKg = Number(wbSnap.weightKg);
+    if (wbSnap && Number(wbSnap.cgIn) > 0) mergedLoad.cgIn = Number(wbSnap.cgIn);
+    logSheet.getRange(logRow, actualLoadColIdx + 1).setValue(JSON.stringify(mergedLoad));
+  }
+
   // DB_Dispatch: Column L = 12 status => In-Flight (all rows in mission)
   const dispatchData = dispatchSheet.getDataRange().getValues();
   let dispatchRowsUpdated = 0;
@@ -7028,6 +8848,82 @@ function recordAirborne(payload) {
   return { success: true, flightLegId: flightLegId, airborne: ts.toISOString() };
 }
 
+function _syncDispatchMissionStatusForFlightLeg_(flightLegId) {
+  var legKey = String(flightLegId || '').trim();
+  if (!legKey) return { success: false, reason: 'missing-flight-leg-id' };
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var dispatchSheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
+  var logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (!dispatchSheet || !logSheet) return { success: false, reason: 'missing-sheet' };
+
+  var dispatchData = dispatchSheet.getDataRange().getValues();
+  if (!dispatchData || dispatchData.length < 2) return { success: false, reason: 'dispatch-empty' };
+
+  var missionId = '';
+  var missionRows = [];
+  var missionLegIdsMap = {};
+
+  for (var i = 1; i < dispatchData.length; i++) {
+    var rowLegId = String(dispatchData[i][DISPATCH_COL.FLIGHT_ID] || '').trim();
+    if (rowLegId === legKey) {
+      missionId = String(dispatchData[i][DISPATCH_COL.MISSION_ID] || '').trim();
+      break;
+    }
+  }
+  if (!missionId) return { success: false, reason: 'mission-not-found' };
+
+  for (var j = 1; j < dispatchData.length; j++) {
+    var mid = String(dispatchData[j][DISPATCH_COL.MISSION_ID] || '').trim();
+    if (mid !== missionId) continue;
+    missionRows.push(j + 1);
+    var lid = String(dispatchData[j][DISPATCH_COL.FLIGHT_ID] || '').trim();
+    if (lid) missionLegIdsMap[lid] = true;
+  }
+
+  var missionLegIds = Object.keys(missionLegIdsMap);
+  if (!missionLegIds.length) return { success: false, reason: 'mission-has-no-legs', missionId: missionId };
+
+  var logData = logSheet.getDataRange().getValues();
+  var completedLegMap = {};
+  for (var li = 1; li < logData.length; li++) {
+    var lr = logData[li];
+    var lid2 = String(lr[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
+    if (!lid2) continue;
+    var landed = lr[LOG_FLIGHT_COL.LANDED];
+    var onBlocks = lr[LOG_FLIGHT_COL.ON_BLOCKS];
+    var brakesApplied = lr[LOG_FLIGHT_COL.BRAKES_APPLIED];
+    if (landed || onBlocks || brakesApplied) completedLegMap[lid2] = true;
+  }
+
+  var legsComplete = missionLegIds.filter(function(lid3) { return !!completedLegMap[lid3]; }).length;
+  var allLegsComplete = legsComplete > 0 && legsComplete === missionLegIds.length;
+  var anyLegComplete = legsComplete > 0;
+  var targetStatus = allLegsComplete ? 'FLOWN' : (anyLegComplete ? 'In-Flight' : '');
+
+  var updatedRows = 0;
+  if (targetStatus) {
+    missionRows.forEach(function(rowNum) {
+      var existing = String(dispatchSheet.getRange(rowNum, DISPATCH_COL.STATUS + 1).getValue() || '').trim();
+      var existingUpper = existing.toUpperCase();
+      if (existingUpper === 'CANCELLED') return;
+      if (existingUpper === String(targetStatus).toUpperCase()) return;
+      dispatchSheet.getRange(rowNum, DISPATCH_COL.STATUS + 1).setValue(targetStatus);
+      updatedRows++;
+    });
+    if (updatedRows > 0) invalidateScheduledMissionsCache_();
+  }
+
+  return {
+    success: true,
+    missionId: missionId,
+    legsComplete: legsComplete,
+    legCount: missionLegIds.length,
+    targetStatus: targetStatus || '',
+    updatedRows: updatedRows
+  };
+}
+
 function recordLanded(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
@@ -7050,8 +8946,34 @@ function recordLanded(payload) {
 
   const ts = payload && payload.landed ? new Date(payload.landed) : new Date();
   logSheet.getRange(rowIdx, LOG_FLIGHT_COL.LANDED + 1).setValue(ts);
+  const syncRes = _syncDispatchMissionStatusForFlightLeg_(flightLegId);
 
-  return { success: true, flightLegId: flightLegId, landed: ts.toISOString() };
+  return { success: true, flightLegId: flightLegId, landed: ts.toISOString(), missionStatus: syncRes };
+}
+
+function clearAutoLoggedLanded(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+  if (!logSheet) throw new Error("Sheet 'LOG_Flights' not found.");
+
+  const flightLegId = String(payload && payload.flightLegId || '').trim();
+  if (!flightLegId) throw new Error('clearAutoLoggedLanded: flightLegId is required');
+
+  const data = logSheet.getDataRange().getValues();
+  if (!data || data.length < 2) throw new Error('clearAutoLoggedLanded: LOG_Flights has no data rows');
+
+  let rowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][LOG_FLIGHT_COL.FLIGHT_ID] || '').trim() === flightLegId) {
+      rowIdx = i + 1;
+      break;
+    }
+  }
+  if (rowIdx < 0) throw new Error('clearAutoLoggedLanded: flight not found in LOG_Flights: ' + flightLegId);
+
+  logSheet.getRange(rowIdx, LOG_FLIGHT_COL.LANDED + 1).setValue('');
+  const syncRes = _syncDispatchMissionStatusForFlightLeg_(flightLegId);
+  return { success: true, flightLegId: flightLegId, landed: '', missionStatus: syncRes };
 }
 
 function recordTouchAndGo(payload) {
@@ -7142,11 +9064,15 @@ function recordArrivalOnBlocks(payload) {
     logSheet.getRange(rowIdx, LOG_FLIGHT_COL.ACTUAL_LOAD_JSON + 1).setValue(JSON.stringify(merged));
   }
 
+  invalidateScheduledMissionsCache_();
+  const syncRes = _syncDispatchMissionStatusForFlightLeg_(flightLegId);
+
   return {
     success: true,
     flightLegId: flightLegId,
     riskTotal: riskTotal,
-    onBlocks: now.toISOString()
+    onBlocks: now.toISOString(),
+    missionStatus: syncRes
   };
 }
 
@@ -7321,6 +9247,19 @@ function recordDebriefLog(payload) {
   const trainingDebrief = (payload && payload.trainingDebrief && typeof payload.trainingDebrief === 'object')
     ? payload.trainingDebrief
     : null;
+  const landingLog = Array.isArray(payload && payload.landingLog)
+    ? payload.landingLog.map(function(entry) {
+        return {
+          timeZ: String(entry && entry.timeZ || '').trim(),
+          icao: String(entry && entry.icao || '').trim().toUpperCase(),
+          name: String(entry && entry.name || '').trim(),
+          locDesc: String(entry && entry.locDesc || '').trim(),
+          type: String(entry && entry.type || 'FULL').trim().toUpperCase()
+        };
+      }).filter(function(entry) {
+        return !!(entry.timeZ || entry.icao || entry.locDesc);
+      })
+    : [];
 
   if (colEndTach >= 0) logSheet.getRange(rowIdx, colEndTach + 1).setValue(endTach);
   if (colFuelEnd >= 0) logSheet.getRange(rowIdx, colFuelEnd + 1).setValue(fuelEnd);
@@ -7347,6 +9286,7 @@ function recordDebriefLog(payload) {
         nightLdgs: nightLdgs,
         nightHrs: nightHrs,
         ifrHrs: ifrHrs,
+        landingLog: landingLog,
         trainingDebrief: trainingDebrief,
         totalTime: totalTime,
         debriefAt: new Date().toISOString()
@@ -7407,6 +9347,9 @@ function recordDebriefLog(payload) {
     trainingChecksAdded = _debr8AppendTrainingCheckouts_(ss, flightLegId, pilotName, trainingDebrief);
   }
 
+  invalidateScheduledMissionsCache_();
+  const syncRes = _syncDispatchMissionStatusForFlightLeg_(flightLegId);
+
   return {
     success: true,
     flightLegId: flightLegId,
@@ -7422,6 +9365,7 @@ function recordDebriefLog(payload) {
     ifrHrs: ifrHrs,
     brakesApplied: brakesApplied,
     numTouchAndGos: numTouchAndGos,
+    landingLog: landingLog,
     squawks: squawks,
     trainingDebrief: trainingDebrief,
     trainingChecksAdded: trainingChecksAdded,
@@ -8037,13 +9981,32 @@ function saveTakeoffRollToLog(flightId, rollPayload) {
     existingJson = { _parseError: 'Invalid existing Actual_Load_JSON', _raw: String(existingRaw) };
   }
 
+  const rollObj = (rollPayload && typeof rollPayload === 'object') ? rollPayload : {};
+  const rollDistanceM = (rollObj.distanceAtVrM != null && isFinite(Number(rollObj.distanceAtVrM)))
+    ? Math.round(Number(rollObj.distanceAtVrM))
+    : ((rollObj.distanceAtVrNm != null && isFinite(Number(rollObj.distanceAtVrNm)))
+      ? Math.round(Number(rollObj.distanceAtVrNm) * 1852)
+      : null);
+
   const merged = {
     ...existingJson,
-    takeoffRoll: rollPayload || {},
+    // Canonical captured metric: meters from Start Roll button press to Vr hit.
+    actualToRollM: rollDistanceM,
+    vrDistM: rollDistanceM,
+    takeoffRoll: rollObj,
     takeoffRollSavedAt: new Date().toISOString()
   };
 
   logSheet.getRange(targetRow, LOG_FLIGHT_COL.ACTUAL_LOAD_JSON + 1).setValue(JSON.stringify(merged));
+  if (rollDistanceM != null) {
+    const logHeaders = data[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
+    const actualToRollColIdx = (logHeaders.indexOf('ACTUAL_TO_ROLL') >= 0)
+      ? logHeaders.indexOf('ACTUAL_TO_ROLL')
+      : (LOG_FLIGHT_COL.ACTUAL_TO_ROLL != null ? LOG_FLIGHT_COL.ACTUAL_TO_ROLL : -1);
+    if (actualToRollColIdx >= 0) {
+      logSheet.getRange(targetRow, actualToRollColIdx + 1).setValue(rollDistanceM);
+    }
+  }
   return true;
 }
 
@@ -8502,7 +10465,8 @@ function getPerformanceSetup(icao) {
           surface: String(officialReference.surface || _perfValue(r, ['SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'SURFACE'], '')).trim(),
           headingDeg: _perfNum(officialReference.headingDeg, explicitHeading > 0 ? explicitHeading : _runwayHeadingFromIdent(rwyIdent))
         },
-        verifiedOperational: verifiedOperational
+        verifiedOperational: verifiedOperational,
+        surveyPilot: String((knownObj.verifiedSurvey && knownObj.verifiedSurvey.pilotName) || '').trim()
       };
     })
     .sort((a, b) => {
@@ -9123,7 +11087,8 @@ function _runwayDbFindCols_(headers) {
     heading: find('RUNWAY_HEADING', 'HEADING'),
     length: find('LENGTH_OFFICIAL', 'LENGTH_METERS', 'LENGTH_M'),
     width: find('WIDTH_OFFICIAL', 'WIDTH_METERS', 'WIDTH_M'),
-    surface: find('SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'SURFACE')
+    surface: find('SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'SURFACE'),
+    elevation: find('ELEVATION', 'ALT_FEET', 'ELEVATION_FT')
   };
 }
 
@@ -10376,6 +12341,41 @@ function getToolsReports(payload) {
       var n = parseFloat(value);
       return isNaN(n) ? 0 : n;
     };
+    var durationHoursFromAny = function(value) {
+      if (value == null || value === '') return null;
+      if (value instanceof Date && !isNaN(value.getTime())) {
+        if (value.getFullYear() <= 1900) {
+          return value.getHours() + (value.getMinutes() / 60) + (value.getSeconds() / 3600) + (value.getMilliseconds() / 3600000);
+        }
+        return null;
+      }
+      if (typeof value === 'number' && isFinite(value)) {
+        if (value < 0) return null;
+        return value;
+      }
+      var raw = String(value || '').trim();
+      if (!raw) return null;
+      var hm = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      if (hm) {
+        var hh = Number(hm[1] || 0);
+        var mm = Number(hm[2] || 0);
+        var ss = Number(hm[3] || 0);
+        if (!isNaN(hh) && !isNaN(mm) && !isNaN(ss)) return hh + (mm / 60) + (ss / 3600);
+      }
+      var n = parseFloat(raw);
+      if (!isNaN(n) && isFinite(n) && n >= 0) {
+        return n;
+      }
+      return null;
+    };
+    var durationHoursBetween = function(startValue, endValue) {
+      var startDt = rowDate(startValue);
+      var endDt = rowDate(endValue);
+      if (!startDt || !endDt) return null;
+      var deltaHours = (endDt.getTime() - startDt.getTime()) / 3600000;
+      if (!isFinite(deltaHours) || deltaHours <= 0 || deltaHours > 24) return null;
+      return deltaHours;
+    };
     var isoDate = function(value) {
       var dt = rowDate(value);
       if (!dt) return '';
@@ -10418,7 +12418,7 @@ function getToolsReports(payload) {
         aircraft: dispatchAircraftIdx >= 0 ? String(row[dispatchAircraftIdx] || '').trim() : '',
         pilot: dispatchPilotIdx >= 0 ? String(row[dispatchPilotIdx] || '').trim() : '',
         route: dispatchRouteIdx >= 0 ? String(row[dispatchRouteIdx] || '').trim() : '',
-        totalTime: dispatchTimeIdx >= 0 ? num(row[dispatchTimeIdx]) : 0,
+        totalTime: dispatchTimeIdx >= 0 ? (durationHoursFromAny(row[dispatchTimeIdx]) || num(row[dispatchTimeIdx])) : 0,
         type: dispatchTypeIdx >= 0 ? String(row[dispatchTypeIdx] || '').trim() : '',
         status: dispatchStatusIdx >= 0 ? String(row[dispatchStatusIdx] || '').trim() : ''
       };
@@ -10490,6 +12490,9 @@ function getToolsReports(payload) {
     var logLdgsIdx = indexByAliases(logData.headers, ['NUMBER_LDGS', 'NUM_LDGS'], LOG_FLIGHT_COL.NUM_LDGS);
     var logAirborneIdx = indexByAliases(logData.headers, ['AIRBORNE'], LOG_FLIGHT_COL.AIRBORNE);
     var logLandedIdx = indexByAliases(logData.headers, ['LANDED'], LOG_FLIGHT_COL.LANDED);
+    var logBrakesReleaseIdx = indexByAliases(logData.headers, ['BRAKES_RELEASE'], LOG_FLIGHT_COL.BRAKES_RELEASE);
+    var logBrakesAppliedIdx = indexByAliases(logData.headers, ['BRAKES_APPLIED', 'ON_BLOCKS'], LOG_FLIGHT_COL.BRAKES_APPLIED);
+    var logOnBlocksIdx = indexByAliases(logData.headers, ['ON_BLOCKS', 'BRAKES_APPLIED'], LOG_FLIGHT_COL.ON_BLOCKS);
 
     var flights = [];
     var pilotAgg = {};
@@ -10502,8 +12505,19 @@ function getToolsReports(payload) {
       var logDateValue = logDateIdx >= 0 ? row[logDateIdx] : '';
       var effectiveDate = logDateValue || dispatchInfo.date || '';
       if (!inRange(effectiveDate)) return;
-      var totalTime = logTimeIdx >= 0 ? num(row[logTimeIdx]) : 0;
-      if (!totalTime) totalTime = num(dispatchInfo.totalTime);
+      var totalTime = logTimeIdx >= 0 ? durationHoursFromAny(row[logTimeIdx]) : null;
+      if (!(totalTime > 0)) {
+        var brakesStart = logBrakesReleaseIdx >= 0 ? row[logBrakesReleaseIdx] : '';
+        var brakesEnd = (logBrakesAppliedIdx >= 0 ? row[logBrakesAppliedIdx] : '') || (logOnBlocksIdx >= 0 ? row[logOnBlocksIdx] : '');
+        totalTime = durationHoursBetween(brakesStart, brakesEnd);
+      }
+      if (!(totalTime > 0)) {
+        var airStart = logAirborneIdx >= 0 ? row[logAirborneIdx] : '';
+        var airEnd = logLandedIdx >= 0 ? row[logLandedIdx] : '';
+        totalTime = durationHoursBetween(airStart, airEnd);
+      }
+      if (!(totalTime > 0)) totalTime = durationHoursFromAny(dispatchInfo.totalTime);
+      if (!(totalTime > 0)) totalTime = num(dispatchInfo.totalTime);
       var landings = logLdgsIdx >= 0 ? num(row[logLdgsIdx]) : 0;
       var pilotName = logPilotIdx >= 0 ? String(row[logPilotIdx] || '').trim() : '';
       if (!pilotName) pilotName = String(dispatchInfo.pilot || '').trim();
@@ -10669,6 +12683,60 @@ function getToolsFlightDetailReport(payload) {
     var dateToYmd = function(value) {
       var iso = dateToIso(value);
       return iso && iso.indexOf('T') > 0 ? iso.slice(0, 10) : iso;
+    };
+    var rowDateToDateObj_ = function(value) {
+      if (value instanceof Date && !isNaN(value.getTime())) return new Date(value.getTime());
+      var raw = String(value || '').trim();
+      if (!raw) return null;
+      var parsed = new Date(raw);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+    var durationHoursFromAny = function(value) {
+      if (value == null || value === '') return null;
+      if (value instanceof Date && !isNaN(value.getTime())) {
+        if (value.getFullYear() <= 1900) {
+          return value.getHours() + (value.getMinutes() / 60) + (value.getSeconds() / 3600) + (value.getMilliseconds() / 3600000);
+        }
+        return null;
+      }
+      if (typeof value === 'number' && isFinite(value)) {
+        if (value < 0) return null;
+        return value;
+      }
+      var raw = String(value || '').trim();
+      if (!raw) return null;
+      var hm = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      if (hm) {
+        var hh = Number(hm[1] || 0);
+        var mm = Number(hm[2] || 0);
+        var ss = Number(hm[3] || 0);
+        if (!isNaN(hh) && !isNaN(mm) && !isNaN(ss)) return hh + (mm / 60) + (ss / 3600);
+      }
+      var n = parseFloat(raw);
+      if (!isNaN(n) && isFinite(n) && n >= 0) {
+        return n;
+      }
+      return null;
+    };
+    var durationHoursBetween = function(startValue, endValue) {
+      var startDt = rowDateToDateObj_(startValue);
+      var endDt = rowDateToDateObj_(endValue);
+      if (!startDt || !endDt) return null;
+      var deltaHours = (endDt.getTime() - startDt.getTime()) / 3600000;
+      if (!isFinite(deltaHours) || deltaHours <= 0 || deltaHours > 24) return null;
+      return deltaHours;
+    };
+    var zuluHHMM = function(value) {
+      var dt = rowDateToDateObj_(value);
+      if (!dt) {
+        var raw = String(value || '').trim();
+        var hm = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+        if (hm) return ('0' + Number(hm[1] || 0)).slice(-2) + String(hm[2] || '00');
+        var compact = raw.match(/^(\d{2})(\d{2})$/);
+        if (compact) return compact[1] + compact[2];
+        return '';
+      }
+      return Utilities.formatDate(dt, 'UTC', 'HHmm');
     };
     var truncateText = function(value, maxLen) {
       var text = String(value == null ? '' : value);
@@ -10884,6 +12952,48 @@ function getToolsFlightDetailReport(payload) {
     var debriefTab8 = (actualLoad && actualLoad.debrief && typeof actualLoad.debrief === 'object') ? actualLoad.debrief : {};
     var arrivalData = (actualLoad && actualLoad.arrival && typeof actualLoad.arrival === 'object') ? actualLoad.arrival : {};
     var takeoffRollData = (actualLoad && actualLoad.takeoffRoll && typeof actualLoad.takeoffRoll === 'object') ? actualLoad.takeoffRoll : {};
+    var totalTimeHours = durationHoursFromAny(logTotalTimeIdx >= 0 ? logRow[logTotalTimeIdx] : null);
+    if (!(totalTimeHours > 0)) {
+      totalTimeHours = durationHoursBetween(
+        logBrakesReleaseIdx >= 0 ? logRow[logBrakesReleaseIdx] : null,
+        (logBrakesAppliedIdx >= 0 ? logRow[logBrakesAppliedIdx] : null) || (logOnBlocksIdx >= 0 ? logRow[logOnBlocksIdx] : null)
+      );
+    }
+    if (!(totalTimeHours > 0)) {
+      totalTimeHours = durationHoursBetween(
+        logAirborneIdx >= 0 ? logRow[logAirborneIdx] : null,
+        logLandedIdx >= 0 ? logRow[logLandedIdx] : null
+      );
+    }
+    var landingTimeline = (function() {
+      var lines = [];
+      var list = Array.isArray(debriefTab8.landingLog) ? debriefTab8.landingLog : [];
+      if (list.length) {
+        list.forEach(function(entry) {
+          var typeCode = String(entry && entry.type || '').trim().toUpperCase();
+          var label = typeCode === 'TNG' ? 'Touch-and-go' : 'Landing';
+          var loc = String(entry && (entry.icao || entry.locDesc || entry.name) || '').trim().toUpperCase();
+          if (!loc) loc = normText(logToIdx >= 0 ? logRow[logToIdx] : '').toUpperCase() || '---';
+          var time = String(entry && entry.timeZ || '').trim();
+          if (!time) time = zuluHHMM(entry && entry.time);
+          var text = label + ' at ' + loc;
+          if (time) text += ' ' + time + 'Z';
+          lines.push(text);
+        });
+        return lines;
+      }
+      var tngCount = Math.max(0, Math.round(asNumber(logNumTgIdx >= 0 ? logRow[logNumTgIdx] : 0, 0)));
+      var landingCount = Math.max(0, Math.round(asNumber(logNumLdgsIdx >= 0 ? logRow[logNumLdgsIdx] : 0, 0)));
+      var loc = normText(logToIdx >= 0 ? logRow[logToIdx] : '').toUpperCase() || '---';
+      var time = zuluHHMM(logLandedIdx >= 0 ? logRow[logLandedIdx] : '');
+      for (var i = 0; i < tngCount; i++) {
+        lines.push('Touch-and-go at ' + loc + (time ? (' ' + time + 'Z') : ''));
+      }
+      if (landingCount > 0 || (logLandedIdx >= 0 && logRow[logLandedIdx])) {
+        lines.push('Landing at ' + loc + (time ? (' ' + time + 'Z') : ''));
+      }
+      return lines;
+    })();
 
     var response = {
       success: true,
@@ -10913,6 +13023,7 @@ function getToolsFlightDetailReport(payload) {
         startTach: normText(logStartTachIdx >= 0 ? logRow[logStartTachIdx] : ''),
         endTach: normText(logEndTachIdx >= 0 ? logRow[logEndTachIdx] : ''),
         totalTime: normText(logTotalTimeIdx >= 0 ? logRow[logTotalTimeIdx] : ''),
+        totalTimeHours: (totalTimeHours > 0) ? Number(totalTimeHours.toFixed(3)) : null,
         fuelStart: asNumber(logFuelStartIdx >= 0 ? logRow[logFuelStartIdx] : 0, 0),
         fuelEnd: asNumber(logFuelEndIdx >= 0 ? logRow[logFuelEndIdx] : 0, 0),
         fuelUsed: asNumber(logFuelUsedIdx >= 0 ? logRow[logFuelUsedIdx] : 0, 0),
@@ -10947,12 +13058,14 @@ function getToolsFlightDetailReport(payload) {
           nightLdgs: asNumber(debriefTab8.nightLdgs, 0),
           nightHrs: asNumber(debriefTab8.nightHrs, 0),
           ifrHrs: asNumber(debriefTab8.ifrHrs, 0),
+          landingLog: sanitizeForClient(Array.isArray(debriefTab8.landingLog) ? debriefTab8.landingLog : [], 3),
           debriefAt: normText(debriefTab8.debriefAt),
           trainingDebrief: toCompactJsonText(debriefTab8.trainingDebrief || {}, 500)
         },
         arrival: toCompactJsonText(arrivalData, 700),
         takeoffRoll: toCompactJsonText(takeoffRollData, 700)
       },
+      landingTimeline: landingTimeline,
       rawFields: rawFields.slice(0, 40),
       debug: {
         rawFieldCount: rawFields.length,
@@ -11557,6 +13670,7 @@ function setupSchedulerSchema() {
       { CONFIG_KEY: 'AVAILABILITY_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Shared calendar id with unavailable-only events', ACTIVE: 'Y' },
       { CONFIG_KEY: 'FLIGHTS_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Target Google Calendar id for flight events', ACTIVE: 'Y' },
       { CONFIG_KEY: 'SCHEDULE_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Target Google Calendar id for staffing schedule', ACTIVE: 'Y' },
+      { CONFIG_KEY: 'FLIGHT_FOLLOW_RECIPIENTS', CONFIG_VALUE: 'acompanhamento@asasdesocorro.org.br', DESCRIPTION: 'Flight Following inbox recipient list (comma-separated).', ACTIVE: 'Y' },
       { CONFIG_KEY: 'PUBLISH_DAY_OF_MONTH', CONFIG_VALUE: '15', DESCRIPTION: 'Auto-publish day for next month schedule', ACTIVE: 'Y' },
       { CONFIG_KEY: 'BASE_TZ_BVB', CONFIG_VALUE: 'America/Manaus', DESCRIPTION: 'Local timezone for BVB scheduling', ACTIVE: 'Y' },
       { CONFIG_KEY: 'BASE_TZ_PVH', CONFIG_VALUE: 'America/Porto_Velho', DESCRIPTION: 'Local timezone for PVH scheduling', ACTIVE: 'Y' },
@@ -14798,6 +16912,17 @@ function submitRunwayApprovalRequest(payload) {
     const rwyIdent = String(payload && payload.rwyIdent || '').trim().toUpperCase() || 'UNKNOWN';
     if (!icao) return { success: false, error: 'ICAO required' };
 
+    const surveyPayload = (payload && payload.survey && typeof payload.survey === 'object') ? payload.survey : {};
+    const snapshotPayload = (surveyPayload.runwaySnapshot && typeof surveyPayload.runwaySnapshot === 'object') ? surveyPayload.runwaySnapshot : {};
+    const cutdownCandidate = Number(
+      snapshotPayload.cutdownAreaM != null ? snapshotPayload.cutdownAreaM
+        : (surveyPayload.cutdownAreaM != null ? surveyPayload.cutdownAreaM
+          : (payload && payload.official && payload.official.cutdownAreaM != null ? payload.official.cutdownAreaM : NaN))
+    );
+    if (!isFinite(cutdownCandidate) || cutdownCandidate <= 0) {
+      return { success: false, error: 'Cutdown area is required for runway approval requests.' };
+    }
+
     const stagingId = 'APPROVAL_' + new Date().getTime() + '_' + icao + '_' + rwyIdent.replace(/\s+/g, '');
     const nowIso = new Date().toISOString();
 
@@ -14856,10 +16981,12 @@ function _runwayOfficialLogIdFromDbRow_(dbRowObj, fallbackId) {
 
 function getPendingRunwaySurveyReviews(limit) {
   try {
+    console.log('[getPendingRunwaySurveyReviews] called with limit=', limit);
     const schema = _ensureRunwayWalkthroughLogSchema_();
     const sh = schema.sheet;
     const idx = schema.idx;
     const max = Math.max(1, Number(limit || 100) || 100);
+    console.log('[getPendingRunwaySurveyReviews] schema ready, max=', max);
 
     const lastRow = sh.getLastRow();
     if (lastRow < 2) return { success: true, items: [] };
@@ -14893,6 +17020,23 @@ function getPendingRunwaySurveyReviews(limit) {
         var itemRwy = String(r[idx.RWY_IDENT] || '').trim().toUpperCase();
         var dbAirport = dbByRunway[itemIcao + '|' + itemRwy] || null;
         var officialLogId = _runwayOfficialLogIdFromDbRow_(dbAirport, String(r[idx.STAGING_ID] || '').trim());
+        var approvedAtRaw = String(r[idx.APPROVED_AT] || '').trim();
+        var publishedAtRaw = String(r[idx.PUBLISHED_AT] || '').trim();
+        var statusRaw = String(r[idx.STATUS] || '').trim().toUpperCase();
+        // Compatibility fallback for legacy rows where STATUS was blank/misaligned.
+        if (!statusRaw && !approvedAtRaw && !publishedAtRaw) statusRaw = 'PENDING';
+        // Slim survey: strip perimeterTrace (GPS points array - can be thousands of pts) and
+        // keep only its length as _perimeterTraceCount to avoid exceeding the 10MB Apps Script limit.
+        var surveyParsed = _parseJsonLoose_(r[idx.SURVEY_JSON], {});
+        var ptCount = Array.isArray(surveyParsed.perimeterTrace) ? surveyParsed.perimeterTrace.length
+          : (typeof surveyParsed._perimeterTraceCount === 'number' ? surveyParsed._perimeterTraceCount : 0);
+        var surveySlim = {};
+        for (var _sk in surveyParsed) { if (_sk !== 'perimeterTrace') surveySlim[_sk] = surveyParsed[_sk]; }
+        surveySlim._perimeterTraceCount = ptCount;
+        // Slim dbAirport: only pass display-needed fields (KNOWN_FEATURES/FEATURES) rather than the full row.
+        var dbAirportSlim = dbAirport
+          ? { KNOWN_FEATURES: dbAirport.KNOWN_FEATURES, FEATURES: dbAirport.FEATURES }
+          : null;
         return {
           rowNum: i + 2,
           stagingId: String(r[idx.STAGING_ID] || '').trim(),
@@ -14902,28 +17046,46 @@ function getPendingRunwaySurveyReviews(limit) {
           pilotEmail: String(r[idx.PILOT_EMAIL] || '').trim(),
           walkDate: String(r[idx.WALK_DATE] || '').trim(),
           notes: String(r[idx.NOTES] || '').trim(),
-          status: String(r[idx.STATUS] || '').trim().toUpperCase(),
+          status: statusRaw,
+          approvedAt: approvedAtRaw,
+          publishedAt: publishedAtRaw,
           entryKind: String(r[idx.ENTRY_KIND] || '').trim().toUpperCase(),
-          survey: _parseJsonLoose_(r[idx.SURVEY_JSON], {}),
+          survey: surveySlim,
           official: _parseJsonLoose_(r[idx.OFFICIAL_JSON], {}),
           officialLogId: officialLogId,
           officialSourceLocked: !!dbAirport,
-          dbAirport: dbAirport,
+          dbAirport: dbAirportSlim,
           captureSummary: _parseJsonLoose_(r[idx.CAPTURE_SUMMARY_JSON], {}),
           deviceInfo: _parseJsonLoose_(r[idx.DEVICE_INFO_JSON], {})
         };
       })
       .filter(function(item) {
-        const s = item.status || '';
-        return s === 'PENDING' || s === 'QUEUED';
+        const s = String(item.status || '').trim().toUpperCase();
+        if (s === 'PENDING' || s === 'QUEUED' || s === 'SUBMITTED' || s === 'IN_REVIEW' || s === 'UNDER_REVIEW' || s === 'REVIEW') {
+          return true;
+        }
+        if (!s || s === 'NEW') {
+          // Keep unprocessed legacy rows visible if they were never approved/published.
+          return !item.approvedAt && !item.publishedAt && !!item.stagingId;
+        }
+        return false;
       })
       .sort(function(a, b) {
         return String(b.walkDate || '').localeCompare(String(a.walkDate || ''));
       })
       .slice(0, max);
 
-    return { success: true, items: items };
+    const response = { success: true, items: items };
+    try {
+      const responseJson = JSON.stringify(response);
+      const responseBytes = responseJson ? responseJson.length : 0;
+      console.log('[getPendingRunwaySurveyReviews] returning success with', items.length, 'items; approxBytes=', responseBytes);
+    } catch (sizeErr) {
+      console.log('[getPendingRunwaySurveyReviews] returning success with', items.length, 'items; sizeLogError=', sizeErr && sizeErr.message ? sizeErr.message : String(sizeErr));
+    }
+    return response;
   } catch (e) {
+    console.error('[getPendingRunwaySurveyReviews] CAUGHT ERROR:', e && e.message ? e.message : String(e), 'FULL:', e);
     return { success: false, error: e && e.message ? e.message : String(e) };
   }
 }
@@ -14959,6 +17121,16 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
       const snapshot = (survey && typeof survey === 'object' && survey.runwaySnapshot && typeof survey.runwaySnapshot === 'object')
         ? survey.runwaySnapshot
         : {};
+      const cutdownCandidateRaw = Number(
+        mtowPayload.cutdownAreaM != null ? mtowPayload.cutdownAreaM
+          : (snapshot.cutdownAreaM != null ? snapshot.cutdownAreaM
+            : (snapshot.cutdownArea != null ? snapshot.cutdownArea
+              : (official && official.cutdownAreaM != null ? official.cutdownAreaM : NaN)))
+      );
+      if (!isFinite(cutdownCandidateRaw) || cutdownCandidateRaw <= 0) {
+        return { success: false, error: 'Runway approval cannot be published without a valid cutdown area.' };
+      }
+      const cutdownApprovedM = Math.round(cutdownCandidateRaw);
       const mtowModelKeyRaw = String(mtowPayload.modelKey || mtowPayload.model || snapshot.mtowModelKey || '').trim().toUpperCase();
       const mtowModelKey = mtowModelKeyRaw || 'GENERIC';
       const mtowKg = Number(mtowPayload.mtowKg || mtowPayload.value || snapshot.maxTakeoffWeight || 0);
@@ -14974,6 +17146,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
         mtowModelKey: mtowModelKey,
         mtowByModel: mtowByModel,
         supervisorMtowKg: mtowKg,
+        cutdownAreaM: cutdownApprovedM,
+        cutdownAreaLabel: String(cutdownApprovedM) + ' m',
         mtowApprovedBy: String(supervisorName || '').trim() || 'Supervisor',
         mtowApprovedAt: nowIso,
         officialLogId: id
@@ -14983,6 +17157,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
         maxTakeoffWeight: mtowKg,
         mtowModelKey: mtowModelKey,
         mtowByModel: mtowByModel,
+        cutdownAreaM: cutdownApprovedM,
+        cutdownAreaLabel: String(cutdownApprovedM) + ' m',
         officialLogId: id,
         source: 'DB_Airports',
         sourceLocked: true,
@@ -15018,7 +17194,18 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
         const existingRaw = String(dbData[rowIndex][cols.knownFeatures] || '').trim();
         const existingObj = _parseJsonLoose_(existingRaw, {});
         const normalizedExisting = Array.isArray(existingObj) ? { features: existingObj } : (existingObj || {});
-        const cutdownAreaMRaw = Number(snapshot.cutdownAreaM || snapshot.cutdownArea || 0);
+        const cutdownLabelRaw = String(snapshot.cutdownAreaLabel || '').trim();
+        const cutdownLabelParsed = (function(label) {
+          var m = String(label || '').match(/-?\d+(?:[\.,]\d+)?/);
+          if (!m) return null;
+          var n = Number(String(m[0]).replace(',', '.'));
+          return isFinite(n) ? n : null;
+        })(cutdownLabelRaw);
+        const cutdownAreaMRaw = Number(
+          snapshot.cutdownAreaM != null ? snapshot.cutdownAreaM
+            : (snapshot.cutdownArea != null ? snapshot.cutdownArea
+              : (cutdownLabelParsed != null ? cutdownLabelParsed : 0))
+        );
         const cutdownAreaM = (isFinite(cutdownAreaMRaw) && cutdownAreaMRaw >= 0) ? Math.round(cutdownAreaMRaw) : null;
 
         const verifiedOperational = Object.assign({}, (normalizedExisting.verifiedOperational || {}), {
@@ -15033,6 +17220,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
           approvedAt: nowIso,
           sourceKind: 'RUNWAY_APPROVAL'
         });
+        const _rcFromApproval = String(mtowPayload.runwayClass || '').trim();
+        if (_rcFromApproval) verifiedOperational.runwayClass = _rcFromApproval;
 
         const verifiedSurvey = {
           version: 2,
@@ -15048,6 +17237,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
 
         const merged = Object.assign({}, normalizedExisting, {
           verifiedOperational: verifiedOperational,
+          cutdownAreaM: cutdownAreaM,
+          cutdownAreaLabel: (cutdownAreaM == null ? 'Unknown' : String(cutdownAreaM) + ' m'),
           verifiedSurvey: verifiedSurvey,
           officialReference: {
             lengthM: officialSnapshot.lengthM,
@@ -15180,6 +17371,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
         approvedBy: String(supervisorName || '').trim() || 'Supervisor',
         approvedAt: nowIso
       };
+      const _rcGps = String(mtowPayload.runwayClass || '').trim();
+      if (_rcGps) verifiedOperational.runwayClass = _rcGps;
 
       const merged = Object.assign({}, normalizedExisting, {
         features: verifiedOperational.features,
@@ -15630,8 +17823,12 @@ function saveRunwayBriefingCard(icao, rwyIdent, cardData) {
 
     // Sanitise card: remove any injected keys, keep known fields only
     var allowedKeys = ['restrictions','obstructions','weather','dangers','forcedLanding',
-                       'routes','rwyhist','incidents','othernotes','airstripPhoto',
-                       'mapDistM','revisedAt','revisedBy'];
+               'routes','rwyhist','incidents','othernotes','airstripPhoto',
+               'mapDistM','mapDistM2','depTracePoints','revisedAt','revisedBy','verifyFlags',
+                             'mapLabel1','mapLabel2',
+               'runwayClass','elevation','surface','cutdownAreaM',
+               'internalLengthM','internalWidthM','slopeSegments',
+               'knownFeatures','departureArrow'];
     var safeCard = {};
     allowedKeys.forEach(function(k) {
       if (cardData && cardData[k] !== undefined) safeCard[k] = cardData[k];
@@ -15663,10 +17860,46 @@ function saveRunwayBriefingCard(icao, rwyIdent, cardData) {
 }
 
 /**
+/**
+ * Uploads an airstrip photo (base64-encoded) to Google Drive under
+ * FlightApp_Airstrip_Photos/<ICAO>/ and returns a public view URL.
+ */
+function uploadAirstripPhotoToDrive(icao, rwyIdent, base64Data, mimeType, fileName) {
+  try {
+    var icaoNorm = String(icao || '').trim().toUpperCase();
+    var safeFileName = String(fileName || ('airstrip_' + icaoNorm + '.jpg'))
+      .replace(/[^a-zA-Z0-9._\-]/g, '_').substring(0, 80);
+    var rootFolderName = 'FlightApp_Airstrip_Photos';
+    var rootFolders = DriveApp.getFoldersByName(rootFolderName);
+    var rootFolder = rootFolders.hasNext() ? rootFolders.next() : DriveApp.createFolder(rootFolderName);
+    var subFolders = rootFolder.getFoldersByName(icaoNorm);
+    var subFolder = subFolders.hasNext() ? subFolders.next() : rootFolder.createFolder(icaoNorm);
+    var bytes = Utilities.base64Decode(base64Data);
+    var blob = Utilities.newBlob(bytes, mimeType || 'image/jpeg', safeFileName);
+    var file = subFolder.createFile(blob);
+
+    var sharingWarning = '';
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (shareErr) {
+      sharingWarning = String(shareErr && shareErr.message || shareErr || '');
+    }
+
+    var fileId = file.getId();
+    var viewUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
+    var out = { success: true, url: viewUrl, fileId: fileId };
+    if (sharingWarning) out.warning = 'Created file but could not open link-sharing: ' + sharingWarning;
+    return out;
+  } catch (e) {
+    return { success: false, error: String(e && e.message || e) };
+  }
+}
+
+/**
  * Returns the last `limit` takeoff departures from `icao` (matching
  * rwyIdent where available) from LOG_Flights, with performance details.
  */
-function getRunwayTakeoffHistory(icao, rwyIdent, limit) {
+function getRunwayTakeoffHistory(icao, rwyIdent, limit, targetAircraft) {
   try {
     var ss       = SpreadsheetApp.getActiveSpreadsheet();
     var logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
@@ -15689,69 +17922,169 @@ function getRunwayTakeoffHistory(icao, rwyIdent, limit) {
       toRiskMatrix: col('TO_RISK_MATRIX',    LOG_FLIGHT_COL.TO_RISK_MATRIX)
     };
 
-    var icaoNorm  = String(icao || '').trim().toUpperCase();
-    var maxRows   = Math.min(Math.max(Number(limit) || 2, 1), 10);
-    var records   = [];
+    var normalizeRwy = function(v) {
+      var t = String(v || '').trim().toUpperCase().replace(/^RWY\s*/, '');
+      var m = t.match(/^(\d{1,2})([LCR])?$/);
+      if (!m) return t;
+      return ('0' + String(parseInt(m[1], 10))).slice(-2) + (m[2] || '');
+    };
+    var normalizeAcft = function(v) {
+      return String(v || '').trim().toUpperCase();
+    };
 
-    // Scan backwards (most recent first)
-    for (var i = data.length - 1; i >= 1 && records.length < maxRows; i--) {
+    var icaoNorm  = String(icao || '').trim().toUpperCase();
+    var rwyNorm   = normalizeRwy(rwyIdent || '');
+    var acftNorm  = normalizeAcft(targetAircraft || '');
+    var maxRows   = Math.min(Math.max(Number(limit) || 3, 1), 10);
+    var all       = [];
+
+    for (var i = data.length - 1; i >= 1; i--) {
       var row = data[i];
       var fromIcao = String(C.from >= 0 ? row[C.from] : '').trim().toUpperCase();
       if (fromIcao !== icaoNorm) continue;
 
-      // Parse ACTUAL_LOAD_JSON for weight
       var weightKg = null;
       var calcToRoll = null;
       var vrDistM = null;
+      var actualToRollFromLoad = null;
       var tempC = null;
       var flaps = null;
       var surface = null;
-      var wet = false;
+      var wet = null;
+      var windDirDeg = null;
+      var windSpdKts = null;
+      var qnhHpa = null;
+      var headTailKts = null;
+      var crosswindKts = null;
       var alternates = null;
       var mapDistM = null;
+      var rowRwyNorm = '';
 
       try {
         var loadRaw = C.actualLoad >= 0 ? String(row[C.actualLoad] || '') : '';
         if (loadRaw) {
           var loadObj = JSON.parse(loadRaw);
+          var takeoffRoll = (loadObj && typeof loadObj.takeoffRoll === 'object') ? loadObj.takeoffRoll : null;
+          var takeoffRollDistM = null;
+          if (takeoffRoll) {
+            takeoffRollDistM = (takeoffRoll.distanceAtVrM != null && isFinite(Number(takeoffRoll.distanceAtVrM)))
+              ? Math.round(Number(takeoffRoll.distanceAtVrM))
+              : ((takeoffRoll.distanceAtVrNm != null && isFinite(Number(takeoffRoll.distanceAtVrNm)))
+                ? Math.round(Number(takeoffRoll.distanceAtVrNm) * 1852)
+                : null);
+          }
+          rowRwyNorm = normalizeRwy(loadObj.rwyIdent || loadObj.runway || loadObj.departureRunway || loadObj.takeoffRunway || '');
           weightKg   = loadObj.weightKg   != null ? Number(loadObj.weightKg)   : null;
           calcToRoll = loadObj.calcToRoll != null ? Number(loadObj.calcToRoll) : (loadObj.takeoffRollM != null ? Number(loadObj.takeoffRollM) : null);
-          vrDistM    = loadObj.vrDistM    != null ? Number(loadObj.vrDistM)    : null;
+          actualToRollFromLoad = loadObj.actualToRollM != null ? Number(loadObj.actualToRollM) : takeoffRollDistM;
+          vrDistM    = loadObj.vrDistM    != null ? Number(loadObj.vrDistM)    : takeoffRollDistM;
           tempC      = loadObj.tempC      != null ? Number(loadObj.tempC)      : null;
           flaps      = loadObj.flaps      != null ? Number(loadObj.flaps)      : null;
           surface    = loadObj.surface    != null ? String(loadObj.surface)    : null;
-          wet        = loadObj.wet === true || String(loadObj.surfaceCondition||'').toUpperCase() === 'WET';
+          windDirDeg = loadObj.windDir    != null ? Number(loadObj.windDir)    : null;
+          windSpdKts = loadObj.windSpd    != null ? Number(loadObj.windSpd)    : null;
+          qnhHpa     = loadObj.qnhHpa     != null ? Number(loadObj.qnhHpa)
+                      : (loadObj.qnh != null ? Number(loadObj.qnh)
+                        : (loadObj.altimeterHpa != null ? Number(loadObj.altimeterHpa) : null));
+          headTailKts = loadObj.headTailKts != null ? Number(loadObj.headTailKts) : null;
+          crosswindKts = loadObj.crosswindKts != null ? Number(loadObj.crosswindKts) : null;
           alternates = loadObj.alternates != null ? String(loadObj.alternates) : null;
           mapDistM   = loadObj.mapDistM   != null ? Number(loadObj.mapDistM)   : null;
+          var hasSurfaceData = loadObj.wet !== undefined || (loadObj.surfaceCondition != null && String(loadObj.surfaceCondition).trim() !== '');
+          wet = hasSurfaceData ? (loadObj.wet === true || String(loadObj.surfaceCondition || '').toUpperCase() === 'WET') : null;
         }
       } catch (e) {}
 
       var actualToRoll = (C.actualToRoll >= 0 && row[C.actualToRoll] !== '' && row[C.actualToRoll] != null)
-        ? Number(row[C.actualToRoll]) : null;
+        ? Number(row[C.actualToRoll])
+        : actualToRollFromLoad;
 
       var dateRaw = C.date >= 0 ? row[C.date] : '';
       var dateStr = '';
       if (dateRaw instanceof Date) dateStr = Utilities.formatDate(dateRaw, 'GMT', 'yyyy-MM-dd');
       else dateStr = String(dateRaw || '').substring(0, 10);
 
-      records.push({
+      var acft = String(C.acft >= 0 ? row[C.acft] : '').trim();
+      var acftRowNorm = normalizeAcft(acft);
+      var runwayMatch = !!rwyNorm && rowRwyNorm === rwyNorm;
+      var acftMatch = !!acftNorm && acftRowNorm === acftNorm;
+
+      all.push({
         date:         dateStr,
         pilot:        String(C.pilot >= 0 ? row[C.pilot] : '').trim(),
-        acft:         String(C.acft  >= 0 ? row[C.acft]  : '').trim(),
+        acft:         acft,
         weightKg:     weightKg,
         tempC:        tempC,
+        qnhHpa:       (qnhHpa != null && isFinite(Number(qnhHpa))) ? Number(qnhHpa) : null,
         flaps:        flaps,
         surface:      surface,
         wet:          wet,
+        windDirDeg:   windDirDeg,
+        windSpdKts:   windSpdKts,
+        headTailKts:  headTailKts,
+        crosswindKts: crosswindKts,
         calcToRollM:  calcToRoll,
         actualToRollM:actualToRoll,
         vrDistM:      vrDistM,
         mapDistM:     mapDistM,
-        alternates:   alternates
+        alternates:   alternates,
+        _runwayMatch: runwayMatch,
+        _acftMatch: acftMatch,
+        _weightSort: isFinite(Number(weightKg)) ? Number(weightKg) : -1,
+        _recency: i
       });
     }
 
-    return { success: true, records: records };
+    if (!all.length) return { success: true, records: [] };
+
+    var selected = [];
+    var usedIdx = {};
+
+    // Priority pick: heaviest matching target aircraft at target runway.
+    var heavyIdx = -1;
+    for (var h = 0; h < all.length; h++) {
+      var rec = all[h];
+      if (!rec._runwayMatch) continue;
+      if (acftNorm && !rec._acftMatch) continue;
+      if (heavyIdx < 0) {
+        heavyIdx = h;
+        continue;
+      }
+      var cur = all[heavyIdx];
+      if (rec._weightSort > cur._weightSort || (rec._weightSort === cur._weightSort && rec._recency > cur._recency)) {
+        heavyIdx = h;
+      }
+    }
+    if (heavyIdx >= 0) {
+      selected.push(all[heavyIdx]);
+      usedIdx[heavyIdx] = true;
+    }
+
+    // Fill remaining by strongest relevance then recency.
+    var ranked = all.map(function(rec, idx) { return { rec: rec, idx: idx }; });
+    ranked.sort(function(a, b) {
+      var sa = (a.rec._runwayMatch ? 100 : 0) + (a.rec._acftMatch ? 30 : 0) + Math.max(0, Math.min(20, a.rec._weightSort / 250));
+      var sb = (b.rec._runwayMatch ? 100 : 0) + (b.rec._acftMatch ? 30 : 0) + Math.max(0, Math.min(20, b.rec._weightSort / 250));
+      if (sb !== sa) return sb - sa;
+      return b.rec._recency - a.rec._recency;
+    });
+
+    for (var r = 0; r < ranked.length && selected.length < maxRows; r++) {
+      var idx = ranked[r].idx;
+      if (usedIdx[idx]) continue;
+      selected.push(ranked[r].rec);
+      usedIdx[idx] = true;
+    }
+
+    var clean = selected.map(function(rec) {
+      delete rec._runwayMatch;
+      delete rec._acftMatch;
+      delete rec._weightSort;
+      delete rec._recency;
+      return rec;
+    });
+
+    return { success: true, records: clean };
   } catch (e) {
     return { success: false, error: String(e && e.message || e), records: [] };
   }

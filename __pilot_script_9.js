@@ -1,378 +1,4 @@
-<style>
-  #arrival7-wrap { background:#f1f3f4; min-height:100vh; padding:8px 8px 120px 8px; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }
-  .arrival7-panel { max-width:1220px; margin:0 auto; background:#fff; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.1); padding:10px; }
-  .arrival7-title { font-size:1.08rem; font-weight:900; color:#0b5394; text-transform:uppercase; margin:0 0 8px 0; }
-  .arrival7-sub { font-size:.82rem; font-weight:800; color:#0b5394; text-transform:uppercase; margin:8px 0 6px 0; border-top:1px solid #ececec; padding-top:7px; }
 
-  .risk-matrix-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; margin-bottom:8px; }
-  .risk-matrix-card { border:1px solid #D1D1D6; border-radius:12px; background:#fff; padding:8px; display:flex; flex-direction:column; gap:8px; }
-  .risk-label { min-height:34px; display:flex; align-items:center; justify-content:center; font-size:.82rem; font-weight:900; color:#1f2937; text-transform:uppercase; border:1px solid #D1D1D6; border-radius:8px; background:#f8fafc; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }
-  .risk-choice-group { display:flex; align-items:center; justify-content:center; gap:4px; min-height:42px; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }
-  .risk-btn { min-width:35px; width:35px; height:35px; border:2px solid #c8ced6; border-radius:999px; font-size:.88rem; font-weight:900; cursor:pointer; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }
-  .risk-btn.level-1 { background:#007A4D; color:#fff; border-color:#006241; }
-  .risk-btn.level-2 { background:#C99600; color:#fff; border-color:#A87E00; }
-  .risk-btn.level-3 { background:#C1121F; color:#fff; border-color:#9F0F19; }
-  .risk-btn.active { outline:3px solid #0b5394; box-shadow:0 0 0 3px rgba(11,83,148,0.18); }
-  .risk-total { margin-top:6px; border-radius:12px; color:#fff; padding:12px 16px; font-weight:900; font-size:20px; line-height:1.1; text-align:center; font-family:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }
-  .risk-total.pending { background:#eceff1; color:#455a64; }
-  .risk-total.green { background:#2e7d32; }
-  .risk-total.yellow { background:#f9a825; }
-  .risk-total.red { background:#d32f2f; }
-
-  .arrival7-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; align-items:end; }
-  @media (min-width:480px){ .arrival7-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-  @media (min-width:620px){ .arrival7-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } }
-  .arrival7-grid > .field,
-  .arrival7-grid > .arrival7-entry-banner { min-width:0; }
-  .field label { display:block; font-size:.86rem; font-weight:800; color:#666; text-transform:uppercase; margin-bottom:3px; line-height:1.05; }
-  .field input, .field select { width:100%; height:40px; border:1px solid #d9d9d9; border-radius:8px; padding:0 8px; font-size:.9rem; box-sizing:border-box; min-width:0; }
-  .field input[readonly] { background:#f7f7f7; color:#444; }
-  .arr7-pilot-entry { background:#f8fbff; border:2px dashed #bbdefb; border-radius:10px; padding:8px; }
-  .arr7-pilot-entry label { color:#0b5394; }
-  .arr7-pilot-entry input:not([readonly]),
-  .arr7-pilot-entry select:not([disabled]) { border:2px solid #1976d2; box-shadow:0 1px 2px #e3eafc; font-weight:600; }
-  .arrival7-entry-banner { grid-column: 1 / -1; background:#e8f2ff; border:2px dashed #1976d2; border-radius:8px; padding:8px 10px; color:#0b5394; font-size:.9rem; font-weight:800; line-height:1.35; }
-  .arr7-pilot-entry input,
-  .arr7-pilot-entry select { border:2px solid #1976d2; background:#f5faff; }
-  .arr7-field-locked input,
-  .arr7-field-locked select {
-    background:#e9ecef !important;
-    color:#666 !important;
-    border:1.5px solid #adb5bd !important;
-    box-shadow:none !important;
-    pointer-events:none;
-  }
-  .arr7-field-unlocked-override input,
-  .arr7-field-unlocked-override select {
-    background:#fff3cd !important;
-    border:2px solid #f9a825 !important;
-    color:#5d4037 !important;
-    pointer-events:auto;
-  }
-
-  .arrival7-banner { margin-top:8px; border-radius:8px; padding:10px; font-size:.95rem; font-weight:800; text-align:center; }
-  .arrival7-banner.go { background:#e8f5e9; color:#1b5e20; border:1px solid #c8e6c9; }
-  .arrival7-banner.nogo { background:#ffebee; color:#b71c1c; border:1px solid #ffcdd2; }
-
-  .wind-control { display:grid; align-items:center; gap:6px; width:100%; min-width:0; }
-  .wind-control > * { min-width:0; }
-  .wind-control.arr7-compact-2 { grid-template-columns:minmax(0,56px) minmax(0,1fr); }
-  .wind-control.arr7-compact-3 { grid-template-columns:minmax(0,54px) minmax(0,1fr) minmax(0,2fr); }
-  .wind-num { width:100% !important; min-width:0; text-align:center; padding:0 6px !important; }
-  .arr7-lock { font-size:1rem; margin-left:4px; }
-
-  .arr7-key-btn {
-    border:2px solid #1976d2;
-    background:#fff;
-    color:#1565c0;
-    border-radius:6px;
-    height:38px;
-    min-width:0;
-    width:100%;
-    padding:0 8px;
-    font-size:.76rem;
-    font-weight:800;
-    cursor:pointer;
-    white-space:nowrap;
-  }
-
-  .arr7-keypad-backdrop {
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.4);
-    z-index:2000;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    padding:10px;
-  }
-  .arr7-keypad {
-    width:min(760px, 100%);
-    max-height:90vh;
-    overflow:auto;
-    background:#fff;
-    border-radius:10px;
-    padding:10px;
-    box-shadow:0 10px 30px rgba(0,0,0,.25);
-  }
-  .arr7-keypad-title { font-size:1rem; font-weight:900; color:#0b5394; margin-bottom:8px; text-transform:uppercase; }
-  .arr7-keypad-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; }
-  .arr7-keypad-grid button, .arr7-keypad-actions button {
-    height:42px; border:none; border-radius:6px; background:#1565c0; color:#fff; font-weight:800; cursor:pointer;
-  }
-  .arr7-keypad-actions { margin-top:8px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
-  .arr7-qnh-list {
-    border: 1px solid #dbe7f3;
-    border-radius: 10px;
-    max-height: 58vh;
-    overflow-y: auto;
-    background: #fbfdff;
-    padding: 6px;
-    scroll-snap-type: y proximity;
-  }
-  .arr7-qnh-item {
-    height: 52px;
-    border: 2px solid #d6e4f5;
-    border-radius: 8px;
-    background: #fff;
-    color: #1565c0;
-    font-size: 1.05rem;
-    font-weight: 900;
-    width: 100%;
-    margin-bottom: 6px;
-    scroll-snap-align: center;
-  }
-  .arr7-qnh-item.recommended {
-    border-color: #1976d2;
-    background: #e8f2ff;
-  }
-  .arr7-inline-calm {
-    min-width:0;
-    padding:0 10px;
-    font-size:0.8rem;
-    letter-spacing:0.03em;
-  }
-  .arr7-calm-field {
-    display:flex;
-    align-items:flex-end;
-  }
-  .arr7-calm-wide {
-    height:40px;
-    font-size:0.9rem;
-  }
-  @media (min-width:480px){
-    .arr7-calm-field { grid-column:2 / span 2; }
-  }
-  @media (min-width:620px){
-    .arr7-calm-field { grid-column:4 / span 2; }
-  }
-
-  .arr7-trace-panel { margin-top:8px; display:block; }
-  .arr7-trace-toggle {
-    background:none;
-    border:1px solid #1976d2;
-    color:#1976d2;
-    border-radius:4px 4px 0 0;
-    padding:5px 14px;
-    font-size:0.82rem;
-    cursor:pointer;
-    width:100%;
-    text-align:left;
-    letter-spacing:0.02em;
-  }
-  .arr7-trace-body {
-    display:block;
-    font-family:'Courier New', monospace;
-    font-size:0.78rem;
-    background:#f5f7fa;
-    border:1px solid #b0bec5;
-    border-top:none;
-    border-radius:0 0 4px 4px;
-    padding:10px 12px;
-    overflow-x:auto;
-  }
-
-  .arrival7-buttons { margin-top:8px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-  .arrival7-buttons button { height:40px; border:none; border-radius:7px; font-size:.82rem; font-weight:900; color:#fff; cursor:pointer; }
-  .btn-photo { background:#1565c0; }
-  .btn-chart { background:#6a1b9a; }
-
-  .arrival7-briefstrip { margin-top:10px; }
-  .arr7-mission-card {
-    border:1px solid #dbe7f3;
-    background:#f8fbff;
-    border-radius:8px;
-    padding:8px;
-    display:grid;
-    gap:6px;
-  }
-  .arr7-inline-grid {
-    display:grid;
-    grid-template-columns:repeat(4,minmax(0,1fr));
-    gap:6px;
-  }
-  .arr7-inline-item {
-    border:1px solid #d5e3f3;
-    background:#fff;
-    border-radius:6px;
-    padding:6px 7px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    min-width:0;
-  }
-  .arr7-inline-item .k {
-    font-size:.9rem;
-    color:#607d8b;
-    text-transform:uppercase;
-    font-weight:900;
-    white-space:nowrap;
-  }
-  .arr7-inline-item .v {
-    font-size:.95rem;
-    color:#0b5394;
-    font-weight:900;
-    white-space:nowrap;
-  }
-  .arr7-secondary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
-  .arr7-strip-sub { margin-top:2px; }
-
-  @media (max-width:600px){ .arrival7-grid,.arrival7-buttons{ grid-template-columns:1fr; } .arr7-inline-grid{ grid-template-columns:1fr; } .arr7-secondary-grid{ grid-template-columns:1fr; } .risk-matrix-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-
-  .info-btn-arr7 { background: none; border: none; color: #1976d2; font-size: 0.9rem; cursor: pointer; padding: 0 4px; vertical-align: middle; font-weight: 600; }
-  .info-btn-arr7:hover { color: #0b5394; }
-
-  .arr7-modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 10px; }
-  .arr7-modal-backdrop.open { display: flex; }
-
-  .arr7-modal-content { background: #fff; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
-  .arr7-modal-title { font-size: 1rem; font-weight: 900; color: #0b5394; margin-bottom: 12px; }
-
-  .arr7-matrix-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 0.85rem; }
-  .arr7-matrix-table thead { background: #e3f2fd; }
-  .arr7-matrix-table th, .arr7-matrix-table td { border: 1px solid #cfe2f3; padding: 8px; text-align: left; font-weight: 600; }
-  .arr7-matrix-table th { color: #0b5394; }
-
-  .arr7-matrix-note { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 10px; margin-bottom: 12px; font-size: 0.8rem; line-height: 1.35; color: #5d4037; }
-  .arr7-risk-result { background: #f0f0f0; border-left: 3px solid #1976d2; padding: 10px; margin-bottom: 10px; font-size: 0.85rem; }
-
-  .arr7-modal-close { background: none; border: none; font-size: 1.5rem; color: #999; cursor: pointer; padding: 0; float: right; }
-  .arr7-modal-close:hover { color: #333; }
-</style>
-
-<div id="arr7-safety-matrix-backdrop" class="arr7-modal-backdrop" onclick="if(event.target === this) closeArr7SafetyMatrixInfo()">
-  <div class="arr7-modal-content">
-    <button onclick="closeArr7SafetyMatrixInfo()" class="arr7-modal-close">×</button>
-    <div class="arr7-modal-title">✓ Safety Risk Matrix Guide</div>
-    <p style="font-size:0.8rem; line-height:1.4; margin-bottom:12px; color:#333;">Each category is rated 1–3. Sum all scores and check the result matrix.</p>
-    <table class="arr7-matrix-table">
-      <thead>
-        <tr>
-          <th>Category</th>
-          <th>Level 1</th>
-          <th>Level 2</th>
-          <th>Level 3</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><b>Piloto</b></td>
-          <td>Bem/sem sono/saudável/tranquilo</td>
-          <td>OK/pouco sono/Meio ruim/tenso</td>
-          <td>Mal/cansado/doente/estressado</td>
-        </tr>
-        <tr>
-          <td><b>Avião</b></td>
-          <td>Tudo em dia, PA Ok, rádio ok</td>
-          <td>Pós-insp/Duvidoso/Itens vencendo</td>
-          <td>Eq inop/Itens vencidos/Rádio ruim</td>
-        </tr>
-        <tr>
-          <td><b>Tempo</b></td>
-          <td>CAVOK</td>
-          <td>MVFR/Chuva prevista/Época chuva</td>
-          <td>IFR/Nuvens baixas/Pista molhada</td>
-        </tr>
-        <tr>
-          <td><b>Missão</b></td>
-          <td>Sem pressão/Flexível/Agenda aberta</td>
-          <td>Pressão/data fixa/Agenda apertada</td>
-          <td>Muita pressão/horário fixo/Emerg.</td>
-        </tr>
-        <tr>
-          <td><b>Pista para você</b></td>
-          <td>Classe 1/Conhecida/Tranquila</td>
-          <td>Classe 2/Desconhecida/Marginal</td>
-          <td>Classe 3/Nova/Restrita/Estressante</td>
-        </tr>
-      </tbody>
-    </table>
-    <div style="margin-top:16px; border-top:1px solid #e0e0e0; padding-top:12px;">
-      <div style="font-weight:700; color:#0b5394; margin-bottom:8px; font-size:0.9rem;">❗ MATRIZ DE RISCO</div>
-      <div class="arr7-risk-result"><b style="color:#2e7d32;">✓ Aceitável, pouco risco:</b> Scores 5–8</div>
-      <div class="arr7-risk-result"><b style="color:#f9a825;">⚠ Cuidado:</b> Scores 9–10 — Esperar melhorar, resolver discrepância, falar com alguém antes de continuar</div>
-      <div class="arr7-risk-result"><b style="color:#e53935;">✕ Perigo:</b> Scores 11–15 — Só prossegue após conversa com piloto chefe ou diretor de ops</div>
-    </div>
-    <div class="arr7-matrix-note">
-      <b>Nota Importante:</b> A percepção da pista varia para cada pessoa. Pode ser uma pista de 2 mil metros, mas se é desconhecida, muito movimentada ou se tiver qualquer outro fator que cause estrese, o risco pode aumentar significativamente.
-    </div>
-  </div>
-</div>
-
-<div id="arrival7-wrap">
-  <div class="arrival7-panel">
-    <div style="display:flex; align-items:center; justify-content:flex-end; margin:0 0 6px 0;">
-      <button class="info-btn-arr7" onclick="openArr7SafetyMatrixInfo()" title="View safety matrix guidance">ⓘ Matrix Info</button>
-    </div>
-    <div id="arrival7-risk-rows"></div>
-    <div id="arrival7-risk-total" class="risk-total green">Risk 5/15 - Low</div>
-
-    <div class="arrival7-grid">
-      <div class="field"><label>Airport</label><input id="arr7-airport" readonly></div>
-      <div class="field arr7-pilot-entry"><label>Runway</label><select id="arr7-runway" class="browser-default"></select></div>
-      <div class="field"><label>Landing Weight kg</label><input id="arr7-weight" type="number" inputmode="numeric" readonly></div>
-      <div class="field"><label>Runway Length m</label><input id="arr7-length" type="number" inputmode="numeric" readonly></div>
-      <div class="field"><label>Runway Width m</label><input id="arr7-width" type="number" inputmode="numeric" readonly></div>
-      <div class="field"><label>Elevation ft</label><input id="arr7-elev" type="number" inputmode="numeric" readonly></div>
-      <div class="field arr7-pilot-entry" id="arr7-field-surface"><label>Surface <span id="arr7-surface-lock" class="arr7-lock" style="display:none;" title="From runway data">🔒</span></label><select id="arr7-surface" class="browser-default"></select></div>
-      <div class="field arr7-pilot-entry" id="arr7-field-slope"><label>Slope % <span id="arr7-slope-lock" class="arr7-lock" style="display:none;" title="From runway data">🔒</span></label><input id="arr7-slope" type="number" inputmode="decimal" step="0.1"></div>
-      <div class="field arr7-pilot-entry"><label>Surface Condition</label><select id="arr7-cond" class="browser-default"><option value="">Select condition...</option><option value="DRY">Dry</option><option value="WET">Wet</option></select></div>
-
-      <div class="field arr7-pilot-entry"><label>QNH hPa</label><div class="wind-control arr7-compact-2"><input id="arr7-qnh" class="wind-num" type="number" inputmode="decimal" placeholder="1013" readonly><button type="button" class="arr7-key-btn" onclick="window.arr7OpenQnhPicker()">QNH</button></div></div>
-
-      <div class="field arr7-pilot-entry"><label>Temp C</label><div class="wind-control arr7-compact-2"><input id="arr7-temp" class="wind-num" type="number" inputmode="decimal" placeholder="15" readonly><button type="button" class="arr7-key-btn" onclick="window.arr7OpenTempKeypad()">TEMP</button></div></div>
-      
-      <div class="field arr7-pilot-entry"><label>Wind Dir °</label><div class="wind-control arr7-compact-2"><input id="arr7-wind-dir-input" class="wind-num" type="number" inputmode="numeric" min="0" max="360" step="10" value="0" readonly><button type="button" class="arr7-key-btn" onclick="window.arr7OpenWindDirKeypad()">HDG</button></div></div>
-
-      <div class="field arr7-pilot-entry"><label>Wind Speed kt</label><div class="wind-control arr7-compact-2"><input id="arr7-wind-spd-input" class="wind-num" type="number" inputmode="numeric" min="0" max="60" step="1" value="0" readonly><button type="button" class="arr7-key-btn" onclick="window.arr7OpenWindSpdKeypad()">SPD</button></div></div>
-      <div class="field arr7-pilot-entry arr7-calm-field"><label>Wind Quick Set</label><button type="button" id="arr7-calm-btn" class="arr7-key-btn arr7-inline-calm arr7-calm-wide" onclick="window.arr7SetCalmWind()">CALM WIND</button></div>
-    </div>
-
-    <div id="arr7-banner" class="arrival7-banner go">GO - Planned landing distance meets displaced touchdown + 150% rule</div>
-
-    <div class="arrival7-buttons">
-      <button id="arr7-photo-btn" class="btn-photo" onclick="window.openArrivalAirstripPhoto()">AIRSTRIP PHOTO</button>
-      <button id="arr7-briefcard-btn" class="btn-chart" style="background:#6a1b9a;"
-        onclick="(function(){ var rwy = window.arrival7 && window.arrival7.selectedRunway; openRunwayBriefingCard(String(window.arrival7 && window.arrival7.toIcao||''), String(rwy && rwy.rwyIdent||''), 'tab7', rwy || null); })()">BRIEFING CARD</button>
-    </div>
-
-    <div class="arrival7-briefstrip">
-      <div class="arr7-mission-card">
-        <div class="arr7-inline-grid">
-          <div class="arr7-inline-item"><span class="k">Available</span><span class="v" id="arr7-rwylen">0 m</span></div>
-          <div class="arr7-inline-item"><span class="k">Ground Roll</span><span class="v" id="arr7-roll">0 m</span></div>
-          <div class="arr7-inline-item"><span class="k">Planned Dist</span><span class="v" id="arr7-planned">0 m</span></div>
-          <div class="arr7-inline-item"><span class="k">Margin</span><span class="v" id="arr7-margin">0 m</span></div>
-        </div>
-        <div class="arr7-strip-sub arr7-inline-grid arr7-secondary-grid" id="arr7-secondary-strip">
-          <div class="arr7-inline-item"><span class="k">Density Alt</span><span class="v" id="arr7-da-box">0 ft</span></div>
-          <div class="arr7-inline-item"><span class="k" id="arr7-headtail-label">Headwind</span><span class="v" id="arr7-headtail-box">0.0 kt</span></div>
-          <div class="arr7-inline-item"><span class="k">Crosswind</span><span class="v" id="arr7-crosswind-box">0.0 kt</span></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="arr7-trace-panel" class="arr7-trace-panel">
-      <button type="button" onclick="window.toggleArr7Trace_()" id="arr7-trace-toggle" class="arr7-trace-toggle">▼ Calculation Trace</button>
-      <div id="arr7-trace-body" class="arr7-trace-body"></div>
-    </div>
-
-    <div class="arrival7-sub">Runway Diagram</div>
-    <svg id="arr7-runway-diagram" width="100%" height="430" viewBox="0 0 630 430" style="border:1px solid #ddd; border-radius:4px; background:#f9f9f9; display:none;"></svg>
-    <div id="arr7-diagram-empty" style="font-size:1rem; color:#999; text-align:center; padding:14px 0 2px 0;">Select runway to view landing markers</div>
-  </div>
-</div>
-
-<div id="arr7-keypad-backdrop" class="arr7-keypad-backdrop">
-  <div class="arr7-keypad">
-    <div id="arr7-keypad-title" class="arr7-keypad-title">Keypad</div>
-    <div id="arr7-keypad-grid" class="arr7-keypad-grid"></div>
-    <div id="arr7-keypad-actions" class="arr7-keypad-actions"></div>
-  </div>
-</div>
-
-<script>
   window.arrival7 = {
     missionId: '',
     flightLegId: '',
@@ -387,7 +13,6 @@
     chartUrl: '',
     photoUrl: '',
     lastResult: null,
-    traceOpen: false,
     keypadMode: '',
     slopeOverridden: false,
     windConfirmed: false
@@ -521,12 +146,6 @@
       let slopeProfile = [];
       let verifiedOp = {};
       let officialRef = {};
-      let knownObj = {};
-      let surveyPilot = '';
-      let internalUpdatedAt = '';
-      let surveySlopeSegments = [];
-      let obstacleAngles = [];
-      let knownFeaturesRaw = '';
       const slopeProfileRaw = field(r, ['runwaySlopeProfile','slopeProfile','SLOPE_PROFILE','RUNWAY_SLOPE_PROFILE'], '');
       const slopeProfileStr = String(slopeProfileRaw == null ? '' : slopeProfileRaw).trim();
       let knownFeatures = [];
@@ -535,14 +154,9 @@
       if (featuresStr) {
         try {
           const parsedFeatures = (typeof featuresRaw === 'string') ? JSON.parse(featuresStr) : featuresRaw;
-          knownObj = Array.isArray(parsedFeatures) ? { features: parsedFeatures } : (parsedFeatures || {});
+          const knownObj = Array.isArray(parsedFeatures) ? { features: parsedFeatures } : (parsedFeatures || {});
           verifiedOp = (knownObj && typeof knownObj.verifiedOperational === 'object' && knownObj.verifiedOperational) ? knownObj.verifiedOperational : {};
           officialRef = (knownObj && typeof knownObj.officialReference === 'object' && knownObj.officialReference) ? knownObj.officialReference : {};
-          surveyPilot = String((knownObj.verifiedSurvey && knownObj.verifiedSurvey.pilotName) || '').trim();
-          internalUpdatedAt = String((knownObj.currentSurveyVersion && knownObj.currentSurveyVersion.publishedAt) || (knownObj.verifiedSurvey && knownObj.verifiedSurvey.capturedAt) || knownObj.updatedAt || '').trim();
-          surveySlopeSegments = Array.isArray(verifiedOp.slopeSegments) ? verifiedOp.slopeSegments : [];
-          obstacleAngles = Array.isArray(verifiedOp.obstacleAngles50m) ? verifiedOp.obstacleAngles50m : [];
-          knownFeaturesRaw = featuresStr;
           if (Array.isArray(verifiedOp.features)) knownFeatures = verifiedOp.features;
           else if (Array.isArray(knownObj.features)) knownFeatures = knownObj.features;
           if (Array.isArray(knownObj.slopeProfile) && knownObj.slopeProfile.length) {
@@ -609,13 +223,8 @@
         airstripPhoto: String(field(r, ['airstripPhoto','AIRSTRIP_PHOTO','RUNWAY_PHOTO','PHOTO_URL'], '')).trim(),
         knownFeatures: knownFeatures,
         slopeProfile: slopeProfile,
-        surveySlopeSegments: surveySlopeSegments,
-        obstacleAngles: obstacleAngles,
         officialReference: officialRef,
-        verifiedOperational: verifiedOp,
-        internalUpdatedAt: internalUpdatedAt,
-        surveyPilot: surveyPilot,
-        knownFeaturesRaw: knownFeaturesRaw
+        verifiedOperational: verifiedOp
       };
     }).filter(function(rwy) {
       return (rwy.length > 0) || (rwy.rwyIdent && rwy.rwyIdent !== 'RWY');
@@ -1339,7 +948,6 @@
 
   function _arr7ApplySelectedRunwayData_() {
     const runway = _arr7CurrentRunway();
-    window.arrival7.selectedRunway = runway || null;
     const airportEl = document.getElementById('arr7-airport');
     if (airportEl) airportEl.value = window.arrival7.toIcao || '';
 
@@ -2098,24 +1706,10 @@
   };
 
   window.openArrivalAirstripPhoto = function() {
-    const _arr7ResolveExternalUrl = function(raw) {
-      const val = String(raw || '').trim();
-      if (!val) return '';
-      if (/^https?:\/\//i.test(val)) return val;
-      if (/^[A-Za-z0-9_-]{20,}$/.test(val)) return 'https://drive.google.com/file/d/' + val + '/view';
-      const mPath = val.match(/\/d\/([A-Za-z0-9_-]{20,})/);
-      if (mPath && mPath[1]) return 'https://drive.google.com/file/d/' + mPath[1] + '/view';
-      const mId = val.match(/[?&]id=([A-Za-z0-9_-]{20,})/);
-      if (mId && mId[1]) return 'https://drive.google.com/file/d/' + mId[1] + '/view';
-      return val;
-    };
-    const url = _arr7ResolveExternalUrl(window.arrival7.photoUrl || '');
+    const url = String(window.arrival7.photoUrl || '').trim();
     if (!url) {
       if (window.M) M.toast({html:'No airstrip photo URL found', classes:'orange'});
       return;
-    }
-    if (navigator.onLine === false && window.M) {
-      M.toast({html:'Offline: photo may not load unless already cached', classes:'orange', displayLength:2600});
     }
     window.open(url, '_blank');
   };
@@ -2200,22 +1794,8 @@
             }
           } catch (e) { console.warn('leg cache update (COMPLETE) failed', e); }
         })();
-        try {
-          if (typeof window.refreshMissionStatusFromLegCache_ === 'function') {
-            window.refreshMissionStatusFromLegCache_(window.arrival7.missionId, window.currentBriefingMission || null);
-          }
-        } catch (e) { console.warn('refreshMissionStatusFromLegCache_ failed', e); }
-        try {
-          if (typeof window.resetLegUiForNextLeg_ === 'function') {
-            window.resetLegUiForNextLeg_();
-          }
-        } catch (e) { console.warn('resetLegUiForNextLeg_ failed', e); }
         if (window.M) M.toast({html:'On Blocks recorded', classes:'green'});
-        try {
-          var legs = Array.isArray(window.currentBriefingMission && window.currentBriefingMission.legs) ? window.currentBriefingMission.legs : [];
-          var nextLeg = legs.find(function(l) { return String((l && l.logStatus) || 'PENDING').toUpperCase() !== 'COMPLETE'; }) || null;
-          window.activeLegFlightId = String((nextLeg && nextLeg.flightLegId) || payload.flightLegId || '');
-        } catch (e) {}
+        try { window.activeLegFlightId = String(payload.flightLegId || ''); } catch (e) {}
         if (typeof window.switchTab === 'function') window.switchTab(8);
       };
 
@@ -2263,14 +1843,12 @@
     if (!tr) {
       panel.style.display = 'none';
       body.style.display = 'none';
-      window.arrival7.traceOpen = false;
       if (btn) btn.textContent = '▶ Calculation Trace';
       return;
     }
     panel.style.display = '';
-    const traceOpen = window.arrival7.traceOpen === true;
-    body.style.display = traceOpen ? '' : 'none';
-    if (btn) btn.textContent = (traceOpen ? '▼' : '▶') + ' Calculation Trace';
+    body.style.display = '';
+    if (btn) btn.textContent = '▼ Calculation Trace';
 
     const factors = result && result.factors ? result.factors : {};
     const toDa = Number(factors.daTakeoff || 1).toFixed(4);
@@ -2327,10 +1905,8 @@
     const btn = document.getElementById('arr7-trace-toggle');
     if (!body) return;
     const isOpen = body.style.display !== 'none';
-    const nextOpen = !isOpen;
-    body.style.display = nextOpen ? '' : 'none';
-    window.arrival7.traceOpen = nextOpen;
-    if (btn) btn.textContent = (nextOpen ? '▼' : '▶') + ' Calculation Trace';
+    body.style.display = isOpen ? 'none' : '';
+    if (btn) btn.textContent = (isOpen ? '▶' : '▼') + ' Calculation Trace';
   };
 
   function _arr7EstimateFuelBurnKg_(leg, wbData) {
@@ -2389,17 +1965,11 @@
 
     const firstLeg = (function() {
       var legs = mission.legs;
-      var isComplete = function(leg) {
-        return String((leg && leg.logStatus) || 'PENDING').toUpperCase() === 'COMPLETE';
-      };
       if (window.activeLegFlightId) {
         var found = legs.find(function(l) { return String(l.flightLegId || '') === String(window.activeLegFlightId); });
-        if (found && !isComplete(found)) return found;
+        if (found) return found;
       }
-      var firstPending = legs.find(function(l) { return !isComplete(l); });
-      if (firstPending && firstPending.flightLegId) {
-        try { window.activeLegFlightId = String(firstPending.flightLegId || '').trim(); } catch (e) {}
-      }
+      var firstPending = legs.find(function(l) { return (l.logStatus || 'PENDING') !== 'COMPLETE'; });
       return firstPending || legs[legs.length - 1] || legs[0];
     })() || {};
     const acftReg = String(mission.acft || '').trim().toUpperCase();
@@ -2500,4 +2070,4 @@
 
     loadSetup(false);
   };
-</script>
+

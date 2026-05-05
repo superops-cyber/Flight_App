@@ -1,307 +1,4 @@
-<style>
-   /* 1. CONTAINER WRAPPER */
-   #supervisor-container {
-       display: flex;
-       height: 100%;
-       width: 100%;
-       overflow: hidden;
-       font-family: 'Segoe UI', Roboto, sans-serif;
-       background: #e0e0e0;
-   }
-  
-   /* 2. SIDEBAR (Dark Theme) */
-   #supervisor-container .sidebar {
-       width: 300px;
-       background: #263238; /* Dark Blue-Grey */
-       color: #eceff1;      /* Light Text */
-       overflow-y: auto;
-       display: flex;
-       flex-direction: column;
-   }
-  
-   #supervisor-container .sb-header { 
-       padding: 20px; 
-       background: #1b2428; /* Darker Header */
-       border-bottom: 1px solid #37474f; 
-       color: white;
-   }
-  
-   /* --- THE FIX IS HERE --- */
-   #supervisor-container .mission-item { 
-       padding: 15px; 
-       border-bottom: 1px solid #37474f; /* Dark border */
-       cursor: pointer; 
-       transition: 0.2s;
-       
-       /* FORCE DARK BACKGROUND & LIGHT TEXT */
-       background-color: #263238; 
-       color: #eceff1;
-   }
-   
-   /* HOVER STATE (Lighter Grey) */
-   #supervisor-container .mission-item:hover { 
-       background-color: #37474f; 
-   }
-   
-   /* ACTIVE/CLICKED STATE (Blue) */
-   #supervisor-container .mission-item.active { 
-       background-color: #0b5394; 
-       border-left: 5px solid #4fc3f7; 
-       color: white;
-   }
-  
-   /* Status Tags */
-   #supervisor-container .m-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; float: right; font-weight: bold; }
-   .st-pending { background: #ff9800; color: #3e2723; }
-   .st-approved { background: #4caf50; color: white; }
-   .st-flown { background: #1565c0; color: white; }
-   .st-partial { background: #7b1fa2; color: white; }
-  
-   /* 3. MAIN CONTENT */
-   #supervisor-container .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-   #supervisor-container .top-bar { padding: 10px 20px; background: white; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
-   #supervisor-container .content-area { flex: 1; display: flex; overflow: hidden; }
-  
-   #supervisor-container .details-panel { flex: 2; padding: 20px; overflow-y: auto; background: #f5f5f5; }
-   #supervisor-container .timeline-panel { flex: 1; background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; max-width: 350px; }
-  
-   /* CARDS */
-   #supervisor-container .leg-card { background: white; margin-bottom: 20px; padding: 15px; border-radius: 4px; border-left: 10px solid #0b5394; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-  
-   /* Pax & Tags */
-   .pax-line { font-size: 0.85rem; padding: 6px; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center; }
-   .pax-tag { font-size: 0.7rem; padding: 1px 5px; border-radius: 3px; margin-left: 5px; text-transform: uppercase; font-weight: bold; }
-   .tag-m { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
-   .tag-f { background: #fce4ec; color: #c2185b; border: 1px solid #f8bbd0; }
-   .tag-age { background: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
-  
-   /* Limit Tags */
-   .limit-tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; }
-   .bg-struct { background: #546e7a; }
-   .bg-perf { background: #f57c00; }
-
-   /* TIMELINE STYLES */
-   .timeline-event { padding-left: 15px; border-left: 2px solid #ccc; position: relative; padding-bottom: 20px; }
-   .timeline-event::before { content: ''; position: absolute; left: -6px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
-   .te-log { border-left-color: #0b5394; } .te-log::before { background: #0b5394; }
-   .te-sch { border-left-color: #ff9800; } .te-sch::before { background: #ff9800; }
-   .te-focus { border-left-color: #d32f2f; } .te-focus::before { background: #d32f2f; width: 14px; height: 14px; left: -8px; }
-  
-   /* Highlight & Badges */
-   .te-current { background-color: #e3f2fd; border-radius: 4px; padding: 10px; border: 1px solid #2196f3; margin-left: -5px; }
-   .te-current .timeline-event { border-left: none; padding-left: 0; padding-bottom: 0; }
-   .te-current .timeline-event::before { display: none; }
-
-   .badge-lg { font-size: 0.85rem !important; padding: 4px 8px !important; height: auto !important; line-height: 1.2 !important; border-radius: 4px !important; }
-   .badge-warn { background-color: #d32f2f !important; color: white !important; font-weight: bold; }
-
-   /* Link Button */
-   .dispatch-link {
-      display: block; text-align: center; background: #eceff1; color: #546e7a; padding: 10px;
-      border-radius: 4px; border: 1px dashed #cfd8dc; font-size: 0.8rem; margin-top: 10px; text-decoration: none;
-      transition: 0.2s; cursor: pointer;
-   }
-   .dispatch-link:hover { background: #cfd8dc; color: #37474f; }
-</style>
-
-<div id="supervisor-container">
-
-  <div class="sidebar" id="sbList">
-    <div class="sb-header">
-      <h6 style="margin:0">DISPATCH SUPERVISOR</h6>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:8px;">
-        <small id="userDisplay">Connecting...</small>
-        <button type="button" onclick="refreshSupervisorDashboard(false)" style="border:none; border-radius:6px; background:#0b5394; color:#fff; padding:4px 8px; font-size:0.72rem; font-weight:800; cursor:pointer;">REFRESH</button>
-      </div>
-    </div>
-    <div style="padding:20px; text-align:center; opacity:0.5;">Loading...</div>
-  </div>
-
-  <div class="main">
-    <div class="top-bar">
-      <div><h5 id="mTitle" style="margin:0; font-weight:300;">Select a Mission</h5></div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button id="btnSurveyReview" class="btn blue darken-2" onclick="openRunwaySurveyReview()">RUNWAY SURVEY REVIEWS</button>
-        <button id="btnApprove" class="btn green" onclick="approveCurrent()" disabled>APPROVE MISSION</button>
-      </div>
-    </div>
-    
-    <div class="content-area">
-      <div class="details-panel" id="detailPanel">
-        <p style="text-align:center; margin-top:50px; color:#999;">Select a mission from the left.</p>
-      </div>
-      
-      <div class="timeline-panel">
-        <h6 style="font-size:0.8rem; font-weight:bold; color:#777; text-transform:uppercase;">Duty Context</h6>
-        <div id="timelineContainer"></div>
-      </div>
-    </div>
-  </div>
-
-</div> 
-
-<div id="runway-survey-review-modal" class="modal" style="max-width:900px; width:95%;">
-  <div class="modal-content">
-    <h5 style="margin-top:0; color:#0b5394; font-weight:700;">Pending Runway Surveys</h5>
-    <details id="runway-survey-review-diag-wrap" style="margin:0 0 10px 0; border:1px solid #d9e2ef; border-radius:8px; background:#f8fbff;">
-      <summary style="cursor:pointer; font-size:0.78rem; color:#455a64; font-weight:700; padding:8px 10px;">Diagnostics JSON</summary>
-      <pre id="runway-survey-review-diag" style="margin:0; padding:10px; max-height:180px; overflow:auto; font-size:0.72rem; line-height:1.35; color:#263238; white-space:pre-wrap; word-break:break-word; border-top:1px solid #e3edf8;">Waiting for request...</pre>
-    </details>
-    <div id="runway-survey-review-list" style="max-height:520px; overflow:auto; border:1px solid #e0e0e0; border-radius:8px; padding:10px; background:#fafafa;">
-      <div style="padding:12px; color:#888;">Loading pending runway surveys…</div>
-    </div>
-  </div>
-  <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
-    <div style="display:flex; gap:8px;">
-      <button class="btn-flat" onclick="refreshRunwaySurveyReviewList()">Refresh</button>
-      <button class="btn-flat teal-text darken-2" onclick="openRunwaySurveyHistoryModal()">Survey History</button>
-    </div>
-    <button class="btn-flat modal-close">Close</button>
-  </div>
-</div>
-
-<div id="runway-survey-preview-modal" onclick="if(event.target===this)closeSupervisorRunwayPreview()" style="display:none; position:fixed; inset:0; z-index:10290; background:rgba(0,0,0,0.68); align-items:center; justify-content:center; padding:16px;">
-  <div style="background:#fff; border-radius:12px; width:min(760px, 100%); max-height:92vh; overflow:auto; box-shadow:0 12px 36px rgba(0,0,0,0.35);">
-    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#0b5394; color:#fff;">
-      <div>
-        <div id="runway-survey-preview-title" style="font-size:1rem; font-weight:900;">RUNWAY PREVIEW</div>
-        <div id="runway-survey-preview-sub" style="font-size:0.78rem; opacity:0.9;">--</div>
-      </div>
-      <button onclick="closeSupervisorRunwayPreview()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>
-    </div>
-    <div id="runway-survey-preview-body" style="padding:14px; display:grid; gap:10px;"></div>
-  </div>
-</div>
-
-<div id="runway-pending-active-compare-modal" onclick="if(event.target===this)closePendingVsActiveComparison()" style="display:none; position:fixed; inset:0; z-index:10295; background:rgba(0,0,0,0.68); align-items:center; justify-content:center; padding:16px;">
-  <div style="background:#fff; border-radius:12px; width:min(920px, 100%); max-height:92vh; overflow:auto; box-shadow:0 12px 36px rgba(0,0,0,0.35);">
-    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#1565c0; color:#fff;">
-      <div>
-        <div id="runway-pending-active-compare-title" style="font-size:1rem; font-weight:900;">PENDING VS ACTIVE</div>
-        <div id="runway-pending-active-compare-sub" style="font-size:0.78rem; opacity:0.9;">--</div>
-      </div>
-      <button onclick="closePendingVsActiveComparison()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>
-    </div>
-    <div id="runway-pending-active-compare-body" style="padding:14px; display:grid; gap:10px;">
-      <div style="padding:12px; color:#888;">Loading comparison…</div>
-    </div>
-  </div>
-</div>
-
-<!-- Runway Survey History Modal -->
-<div id="runway-survey-history-modal" onclick="if(event.target===this)closeRunwaySurveyHistoryModal()" style="display:none; position:fixed; inset:0; z-index:10300; background:rgba(0,0,0,0.65); align-items:flex-start; justify-content:center; padding:16px; overflow:auto;">
-  <div style="background:#fff; border-radius:12px; width:min(860px, 100%); margin:auto; box-shadow:0 12px 36px rgba(0,0,0,0.35); overflow:hidden;">
-    <div style="padding:12px 14px; background:#1565c0; color:#fff; display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <div style="font-size:1rem; font-weight:900; letter-spacing:0.03em;">RUNWAY SURVEY HISTORY</div>
-        <div id="rsh-sub" style="font-size:0.78rem; opacity:0.9;">Search by ICAO + runway to browse all approved surveys</div>
-      </div>
-      <button onclick="closeRunwaySurveyHistoryModal()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>
-    </div>
-    <div style="padding:12px 14px; background:#e8eef6; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-      <div style="flex:0 0 130px;">
-        <label style="display:block; font-size:0.72rem; font-weight:800; color:#1565c0; text-transform:uppercase; margin-bottom:3px;">ICAO</label>
-        <input id="rsh-icao" type="text" maxlength="6" placeholder="e.g. SBSP" style="width:100%; height:34px; border:1px solid #c8d3de; border-radius:6px; padding:0 8px; font-size:0.88rem; text-transform:uppercase; letter-spacing:0.06em;">
-      </div>
-      <div style="flex:0 0 110px;">
-        <label style="display:block; font-size:0.72rem; font-weight:800; color:#1565c0; text-transform:uppercase; margin-bottom:3px;">Runway</label>
-        <input id="rsh-rwy" type="text" maxlength="6" placeholder="e.g. 09" style="width:100%; height:34px; border:1px solid #c8d3de; border-radius:6px; padding:0 8px; font-size:0.88rem; text-transform:uppercase; letter-spacing:0.06em;">
-      </div>
-      <button onclick="loadRunwaySurveyHistory()" style="height:34px; padding:0 18px; background:#1565c0; color:#fff; border:none; border-radius:6px; font-weight:800; font-size:0.85rem; cursor:pointer;">Load History</button>
-    </div>
-    <div id="rsh-body" style="padding:14px; min-height:80px; max-height:72vh; overflow:auto;">
-      <div style="color:#888; font-size:0.85rem; text-align:center; padding:20px 0;">Enter ICAO and runway, then tap Load History.</div>
-    </div>
-    <!-- Compare panel (hidden until two items are selected) -->
-    <div id="rsh-compare-panel" style="display:none; border-top:1px solid #d9e2ef; padding:12px 14px; background:#f7fbff;">
-      <div style="font-size:0.82rem; font-weight:800; color:#1565c0; margin-bottom:8px;">Side-by-side Comparison</div>
-      <div id="rsh-compare-body" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; max-height:44vh; overflow:auto;"></div>
-      <div style="margin-top:8px; text-align:right;">
-        <button onclick="clearRshCompare()" style="border:1px solid #90caf9; background:#fff; color:#1565c0; border-radius:6px; padding:4px 14px; font-size:0.82rem; cursor:pointer;">Clear Compare</button>
-      </div>
-    </div>
-    <div style="padding:10px 14px; border-top:1px solid #e0e0e0; display:flex; justify-content:flex-end;">
-      <button onclick="closeRunwaySurveyHistoryModal()" style="border:1px solid #bbb; background:#fff; color:#555; border-radius:6px; padding:6px 18px; font-size:0.85rem; cursor:pointer;">Close</button>
-    </div>
-  </div>
-</div>
-
-<div id="supervisor-runway-check-modal" onclick="if(event.target===this)closeSupervisorRunwayCheckModal_()" style="display:none; position:fixed; inset:0; z-index:10310; background:rgba(0,0,0,0.55); align-items:center; justify-content:center; padding:16px;">
-  <div style="background:#fff; border-radius:12px; width:min(720px, 96vw); box-shadow:0 12px 36px rgba(0,0,0,0.35); overflow:hidden;">
-    <div style="padding:12px 14px; background:#0b5394; color:#fff; display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <div style="font-size:1rem; font-weight:900;">Agendar Cheque de Pista</div>
-        <div id="supervisor-runway-check-sub" style="font-size:0.78rem; opacity:0.92;">Pré-preenchido a partir do voo selecionado.</div>
-      </div>
-      <button type="button" onclick="closeSupervisorRunwayCheckModal_()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>
-    </div>
-    <div style="padding:14px; display:grid; gap:10px;">
-      <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
-        <div>
-          <label style="display:block; font-size:0.75rem; color:#0b5394; font-weight:800; text-transform:uppercase; margin-bottom:4px;">Instrutor</label>
-          <select id="supervisor-runway-check-instructor" class="browser-default"></select>
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:#0b5394; font-weight:800; text-transform:uppercase; margin-bottom:4px;">Aluno (Piloto Atual)</label>
-          <input id="supervisor-runway-check-student" type="text" readonly style="width:100%; height:36px; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; padding:0 9px;">
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
-        <div>
-          <label style="display:block; font-size:0.75rem; color:#0b5394; font-weight:800; text-transform:uppercase; margin-bottom:4px;">Aeroporto/Pista do Cheque</label>
-          <input id="supervisor-runway-check-location" type="text" style="width:100%; height:36px; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; padding:0 9px;" placeholder="Ex: SWXX / RWY 09">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.75rem; color:#0b5394; font-weight:800; text-transform:uppercase; margin-bottom:4px;">Nome do Plano (opcional)</label>
-          <input id="supervisor-runway-check-lesson-name" type="text" style="width:100%; height:36px; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; padding:0 9px;" placeholder="Ex: Cheque pista SWXX">
-        </div>
-      </div>
-      <div>
-        <label style="display:block; font-size:0.75rem; color:#0b5394; font-weight:800; text-transform:uppercase; margin-bottom:4px;">Rota Pré-preenchida</label>
-        <textarea id="supervisor-runway-check-route" style="width:100%; min-height:74px; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; padding:8px 9px; font-family:monospace;" placeholder="ORIG, VIA, DEST"></textarea>
-      </div>
-      <div style="padding:8px 10px; border-radius:8px; border:1px solid #e1ecf7; background:#f6fbff; font-size:0.79rem; color:#455a64;">Ao confirmar: cria o plano no Ref_Syllabus, define instrutor como PIC em Dispatch e move o piloto atual para aluno/co-piloto.</div>
-      <div style="display:flex; justify-content:flex-end; gap:8px;">
-        <button type="button" class="btn-flat" onclick="closeSupervisorRunwayCheckModal_()">Cancelar</button>
-        <button type="button" class="btn blue darken-2" onclick="submitSupervisorRunwayCheckSchedule_()">AGENDAR CHEQUE</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="supervisor-password-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10320; align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this)closeSupervisorPasswordPrompt_(false)">
-  <div style="background:#fff; border-radius:12px; width:min(420px, 96vw); box-shadow:0 12px 36px rgba(0,0,0,0.35); overflow:hidden;">
-    <div style="padding:14px 16px; background:#0b5394; color:#fff;">
-      <div style="font-size:1rem; font-weight:800;">Supervisor Approval</div>
-      <div id="supervisor-password-sub" style="font-size:0.8rem; opacity:0.92; margin-top:2px;">Enter supervisor password to continue.</div>
-    </div>
-    <div style="padding:16px;">
-      <label for="supervisor-password-input" style="display:block; margin-bottom:6px; font-size:0.78rem; color:#0b5394; font-weight:700; text-transform:uppercase;">Password</label>
-      <input id="supervisor-password-input" type="password" autocomplete="current-password" inputmode="numeric" pattern="[0-9]*" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:100%; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; height:40px; padding:0 10px; font-size:0.95rem;">
-      <div id="supervisor-password-keypad" style="margin-top:10px; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('1')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">1</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('2')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">2</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('3')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">3</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('4')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">4</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('5')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">5</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('6')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">6</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('7')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">7</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('8')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">8</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('9')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">9</button>
-        <button type="button" onclick="supervisorPasswordKeypadClear_()" style="height:38px; border:none; border-radius:8px; background:#eceff1; color:#455a64; font-size:0.86rem; font-weight:900;">Clear</button>
-        <button type="button" onclick="supervisorPasswordKeypadAppend_('0')" style="height:38px; border:none; border-radius:8px; background:#eef4fb; color:#0b5394; font-size:1rem; font-weight:900;">0</button>
-        <button type="button" onclick="supervisorPasswordKeypadBackspace_()" style="height:38px; border:none; border-radius:8px; background:#eceff1; color:#455a64; font-size:0.86rem; font-weight:900;">Del</button>
-      </div>
-      <div id="supervisor-password-error" style="display:none; margin-top:8px; color:#c62828; font-size:0.82rem; font-weight:700;"></div>
-    </div>
-    <div style="display:flex; gap:8px; padding:0 16px 16px 16px;">
-      <button type="button" onclick="closeSupervisorPasswordPrompt_(false)" style="flex:1; border:none; border-radius:8px; height:40px; background:#546e7a; color:#fff; font-weight:800; cursor:pointer;">Cancel</button>
-      <button type="button" onclick="submitSupervisorPasswordPrompt_()" style="flex:1; border:none; border-radius:8px; height:40px; background:#2e7d32; color:#fff; font-weight:800; cursor:pointer;">Continue</button>
-    </div>
-  </div>
-</div>
-
-<script>
+﻿
     // --- STATE ---
     let supMissionId = null;
     let supPilot = null;
@@ -475,7 +172,7 @@
       if(!data.missions) return;
 
       data.missions.forEach(m => {
-        const routeSummary = m.legs.map(leg => leg.split('(')[0].trim()).join(' ➝ ');
+        const routeSummary = m.legs.map(leg => leg.split('(')[0].trim()).join(' âž ');
         const div = document.createElement('div');
         div.className = 'mission-item';
         div.setAttribute('data-mission-id', String(m.id || ''));
@@ -496,10 +193,10 @@
           <div style="font-size:0.85rem; line-height:1.4em; opacity:0.9;">
             <div style="margin-bottom:2px;">${m.pilot}</div>
             <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#bbb;">
-               <span style="font-size:0.8em">✈</span> ${routeSummary}
+               <span style="font-size:0.8em">âœˆ</span> ${routeSummary}
             </div>
           </div>
-          ${m.warnings ? `<div style="margin-top:6px; color:#ff5252; font-size:0.75rem; font-weight:bold; background:rgba(255,0,0,0.1); padding:4px; border-radius:4px;">⚠ ${m.warnings}</div>` : ''}
+          ${m.warnings ? `<div style="margin-top:6px; color:#ff5252; font-size:0.75rem; font-weight:bold; background:rgba(255,0,0,0.1); padding:4px; border-radius:4px;">âš  ${m.warnings}</div>` : ''}
         `;
         if (supMissionId && m.id === supMissionId) div.classList.add('active');
         div.onclick = () => loadSupervisorMission(m.id, div);
@@ -629,7 +326,7 @@
         const isAuthorized = authList.some(auth => auth.trim().toUpperCase() === leg.to.trim().toUpperCase());
         const scheduleBtn = `<button class="btn-small blue lighten-1 z-depth-0" style="font-size:0.7rem; font-weight:bold; margin-left:6px;" onclick="openSupervisorRunwayCheckModal_(${idx})">SCHEDULE RUNWAY CHECK</button>`;
         const authHtml = isAuthorized
-          ? `<span class="new badge green" data-badge-caption="Checked Out ✅">Pilot</span>${scheduleBtn}`
+          ? `<span class="new badge green" data-badge-caption="Checked Out âœ…">Pilot</span>${scheduleBtn}`
           : `<button class="btn-small red lighten-2 z-depth-0" style="font-size:0.7rem; font-weight:bold;" onclick="waiveCheck('${leg.to}')">WAIVE CHECK</button>${scheduleBtn}`;
         const runwayGap = leg.runwayGap || null;
         const missingItems = runwayGap && Array.isArray(runwayGap.missingItems) ? runwayGap.missingItems : [];
@@ -648,7 +345,7 @@
         <div style="margin: 8px 0; padding: 6px 10px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 0 4px 4px 0;">
           <div style="font-size: 0.65rem; font-weight: bold; color: #1565c0; text-transform: uppercase; letter-spacing: 0.5px;">Planned Routing (VIA)</div>
           <div style="font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85rem; color: #0d47a1; font-weight: bold;">
-            ${leg.waypointsText.replace(/,/g, ' ➔ ')}
+            ${leg.waypointsText.replace(/,/g, ' âž” ')}
           </div>
         </div>
       ` : '';
@@ -664,7 +361,7 @@
                 <span>
                   <b>${p.name}</b> <small style="color:#777">(${p.fund || '-'})</small> ${genderTag} ${ageTag}
                   <div style="font-size:0.75rem; color:#0b5394; margin-top:2px;">Rate: ${p.chargeRate || '?'} (R$ ${moneyStr})</div>
-                  ${p.description ? `<div style="font-size:0.75rem; color:#666; font-style:italic;">↳ ${p.description}</div>` : ''}
+                  ${p.description ? `<div style="font-size:0.75rem; color:#666; font-style:italic;">â†³ ${p.description}</div>` : ''}
                 </span>
                 <span style="font-size:0.8rem; text-align:right;">
                   <div>Cargo: <b>${p.cargo}kg</b></div>
@@ -682,7 +379,7 @@
           <div class="leg-card" style="${leg.isOver ? 'border-left-color: #d32f2f; background: #ffebee;' : ''}">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
               <div>
-                <span style="font-weight:bold; font-size:1.1rem; color:#333;">LEG ${idx+1}: ${leg.from} ➜ ${leg.to}</span> 
+                <span style="font-weight:bold; font-size:1.1rem; color:#333;">LEG ${idx+1}: ${leg.from} âžœ ${leg.to}</span> 
                 <br><small style="color:#777;">ID: ${m.id}-${idx+1}</small>
               </div>
               <div>${authHtml}</div>
@@ -697,7 +394,7 @@
               <br>
               <span style="color: #0b5394;">
                 <b>Takeoff:</b> ${Math.round(leg.takeoffFuel || 0)}L | 
-                <b>Enroute:</b> −${Math.round(leg.fuel || 0)}L | 
+                <b>Enroute:</b> âˆ’${Math.round(leg.fuel || 0)}L | 
                 <b>Landing:</b> ${Math.round(leg.landingFuel || 0)}L
               </span>
             </div>
@@ -849,8 +546,8 @@
       if (routeEl) routeEl.value = routeText;
       if (nameEl) nameEl.value = 'Cheque de Pista ' + (chosenTargets.join('-') || selectedRunway) + ' - ' + String(mission.id || '');
       if (subEl) {
-        const waiveText = autoWaiveTargets.length ? (' • Waive automático: ' + autoWaiveTargets.join(', ')) : '';
-        subEl.textContent = 'Missão ' + String(mission.id || '') + ' • Leg ' + (Number(legIdx) + 1) + waiveText;
+        const waiveText = autoWaiveTargets.length ? (' â€¢ Waive automÃ¡tico: ' + autoWaiveTargets.join(', ')) : '';
+        subEl.textContent = 'MissÃ£o ' + String(mission.id || '') + ' â€¢ Leg ' + (Number(legIdx) + 1) + waiveText;
       }
 
       if (modal) modal.style.display = 'flex';
@@ -1001,7 +698,7 @@
               if (window.M) M.toast({ html: (resp && resp.error) ? resp.error : 'Falha ao agendar cheque.', classes: 'red' });
               return;
             }
-            if (window.M) M.toast({ html: 'Cheque agendado: ' + String(resp.trainingCode || '') + ' • Agora aprove a missão.', classes: 'green' });
+            if (window.M) M.toast({ html: 'Cheque agendado: ' + String(resp.trainingCode || '') + ' â€¢ Agora aprove a missÃ£o.', classes: 'green' });
             closeSupervisorRunwayCheckModal_();
             refreshSupervisorDashboard(true);
             if (supMissionId) {
@@ -1111,7 +808,7 @@
     function refreshRunwaySurveyReviewList() {
       const list = document.getElementById('runway-survey-review-list');
       if (!list) return;
-      list.innerHTML = '<div style="padding:12px; color:#888;">Loading pending runway surveys…</div>';
+      list.innerHTML = '<div style="padding:12px; color:#888;">Loading pending runway surveysâ€¦</div>';
       _setRunwaySurveyReviewDiag_('request:start', {
         note: 'Calling getPendingRunwaySurveyReviews',
         limit: 25,
@@ -1171,17 +868,17 @@
               <div data-survey-staging="${item.stagingId}" data-entry-kind="${item.entryKind || ''}" data-preview-payload="${previewPayload}" style="background:#fff; border:1px solid #d9e2ef; border-radius:8px; padding:10px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
                   <div>
-                    <div style="font-weight:800; color:#0b5394;">${item.icao} RWY ${item.rwyIdent} ${isApproval ? '· RUNWAY APPROVAL' : '· GPS SURVEY'}</div>
-                    <div style="font-size:0.8rem; color:#666;">Pilot: ${item.pilotName || 'Unknown'} · ${item.walkDate || ''}</div>
+                    <div style="font-weight:800; color:#0b5394;">${item.icao} RWY ${item.rwyIdent} ${isApproval ? 'Â· RUNWAY APPROVAL' : 'Â· GPS SURVEY'}</div>
+                    <div style="font-size:0.8rem; color:#666;">Pilot: ${item.pilotName || 'Unknown'} Â· ${item.walkDate || ''}</div>
                     ${isApproval ? `
                       <div style="font-size:0.8rem; color:#37474f; margin-top:4px;"><b>Request Type</b> Pilot cutdown edit</div>
                       <div style="font-size:0.8rem; color:#37474f;"><b>Cutdown change</b> ${runwaySnapshot.cutdownAreaLabel || (runwaySnapshot.cutdownAreaM != null ? (String(runwaySnapshot.cutdownAreaM) + ' m') : 'Unknown')} (new) vs ${(runwaySnapshot.cutdownBaselineM != null ? (String(runwaySnapshot.cutdownBaselineM) + ' m') : (dbVerified.cutdownAreaLabel || (dbVerified.cutdownAreaM != null ? (String(dbVerified.cutdownAreaM) + ' m') : 'Unknown')))} (current)</div>
-                      <div style="font-size:0.78rem; color:#777; margin-top:2px;">Internal baseline date: ${internalDateLabel} · Source: ${runwaySnapshot.editSource || 'TAB5_RELEASE'}</div>
+                      <div style="font-size:0.78rem; color:#777; margin-top:2px;">Internal baseline date: ${internalDateLabel} Â· Source: ${runwaySnapshot.editSource || 'TAB5_RELEASE'}</div>
                     ` : `
-                      <div style="font-size:0.8rem; color:#666; margin-top:4px;">Trace pts: ${traceCount} · Features: ${featCount} · Markers: ${markerCount} · 50m obstacle angles: ${obsAngles} · Slope segs: ${slopeCount}</div>
+                      <div style="font-size:0.8rem; color:#666; margin-top:4px;">Trace pts: ${traceCount} Â· Features: ${featCount} Â· Markers: ${markerCount} Â· 50m obstacle angles: ${obsAngles} Â· Slope segs: ${slopeCount}</div>
                       <div style="font-size:0.8rem; color:#37474f; margin-top:4px;"><b>Observed</b> ${Number(survey.lengthM || 0) || 0}m x ${Number(survey.widthM || 0) || 0}m (${survey.surface || '-'})</div>
                       <div style="font-size:0.8rem; color:#37474f;"><b>Official</b> ${Number(official.lengthM || 0) || 0}m x ${Number(official.widthM || 0) || 0}m (${official.surface || '-'})</div>
-                      <div style="font-size:0.78rem; color:#777; margin-top:2px;">Avg GPS acc: ${Math.round(Number(summary.avgAccuracyM || 0)) || 0}m · Best: ${Math.round(Number(summary.bestAccuracyM || 0)) || 0}m</div>
+                      <div style="font-size:0.78rem; color:#777; margin-top:2px;">Avg GPS acc: ${Math.round(Number(summary.avgAccuracyM || 0)) || 0}m Â· Best: ${Math.round(Number(summary.bestAccuracyM || 0)) || 0}m</div>
                     `}
                   </div>
                   <div style="display:flex; flex-direction:column; gap:6px; min-width:200px;">
@@ -1197,8 +894,8 @@
                       <label style="font-size:0.78rem; font-weight:700; color:#546e7a; white-space:nowrap;">Runway Class</label>
                       <select id="survey-rwyclass-${item.stagingId}" style="height:32px; border:1px solid #ccc; border-radius:6px; padding:0 8px; font-size:0.78rem; background:#fff;">
                         <option value="">-- assign --</option>
-                        <option value="1">Class 1 (≥900 m)</option>
-                        <option value="2">Class 2 (600–899 m)</option>
+                        <option value="1">Class 1 (â‰¥900 m)</option>
+                        <option value="2">Class 2 (600â€“899 m)</option>
                         <option value="3">Class 3 (&lt;600 m)</option>
                       </select>
                     </div>
@@ -1278,7 +975,7 @@
     }
 
     function _pendingCompareFormat_(value) {
-      if (value == null || value === '') return '—';
+      if (value == null || value === '') return 'â€”';
       if (typeof value === 'number' && isFinite(value)) return String(Math.round(value * 100) / 100);
       return String(value);
     }
@@ -1328,8 +1025,8 @@
       }
 
       title.textContent = 'PENDING VS ACTIVE';
-      sub.textContent = String(item.icao || '--') + ' · RWY ' + String(item.rwyIdent || '--') + ' · Staging ' + String(item.stagingId || '');
-      body.innerHTML = '<div style="padding:12px; color:#888;">Loading active approved version…</div>';
+      sub.textContent = String(item.icao || '--') + ' Â· RWY ' + String(item.rwyIdent || '--') + ' Â· Staging ' + String(item.stagingId || '');
+      body.innerHTML = '<div style="padding:12px; color:#888;">Loading active approved versionâ€¦</div>';
       modal.style.display = 'flex';
 
       google.script.run
@@ -1360,17 +1057,17 @@
           const activeCaptured = String(activeSurvey.capturedAt || '').trim();
 
           const rows = [];
-          rows.push(_pendingCompareRowHtml_('Captured At', pendingCaptured || '—', activeCaptured || '—'));
-          rows.push(_pendingCompareRowHtml_('Pilot', item.pilotName || '—', activeSurvey.pilotName || '—'));
+          rows.push(_pendingCompareRowHtml_('Captured At', pendingCaptured || 'â€”', activeCaptured || 'â€”'));
+          rows.push(_pendingCompareRowHtml_('Pilot', item.pilotName || 'â€”', activeSurvey.pilotName || 'â€”'));
           rows.push(_pendingCompareRowHtml_('Length (m)', Number(pendingSurvey.lengthM || 0) || 0, Number(activeOperational.lengthM || 0) || 0));
           rows.push(_pendingCompareRowHtml_('Width (m)', Number(pendingSurvey.widthM || 0) || 0, Number(activeOperational.widthM || 0) || 0));
-          rows.push(_pendingCompareRowHtml_('Surface', pendingSurvey.surface || '—', activeOperational.surface || '—'));
+          rows.push(_pendingCompareRowHtml_('Surface', pendingSurvey.surface || 'â€”', activeOperational.surface || 'â€”'));
           rows.push(_pendingCompareRowHtml_('Features', _pendingCompareArrayCount_(pendingSurvey.features), _pendingCompareArrayCount_(activeOperational.features)));
           rows.push(_pendingCompareRowHtml_('Markers', _pendingCompareArrayCount_(pendingSurvey.markers), _pendingCompareArrayCount_(activeOperational.markers)));
           rows.push(_pendingCompareRowHtml_('Obstacle Angles (50m)', pendingObstacleAngles, activeObstacleAngles));
           rows.push(_pendingCompareRowHtml_('Slope Segments', _pendingCompareArrayCount_(pendingSurvey.slopeSegments), _pendingCompareArrayCount_(activeOperational.slopeSegments)));
           rows.push(_pendingCompareRowHtml_('Cutdown Area (m2)', Number(pendingSurvey.cutdownAreaM || 0) || 0, Number(activeOperational.cutdownAreaM || 0) || 0));
-          rows.push(_pendingCompareRowHtml_('Notes', String(pendingSurvey.notes || '').trim() || '—', String(activeOperational.pilotNotes || '').trim() || '—'));
+          rows.push(_pendingCompareRowHtml_('Notes', String(pendingSurvey.notes || '').trim() || 'â€”', String(activeOperational.pilotNotes || '').trim() || 'â€”'));
 
           body.innerHTML = ''
             + '<div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 10px; border:1px solid #d9e2ef; border-radius:8px; background:#f7fbff;">'
@@ -1495,9 +1192,9 @@
       const slopes = Array.isArray(survey.slopeSegments) ? survey.slopeSegments : [];
 
       title.textContent = 'RUNWAY PREVIEW';
-      sub.textContent = String(item.icao || '--') + ' · RWY ' + String(item.rwyIdent || '--');
+      sub.textContent = String(item.icao || '--') + ' Â· RWY ' + String(item.rwyIdent || '--');
 
-      // ─── SPECIAL RENDERING FOR RUNWAY_APPROVAL ───
+      // â”€â”€â”€ SPECIAL RENDERING FOR RUNWAY_APPROVAL â”€â”€â”€
       if (isRunwayApproval) {
         const briefingCard = (dbKnown && dbKnown.briefingCard && typeof dbKnown.briefingCard === 'object') 
           ? dbKnown.briefingCard 
@@ -1539,11 +1236,11 @@
           + '</div>'
           + '<div style="background:#fff; border:1px solid #c5d9f1; border-radius:6px; padding:8px;">'
           +   '<div style="font-size:0.65rem; font-weight:900; color:#0b5394; text-transform:uppercase; margin-bottom:3px;">Elevation</div>'
-          +   '<div style="font-size:0.9rem; font-weight:700; color:#1a1a1a;">' + (briefCardElev || '–') + ' <span style="font-size:0.75rem; color:#666;">ft</span></div>'
+          +   '<div style="font-size:0.9rem; font-weight:700; color:#1a1a1a;">' + (briefCardElev || 'â€“') + ' <span style="font-size:0.75rem; color:#666;">ft</span></div>'
           + '</div>'
           + '<div style="background:#fff; border:1px solid #c5d9f1; border-radius:6px; padding:8px;">'
           +   '<div style="font-size:0.65rem; font-weight:900; color:#0b5394; text-transform:uppercase; margin-bottom:3px;">Class</div>'
-          +   '<div style="font-size:0.9rem; font-weight:700; color:#1a1a1a;">' + (briefingCard.runwayClass ? 'Class ' + briefingCard.runwayClass : '–') + '</div>'
+          +   '<div style="font-size:0.9rem; font-weight:700; color:#1a1a1a;">' + (briefingCard.runwayClass ? 'Class ' + briefingCard.runwayClass : 'â€“') + '</div>'
           + '</div>'
           + '</div>'
           + '</div>';
@@ -1575,7 +1272,7 @@
           + ((Number(dbVerified && dbVerified.internalUpdatedAt) > 0) || internalDateLabel !== 'N/A'
             ? '<div style="font-size:0.75rem; color:#999; margin-top:6px;">Last updated: ' + internalDateLabel + '</div>'
             : '<div style="background:#fff3cd; border:1px solid #ffeaa7; border-radius:4px; padding:6px 8px; font-size:0.75rem; color:#856404; margin-top:6px;">'
-            +   '<strong>⚠ No internal data</strong> — Pilot will survey'
+            +   '<strong>âš  No internal data</strong> â€” Pilot will survey'
             +   '<button onclick="(function(el){el.parentElement.style.display=\'none\'; if(window.M)M.toast({html:\'Pilot survey noted.\',classes:\'blue\'});})(this)" '
             +   'style="display:block; margin-top:4px; background:#856404; color:#fff; border:none; border-radius:3px; padding:3px 8px; font-size:0.7rem; font-weight:700; cursor:pointer; width:100%;">'
             +   'Pilot Will Survey'
@@ -1595,7 +1292,7 @@
           + '<line x1="20" y1="75" x2="400" y2="75" stroke="#f3f3f3" stroke-width="2" stroke-dasharray="18,10"></line>'
           + '<text x="30" y="85" font-size="14" fill="#fff" font-weight="bold">' + String(item.rwyIdent || 'RWY') + '</text>'
           + '<text x="390" y="85" font-size="14" fill="#fff" font-weight="bold" text-anchor="end">' + (survey && survey.reciprocalIdent ? String(survey.reciprocalIdent) : '') + '</text>'
-          + '<text x="20" y="30" font-size="11" fill="#666" font-weight="700">' + briefCardLen + ' m × ' + briefCardWid + ' m</text>'
+          + '<text x="20" y="30" font-size="11" fill="#666" font-weight="700">' + briefCardLen + ' m Ã— ' + briefCardWid + ' m</text>'
           + '</svg>'
           + '</div>'
           + _supervisorRenderDataTable_('Runway Snapshot (pilot survey)', surveyRunway, '#0b5394')
@@ -1606,15 +1303,15 @@
         return;
       }
       
-      // ─── STANDARD RENDERING FOR GPS_SURVEY ───
+      // â”€â”€â”€ STANDARD RENDERING FOR GPS_SURVEY â”€â”€â”€
       const officialTitle = sourceLocked
-        ? ('&#128274; Official (DB_Airports · LOGID ' + _supervisorEscHtml_(officialLogId || 'N/A') + ')')
+        ? ('&#128274; Official (DB_Airports Â· LOGID ' + _supervisorEscHtml_(officialLogId || 'N/A') + ')')
         : ('Official' + (officialLogId ? (' (LOGID ' + _supervisorEscHtml_(officialLogId) + ')') : ''));
 
       const topSummary = ''
         + '<div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;">'
-        + '<div style="border:1px solid #dbe7f3; border-radius:8px; padding:8px; background:#f7fbff; font-size:0.84rem;"><b style="color:#0b5394;">Surveyed/Internal</b><br>' + lengthM + 'm × ' + widthM + 'm • ' + surface + '<br><span style="font-size:0.76rem; color:#607d8b;">Current internal: ' + (Number(dbVerified.lengthM || 0) || 0) + 'm × ' + (Number(dbVerified.widthM || 0) || 0) + 'm • ' + (dbVerified.surface || '-') + ' · ' + internalDateLabel + '</span></div>'
-        + '<div style="border:1px solid #e0e0e0; border-radius:8px; padding:8px; background:#fafafa; font-size:0.84rem;"><b style="color:#555;">' + officialTitle + '</b><br>' + Math.round(Number(official.lengthM || 0)) + 'm × ' + Math.round(Number(official.widthM || 0)) + 'm • ' + String(official.surface || '-') + '</div>'
+        + '<div style="border:1px solid #dbe7f3; border-radius:8px; padding:8px; background:#f7fbff; font-size:0.84rem;"><b style="color:#0b5394;">Surveyed/Internal</b><br>' + lengthM + 'm Ã— ' + widthM + 'm â€¢ ' + surface + '<br><span style="font-size:0.76rem; color:#607d8b;">Current internal: ' + (Number(dbVerified.lengthM || 0) || 0) + 'm Ã— ' + (Number(dbVerified.widthM || 0) || 0) + 'm â€¢ ' + (dbVerified.surface || '-') + ' Â· ' + internalDateLabel + '</span></div>'
+        + '<div style="border:1px solid #e0e0e0; border-radius:8px; padding:8px; background:#fafafa; font-size:0.84rem;"><b style="color:#555;">' + officialTitle + '</b><br>' + Math.round(Number(official.lengthM || 0)) + 'm Ã— ' + Math.round(Number(official.widthM || 0)) + 'm â€¢ ' + String(official.surface || '-') + '</div>'
         + '</div>';
 
       const runwayPx = 480;
@@ -1742,7 +1439,7 @@
         const dist = Math.round(Number(obs && obs.checkpointDistanceM || 0));
         const thr = normThr(obs && obs.fromThreshold || '') || normThr(item.rwyIdent || '');
         const operation = String(obs && obs.operation || '').trim().toLowerCase() || (dist >= 300 ? 'takeoff' : 'landing');
-        const label = 'RWY ' + thr + ' · ' + dist + 'm · ' + operation;
+        const label = 'RWY ' + thr + ' Â· ' + dist + 'm Â· ' + operation;
         return '<label style="display:flex; align-items:center; gap:4px; font-size:0.77rem; color:#37474f; cursor:pointer; white-space:nowrap;">'
           + '<input type="checkbox" checked onchange="(function(el,id){var g=document.getElementById(id);if(g)g.style.display=el.checked?\'\':\'none\';})(this,\'supObsGrp_' + idx + '\')">'
           + label + '</label>';
@@ -1856,7 +1553,7 @@
         .rejectRunwaySurveyReview(stagingId, _supervisorNameForSurvey_(), notes, approvalPassword);
     }
 
-    // ─── Runway Survey History ───────────────────────────────────────────────
+    // â”€â”€â”€ Runway Survey History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     var _rshCompareSlots_ = [null, null]; // up to 2 entries for comparison
 
@@ -1897,8 +1594,8 @@
       }
       const body = document.getElementById('rsh-body');
       const sub = document.getElementById('rsh-sub');
-      if (body) body.innerHTML = '<div style="color:#888; padding:16px; text-align:center;">Loading…</div>';
-      if (sub) sub.textContent = icao + ' · RWY ' + rwy;
+      if (body) body.innerHTML = '<div style="color:#888; padding:16px; text-align:center;">Loadingâ€¦</div>';
+      if (sub) sub.textContent = icao + ' Â· RWY ' + rwy;
       _rshCompareSlots_ = [null, null];
       _rshUpdateComparePanel_();
 
@@ -1909,7 +1606,7 @@
             return;
           }
           // Update sub-header with pair label (e.g. "09/27") if available
-          if (sub) sub.textContent = resp.icao + ' · RWY ' + (resp.rwyPairLabel || resp.rwyIdent);
+          if (sub) sub.textContent = resp.icao + ' Â· RWY ' + (resp.rwyPairLabel || resp.rwyIdent);
           _renderRunwaySurveyHistory_(resp);
         })
         .withFailureHandler(function(err) {
@@ -1919,7 +1616,7 @@
     }
 
     function _rshFmtDate_(iso) {
-      if (!iso) return '—';
+      if (!iso) return 'â€”';
       try {
         const d = new Date(iso);
         if (isNaN(d.getTime())) return String(iso).slice(0, 19).replace('T', ' ');
@@ -1950,10 +1647,10 @@
             + '<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">'
             + '<div style="flex:1 1 auto;">'
             + (isActive ? '<span style="display:inline-block; background:#2e7d32; color:#fff; font-size:0.7rem; font-weight:800; border-radius:4px; padding:1px 7px; margin-bottom:4px;">ACTIVE</span> ' : '')
-            + '<span style="font-weight:800; font-size:0.88rem; color:#1565c0;">v' + (history.length - i) + ' · ' + _rshFmtDate_(entry.publishedAt) + '</span>'
-            + '<div style="font-size:0.78rem; color:#455a64; margin-top:2px;">Pilot: ' + _rshEsc_(entry.pilotName || '—') + ' · Approved by: ' + _rshEsc_(entry.approvedBy || '—') + '</div>'
-            + '<div style="font-size:0.78rem; color:#455a64;">Captured: ' + _rshFmtDate_(entry.capturedAt) + ' · RWY: ' + _rshEsc_(entry.publishedRunway || '—') + '</div>'
-            + '<div style="font-size:0.78rem; color:#37474f; margin-top:2px;"><b>Observed</b> ' + (Number(vo.lengthM || 0) || 0) + 'm × ' + (Number(vo.widthM || 0) || 0) + 'm · ' + _rshEsc_(vo.surface || '—') + '</div>'
+            + '<span style="font-weight:800; font-size:0.88rem; color:#1565c0;">v' + (history.length - i) + ' Â· ' + _rshFmtDate_(entry.publishedAt) + '</span>'
+            + '<div style="font-size:0.78rem; color:#455a64; margin-top:2px;">Pilot: ' + _rshEsc_(entry.pilotName || 'â€”') + ' Â· Approved by: ' + _rshEsc_(entry.approvedBy || 'â€”') + '</div>'
+            + '<div style="font-size:0.78rem; color:#455a64;">Captured: ' + _rshFmtDate_(entry.capturedAt) + ' Â· RWY: ' + _rshEsc_(entry.publishedRunway || 'â€”') + '</div>'
+            + '<div style="font-size:0.78rem; color:#37474f; margin-top:2px;"><b>Observed</b> ' + (Number(vo.lengthM || 0) || 0) + 'm Ã— ' + (Number(vo.widthM || 0) || 0) + 'm Â· ' + _rshEsc_(vo.surface || 'â€”') + '</div>'
             + (entry.supervisorNotes ? '<div style="font-size:0.76rem; color:#777; font-style:italic; margin-top:2px;">' + _rshEsc_(entry.supervisorNotes) + '</div>' : '')
             + '</div>'
             + '<div style="display:flex; flex-direction:column; gap:5px; min-width:130px; align-items:flex-end;">'
@@ -2020,27 +1717,27 @@
           && window._rshCurrentResp_.currentVersion.versionId === slot.vid;
 
         const rows = [
-          ['Version ID', String(slot.vid).slice(-24) + '…'],
+          ['Version ID', String(slot.vid).slice(-24) + 'â€¦'],
           ['Published', _rshFmtDate_(entry.publishedAt)],
           ['Captured', _rshFmtDate_(entry.capturedAt)],
-          ['Pilot', entry.pilotName || '—'],
-          ['Approved by', entry.approvedBy || '—'],
-          ['Notes', entry.supervisorNotes || '—'],
+          ['Pilot', entry.pilotName || 'â€”'],
+          ['Approved by', entry.approvedBy || 'â€”'],
+          ['Notes', entry.supervisorNotes || 'â€”'],
           ['Length (m)', Number(vo.lengthM || 0) || 0],
           ['Width (m)', Number(vo.widthM || 0) || 0],
-          ['Surface', vo.surface || '—'],
-          ['Features', Array.isArray(vo.features) ? vo.features.length + ' items' : '—'],
-          ['Obstacles', Array.isArray(vo.obstacles) ? vo.obstacles.length + ' items' : '—'],
-          ['Slope segments', Array.isArray(vo.slopeSegments) ? vo.slopeSegments.length + ' segments' : '—'],
-          ['Cutdown area m²', vo.cutdownAreaM != null ? vo.cutdownAreaM : '—'],
-          ['Status', vs.status || '—'],
-          ['Source RWY', entry.sourceRunway || '—'],
-          ['Published RWY', entry.publishedRunway || '—']
+          ['Surface', vo.surface || 'â€”'],
+          ['Features', Array.isArray(vo.features) ? vo.features.length + ' items' : 'â€”'],
+          ['Obstacles', Array.isArray(vo.obstacles) ? vo.obstacles.length + ' items' : 'â€”'],
+          ['Slope segments', Array.isArray(vo.slopeSegments) ? vo.slopeSegments.length + ' segments' : 'â€”'],
+          ['Cutdown area mÂ²', vo.cutdownAreaM != null ? vo.cutdownAreaM : 'â€”'],
+          ['Status', vs.status || 'â€”'],
+          ['Source RWY', entry.sourceRunway || 'â€”'],
+          ['Published RWY', entry.publishedRunway || 'â€”']
         ];
 
         return '<div style="border:2px solid ' + (isActive ? '#2e7d32' : '#90caf9') + '; border-radius:8px; overflow:hidden;">'
           + '<div style="padding:6px 8px; background:' + (isActive ? '#2e7d32' : '#1565c0') + '; color:#fff; font-size:0.78rem; font-weight:800;">'
-          + 'Version ' + (si + 1) + (isActive ? ' · ACTIVE' : '') + '</div>'
+          + 'Version ' + (si + 1) + (isActive ? ' Â· ACTIVE' : '') + '</div>'
           + '<table style="width:100%; border-collapse:collapse; font-size:0.77rem;">'
           + rows.map(function(r) {
             return '<tr style="border-bottom:1px solid #eef3f7;">'
@@ -2055,7 +1752,7 @@
 
     async function rshSetActive(versionId, icao, rwyIdent) {
       if (!versionId || !icao || !rwyIdent) return;
-      if (!confirm('Set version ' + String(versionId).slice(-20) + '… as the active survey for ' + icao + ' RWY ' + rwyIdent + '?')) return;
+      if (!confirm('Set version ' + String(versionId).slice(-20) + 'â€¦ as the active survey for ' + icao + ' RWY ' + rwyIdent + '?')) return;
       const approvalPassword = await supervisorRequirePassword_('Enter supervisor password to change active survey version.');
       if (!approvalPassword) return;
 
@@ -2073,4 +1770,4 @@
         })
         .setActiveRunwaySurveyVersion(icao, rwyIdent, versionId, approvalPassword);
     }
-</script>
+

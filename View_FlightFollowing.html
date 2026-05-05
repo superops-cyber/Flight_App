@@ -223,6 +223,83 @@
     border-color: #64b5f6;
   }
 
+  .ff-route-table-wrap {
+    margin-top: 10px;
+    border: 1px solid #d8e2ea;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(12, 43, 58, 0.06);
+  }
+
+  .ff-route-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+  }
+
+  .ff-route-table th,
+  .ff-route-table td {
+    border-bottom: 1px solid #edf2f6;
+    padding: 2px 4px;
+    text-align: left;
+    line-height: 1.2;
+  }
+
+  .ff-route-table th {
+    background: #f9fbfd;
+    color: #607d8b;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .ff-route-col-waypoint { width: 20ch; }
+  .ff-route-col-short { width: 6ch; }
+
+  .ff-route-table th:nth-child(n+2),
+  .ff-route-table td:nth-child(n+2) {
+    text-align: center;
+  }
+
+  .ff-route-cell-input {
+    width: 100%;
+    border: 1px solid #cfd8dc;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 12px;
+    height: 22px;
+    font-weight: 700;
+    background: #fff;
+  }
+
+  .ff-route-table td:nth-child(n+2) .ff-route-cell-input {
+    text-align: center;
+  }
+
+  .ff-route-cell-blocked {
+    width: 100%;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid #1f2937;
+    background: #111827;
+  }
+
+  .ff-route-cell-input:focus {
+    outline: 2px solid #90caf9;
+    border-color: #64b5f6;
+  }
+
+  .ff-route-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    min-width: 54px;
+    color: #263238;
+    font-weight: 800;
+  }
+
   .ff-cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(900px, 1fr));
@@ -393,6 +470,62 @@
     color: #fff; border-radius: 3px; padding: 3px 6px; font-size: 0.68rem;
   }
   .ff-map-inreach-url::placeholder { color: rgba(255,255,255,0.45); }
+  .ff-map-legend {
+    background: #ecf2f7;
+    border-top: 1px solid #c6d2dc;
+    border-bottom: 1px solid #c6d2dc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 4px 8px;
+    font-size: 0.66rem;
+    color: #455a64;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .ff-map-legend-item { display: inline-flex; align-items: center; gap: 4px; }
+  .ff-map-leg-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    border: 1px solid rgba(0,0,0,0.25);
+    display: inline-block;
+  }
+  .ff-map-leg-fuel {
+    min-width: 11px;
+    height: 11px;
+    padding: 0 2px;
+    border-radius: 999px;
+    background: #ffd54f;
+    color: #1b1b1b;
+    border: 1px solid rgba(0,0,0,0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.56rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .ff-map-leg-tri {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 10px solid #f57c00;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+    display: inline-block;
+  }
+  .ff-map-leg-aircraft {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.3);
+    background: #e53935;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.8) inset;
+    display: inline-block;
+  }
   .ff-live-map-wrap  { position: relative; }
   .ff-inreach-wrap   { position: relative; }
   .ff-leaflet-map    { height: 220px; }
@@ -459,7 +592,7 @@
     background: #fafafa;
     display: flex;
     flex-direction: column;
-    height: 240px;
+    height: 320px;
     overflow: hidden;
   }
 
@@ -470,27 +603,264 @@
     font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .ff-chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ff-chat-sync-btn {
+    background: #546e7a;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: none;
+  }
+
+  .ff-chat-toggle-btn,
+  .ff-chat-row-btn {
+    background: #eceff1;
+    color: #37474f;
+    border: 1px solid #cfd8dc;
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: none;
+  }
+
+  .ff-chat-row-btn {
+    padding: 2px 6px;
+  }
+
+  .ff-chat-toggle-btn.active {
+    background: #dfefff;
+    border-color: #90caf9;
+    color: #0b5394;
+  }
+
+  .ff-chat-sync-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
   }
 
   .ff-chat-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 10px;
+    padding: 0;
     font-size: 0.75rem;
     line-height: 1.4;
   }
 
-  .ff-chat-msg {
-    margin-bottom: 6px;
+  .ff-chat-meta {
     padding: 6px 8px;
-    background: white;
-    border-left: 3px solid #2196f3;
-    border-radius: 2px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 0.75rem;
+    color: #666;
   }
 
-  .ff-chat-msg.device {
-    border-left-color: #ff9800;
-    background: #fff8e1;
+  .ff-chat-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .ff-chat-table th,
+  .ff-chat-table td {
+    border-bottom: 1px solid #eceff1;
+    padding: 7px 8px;
+    text-align: left;
+    vertical-align: top;
+    font-size: 0.74rem;
+  }
+
+  .ff-chat-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8fafb;
+    color: #607d8b;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .ff-chat-row:hover {
+    background: #fafcff;
+  }
+
+  .ff-chat-col-dir { width: 88px; }
+  .ff-chat-col-reg { width: 72px; }
+  .ff-chat-col-time { width: 72px; }
+  .ff-chat-col-actions { width: 108px; }
+
+  .ff-chat-dir-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 68px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.67rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .ff-chat-dir-badge.inbound {
+    background: #fff3e0;
+    color: #b26a00;
+  }
+
+  .ff-chat-dir-badge.outbound {
+    background: #e3f2fd;
+    color: #1565c0;
+  }
+
+  .ff-chat-message-preview {
+    font-size: 0.74rem;
+    color: #263238;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ff-chat-message-subject {
+    margin-top: 2px;
+    font-size: 0.67rem;
+    color: #78909c;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ff-chat-empty {
+    color: #90a4ae;
+    padding: 12px 10px;
+  }
+
+  .ff-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(23, 34, 43, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 4500;
+  }
+
+  .ff-modal-backdrop.open {
+    display: flex;
+  }
+
+  .ff-modal-card {
+    width: min(760px, 100%);
+    max-height: min(78vh, 760px);
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #d8e2ea;
+    box-shadow: 0 18px 40px rgba(16, 34, 48, 0.28);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ff-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #f6f9fc;
+    border-bottom: 1px solid #d8e2ea;
+  }
+
+  .ff-modal-title {
+    font-size: 0.9rem;
+    font-weight: 900;
+    color: #0b5394;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .ff-modal-close {
+    background: transparent;
+    border: none;
+    color: #607d8b;
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .ff-modal-body {
+    overflow-y: auto;
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .ff-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(110px, 1fr));
+    gap: 8px;
+  }
+
+  .ff-modal-field {
+    border: 1px solid #d8e2ea;
+    border-radius: 7px;
+    background: #fbfdff;
+    padding: 8px;
+  }
+
+  .ff-modal-label {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #607d8b;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .ff-modal-value {
+    font-size: 0.78rem;
+    color: #263238;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .ff-modal-message {
+    border: 1px solid #d8e2ea;
+    border-radius: 7px;
+    background: #fff;
+    padding: 10px;
+  }
+
+  .ff-modal-message pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.77rem;
+    color: #263238;
+  }
+
+  @media (max-width: 900px) {
+    .ff-modal-grid {
+      grid-template-columns: repeat(2, minmax(110px, 1fr));
+    }
   }
 
   .ff-chat-input-group {
@@ -665,25 +1035,47 @@
   </div>
 </div>
 
+<div class="ff-modal-backdrop" id="ff-message-modal" onclick="ffCloseMessageModal(event)">
+  <div class="ff-modal-card" onclick="event.stopPropagation()">
+    <div class="ff-modal-head">
+      <div class="ff-modal-title">Message Details</div>
+      <button class="ff-modal-close" type="button" onclick="ffCloseMessageModal()">&times;</button>
+    </div>
+    <div class="ff-modal-body" id="ff-message-modal-body"></div>
+  </div>
+</div>
+
 <script>
 (function() {
   var state = {
     aircraft: [],
+    airports: [],
+    waypoints: [],
+    fuelCaches: [],
     missionsByReg: {},
     activeFlights: new Set(),
     selectedFlightKey: '',
     pendingOpenKey: '',
     standaloneMode: false,
     messagesByReg: {},
+    archivedVisibleByReg: {},
     checksByReg: {},
     livePositions: {},      // reg -> { lat, lng, bearing, gsKts, updatedAtMs }
     mapModeByKey: {},       // key -> 'inhouse' | 'inreach' | 'both'
     inreachUrlByKey: {},    // key -> url string
     leafletMapsByKey: {},   // key -> L.map instance
+    leafletRouteLayersByKey: {}, // key -> L.layerGroup instance
+    leafletDbLayersByKey: {}, // key -> L.layerGroup instance
     leafletMarkersByKey: {}, // key -> L.marker instance
-    satMapsByKey: {}        // key -> L.map instance (satellite-only pane)
+    breadcrumbPointsByKey: {}, // key -> [{ lat, lng, ts }]
+    breadcrumbLayersByKey: {}, // key -> L.layerGroup instance
+    breadcrumbLastTsByKey: {}, // key -> last recorded sample timestamp (ms)
+    mapFollowByKey: {},     // key -> true/false (default true)
+    satMapsByKey: {},       // key -> L.map instance (satellite-only pane)
+    routeEditsByKey: {}     // key -> [{ fix, eta, ata, fl }]
   };
   var _ffPollTimer = null;
+  var _ffMsgPollTimer = null;
   var _ffLeafletReady = false;
   var _ffMissingGoogleWarned = false;
 
@@ -705,6 +1097,108 @@
     }
   }
 
+  function _ffArchiveStorageKey_(reg) {
+    return 'ffArchivedMessages|' + String(reg || '').trim().toUpperCase();
+  }
+
+  function _ffMessageKey_(reg, msg) {
+    return [
+      String(reg || '').trim().toUpperCase(),
+      String(msg && msg.timestamp || '').trim(),
+      String(msg && msg.from || '').trim(),
+      String(msg && msg.subject || '').trim(),
+      String(msg && msg.text || '').trim()
+    ].join('|');
+  }
+
+  function _ffArchivedMap_(reg) {
+    try {
+      var raw = localStorage.getItem(_ffArchiveStorageKey_(reg));
+      var parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function _ffPersistArchivedMap_(reg, map) {
+    try {
+      localStorage.setItem(_ffArchiveStorageKey_(reg), JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function _ffIsArchived_(reg, msg) {
+    var archived = _ffArchivedMap_(reg);
+    return !!archived[_ffMessageKey_(reg, msg)];
+  }
+
+  function _ffSetArchived_(reg, msg, archived) {
+    var map = _ffArchivedMap_(reg);
+    var key = _ffMessageKey_(reg, msg);
+    if (archived) map[key] = true;
+    else delete map[key];
+    _ffPersistArchivedMap_(reg, map);
+  }
+
+  function _ffDirectionLabel_(msg) {
+    var direction = String(msg && msg.direction || '').toUpperCase();
+    if (direction === 'INBOUND') return 'Inbound';
+    if (direction === 'OUTBOUND') return 'Outbound';
+    var from = String(msg && msg.from || '').toLowerCase();
+    return from.indexOf('inreachmail.com') >= 0 ? 'Inbound' : 'Outbound';
+  }
+
+  function _ffFormatZuluTime_(timestamp) {
+    if (!timestamp) return '';
+    var dt = new Date(timestamp);
+    if (isNaN(dt.getTime())) return '';
+    return String(dt.getUTCHours()).padStart(2, '0') + String(dt.getUTCMinutes()).padStart(2, '0') + 'z';
+  }
+
+  function _ffFormatZuluStamp_(timestamp) {
+    if (!timestamp) return '';
+    var dt = new Date(timestamp);
+    if (isNaN(dt.getTime())) return String(timestamp || '');
+    var yyyy = dt.getUTCFullYear();
+    var mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    var dd = String(dt.getUTCDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd + ' ' + _ffFormatZuluTime_(timestamp);
+  }
+
+  function _ffPreviewText_(msg) {
+    var raw = String(msg && (msg.previewText || msg.text) || '');
+    var cleaned = _ffOperationalMessageText_(raw);
+    return String(cleaned || raw).replace(/\s+/g, ' ').trim();
+  }
+
+  function _ffOperationalMessageText_(rawText) {
+    var text = String(rawText || '').trim();
+    if (!text) return '';
+
+    // FLIGHT FOLLOW MESSAGE: content follows "From : <value>" (works flat or multi-line)
+    if (/FLIGHT\s+FOLLOW\s+MESSAGE/i.test(text)) {
+      var ffMatch = text.match(/From\s*:\s*\S+\s+([\s\S]+)/i);
+      if (ffMatch) return ffMatch[1].replace(/\s*—\s*auto\s*$/i, '').trim();
+    }
+
+    // ENROUTE STATION PASSAGE REPORT: content follows "Aircraft: <reg>" (works flat or multi-line)
+    if (/ENROUTE\s+STATION\s+PASSAGE\s+REPORT/i.test(text)) {
+      var spMatch = text.match(/Aircraft\s*:\s*\S+\s+([\s\S]+)/i);
+      if (spMatch) return spMatch[1].trim();
+    }
+
+    // Fallback: strip known header lines for any other multi-line messages.
+    var lines = text.split(/\r?\n/).map(function(l) { return String(l || '').trim(); });
+    var keep = lines.filter(function(line) {
+      if (!line) return false;
+      if (/^ENROUTE\s+STATION\s+PASSAGE\s+REPORT$/i.test(line)) return false;
+      if (/^FLIGHT\s+FOLLOW\s+MESSAGE$/i.test(line)) return false;
+      if (/^(Mission|Leg|Aircraft|Time|From)\s*:/i.test(line)) return false;
+      return true;
+    });
+    return keep.join('\n').trim();
+  }
+
   function _ffApplyStandaloneMode_() {
     var params = _ffGetUrlParams_();
     state.standaloneMode = params.get('ffStandalone') === '1';
@@ -720,6 +1214,17 @@
   function _ffStartPolling() {
     if (_ffPollTimer) clearInterval(_ffPollTimer);
     _ffPollTimer = setInterval(_ffPollLivePositions, 15000);
+    if (_ffMsgPollTimer) clearInterval(_ffMsgPollTimer);
+    _ffMsgPollTimer = setInterval(_ffPollMessages, 30000);
+  }
+
+  function _ffPollMessages() {
+    if (!state.activeFlights.size) return;
+    if (!_ffHasGoogleScriptRun_()) return;
+    var regs = {};
+    state.activeFlights.forEach(function(key) { regs[key.split('|')[0]] = true; });
+    Object.keys(regs).forEach(function(reg) { loadMessages(reg); });
+    loadSyncMetadata();
   }
 
   function _ffPollLivePositions() {
@@ -776,8 +1281,138 @@
       if (isLive && mode !== 'inreach') {
         _ffUpdateMapMarker(key, reg, pos);
       }
+
     });
   }
+
+  function _ffToNum_(v, fallback) {
+    var n = Number(v);
+    return isFinite(n) ? n : fallback;
+  }
+
+  function _ffRouteRowsFromMission_(mission) {
+    var points = _ffBuildRoutePoints_(mission || {});
+    return points.map(function(p) {
+      return {
+        fix: String((p && p.fix) || '').trim().toUpperCase(),
+        eta: '',
+        ata: '',
+        fl: '',
+        legEte: '',
+        legEta: ''
+      };
+    });
+  }
+
+  function _ffResolveFixCoord_(fix, mission) {
+    var token = String(fix || '').trim().toUpperCase();
+    if (!token) return null;
+
+    var routePoints = _ffBuildRoutePoints_(mission || {});
+    for (var i = 0; i < routePoints.length; i++) {
+      var rp = routePoints[i] || {};
+      if (String(rp.fix || '').trim().toUpperCase() !== token) continue;
+      if (isFinite(Number(rp.lat)) && isFinite(Number(rp.lon))) {
+        return { lat: Number(rp.lat), lon: Number(rp.lon) };
+      }
+    }
+
+    for (var a = 0; a < state.airports.length; a++) {
+      var ap = state.airports[a] || {};
+      if (String(ap.icao || '').trim().toUpperCase() !== token) continue;
+      if (isFinite(Number(ap.lat)) && isFinite(Number(ap.lon))) {
+        return { lat: Number(ap.lat), lon: Number(ap.lon) };
+      }
+    }
+
+    for (var w = 0; w < state.waypoints.length; w++) {
+      var wp = state.waypoints[w] || {};
+      if (String(wp.wp_id || '').trim().toUpperCase() !== token) continue;
+      if (isFinite(Number(wp.lat)) && isFinite(Number(wp.lon))) {
+        return { lat: Number(wp.lat), lon: Number(wp.lon) };
+      }
+    }
+
+    return null;
+  }
+
+  function _ffAutoLegDistanceNm_(fromFix, toFix, mission) {
+    var from = _ffResolveFixCoord_(fromFix, mission);
+    var to = _ffResolveFixCoord_(toFix, mission);
+    if (!from || !to) return NaN;
+    return _ffDistNm(from.lat, from.lon, to.lat, to.lon);
+  }
+
+  function _ffGetRouteRows_(key, mission) {
+    var existing = state.routeEditsByKey[key];
+    if (Array.isArray(existing) && existing.length) return existing;
+    var initial = _ffRouteRowsFromMission_(mission);
+    state.routeEditsByKey[key] = initial;
+    return initial;
+  }
+
+  function _ffBuildRouteTableHtml_(key, reg, mission) {
+    var rows = _ffGetRouteRows_(key, mission);
+    var body = rows.map(function(row, idx) {
+      var fix = String(row && row.fix || '').trim().toUpperCase();
+      var etaText = String((row && row.eta) || (row && row.legEta) || '').trim().toUpperCase();
+      var ataText = String(row && row.ata || '').trim().toUpperCase();
+      var flText = String(row && row.fl || '').trim().toUpperCase();
+      var etaCell = idx === 0
+        ? '<div class="ff-route-cell-blocked" title="ETA nao aplicavel para origem"></div>'
+        : '<input class="ff-route-cell-input" value="' + esc(etaText) + '" placeholder="--:--Z" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'eta\',this.value)">';
+      var ataCell = idx === 0
+        ? '<div class="ff-route-cell-blocked" title="ATA nao aplicavel para origem"></div>'
+        : '<input class="ff-route-cell-input" value="' + esc(ataText) + '" placeholder="--:--Z" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'ata\',this.value)">';
+      return '<tr>' +
+        '<td><input class="ff-route-cell-input" value="' + esc(fix) + '" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'fix\',this.value)"></td>' +
+        '<td>' + etaCell + '</td>' +
+        '<td>' + ataCell + '</td>' +
+        '<td><input class="ff-route-cell-input" value="' + esc(flText) + '" placeholder="F000" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'fl\',this.value)"></td>' +
+      '</tr>';
+    }).join('');
+    if (!body) {
+      body = '<tr><td colspan="4" style="padding:8px;color:#78909c;">Sem waypoints para este voo.</td></tr>';
+    }
+    return '<div class="ff-route-table-wrap" id="ff-route-wrap-' + safeId(key) + '">' +
+      '<table class="ff-route-table">' +
+        '<colgroup><col class="ff-route-col-waypoint"><col class="ff-route-col-short"><col class="ff-route-col-short"><col class="ff-route-col-short"></colgroup>' +
+        '<thead><tr><th>Waypoint</th><th>ETA</th><th>ATA</th><th>FL</th></tr></thead>' +
+        '<tbody>' + body + '</tbody>' +
+      '</table>' +
+    '</div>';
+  }
+
+  function _ffRefreshRouteTable_(key, reg) {
+    var parts = String(key || '').split('|');
+    if (!parts[0] || !parts[1]) return;
+    var currentKey = state.selectedFlightKey;
+    if (currentKey !== key) return;
+    var host = document.getElementById('ff-route-host-' + safeId(key));
+    if (!host) return;
+    var mission = (state.missionsByReg[reg] || []).find(function(m) {
+      return String(m && (m.flightLegId || m.missionId) || '') === String(parts[1] || '');
+    }) || null;
+    if (!mission) return;
+    host.innerHTML = _ffBuildRouteTableHtml_(key, reg, mission);
+  }
+
+  window.ffEditRouteCell = function(key, idx, field, rawValue) {
+    var rows = state.routeEditsByKey[key];
+    if (!Array.isArray(rows) || !rows[idx]) return;
+    if (field === 'fix') {
+      rows[idx].fix = String(rawValue || '').trim().toUpperCase();
+    } else if (field === 'eta') {
+      rows[idx].eta = String(rawValue || '').trim().toUpperCase();
+    } else if (field === 'ata') {
+      rows[idx].ata = String(rawValue || '').trim().toUpperCase();
+    } else if (field === 'fl') {
+      rows[idx].fl = String(rawValue || '').trim().toUpperCase();
+    }
+    state.routeEditsByKey[key] = rows;
+    var reg = String(key || '').split('|')[0] || '';
+    _ffRefreshRouteTable_(key, reg);
+  };
 
   function _ffEnsureLeaflet(cb) {
     if (window.L && typeof window.L.map === 'function') { cb(); return; }
@@ -791,6 +1426,159 @@
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     script.onload = function() { cb(); };
     document.head.appendChild(script);
+  }
+
+  function _ffDistNm(lat1, lon1, lat2, lon2) {
+    if (![lat1, lon1, lat2, lon2].every(function(v) { return isFinite(v); })) return Infinity;
+    var toRad = Math.PI / 180;
+    var dLat = (lat2 - lat1) * toRad;
+    var dLon = (lon2 - lon1) * toRad;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 3440.065 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function _ffAirportSurfaceTone_(surfaceActual) {
+    var surface = String(surfaceActual || '').toLowerCase();
+    if (!surface) return '#455a64';
+    if (surface.indexOf('water') !== -1 || surface.indexOf('agua') !== -1 || surface.indexOf('river') !== -1) return '#1e88e5';
+    if (surface.indexOf('grass') !== -1 || surface.indexOf('gravel') !== -1 || surface.indexOf('dirt') !== -1 || surface.indexOf('sand') !== -1 || surface.indexOf('turf') !== -1 || surface.indexOf('laterite') !== -1) return '#2e7d32';
+    if (surface.indexOf('asphalt') !== -1 || surface.indexOf('paved') !== -1 || surface.indexOf('concrete') !== -1 || surface.indexOf('bitumen') !== -1) return '#263238';
+    return '#6d4c41';
+  }
+
+  function _ffAirportDivIcon(surfaceActual, hasFuel) {
+    var bg = _ffAirportSurfaceTone_(surfaceActual);
+    var fuelBadge = hasFuel ? '<span style="position:absolute;right:-3px;top:-4px;min-width:12px;height:12px;padding:0 2px;border-radius:999px;background:#ffd54f;color:#1b1b1b;font-size:8px;line-height:12px;font-weight:800;text-align:center;border:1px solid rgba(0,0,0,0.18);">A</span>' : '';
+    var html = '<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;background:' + bg + ';border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.45);">' +
+      '<span style="display:block;width:4px;height:4px;border-radius:999px;background:#fff;"></span>' + fuelBadge + '</span>';
+    return L.divIcon({ className: 'ff-airport-icon', html: html, iconSize: [18, 18], iconAnchor: [9, 9] });
+  }
+
+  function _ffWpDivIcon() {
+    var html = '<span style="display:inline-block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid #f57c00;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45));"></span>';
+    return L.divIcon({ className: 'ff-waypoint-icon', html: html, iconSize: [16, 16], iconAnchor: [8, 12] });
+  }
+
+  function _ffAircraftDivIcon(bearing) {
+    var rotation = isFinite(bearing) ? Math.round(bearing) : 0;
+    var html = '<div style="width:34px;height:34px;transform:rotate(' + rotation + 'deg);transform-origin:50% 50%;">' +
+      '<svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">' +
+      '<path d="M30 4c1.8 0 3.2 1.4 3.2 3.2v11l14.7 6.1c1.7.7 2.6 2.6 2 4.4l-.8 2.5-15.9-3.9v10.2l5.7 4.4c1.1.9 1.6 2.4 1.1 3.8l-1.2 3.4-7.7-3-7.7 3-1.2-3.4c-.5-1.4 0-2.9 1.1-3.8l5.7-4.4V27.3l-15.9 3.9-.8-2.5c-.6-1.8.3-3.7 2-4.4l14.7-6.1v-11C28.8 5.4 30.2 4 32 4h-2z" fill="#fafafa" stroke="#1d1d1d" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path d="M29.5 10h5v26.5h-5z" fill="#e53935" opacity="0.9"/>' +
+      '<path d="M22.5 19.5l9.5 3.8 9.5-3.8" fill="none" stroke="#1d1d1d" stroke-width="2" stroke-linecap="round"/>' +
+      '</svg></div>';
+    return L.divIcon({ html: html, iconSize: [34, 34], iconAnchor: [17, 17], className: 'ff-aircraft-icon' });
+  }
+
+  function _ffClearLayerGroup_(store, key) {
+    var layer = store[key];
+    if (layer && typeof layer.remove === 'function') layer.remove();
+    delete store[key];
+  }
+
+  function _ffBuildRoutePoints_(mission) {
+    if (!mission) return [];
+    var points = [];
+    var waypoints = Array.isArray(mission.waypoints) ? mission.waypoints : [];
+    waypoints.forEach(function(w, idx) {
+      if (!isFinite(w.lat) || !isFinite(w.lon)) return;
+      points.push({
+        fix: String(w.fix || '').trim().toUpperCase(),
+        lat: Number(w.lat),
+        lon: Number(w.lon),
+        kind: String(w.kind || '').trim().toLowerCase() || 'fix',
+        type: String(w.type || '').trim(),
+        surface: String(w.surface || '').trim(),
+        hasFuel: !!w.hasFuel,
+        fuelAvailable: String(w.fuelAvailable || '').trim(),
+        distNm: Number(w.distNm || 0),
+        order: idx
+      });
+    });
+    if (points.length) return points;
+    var fromCoord = mission.fromCoord && isFinite(mission.fromCoord.lat) && isFinite(mission.fromCoord.lon)
+      ? { fix: String(mission.from || '').trim().toUpperCase(), lat: Number(mission.fromCoord.lat), lon: Number(mission.fromCoord.lon), kind: 'airport', surface: '', hasFuel: false, distNm: 0, order: 0 }
+      : null;
+    var toCoord = mission.toCoord && isFinite(mission.toCoord.lat) && isFinite(mission.toCoord.lon)
+      ? { fix: String(mission.to || '').trim().toUpperCase(), lat: Number(mission.toCoord.lat), lon: Number(mission.toCoord.lon), kind: 'airport', surface: '', hasFuel: false, distNm: 0, order: 1 }
+      : null;
+    if (fromCoord) points.push(fromCoord);
+    if (toCoord) points.push(toCoord);
+    return points;
+  }
+
+  function _ffRenderRouteLayer(map, key, mission) {
+    if (!map) return false;
+    _ffClearLayerGroup_(state.leafletRouteLayersByKey, key);
+    var routePoints = _ffBuildRoutePoints_(mission);
+    if (!routePoints.length) return false;
+    var layer = L.layerGroup();
+    var latlngs = routePoints.map(function(p) { return [p.lat, p.lon]; });
+    if (latlngs.length >= 2) {
+      L.polyline(latlngs, { color: '#1565c0', weight: 3, opacity: 0.82, dashArray: '8 6' }).addTo(layer);
+    }
+    routePoints.forEach(function(point, idx) {
+      var isAirport = point.kind === 'airport' || /^[A-Z0-9]{4}$/.test(point.fix || '');
+      var icon = isAirport ? _ffAirportDivIcon(point.surface, point.hasFuel) : _ffWpDivIcon();
+      var popup = '<strong>' + esc(point.fix || 'PONTO') + '</strong>';
+      if (isAirport) {
+        popup += '<br>Surface: ' + esc(point.surface || 'N/D');
+        popup += '<br>Avgas: ' + (point.hasFuel ? 'SIM' : 'NAO');
+      } else if (point.type) {
+        popup += '<br>Tipo: ' + esc(point.type);
+      }
+      if (idx > 0 && isFinite(point.distNm)) popup += '<br>Leg: ' + esc(String(Math.round(point.distNm))) + ' NM';
+      L.marker([point.lat, point.lon], { icon: icon, keyboard: false }).bindPopup(popup).addTo(layer);
+    });
+    layer.addTo(map);
+    state.leafletRouteLayersByKey[key] = layer;
+    map.fitBounds(L.latLngBounds(latlngs), { padding: [22, 22] });
+    return true;
+  }
+
+  function _ffRefreshDbLayers(key, map, mission) {
+    if (!map || !state.airports.length && !state.waypoints.length) return;
+    _ffClearLayerGroup_(state.leafletDbLayersByKey, key);
+    var layer = L.layerGroup();
+    var routePoints = _ffBuildRoutePoints_(mission);
+    var routeIds = new Set(routePoints.map(function(p) { return String(p.fix || '').trim().toUpperCase(); }).filter(Boolean));
+    var bounds = map.getBounds && map.getBounds();
+    var paddedBounds = bounds && bounds.isValid && bounds.isValid() ? bounds.pad(0.35) : null;
+    var anchorPoints = routePoints.length ? routePoints : [{ lat: map.getCenter().lat, lon: map.getCenter().lng }];
+    var fuelSet = new Set((state.fuelCaches || []).map(function(c) { return String(c.icao || '').trim().toUpperCase(); }).filter(Boolean));
+
+    (state.airports || []).forEach(function(ap) {
+      var lat = Number(ap.lat);
+      var lon = Number(ap.lon);
+      var icao = String(ap.icao || '').trim().toUpperCase();
+      if (!icao || !isFinite(lat) || !isFinite(lon) || routeIds.has(icao)) return;
+      var inBounds = paddedBounds ? paddedBounds.contains([lat, lon]) : false;
+      var nearRoute = anchorPoints.some(function(p) { return _ffDistNm(p.lat, p.lon, lat, lon) <= 35; });
+      if (!inBounds && !nearRoute) return;
+      var hasFuel = !!ap.hasFuel || fuelSet.has(icao);
+      var popup = '<strong>' + esc(icao) + '</strong>' +
+        '<br>' + esc(ap.name || 'Aerodromo') +
+        '<br>Surface: ' + esc(ap.runwaySurfaceActual || ap.surfaceOfficial || 'N/D') +
+        '<br>Avgas: ' + (hasFuel ? 'SIM' : 'NAO');
+      L.marker([lat, lon], { icon: _ffAirportDivIcon(ap.runwaySurfaceActual || ap.surfaceOfficial, hasFuel), keyboard: false, opacity: 0.92 }).bindPopup(popup).addTo(layer);
+    });
+
+    (state.waypoints || []).forEach(function(wp) {
+      var lat = Number(wp.lat);
+      var lon = Number(wp.lon);
+      var wpId = String(wp.wp_id || '').trim().toUpperCase();
+      if (!wpId || !isFinite(lat) || !isFinite(lon) || routeIds.has(wpId)) return;
+      var inBounds = paddedBounds ? paddedBounds.contains([lat, lon]) : false;
+      var nearRoute = anchorPoints.some(function(p) { return _ffDistNm(p.lat, p.lon, lat, lon) <= 20; });
+      if (!inBounds && !nearRoute) return;
+      var popup = '<strong>' + esc(wpId) + '</strong>' + (wp.type ? '<br>Tipo: ' + esc(wp.type) : '');
+      L.marker([lat, lon], { icon: _ffWpDivIcon(), keyboard: false, opacity: 0.9 }).bindPopup(popup).addTo(layer);
+    });
+
+    layer.addTo(map);
+    state.leafletDbLayersByKey[key] = layer;
   }
 
   function _ffPlotMissionTrace(map, mission, opts) {
@@ -839,8 +1627,29 @@
       var map = L.map('ff-live-map-' + sreg, { zoomControl: true, attributionControl: false });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16, minZoom: 2 }).addTo(map);
       state.leafletMapsByKey[key] = map;
-      if (_ffPlotMissionTrace(map, mission, { color: '#1565c0', weight: 2, opacity: 0.7, dashArray: '8 6', addEndpoints: true })) return;
+      if (typeof state.mapFollowByKey[key] === 'undefined') state.mapFollowByKey[key] = true;
+      _ffRefreshFollowBtn_(key, reg);
+      map.on('dragstart', function() {
+        if (state.mapFollowByKey[key] === false) return;
+        state.mapFollowByKey[key] = false;
+        _ffRefreshFollowBtn_(key, reg);
+      });
+      map.on('moveend', function() {
+        _ffRefreshDbLayers(key, map, mission);
+      });
+      if (_ffRenderRouteLayer(map, key, mission)) {
+        _ffRefreshDbLayers(key, map, mission);
+        _ffRefreshBreadcrumbLayer(key, map);
+        return;
+      }
+      if (_ffPlotMissionTrace(map, mission, { color: '#1565c0', weight: 2, opacity: 0.7, dashArray: '8 6', addEndpoints: true })) {
+        _ffRefreshDbLayers(key, map, mission);
+        _ffRefreshBreadcrumbLayer(key, map);
+        return;
+      }
       map.setView([-3.5, -60.0], 5); // Default: central Brazil
+      _ffRefreshDbLayers(key, map, mission);
+      _ffRefreshBreadcrumbLayer(key, map);
     });
   }
 
@@ -857,6 +1666,59 @@
     return satMap;
   }
 
+  function _ffPushBreadcrumbPoint(key, map, pos) {
+    if (!map || !pos) return;
+    var lat = Number(pos.lat);
+    var lng = Number(pos.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+    if (Number(pos.gsKts || 0) < 5) return;
+
+    var nowTs = Date.now();
+    var lastTs = Number(state.breadcrumbLastTsByKey[key] || 0);
+    if (lastTs > 0 && (nowTs - lastTs) < 15000) return;
+
+    var points = state.breadcrumbPointsByKey[key] || [];
+    if (points.length) {
+      var last = points[points.length - 1];
+      if (_ffDistNm(Number(last.lat), Number(last.lng), lat, lng) < 0.03) return;
+    }
+
+    points.push({ lat: lat, lng: lng, ts: nowTs });
+    if (points.length > 960) points.splice(0, points.length - 960);
+    state.breadcrumbPointsByKey[key] = points;
+    state.breadcrumbLastTsByKey[key] = nowTs;
+    _ffRefreshBreadcrumbLayer(key, map);
+  }
+
+  function _ffRefreshBreadcrumbLayer(key, map) {
+    if (!map || !window.L) return;
+    var points = state.breadcrumbPointsByKey[key] || [];
+
+    _ffClearLayerGroup_(state.breadcrumbLayersByKey, key);
+    if (!points.length) return;
+
+    var layer = L.layerGroup();
+    var latlngs = points.map(function(p) { return [Number(p.lat), Number(p.lng)]; });
+
+    if (latlngs.length >= 2) {
+      L.polyline(latlngs, { color: '#ff8f00', weight: 2, opacity: 0.35 }).addTo(layer);
+    }
+
+    points.forEach(function(p, idx) {
+      var isLatest = idx === points.length - 1;
+      L.circleMarker([Number(p.lat), Number(p.lng)], {
+        radius: isLatest ? 3.8 : 2.6,
+        color: '#ef6c00',
+        weight: 1,
+        fillColor: '#ffb300',
+        fillOpacity: isLatest ? 0.95 : 0.7
+      }).addTo(layer);
+    });
+
+    layer.addTo(map);
+    state.breadcrumbLayersByKey[key] = layer;
+  }
+
   function _ffUpdateMapMarker(key, reg, pos) {
     var sreg = safeId(reg);
     _ffEnsureLeaflet(function() {
@@ -864,24 +1726,57 @@
       if (!map) { _ffInitMap(key, reg, null); return; }
 
       var latlng = [pos.lat, pos.lng];
-      // Rotated aircraft icon using divIcon
-      var iconHtml = '<div style="width:24px;height:24px;transform:rotate(' + Math.round(pos.bearing) + 'deg);font-size:22px;line-height:1;">✈</div>';
-      var icon = L.divIcon({ html: iconHtml, iconSize: [24, 24], iconAnchor: [12, 12], className: '' });
+      var icon = _ffAircraftDivIcon(pos.bearing);
 
       if (state.leafletMarkersByKey[key]) {
         state.leafletMarkersByKey[key].setLatLng(latlng).setIcon(icon);
         state.leafletMarkersByKey[key].setPopupContent(
           reg + ' — ' + Math.round(pos.gsKts) + ' kts / hdg ' + Math.round(pos.bearing) + '°'
         );
+        _ffPushBreadcrumbPoint(key, map, pos);
+        if (state.mapFollowByKey[key] !== false) {
+          var c = map.getCenter();
+          var offNm = (c && isFinite(c.lat) && isFinite(c.lng)) ? _ffDistNm(Number(c.lat), Number(c.lng), Number(pos.lat), Number(pos.lng)) : 999;
+          if (offNm > 0.12) {
+            map.panTo(latlng, { animate: true, duration: 0.35 });
+          }
+        }
       } else {
         var marker = L.marker(latlng, { icon: icon })
           .bindPopup(reg + ' — ' + Math.round(pos.gsKts) + ' kts / hdg ' + Math.round(pos.bearing) + '°')
           .addTo(map);
         state.leafletMarkersByKey[key] = marker;
+        _ffPushBreadcrumbPoint(key, map, pos);
         map.setView(latlng, Math.max(map.getZoom(), 9));
       }
     });
   }
+
+  function _ffRefreshFollowBtn_(key, reg) {
+    var sreg = safeId(reg);
+    var btn = document.getElementById('ff-map-follow-' + sreg);
+    if (!btn) return;
+    var followOn = state.mapFollowByKey[key] !== false;
+    btn.textContent = followOn ? 'Follow ON' : 'Follow OFF';
+    btn.className = 'ff-map-toggle-btn' + (followOn ? ' active' : '');
+  }
+
+  window.ffToggleMapFollow = function(key) {
+    var reg = key.split('|')[0];
+    var followOn = state.mapFollowByKey[key] !== false;
+    state.mapFollowByKey[key] = !followOn;
+    _ffRefreshFollowBtn_(key, reg);
+
+    if (state.mapFollowByKey[key] !== false) {
+      var map = state.leafletMapsByKey[key];
+      if (!map) return;
+      var marker = state.leafletMarkersByKey[key];
+      if (marker && marker.getLatLng) {
+        var ll = marker.getLatLng();
+        if (ll) map.panTo(ll, { animate: true, duration: 0.35 });
+      }
+    }
+  };
 
   window.ffSetMapMode = function(key, mode) {
     if (!state._mapModeManual) state._mapModeManual = {};
@@ -951,6 +1846,9 @@
     google.script.run
       .withSuccessHandler(function(data) {
         state.aircraft = Array.isArray(data && data.aircraft) ? data.aircraft : [];
+        state.airports = Array.isArray(data && data.airports) ? data.airports : [];
+        state.waypoints = Array.isArray(data && data.waypoints) ? data.waypoints : [];
+        state.fuelCaches = Array.isArray(data && data.fuelCaches) ? data.fuelCaches : [];
         renderFlightList();
         renderSelectedFlight();
 
@@ -977,18 +1875,51 @@
     var host = document.getElementById('ff-flight-list');
     if (!host) return;
 
+    function ffPilotFirstName_(name) {
+      var txt = String(name || '').trim();
+      if (!txt || txt === '--') return '--';
+      return txt.split(/\s+/)[0] || '--';
+    }
+
+    function ffDateLabelPt_(raw) {
+      var txt = String(raw || '').trim();
+      if (!txt || txt === '--') return '--';
+
+      var m1 = txt.match(/^(\d{4})-(\d{2})-(\d{2})$/); // yyyy-mm-dd
+      var m2 = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); // dd/mm/yyyy
+      var day = 0, month = 0, year = 0;
+      if (m1) {
+        year = Number(m1[1]);
+        month = Number(m1[2]);
+        day = Number(m1[3]);
+      } else if (m2) {
+        day = Number(m2[1]);
+        month = Number(m2[2]);
+        year = Number(m2[3]);
+      } else {
+        return txt;
+      }
+
+      var mon = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+      if (!(month >= 1 && month <= 12) || !(day >= 1 && day <= 31) || year < 1900) return txt;
+      return String(day) + '-' + mon[month - 1] + '-' + String(year);
+    }
+
     var rows = [];
     state.aircraft.forEach(function(acft) {
       var missions = state.missionsByReg[acft.reg] || [];
       missions.forEach(function(mission) {
+        var status = String((mission && (mission.status || mission.logStatus)) || '').trim().toUpperCase();
+        if (status === 'FLOWN' || status === 'COMPLETE' || status === 'COMPLETED') return;
         rows.push({
           key: flightKey(acft.reg, mission.flightLegId || mission.missionId),
           reg: acft.reg,
           missionId: mission.missionId,
           flightLegId: mission.flightLegId || '',
           route: (mission.from || '--') + ' - ' + (mission.to || '--'),
-          pilot: mission.pilot || '--',
+          pilot: ffPilotFirstName_(mission.pilot || '--'),
           date: mission.date || '--',
+          dateLabel: ffDateLabelPt_(mission.date || '--'),
           takeoffUTC: mission.takeoffUTC || ''
         });
       });
@@ -1009,17 +1940,15 @@
       return;
     }
 
-    host.innerHTML = '<table class="ff-list-table"><thead><tr><th>Aeronave</th><th>Missao</th><th>Flight ID</th><th>Data</th><th>Rota</th><th>PIC</th><th></th></tr></thead><tbody>' +
+    host.innerHTML = '<table class="ff-list-table"><thead><tr><th>Aeronave</th><th>Data</th><th>Rota</th><th>Flight ID</th><th>Piloto</th></tr></thead><tbody>' +
       rows.map(function(r) {
         var isActive = r.key === state.selectedFlightKey;
         return '<tr class="ff-list-row' + (isActive ? ' active' : '') + '" onclick="ffOpenFlight(\'' + esc(r.key) + '\')">' +
           '<td>' + esc(r.reg) + '</td>' +
-          '<td>' + esc(r.missionId) + '</td>' +
-          '<td>' + esc(r.flightLegId || '--') + '</td>' +
-          '<td>' + esc(r.date || '--') + '</td>' +
+          '<td>' + esc(r.dateLabel || '--') + '</td>' +
           '<td>' + esc(r.route) + '</td>' +
+          '<td>' + esc(r.flightLegId || '--') + '</td>' +
           '<td>' + esc(r.pilot) + '</td>' +
-          '<td><button class="ff-btn-primary" style="padding:4px 8px; font-size:0.68rem;" onclick="event.stopPropagation(); ffOpenFlightInNewTab(\'' + esc(r.key) + '\')">FULL</button></td>' +
         '</tr>';
       }).join('') +
       '</tbody></table>';
@@ -1042,6 +1971,7 @@
     renderSelectedFlight();
     var reg = state.selectedFlightKey.split('|')[0] || '';
     if (reg) loadMessages(reg);
+    loadSyncMetadata();
     _ffPollLivePositions();
   };
 
@@ -1142,13 +2072,24 @@
         ffFieldReadonly_('Aeronave', acft.type || '--') +
       '</div>' +
 
+      '<div id="ff-route-host-' + safeId(key) + '">' + _ffBuildRouteTableHtml_(key, reg, mission) + '</div>' +
+
       '<div class="ff-map-panel" id="ff-map-panel-' + sreg + '" style="margin-top:10px;">' +
         '<div class="ff-map-toolbar">' +
           '<span class="ff-map-source-badge none" id="ff-map-badge-' + sreg + '">No data</span>' +
           '<button class="ff-map-toggle-btn active" id="ff-maptab-inhouse-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inhouse\')">In-House</button>' +
           '<button class="ff-map-toggle-btn" id="ff-maptab-inreach-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inreach\')">InReach</button>' +
           '<button class="ff-map-toggle-btn" id="ff-maptab-both-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'both\')">Both</button>' +
+          '<button class="ff-map-toggle-btn active" id="ff-map-follow-' + sreg + '" onclick="ffToggleMapFollow(\''+key+'\')">Follow ON</button>' +
           '<input class="ff-map-inreach-url" id="ff-inreach-url-' + sreg + '" type="url" placeholder="share.garmin.com/DeviceID" onblur="ffSetInreachUrl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\')ffSetInreachUrl(\''+key+'\',this.value)">' +
+        '</div>' +
+        '<div class="ff-map-legend">' +
+          '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#2e7d32;"></span>Grass</span>' +
+          '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#1e88e5;"></span>Water</span>' +
+          '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#263238;"></span>Paved/Other</span>' +
+          '<span class="ff-map-legend-item"><span class="ff-map-leg-fuel">A</span>Avgas</span>' +
+          '<span class="ff-map-legend-item"><span class="ff-map-leg-tri"></span>Waypoint</span>' +
+          '<span class="ff-map-legend-item"><span class="ff-map-leg-aircraft"></span>Aircraft</span>' +
         '</div>' +
         _ffBuildWxBar(key, sreg) +
         '<div class="ff-map-content-grid">' +
@@ -1172,7 +2113,7 @@
       '</div>' +
 
       '<div class="ff-chat-container" style="margin-top:10px;">' +
-        '<div class="ff-chat-header">InReach Messages</div>' +
+        '<div class="ff-chat-header"><span>InReach Messages</span><span class="ff-chat-header-actions"><button class="ff-chat-toggle-btn" id="ff-chat-archived-toggle-' + sreg + '" onclick="ffToggleArchivedMessages(\'' + esc(reg) + '\')">Show archived</button><button class="ff-chat-sync-btn" id="ff-chat-sync-' + sreg + '" onclick="ffSyncNow(\'' + esc(reg) + '\')">Sync now</button></span></div>' +
         '<div class="ff-chat-messages" id="ff-chat-' + sreg + '"></div>' +
         '<div class="ff-chat-input-group">' +
           '<input class="ff-chat-input" id="ff-chat-input-' + sreg + '" placeholder="Message to aircraft via inReach email" onkeypress="if(event.key===\'Enter\'){ffSendChat(\'' + esc(reg) + '\');}">' +
@@ -1322,7 +2263,16 @@
             '<button class="ff-map-toggle-btn active" id="ff-maptab-inhouse-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inhouse\')">In-House</button>' +
             '<button class="ff-map-toggle-btn" id="ff-maptab-inreach-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inreach\')">InReach</button>' +
             '<button class="ff-map-toggle-btn" id="ff-maptab-both-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'both\')">Both</button>' +
+            '<button class="ff-map-toggle-btn active" id="ff-map-follow-' + sreg + '" onclick="ffToggleMapFollow(\''+key+'\')">Follow ON</button>' +
             '<input class="ff-map-inreach-url" id="ff-inreach-url-' + sreg + '" type="url" placeholder="share.garmin.com/DeviceID" onblur="ffSetInreachUrl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\')ffSetInreachUrl(\''+key+'\',this.value)">' +
+          '</div>' +
+          '<div class="ff-map-legend">' +
+            '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#2e7d32;"></span>Grass</span>' +
+            '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#1e88e5;"></span>Water</span>' +
+            '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#263238;"></span>Paved/Other</span>' +
+            '<span class="ff-map-legend-item"><span class="ff-map-leg-fuel">A</span>Avgas</span>' +
+            '<span class="ff-map-legend-item"><span class="ff-map-leg-tri"></span>Waypoint</span>' +
+            '<span class="ff-map-legend-item"><span class="ff-map-leg-aircraft"></span>Aircraft</span>' +
           '</div>' +
           _ffBuildWxBar(key, sreg) +
           '<div class="ff-map-content-grid">' +
@@ -1346,7 +2296,7 @@
         '</div>' +
 
         '<div class="ff-chat-container">' +
-          '<div class="ff-chat-header">InReach Messages</div>' +
+          '<div class="ff-chat-header"><span>InReach Messages</span><span class="ff-chat-header-actions"><button class="ff-chat-toggle-btn" id="ff-chat-archived-toggle-' + sreg + '" onclick="ffToggleArchivedMessages(\'' + esc(reg) + '\')">Show archived</button><button class="ff-chat-sync-btn" id="ff-chat-sync-' + sreg + '" onclick="ffSyncNow(\'' + esc(reg) + '\')">Sync now</button></span></div>' +
           '<div class="ff-chat-messages" id="ff-chat-' + sreg + '"></div>' +
           '<div class="ff-chat-input-group">' +
             '<input class="ff-chat-input" id="ff-chat-input-' + sreg + '" placeholder="Message to aircraft via inReach email" onkeypress="if(event.key===\'Enter\'){ffSendChat(\'' + esc(reg) + '\');}">' +
@@ -1372,20 +2322,129 @@
     var container = document.getElementById('ff-chat-' + safeId(reg));
     if (!container) return;
     var messages = state.messagesByReg[reg] || [];
+    var showArchived = !!state.archivedVisibleByReg[reg];
+    var archivedMessages = messages.filter(function(msg) { return _ffIsArchived_(reg, msg); });
+    var visibleMessages = messages.filter(function(msg) {
+      return showArchived ? _ffIsArchived_(reg, msg) : !_ffIsArchived_(reg, msg);
+    }).slice().sort(function(a, b) {
+      return String(b.timestamp || '').localeCompare(String(a.timestamp || ''));
+    });
+    var toggleBtn = document.getElementById('ff-chat-archived-toggle-' + safeId(reg));
+    var metaHtml = '';
+    if (state.ffSyncMeta && state.ffSyncMeta.syncTime) {
+      var syncDate = new Date(state.ffSyncMeta.syncTime);
+      var syncAgo = Math.floor((Date.now() - syncDate.getTime()) / 1000);
+      var syncAgoStr = syncAgo < 60 ? syncAgo + 's' : (syncAgo < 3600 ? Math.floor(syncAgo / 60) + 'm' : Math.floor(syncAgo / 3600) + 'h');
+      metaHtml = '<div class="ff-chat-meta">' +
+        'Last sync: ' + syncAgoStr + ' ago | Inserted: ' + (state.ffSyncMeta.inserted || 0) + ' | Visible: ' + visibleMessages.length + ' | Archived: ' + archivedMessages.length +
+      '</div>';
+    }
+    if (toggleBtn) {
+      toggleBtn.textContent = showArchived ? 'Show active' : 'Show archived';
+      toggleBtn.className = 'ff-chat-toggle-btn' + (showArchived ? ' active' : '');
+    }
     if (!messages.length) {
-      container.innerHTML = '<div style="color:#90a4ae;">No inbound messages yet.</div>';
+      container.innerHTML = metaHtml + '<div class="ff-chat-empty">No messages yet.</div>';
       return;
     }
-    container.innerHTML = messages.map(function(msg) {
-      var from = String(msg.from || 'unknown');
-      var isDevice = from.toLowerCase().indexOf('inreachmail.com') >= 0;
-      var when = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '';
-      return '<div class="ff-chat-msg ' + (isDevice ? 'device' : '') + '">' +
-        '<div style="font-weight:700;">' + esc(from) + '</div>' +
-        '<div style="font-size:0.68rem;color:#607d8b;">' + esc(when) + '</div>' +
-        '<div style="margin-top:4px;">' + esc(msg.text || '') + '</div>' +
-      '</div>';
-    }).join('');
+    if (!visibleMessages.length) {
+      container.innerHTML = metaHtml + '<div class="ff-chat-empty">' + (showArchived ? 'No archived messages for this aircraft.' : 'No active messages. Use Show archived to review hidden items.') + '</div>';
+      return;
+    }
+    container.innerHTML = metaHtml +
+      '<table class="ff-chat-table">' +
+        '<thead><tr>' +
+          '<th class="ff-chat-col-dir">Dir</th>' +
+          '<th class="ff-chat-col-reg">Reg</th>' +
+          '<th class="ff-chat-col-time">Time</th>' +
+          '<th>Message</th>' +
+          '<th class="ff-chat-col-actions">Actions</th>' +
+        '</tr></thead>' +
+        '<tbody>' + visibleMessages.map(function(msg) {
+          var direction = _ffDirectionLabel_(msg);
+          var preview = _ffPreviewText_(msg);
+          var messageKey = _ffMessageKey_(reg, msg);
+          var encodedMessageKey = encodeURIComponent(messageKey);
+          var archiveLabel = showArchived ? 'Restore' : 'Archive';
+          return '<tr class="ff-chat-row">' +
+            '<td><span class="ff-chat-dir-badge ' + direction.toLowerCase() + '">' + direction + '</span></td>' +
+            '<td>' + esc(String(reg || '').toUpperCase()) + '</td>' +
+            '<td>' + esc(_ffFormatZuluTime_(msg.timestamp)) + '</td>' +
+            '<td>' +
+              '<div class="ff-chat-message-preview">' + esc(preview || '(empty message)') + '</div>' +
+            '</td>' +
+            '<td>' +
+              '<button type="button" class="ff-chat-row-btn" onclick="ffShowMessageDetails(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">View</button> ' +
+              '<button type="button" class="ff-chat-row-btn" onclick="ffToggleArchiveMessage(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">' + archiveLabel + '</button>' +
+            '</td>' +
+          '</tr>';
+        }).join('') + '</tbody>' +
+      '</table>';
+  }
+
+  function _ffFindMessageByKey_(reg, messageKey) {
+    var messages = state.messagesByReg[reg] || [];
+    for (var i = 0; i < messages.length; i += 1) {
+      if (_ffMessageKey_(reg, messages[i]) === messageKey) return messages[i];
+    }
+    return null;
+  }
+
+  window.ffToggleArchivedMessages = function(reg) {
+    state.archivedVisibleByReg[reg] = !state.archivedVisibleByReg[reg];
+    renderMessages(reg);
+  };
+
+  window.ffToggleArchiveMessage = function(reg, messageKey) {
+    messageKey = decodeURIComponent(String(messageKey || ''));
+    var msg = _ffFindMessageByKey_(reg, messageKey);
+    if (!msg) return;
+    _ffSetArchived_(reg, msg, !_ffIsArchived_(reg, msg));
+    renderMessages(reg);
+  };
+
+  window.ffShowMessageDetails = function(reg, messageKey) {
+    messageKey = decodeURIComponent(String(messageKey || ''));
+    var msg = _ffFindMessageByKey_(reg, messageKey);
+    var modal = document.getElementById('ff-message-modal');
+    var body = document.getElementById('ff-message-modal-body');
+    var displayMessage = _ffOperationalMessageText_(msg && msg.text);
+    if (!msg || !modal || !body) return;
+    body.innerHTML = '' +
+      '<div class="ff-modal-grid">' +
+        '<div class="ff-modal-field"><div class="ff-modal-label">Direction</div><div class="ff-modal-value">' + esc(_ffDirectionLabel_(msg)) + '</div></div>' +
+        '<div class="ff-modal-field"><div class="ff-modal-label">Reg</div><div class="ff-modal-value">' + esc(String(reg || '').toUpperCase()) + '</div></div>' +
+        '<div class="ff-modal-field"><div class="ff-modal-label">Time</div><div class="ff-modal-value">' + esc(_ffFormatZuluStamp_(msg.timestamp)) + '</div></div>' +
+        '<div class="ff-modal-field"><div class="ff-modal-label">Archived</div><div class="ff-modal-value">' + (_ffIsArchived_(reg, msg) ? 'Yes' : 'No') + '</div></div>' +
+        '<div class="ff-modal-field"><div class="ff-modal-label">From</div><div class="ff-modal-value">' + esc(msg.from || '') + '</div></div>' +
+        '<div class="ff-modal-field"><div class="ff-modal-label">Subject</div><div class="ff-modal-value">' + esc(msg.subject || '') + '</div></div>' +
+        '<div class="ff-modal-field"><div class="ff-modal-label">Verified</div><div class="ff-modal-value">' + (msg.verified ? 'Yes' : 'No') + '</div></div>' +
+        '<div class="ff-modal-field"><div class="ff-modal-label">Message Key</div><div class="ff-modal-value">' + esc(messageKey) + '</div></div>' +
+      '</div>' +
+      '<div class="ff-modal-message"><div class="ff-modal-label">Message</div><pre>' + esc(displayMessage || msg.text || '') + '</pre></div>';
+    modal.classList.add('open');
+  };
+
+  window.ffCloseMessageModal = function(evt) {
+    if (evt && evt.target && evt.target !== evt.currentTarget) return;
+    var modal = document.getElementById('ff-message-modal');
+    if (modal) modal.classList.remove('open');
+  };
+
+  function loadSyncMetadata() {
+    if (!_ffHasGoogleScriptRun_()) return;
+    google.script.run
+      .withSuccessHandler(function(meta) {
+        if (!meta) return;
+        state.ffSyncMeta = meta;
+        var selectedKey = String(state.selectedFlightKey || '');
+        if (selectedKey) {
+          var reg = selectedKey.split('|')[0];
+          renderMessages(reg);
+        }
+      })
+      .withFailureHandler(function() {})
+      .getFlightFollowSyncMetadata();
   }
 
   window.ffToggleCheck = function(key, field) {
@@ -1400,18 +2459,95 @@
     var text = String(input.value || '').trim();
     if (!text) return;
 
-    if (!state.messagesByReg[reg]) state.messagesByReg[reg] = [];
-    state.messagesByReg[reg].push({
-      timestamp: new Date().toISOString(),
-      from: 'dispatch@local',
-      text: text
-    });
-    renderMessages(reg);
-    input.value = '';
-
-    if (window.M) {
-      M.toast({ html: 'Chat queued for ' + esc(reg) + '. Email send wiring comes next.', classes: 'blue darken-2', displayLength: 2500 });
+    var mission = null;
+    var selectedKey = String(state.selectedFlightKey || '');
+    if (selectedKey) {
+      var selectedParts = selectedKey.split('|');
+      if (String(selectedParts[0] || '') === String(reg || '')) {
+        var selectedMissionId = String(selectedParts[1] || '');
+        mission = (state.missionsByReg[reg] || []).find(function(m) {
+          return String(m && m.missionId || '') === selectedMissionId;
+        }) || null;
+      }
     }
+    if (!mission) {
+      mission = (state.missionsByReg[reg] || [])[0] || null;
+    }
+
+    var payload = {
+      reg: String(reg || '').trim().toUpperCase(),
+      missionId: mission ? String(mission.missionId || '') : '',
+      flightLegId: mission ? String(mission.flightLegId || '') : '',
+      route: mission ? String(mission.routeSummary || mission.route || '') : '',
+      sender: 'FlightFollowing UI',
+      text: text
+    };
+
+    input.disabled = true;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        input.disabled = false;
+        if (!res || !res.success) {
+          if (window.M) M.toast({ html: 'Send failed.', classes: 'red darken-2', displayLength: 3000 });
+          return;
+        }
+        if (!state.messagesByReg[reg]) state.messagesByReg[reg] = [];
+        state.messagesByReg[reg].push({
+          timestamp: res.timestamp || new Date().toISOString(),
+          direction: 'OUTBOUND',
+          from: 'dispatch@ui',
+          subject: res.subject || '',
+          text: text,
+          previewText: text,
+          verified: true
+        });
+        renderMessages(reg);
+        input.value = '';
+        if (window.M) M.toast({ html: 'Message sent to Flight Following inbox.', classes: 'green darken-2', displayLength: 2200 });
+      })
+      .withFailureHandler(function(err) {
+        input.disabled = false;
+        if (window.M) {
+          var msg = (err && err.message) ? err.message : String(err || 'Unknown error');
+          M.toast({ html: 'Send error: ' + esc(msg), classes: 'red darken-2', displayLength: 3800 });
+        }
+      })
+      .sendFlightFollowMessage(payload);
+  };
+
+  window.ffSyncNow = function(reg) {
+    if (!_ffHasGoogleScriptRun_()) return;
+    var btn = document.getElementById('ff-chat-sync-' + safeId(reg));
+    if (btn && btn.disabled) return;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Syncing...';
+    }
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Sync now';
+        }
+        loadSyncMetadata();
+        loadMessages(reg);
+        if (window.M) {
+          var inserted = Number(res && res.insertedMessages || 0);
+          M.toast({ html: 'Sync completed. Inserted ' + inserted + ' message(s).', classes: 'green darken-2', displayLength: 2200 });
+        }
+      })
+      .withFailureHandler(function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Sync now';
+        }
+        if (window.M) {
+          var msg = (err && err.message) ? err.message : String(err || 'Unknown error');
+          M.toast({ html: 'Sync error: ' + esc(msg), classes: 'red darken-2', displayLength: 3800 });
+        }
+      })
+      .runFlightFollowManualSync({ days: 14, maxThreads: 120 });
   };
 
   function renderEmpty(msg) {

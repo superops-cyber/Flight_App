@@ -1,336 +1,4 @@
-<style>
-  #release5-container {
-    background: #f1f3f4;
-    min-height: 100vh;
-    padding: 10px;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    display: flex;
-    justify-content: center;
-  }
 
-  .release5-panel {
-    width: 100%;
-    max-width: 760px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.10);
-    padding: 10px;
-  }
-
-  .release5-title {
-    font-size: 1.08rem;
-    font-weight: 900;
-    color: #0b5394;
-    margin: 0 0 8px 0;
-    text-transform: uppercase;
-  }
-
-  .release5-card {
-    border: 1px solid #ececec;
-    border-radius: 8px;
-    padding: 8px;
-    margin-bottom: 8px;
-    background: #fafafa;
-  }
-
-  .release5-subtitle {
-    font-size: 0.82rem;
-    font-weight: 900;
-    color: #0b5394;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .release5-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .release5-chip {
-    border-radius: 6px;
-    border: 1px solid #e0e0e0;
-    background: #fff;
-    padding: 6px;
-    font-size: 0.9rem;
-  }
-
-  .release5-chip b {
-    color: #0b5394;
-  }
-
-  .release5-emphasis {
-    border: 2px solid #d32f2f;
-    background: #ffebee;
-  }
-
-  .release5-link {
-    font-size: 0.9rem;
-    color: #1565c0;
-    text-decoration: underline;
-    word-break: break-all;
-  }
-
-  .risk-matrix-grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .risk-matrix-card {
-    border: 1px solid #D1D1D6;
-    border-radius: 12px;
-    background: #fff;
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .risk-label {
-    min-height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.82rem;
-    font-weight: 900;
-    color: #1f2937;
-    text-transform: uppercase;
-    border: 1px solid #D1D1D6;
-    border-radius: 8px;
-    background: #f8fafc;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  }
-
-  .risk-choice-group {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    min-height: 42px;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  }
-
-  .risk-btn {
-    min-width: 35px;
-    width: 35px;
-    height: 35px;
-    border: 2px solid #c8ced6;
-    border-radius: 999px;
-    font-size: 0.88rem;
-    font-weight: 900;
-    cursor: pointer;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  }
-
-  .risk-btn.level-1 { background:#007A4D; color:#fff; border-color:#006241; }
-  .risk-btn.level-2 { background:#C99600; color:#fff; border-color:#A87E00; }
-  .risk-btn.level-3 { background:#C1121F; color:#fff; border-color:#9F0F19; }
-
-  .risk-btn.active {
-    border: 3px solid #0b5394;
-    box-shadow: 0 0 0 2px rgba(11,83,148,0.18);
-  }
-
-  .risk-total {
-    display: inline-block;
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 20px;
-    line-height: 1.1;
-    font-weight: 900;
-    color: #fff;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  }
-
-  .risk-total.green { background: #2e7d32; }
-  .risk-total.yellow { background: #f9a825; }
-  .risk-total.red { background: #d32f2f; }
-
-  .preview-bubble {
-    background: #e3f2fd;
-    border-left: 5px solid #1565c0;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 1.32rem;
-    line-height: 1.35;
-    white-space: pre-wrap;
-    max-height: 260px;
-    overflow-y: auto;
-  }
-
-  .brakes-btn {
-    width: 100%;
-    height: 62px;
-    border: none;
-    border-radius: 8px;
-    background: #1565c0;
-    color: #fff;
-    font-size: 1.08rem;
-    font-weight: 900;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .brakes-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .brakes-btn.released {
-    background: #2e7d32;
-    cursor: default;
-  }
-
-  .dispatch-action-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-  }
-
-  .dispatch-action-row button {
-    flex: 1;
-    height: 40px;
-    border: 2px solid #1565c0;
-    border-radius: 6px;
-    background: #fff;
-    color: #1565c0;
-    font-weight: 800;
-    font-size: 0.86rem;
-    cursor: pointer;
-  }
-
-  .dispatch-action-row button:hover { background: #e3f2fd; }
-
-  .dispatch-action-row button.dispatch-copy {
-    border-color: #2e7d32;
-    color: #2e7d32;
-  }
-
-  .dispatch-action-row button.dispatch-copy:hover { background: #e8f5e9; }
-
-  .dispatch-email-row {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    margin-top: 6px;
-  }
-
-  .dispatch-email-row input {
-    flex: 1;
-    height: 38px;
-    border: 1.5px solid #1976d2;
-    border-radius: 6px;
-    padding: 0 8px;
-    font-size: 0.9rem;
-  }
-
-  @media (max-width: 700px) {
-    .release5-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .risk-matrix-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .risk-btn {
-      min-width: 35px;
-      width: 35px;
-      height: 35px;
-    }
-  }
-
-  .info-btn { background: none; border: none; color: #1976d2; font-size: 0.9rem; cursor: pointer; padding: 0 4px; vertical-align: middle; font-weight: 600; }
-  .info-btn:hover { color: #0b5394; }
-
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 10px; }
-  .modal-backdrop.open { display: flex; }
-
-  .modal-content { background: #fff; border-radius: 10px; padding: 20px; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
-  .modal-title { font-size: 1rem; font-weight: 900; color: #0b5394; margin-bottom: 12px; }
-
-  .matrix-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 0.85rem; }
-  .matrix-table thead { background: #e3f2fd; }
-  .matrix-table th, .matrix-table td { border: 1px solid #cfe2f3; padding: 8px; text-align: left; font-weight: 600; }
-  .matrix-table th { color: #0b5394; }
-
-  .matrix-note { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 10px; margin-bottom: 12px; font-size: 0.8rem; line-height: 1.35; color: #5d4037; }
-  .risk-result { background: #f0f0f0; border-left: 3px solid #1976d2; padding: 10px; margin-bottom: 10px; font-size: 0.85rem; }
-
-  .modal-close { background: none; border: none; font-size: 1.5rem; color: #999; cursor: pointer; padding: 0; float: right; }
-  .modal-close:hover { color: #333; }
-</style>
-
-<div id="safety-matrix-modal-backdrop" class="modal-backdrop" onclick="if(event.target === this) closeSafetyMatrixInfo()">
-  <div class="modal-content">
-    <button onclick="closeSafetyMatrixInfo()" class="modal-close">×</button>
-    <div class="modal-title">✓ Safety Risk Matrix Guide</div>
-    <p style="font-size:0.8rem; line-height:1.4; margin-bottom:12px; color:#333;">Each category is rated 1–3. Sum all scores and check the result matrix.</p>
-    <table class="matrix-table">
-      <thead>
-        <tr>
-          <th>Category</th>
-          <th>Level 1</th>
-          <th>Level 2</th>
-          <th>Level 3</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><b>Piloto</b></td>
-          <td>Bem/sem sono/saudável/tranquilo</td>
-          <td>OK/pouco sono/Meio ruim/tenso</td>
-          <td>Mal/cansado/doente/estressado</td>
-        </tr>
-        <tr>
-          <td><b>Avião</b></td>
-          <td>Tudo em dia, PA Ok, rádio ok</td>
-          <td>Pós-insp/Duvidoso/Itens vencendo</td>
-          <td>Eq inop/Itens vencidos/Rádio ruim</td>
-        </tr>
-        <tr>
-          <td><b>Tempo</b></td>
-          <td>CAVOK</td>
-          <td>MVFR/Chuva prevista/Época chuva</td>
-          <td>IFR/Nuvens baixas/Pista molhada</td>
-        </tr>
-        <tr>
-          <td><b>Missão</b></td>
-          <td>Sem pressão/Flexível/Agenda aberta</td>
-          <td>Pressão/data fixa/Agenda apertada</td>
-          <td>Muita pressão/horário fixo/Emerg.</td>
-        </tr>
-        <tr>
-          <td><b>Pista para você</b></td>
-          <td>Classe 1/Conhecida/Tranquila</td>
-          <td>Classe 2/Desconhecida/Marginal</td>
-          <td>Classe 3/Nova/Restrita/Estressante</td>
-        </tr>
-      </tbody>
-    </table>
-    <div style="margin-top:16px; border-top:1px solid #e0e0e0; padding-top:12px;">
-      <div style="font-weight:700; color:#0b5394; margin-bottom:8px; font-size:0.9rem;">❗ MATRIZ DE RISCO</div>
-      <div class="risk-result"><b style="color:#2e7d32;">✓ Aceitável, pouco risco:</b> Scores 5–8</div>
-      <div class="risk-result"><b style="color:#f9a825;">⚠ Cuidado:</b> Scores 9–10 — Esperar melhorar, resolver discrepância, falar com alguém antes de continuar</div>
-      <div class="risk-result"><b style="color:#e53935;">✕ Perigo:</b> Scores 11–15 — Só prossegue após conversa com piloto chefe ou diretor de ops</div>
-    </div>
-    <div class="matrix-note">
-      <b>Nota Importante:</b> A percepção da pista varia para cada pessoa. Pode ser uma pista de 2 mil metros, mas se é desconhecida, muito movimentada ou se tiver qualquer outro fator que cause estrese, o risco pode aumentar significativamente.
-    </div>
-  </div>
-</div>
-
-<div id="release5-container">
-  <div class="release5-panel" id="release5-panel">
-    <div class="release5-title">Tab 5: Pre-Flight Risk & Dispatch Release</div>
-    <div id="release5-body" class="release5-card" style="text-align:center; color:#666;">Load mission and performance data to continue.</div>
-  </div>
-</div>
-
-<script>
   window.releaseTab5State = {
     missionId: '',
     flightLegId: '',
@@ -362,10 +30,6 @@
     const legs = Array.isArray(mission && mission.legs) ? mission.legs : [];
     if (!legs.length) return {};
 
-    const isComplete = function(leg) {
-      return String((leg && leg.logStatus) || 'PENDING').toUpperCase() === 'COMPLETE';
-    };
-
     const activeId = String(
       window.activeLegFlightId
       || mission.activeLegFlightId
@@ -379,15 +43,12 @@
           return String(v || '').trim() === activeId;
         });
       });
-      if (found && !isComplete(found)) return found;
+      if (found) return found;
     }
 
     const pending = legs.find(function(leg) {
-      return !isComplete(leg);
+      return String((leg && leg.logStatus) || 'PENDING').toUpperCase() !== 'COMPLETE';
     });
-    if (pending && pending.flightLegId) {
-      try { window.activeLegFlightId = String(pending.flightLegId || '').trim(); } catch (e) {}
-    }
     return pending || legs[legs.length - 1] || legs[0] || {};
   }
 
@@ -430,16 +91,7 @@
 
   function _releaseGetRunwayContext(mission, leg) {
     const perf = window.performanceTab4 || {};
-    const activeLeg = leg || _releaseGetActiveLeg_(mission);
-    const fromIcao = String(activeLeg && activeLeg.from || '').trim().toUpperCase();
-    const runwayIdx = Number(document.getElementById('perf-runway')?.value || 0);
-    const runwayRows = Array.isArray(perf.runways) ? perf.runways.filter(function(r) {
-      return String(r && (r.icao || fromIcao) || '').trim().toUpperCase() === fromIcao;
-    }) : [];
-    const selected = perf.selectedRunway
-      || (Array.isArray(perf.runways) ? perf.runways[runwayIdx] : null)
-      || (runwayRows.length === 1 ? runwayRows[0] : null)
-      || null;
+    const selected = perf.selectedRunway || (Array.isArray(perf.runways) ? perf.runways[Number(document.getElementById('perf-runway')?.value || 0)] : null) || null;
     const result = perf.lastPerformanceResult || {};
 
     const runwayLengthM = Math.round(Number(selected && selected.length || 0));
@@ -460,7 +112,6 @@
       ? Math.round(cutdownInputNum)
       : cutdownFromData;
     const cutdownAreaLabel = (cutdownAreaM == null || !isFinite(cutdownAreaM)) ? 'Unknown' : (String(cutdownAreaM) + ' m');
-    const cutdownEdited = isFinite(cutdownInputNum) && cutdownInputNum >= 0 && (cutdownFromData == null || Math.round(cutdownInputNum) !== cutdownFromData);
 
     const takeoffRollM = Math.round(Number(result.takeoffRollM || 0));
     const rollStopM = Math.round(Number(result.combinedRollM || 0));
@@ -475,17 +126,10 @@
 
     const windDir = Math.round(Number(document.getElementById('perf-wind-direction')?.value || 0));
     const windSpd = Math.round(Number(document.getElementById('perf-wind-speed')?.value || 0));
-    const tempRaw = String(document.getElementById('perf-temp')?.value || '').trim();
-    const tempC = tempRaw === '' ? null : Number(tempRaw);
-    const qnhRaw = String(document.getElementById('perf-qnh')?.value || '').trim();
-    const qnhHpa = qnhRaw === '' ? null : Number(qnhRaw);
-    const flapRaw = String(document.getElementById('perf-flaps')?.value || '').trim();
-    const flaps = flapRaw === '' ? null : Number(flapRaw);
-    const humidityRaw = String(document.getElementById('perf-humidity')?.value || '').trim();
-    const humidity = humidityRaw === '' ? null : Number(humidityRaw);
     const surfaceCondition = String(document.getElementById('perf-surface-condition')?.value || 'DRY');
 
-    const fromIcaoResolved = String(activeLeg && activeLeg.from || '').trim().toUpperCase();
+    const activeLeg = leg || _releaseGetActiveLeg_(mission);
+    const fromIcao = String(activeLeg.from || '').trim().toUpperCase();
     const acftReg = String(mission && mission.acft || '').trim().toUpperCase();
 
     const acftObj = (window.appData && Array.isArray(window.appData.aircraft))
@@ -493,7 +137,7 @@
       : null;
 
     const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
-    const aptObj = airports.find(a => String(a.icao || '').trim().toUpperCase() === fromIcaoResolved) || null;
+    const aptObj = airports.find(a => String(a.icao || '').trim().toUpperCase() === fromIcao) || null;
 
     const acftTypeRef = String((acftObj && (acftObj.typeForPerformance || acftObj.aircraftType)) || '').toUpperCase();
     const mtowByModel = (aptObj && aptObj.mtowByModel && typeof aptObj.mtowByModel === 'object') ? aptObj.mtowByModel : {};
@@ -520,7 +164,6 @@
     const airstripPhoto = String((selected && selected.airstripPhoto) || (aptObj && aptObj.airstripPhoto) || '').trim();
 
     return {
-      sourceRunway: selected || null,
       runwayIdent: String(selected && selected.rwyIdent || 'N/A'),
       runwayLengthM: runwayLengthM,
       runwayWidthM: runwayWidthM,
@@ -534,32 +177,20 @@
       slopePct: slopePct,
       cutdownAreaM: cutdownAreaM,
       cutdownAreaLabel: cutdownAreaLabel,
-      cutdownBaselineM: cutdownFromData,
-      cutdownEdited: cutdownEdited,
       heading: heading,
       windDir: windDir,
       windSpd: windSpd,
-      tempC: isFinite(tempC) ? tempC : null,
-      qnhHpa: isFinite(qnhHpa) ? qnhHpa : null,
-      flaps: isFinite(flaps) ? flaps : null,
-      humidity: isFinite(humidity) ? humidity : null,
       headTailKts: headTailKts,
       crosswindKts: crosswindKts,
       takeoffRollM: takeoffRollM,
-      landingRollM: Math.round(Number(result.landingRollM || 0)),
       rollStopM: rollStopM,
       abortPointM: abortPointM,
-      densityAltitudeFt: Math.round(Number(result.densityAltitudeFt || 0)),
-      pressureAltitudeFt: Math.round(Number(result.pressureAltitudeFt || 0)),
-      isaDeviationC: Number(Number(result.isaDeviationC || 0).toFixed(1)),
-      blocking: !!result.blocking,
-      warnings: Array.isArray(result.warnings) ? result.warnings.slice() : [],
       maxTakeoffWeight: maxTakeoffWeight,
       mtowModelKey: mtowModelKey,
       mtowByModel: mtowByModel,
       pilotNotes: pilotNotes,
       airstripPhoto: airstripPhoto,
-      fromIcao: fromIcaoResolved
+      fromIcao: fromIcao
     };
   }
 
@@ -739,7 +370,7 @@
         <div class="release5-subtitle" style="display:flex; align-items:center; justify-content:space-between;">
           <span>Runway Briefing</span>
           <button style="height:28px; padding:0 12px; border:none; border-radius:6px; background:#6a1b9a; color:#fff; font-size:0.72rem; font-weight:900; cursor:pointer;"
-            onclick="(function(){ var st=window.releaseTab5State||{}; var mission=st.mission||window.currentBriefingMission||{}; var leg=st.activeLeg||null; var ctx=(typeof _releaseGetRunwayContext==='function')?_releaseGetRunwayContext(mission, leg):{}; var src=ctx.sourceRunway||(window.performanceTab4&&window.performanceTab4.selectedRunway)||null; openRunwayBriefingCard(String(ctx.fromIcao||''), String(ctx.runwayIdent||''), 'tab5', src); })()">
+            onclick="openRunwayBriefingCard('${brief.fromIcao || ''}', '${brief.runwayIdent || ''}', 'tab5')">
             ✦ BRIEFING CARD
           </button>
         </div>
@@ -879,11 +510,6 @@
     const wbCtx = _releaseGetWbSnapshot();
     const runwayCtx = _releaseGetRunwayContext(mission || {}, activeLeg);
     const msgObj = window.releaseTab5State.currentMsg || {};
-    const cutdownValue = Number(runwayCtx && runwayCtx.cutdownAreaM);
-    if (!isFinite(cutdownValue) || cutdownValue <= 0) {
-      if (window.M) M.toast({ html: 'Cutdown Area is required before brakes release and supervisor approval.', classes: 'red' });
-      return;
-    }
 
     const payload = {
       missionId: window.releaseTab5State.missionId,
@@ -904,26 +530,25 @@
       rwyIdent: String(runwayCtx.runwayIdent || '').trim().toUpperCase(),
       pilotName: String(mission && mission.pilot || '').trim(),
       pilotEmail: String(mission && mission.meta && mission.meta.pilotEmail || '').trim(),
-      notes: 'Pilot-edited cutdown area requires supervisor review',
+      notes: 'Dispatch release runway approval request',
       survey: {
         missionId: payload.missionId,
         flightId: payload.flightId,
         flightLegId: payload.flightLegId,
-        runwaySnapshot: {
-          fromIcao: String(runwayCtx.fromIcao || '').trim().toUpperCase(),
-          runwayIdent: String(runwayCtx.runwayIdent || '').trim().toUpperCase(),
-          cutdownAreaM: Math.round(cutdownValue),
-          cutdownAreaLabel: String(runwayCtx.cutdownAreaLabel || ''),
-          cutdownBaselineM: (runwayCtx.cutdownBaselineM == null ? null : Number(runwayCtx.cutdownBaselineM)),
-          cutdownEdited: !!runwayCtx.cutdownEdited,
-          pilotName: String(mission && mission.pilot || '').trim(),
-          editSource: 'TAB5_RELEASE'
-        },
+        riskTotal: score.total,
+        riskDetail: window.releaseTab5State.selected,
+        runwaySnapshot: runwayCtx,
+        wbSnapshot: wbCtx,
         sentAt: new Date().toISOString()
       },
       official: {
-        cutdownAreaM: Math.round(cutdownValue),
-        cutdownBaselineM: (runwayCtx.cutdownBaselineM == null ? null : Number(runwayCtx.cutdownBaselineM))
+        lengthM: Number(runwayCtx.runwayLengthM || 0),
+        widthM: Number(runwayCtx.runwayWidthM || 0),
+        surface: String(runwayCtx.surface || '').trim(),
+        headingDeg: Number(runwayCtx.heading || 0),
+        maxTakeoffWeight: Number(runwayCtx.maxTakeoffWeight || 0),
+        mtowModelKey: String(runwayCtx.mtowModelKey || ''),
+        mtowByModel: (runwayCtx.mtowByModel && typeof runwayCtx.mtowByModel === 'object') ? runwayCtx.mtowByModel : {}
       }
     };
 
@@ -979,19 +604,17 @@
     };
 
     if (typeof window.runOrQueueServerAction === 'function') {
-      if (runwayCtx && runwayCtx.cutdownEdited) {
-        try {
-          window.runOrQueueServerAction({
-            method: 'submitRunwayApprovalRequest',
-            args: [runwayApprovalPayload],
-            label: 'Runway approval request'
-          }, {
-            onSuccess: function() {},
-            onQueued: function() {},
-            onFailure: function(err) { console.warn('submitRunwayApprovalRequest failed', err); }
-          });
-        } catch (e) { console.warn('submitRunwayApprovalRequest enqueue failed', e); }
-      }
+      try {
+        window.runOrQueueServerAction({
+          method: 'submitRunwayApprovalRequest',
+          args: [runwayApprovalPayload],
+          label: 'Runway approval request'
+        }, {
+          onSuccess: function() {},
+          onQueued: function() {},
+          onFailure: function(err) { console.warn('submitRunwayApprovalRequest failed', err); }
+        });
+      } catch (e) { console.warn('submitRunwayApprovalRequest enqueue failed', e); }
       window.runOrQueueServerAction({
         method: 'releaseBrakes',
         args: [payload],
@@ -1033,5 +656,4 @@
     window.addEventListener('online', _releaseRefreshDispatchUI_);
     window.addEventListener('offline', _releaseRefreshDispatchUI_);
   }
-</script>
 

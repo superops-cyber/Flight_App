@@ -30,6 +30,14 @@
 body { background: #f4f7f9; margin: 0; padding: 0; }
 .app-tab { display: none; padding: 20px; padding-bottom: 120px; position: relative; }
 .app-tab.active { display: block; animation: fadeIn 0.4s ease; }
+
+/* Runway Briefing bootstrap guard:
+  keep overlay fully hidden until explicitly opened by JS. */
+#rbc-overlay { display: none !important; }
+#rbc-overlay.rbc-open { display: block !important; }
+#rbc-overlay #rbc-sheet { display: none; }
+#rbc-overlay.rbc-open #rbc-sheet { display: block; }
+
 /* Tab 4 fills full width — its inner container handles padding */
 #tab4 { padding: 0 0 120px 0; }
 

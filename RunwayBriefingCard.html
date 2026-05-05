@@ -1,15 +1,18 @@
-<style>
+﻿<style>
   /* ─────────────────────────────────────────────────────────────
      RUNWAY BRIEFING CARD  –  modal overlay styles
      ───────────────────────────────────────────────────────────── */
   #rbc-overlay {
-    display: none;
+    display: none !important;
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.62);
     z-index: 13000;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+  #rbc-overlay.rbc-open {
+    display: block !important;
   }
   #rbc-sheet {
     width: 100%;
@@ -95,6 +98,46 @@
     padding: 5px 10px;
     border-bottom: 1px solid #c8d8ee;
   }
+  .rbc-verify-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 0 8px;
+  }
+  .rbc-verify-btn {
+    border: 1px solid #b0bec5;
+    background: #fff;
+    color: #455a64;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    cursor: pointer;
+  }
+  .rbc-verify-btn.active {
+    background: #bf360c;
+    border-color: #bf360c;
+    color: #fff;
+  }
+  .rbc-verify-btn[disabled] {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .rbc-verify-pill {
+    display: none;
+    background: #ffe0b2;
+    color: #bf360c;
+    border: 1px solid #ffb74d;
+    border-radius: 999px;
+    font-size: 0.64rem;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+  }
   .rbc-section-body {
     padding: 8px 10px;
     background: #fff;
@@ -141,6 +184,12 @@
   .rbc-cell .val.big {
     font-size: 1.05rem;
     font-weight: 900;
+  }
+  .rbc-cell .val.class-missing {
+    font-size: 1.45rem;
+    font-weight: 900;
+    color: #b71c1c;
+    letter-spacing: 0.08em;
   }
   .rbc-cell .val.mono {
     font-family: 'SF Mono', 'Consolas', monospace;
@@ -301,6 +350,16 @@
     vertical-align: middle;
   }
   .rbc-history-table tr:nth-child(even) td { background: #f4f7fb; }
+  .rbc-history-table .rbc-col-date,
+  .rbc-history-table .rbc-col-pilot,
+  .rbc-history-table .rbc-col-acft,
+  .rbc-history-table .rbc-col-qnh {
+    white-space: nowrap;
+  }
+  .rbc-history-table .rbc-col-date { width: 92px; }
+  .rbc-history-table .rbc-col-pilot { width: 44px; text-align: center; }
+  .rbc-history-table .rbc-col-acft { width: 58px; text-align: center; }
+  .rbc-history-table .rbc-col-qnh { width: 68px; text-align: center; }
 
   /* ── action bar ── */
   .rbc-action-bar {
@@ -352,7 +411,7 @@
 <!-- ════════════════════════════════════════════
      RUNWAY BRIEFING CARD OVERLAY
      ════════════════════════════════════════════ -->
-<div id="rbc-overlay">
+<div id="rbc-overlay" hidden aria-hidden="true" style="display:none;" onclick="if(event.target===this)rbcClose()">
   <div id="rbc-sheet">
 
     <!-- Top bar -->
@@ -395,48 +454,36 @@
         </div>
       </div>
 
-      <!-- DIMENSIONS row -->
+      <!-- DIMENSIONS row – rebuilt dynamically in _rbcRenderPage1 -->
       <div class="rbc-section">
         <div class="rbc-section-title">Dimensions &amp; Measurements</div>
-        <div class="rbc-section-body rbc-grid-3" id="rbc-dims-grid">
-          <div class="rbc-cell">
-            <span class="lbl">Internal Length</span>
-            <span class="val big" id="rbc-int-length">–</span>
-          </div>
-          <div class="rbc-cell">
-            <span class="lbl">Official Length</span>
-            <span class="val" id="rbc-off-length">–</span>
-          </div>
-          <div class="rbc-cell">
-            <span class="lbl">Survey Date</span>
-            <span class="val" id="rbc-survey-date">–</span>
-          </div>
-          <div class="rbc-cell">
-            <span class="lbl">Internal Width</span>
-            <span class="val big" id="rbc-int-width">–</span>
-          </div>
-          <div class="rbc-cell">
-            <span class="lbl">Official Width</span>
-            <span class="val" id="rbc-off-width">–</span>
-          </div>
-          <div class="rbc-cell">
-            <span class="lbl">Cutdown Area</span>
-            <span class="val" id="rbc-cutdown">–</span>
-          </div>
-          <div class="rbc-cell">
-            <span class="lbl">Elevation</span>
-            <span class="val" id="rbc-elevation">–</span>
-          </div>
-          <div class="rbc-cell">
-            <span class="lbl">Surface</span>
-            <span class="val" id="rbc-surface">–</span>
-          </div>
-          <div class="rbc-cell">
-            <span class="lbl">Slope</span>
-            <span class="val" id="rbc-slope">–</span>
+        <div class="rbc-verify-row">
+          <button id="rbc-vbtn-dimensions" class="rbc-verify-btn" onclick="rbcToggleVerifyFlag('dimensions')">Mark Pilot Verify</button>
+          <span id="rbc-vpill-dimensions" class="rbc-verify-pill">Pilot Verify Required</span>
+        </div>
+        <div class="rbc-section-body rbc-grid-3" id="rbc-dims-grid"></div>
+        <div class="rbc-section-body" id="rbc-slope-detail-row" style="padding-top:0;"></div>
+        <div class="rbc-section-body" id="rbc-dims-edit-panel" style="display:none; padding:8px 10px; background:#f0f6ff; border-top:1px solid #c5d9f5;">
+          <div style="font-size:0.7rem; font-weight:900; color:#0b5394; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Edit Runway Data</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Class (1, 2, or 3)</label><input id="rbc-edit-class" type="text" class="rbc-input-sm" placeholder="1, 2, or 3"></div>
+            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Elevation (ft)</label><input id="rbc-edit-elevation" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="e.g. 1200"></div>
+            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Surface</label><input id="rbc-edit-surface" type="text" class="rbc-input-sm" placeholder="e.g. GRASS, ASPHALT"></div>
+            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Cutdown Area (m)</label><input id="rbc-edit-cutdown" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="e.g. 120"></div>
+            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Internal Length (m)</label><input id="rbc-edit-intlen" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="Measured length"></div>
+            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Internal Width (m)</label><input id="rbc-edit-intwid" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="Measured width"></div>
           </div>
         </div>
-        <div class="rbc-section-body" id="rbc-slope-detail-row" style="padding-top:0;"></div>
+        <div class="rbc-section-body" id="rbc-slope-editor" style="display:none; padding:8px 10px; background:#eef7f4; border-top:1px solid #b2dfdb;">
+          <div style="font-size:0.7rem; font-weight:900; color:#00695c; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">⛰ Slope Profile Segments</div>
+          <div id="rbc-slope-list" style="margin-bottom:6px; min-height:20px;"></div>
+          <div style="display:flex; gap:6px; align-items:flex-end;">
+            <div style="flex:1;"><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Segment Length (m)</label><input id="rbc-slope-dist" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="e.g. 100"></div>
+            <div style="flex:1;"><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Slope %</label><input id="rbc-slope-pct" type="number" step="0.1" class="rbc-input-sm" placeholder="e.g. +2.0 or -1.5"></div>
+            <button class="rbc-btn rbc-btn-edit" style="height:30px; font-size:0.72rem; white-space:nowrap;" onclick="rbcAddSlopeSegment()">+ ADD</button>
+          </div>
+          <div style="font-size:0.67rem; color:#607d8b; margin-top:4px;">Add segments in order from threshold. e.g. 100m @ +2%, then 400m @ 0%.</div>
+        </div>
       </div>
 
       <!-- DIAGRAM -->
@@ -445,13 +492,39 @@
           Runway Diagram
           <span id="rbc-diagram-edit-hint" style="font-weight:500; font-size:0.68rem; color:#546e7a; display:none;"> — tap diagram to place Go-Around Point (MAP) ✛</span>
         </div>
+        <div class="rbc-verify-row">
+          <button id="rbc-vbtn-diagram" class="rbc-verify-btn" onclick="rbcToggleVerifyFlag('diagram')">Mark Pilot Verify</button>
+          <span id="rbc-vpill-diagram" class="rbc-verify-pill">Pilot Verify Required</span>
+        </div>
         <div class="rbc-section-body" style="padding:6px;">
           <div class="rbc-diagram-container" id="rbc-diagram-container">
             <svg id="rbc-diagram-svg" viewBox="0 0 700 470"></svg>
           </div>
           <div id="rbc-diagram-drop-hint"></div>
           <div id="rbc-map-info" style="display:none; text-align:center; font-size:0.74rem; font-weight:800; color:#6a1b9a; padding:2px 0 4px;">
-            ✛ Go-Around Point: <span id="rbc-map-dist">–</span> from threshold
+            ✛ Go-Around Points: <span id="rbc-map-dist">–</span>
+                    <!-- MAP label editor — shown in edit mode when at least one MAP is placed -->
+                    <div id="rbc-map-label-editor" style="display:none; margin:4px 0 2px; padding:4px 8px; background:#f3e5f5; border-radius:6px; border:1px solid #ce93d8;">
+                      <div style="font-size:0.66rem; font-weight:900; color:#6a1b9a; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.04em;">Go-Around Labels</div>
+                      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                          <div style="display:flex; align-items:center; gap:4px;">
+                            <span style="font-size:0.68rem; font-weight:800; color:#6a1b9a;">✛1</span>
+                            <input id="rbc-map-label1" type="text" class="rbc-input-sm" style="width:90px;" placeholder="MAP 1" oninput="rbcSetMapLabel(1, this.value)">
+                          </div>
+                          <div style="display:flex; align-items:center; gap:4px;">
+                            <span style="font-size:0.68rem; font-weight:800; color:#6a1b9a;">✛2</span>
+                            <input id="rbc-map-label2" type="text" class="rbc-input-sm" style="width:90px;" placeholder="MAP 2" oninput="rbcSetMapLabel(2, this.value)">
+                          </div>
+                        <button class="rbc-dep-btn" style="flex:0; padding:4px 8px; font-size:0.66rem; color:#b71c1c; border-color:#e57373;" onclick="window._rbcState.mapDistM=null;window._rbcState.mapDistM2=null;window._rbcState.dirty=true;_rbcDrawDiagram();_rbcShowMapInfo();">✕ CLEAR ALL</button>
+                      </div>
+                    </div>
+          </div>
+          <div id="rbc-departure-panel" style="display:none; padding:6px 0 2px 0; border-top:1px solid #e3e8ef; margin-top:6px;">
+            <div style="font-size:0.68rem; font-weight:900; color:#546e7a; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px;">Departure Path</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+              <button class="rbc-dep-btn" id="rbc-dep-trace" style="flex:1.5;" onclick="rbcToggleDepartureTraceMode()">TRACE PATH</button>
+              <button class="rbc-dep-btn" id="rbc-dep-cleartrace" style="flex:1; color:#b71c1c; border-color:#e57373;" onclick="rbcClearDepartureTrace()">CLEAR TRACE</button>
+            </div>
           </div>
         </div>
       </div>
@@ -460,8 +533,57 @@
       <div class="rbc-section">
         <div class="rbc-section-title">Airstrip Photo</div>
         <div class="rbc-section-body" style="padding:6px;">
-          <div class="rbc-photo-box" id="rbc-photo-box">
+          <div class="rbc-photo-box" id="rbc-photo-box"
+               ondragover="rbcPhotoDragOver(event)"
+               ondragleave="rbcPhotoDragLeave(event)"
+               ondrop="rbcPhotoDrop(event)">
             <span>No photo available</span>
+          </div>
+          <div id="rbc-photo-hint" style="display:none; text-align:center; font-size:0.71rem; color:#1565c0; font-weight:700; padding:4px 0;">
+            Drop image here · Paste (Ctrl+V) to upload to Google Drive
+          </div>
+          <div id="rbc-photo-upload-status" style="display:none; font-size:0.72rem; font-weight:700; color:#0b5394; text-align:center; padding:4px 0;"></div>
+        </div>
+      </div>
+
+      <!-- TERRAIN FEATURES -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Terrain Features &amp; Distances</div>
+        <div class="rbc-section-body" style="padding:6px;">
+          <div id="rbc-features-view"></div>
+          <div id="rbc-features-editor" style="display:none; margin-top:6px; padding:8px; background:#fff8e1; border:1px solid #ffe082; border-radius:6px;">
+            <div style="font-size:0.7rem; font-weight:900; color:#e65100; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Add Feature / Obstacle</div>
+            <div id="rbc-features-list" style="margin-bottom:6px; min-height:16px;"></div>
+            <!-- 4-column row: Runway | Obstacle | Dist | Side -->
+            <div style="display:grid; grid-template-columns:auto 1fr 72px auto; gap:6px; align-items:end; margin-bottom:6px;">
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Runway</label>
+                <div id="rbc-feat-rwy-btns" style="display:flex; gap:2px; flex-wrap:wrap;"></div>
+                <input type="hidden" id="rbc-feat-runway" value="">
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Obstacle</label>
+                <input id="rbc-feat-name" list="rbc-feature-type-options" type="text" class="rbc-input-sm" placeholder="tree, house…">
+                <datalist id="rbc-feature-type-options">
+                  <option value="house"></option><option value="school"></option><option value="church"></option>
+                  <option value="windsock"></option><option value="field"></option><option value="clearing"></option>
+                  <option value="water_tower"></option><option value="tree"></option>
+                </datalist>
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Dist (m)</label>
+                <input id="rbc-feat-dist" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="500">
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Side</label>
+                <div id="rbc-feat-side-btns" style="display:flex; gap:2px;">
+                  <button type="button" class="rbc-side-btn active" data-side="left" onclick="rbcSelectSide(this)">L</button>
+                  <button type="button" class="rbc-side-btn" data-side="right" onclick="rbcSelectSide(this)">R</button>
+                </div>
+                <input type="hidden" id="rbc-feat-side" value="left">
+              </div>
+            </div>
+            <button class="rbc-btn rbc-btn-edit" style="width:100%; height:30px; font-size:0.72rem;" onclick="rbcAddFeature()">+ ADD</button>
           </div>
         </div>
       </div>
@@ -469,6 +591,10 @@
       <!-- TAKEOFF RESTRICTIONS -->
       <div class="rbc-section">
         <div class="rbc-section-title">Takeoff Restrictions by Aircraft</div>
+        <div class="rbc-verify-row">
+          <button id="rbc-vbtn-restrictions" class="rbc-verify-btn" onclick="rbcToggleVerifyFlag('restrictions')">Mark Pilot Verify</button>
+          <span id="rbc-vpill-restrictions" class="rbc-verify-pill">Pilot Verify Required</span>
+        </div>
         <div class="rbc-section-body" style="padding:6px;">
           <table class="rbc-restrictions-table" id="rbc-restrictions-table">
             <thead>
@@ -486,25 +612,24 @@
           <!-- Supervisor adds rows in edit mode -->
           <div id="rbc-restrictions-editor" style="display:none; margin-top:8px; padding:6px; background:#f0f6ff; border-radius:6px; border:1px solid #c5d9f5;">
             <div style="font-size:0.72rem; font-weight:900; color:#0b5394; margin-bottom:6px;">ADD / EDIT RESTRICTION ROW</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px;">
+            <!-- 3-column row: Runway | Aircraft Type | Max TO Weight -->
+            <div style="display:grid; grid-template-columns:auto 1fr 90px; gap:6px; align-items:end; margin-bottom:6px;">
               <div>
-                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Aircraft / Model</label>
-                <input id="rbc-r-acft" type="text" placeholder="e.g. C206 / PP-XYZ" class="rbc-input-sm">
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Runway</label>
+                <div id="rbc-r-rwy-btns" style="display:flex; gap:2px; flex-wrap:wrap;"></div>
+                <input type="hidden" id="rbc-r-runway" value="">
               </div>
               <div>
-                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Direction</label>
-                <input id="rbc-r-dir" type="text" placeholder="e.g. RWY 10 / Both" class="rbc-input-sm">
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Aircraft Type</label>
+                <select id="rbc-r-acft" class="browser-default rbc-input-sm"></select>
               </div>
               <div>
-                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Max Weight (kg)</label>
-                <input id="rbc-r-mtow" type="number" inputmode="numeric" placeholder="e.g. 1814" class="rbc-input-sm">
-              </div>
-              <div>
-                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Notes / Condition</label>
-                <input id="rbc-r-notes" type="text" placeholder="e.g. Dry only, flaps 10" class="rbc-input-sm">
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Max TO Wt (kg)</label>
+                <input id="rbc-r-mtow" type="number" inputmode="numeric" placeholder="1814" class="rbc-input-sm">
               </div>
             </div>
-            <button class="rbc-btn rbc-btn-edit" style="height:30px; font-size:0.72rem;" onclick="rbcAddRestrictionRow()">+ ADD ROW</button>
+            <input type="hidden" id="rbc-r-notes" value="">
+            <button class="rbc-btn rbc-btn-edit" style="width:100%; height:30px; font-size:0.72rem;" onclick="rbcAddRestrictionRow()">+ ADD ROW</button>
           </div>
         </div>
       </div>
@@ -512,6 +637,10 @@
       <!-- SURFACE & OBSTRUCTIONS -->
       <div class="rbc-section">
         <div class="rbc-section-title">Surface &amp; Obstructions</div>
+        <div class="rbc-verify-row">
+          <button id="rbc-vbtn-obstructions" class="rbc-verify-btn" onclick="rbcToggleVerifyFlag('obstructions')">Mark Pilot Verify</button>
+          <span id="rbc-vpill-obstructions" class="rbc-verify-pill">Pilot Verify Required</span>
+        </div>
         <div class="rbc-section-body" style="padding:4px 8px;">
           <div id="rbc-obstructions-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('obstructions')">–</div>
           <textarea id="rbc-obstructions-edit" class="rbc-textarea" style="display:none;" placeholder="Describe obstructions, trees, rocks, power lines..."></textarea>
@@ -521,6 +650,10 @@
       <!-- WEATHER OBSERVATIONS -->
       <div class="rbc-section">
         <div class="rbc-section-title">Weather Observations</div>
+        <div class="rbc-verify-row">
+          <button id="rbc-vbtn-weather" class="rbc-verify-btn" onclick="rbcToggleVerifyFlag('weather')">Mark Pilot Verify</button>
+          <span id="rbc-vpill-weather" class="rbc-verify-pill">Pilot Verify Required</span>
+        </div>
         <div class="rbc-section-body" style="padding:4px 8px;">
           <div id="rbc-weather-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('weather')">–</div>
           <textarea id="rbc-weather-edit" class="rbc-textarea" style="display:none;" placeholder="Prevailing winds, fog tendency, wet season, terrain effects..."></textarea>
@@ -530,6 +663,10 @@
       <!-- DANGERS -->
       <div class="rbc-section">
         <div class="rbc-section-title">Dangers</div>
+        <div class="rbc-verify-row">
+          <button id="rbc-vbtn-dangers" class="rbc-verify-btn" onclick="rbcToggleVerifyFlag('dangers')">Mark Pilot Verify</button>
+          <span id="rbc-vpill-dangers" class="rbc-verify-pill">Pilot Verify Required</span>
+        </div>
         <div class="rbc-section-body" style="padding:4px 8px;">
           <div id="rbc-dangers-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('dangers')">–</div>
           <textarea id="rbc-dangers-edit" class="rbc-textarea" style="display:none;" placeholder="Wildlife, soft edges, drainage ditches, approach hazards..."></textarea>
@@ -539,6 +676,10 @@
       <!-- FORCED LANDING SPOTS -->
       <div class="rbc-section">
         <div class="rbc-section-title">Recommended Forced Landing Spots</div>
+        <div class="rbc-verify-row">
+          <button id="rbc-vbtn-forced" class="rbc-verify-btn" onclick="rbcToggleVerifyFlag('forced')">Mark Pilot Verify</button>
+          <span id="rbc-vpill-forced" class="rbc-verify-pill">Pilot Verify Required</span>
+        </div>
         <div class="rbc-section-body" style="padding:4px 8px;">
           <div id="rbc-forced-view" class="rbc-text-block editable-block" onclick="rbcEditBlock('forced')">–</div>
           <textarea id="rbc-forced-edit" class="rbc-textarea" style="display:none;" placeholder="Recommended areas for forced landing if departure abort fails..."></textarea>
@@ -596,24 +737,23 @@
       <!-- Last 2 takeoff performance records -->
       <div class="rbc-section">
         <div class="rbc-section-title">Last Takeoff Performance Records (this runway)</div>
-        <div class="rbc-section-body" style="padding:6px;">
+        <div class="rbc-section-body" style="padding:6px; overflow-x:auto;">
           <div id="rbc-history-loading" style="text-align:center; color:#90a4ae; font-weight:700; padding:12px;">Loading flight history...</div>
-          <table class="rbc-history-table" id="rbc-history-table" style="display:none;">
+          <table class="rbc-history-table" id="rbc-history-table" style="display:none; min-width:760px;">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Pilot</th>
-                <th>Aircraft</th>
+                <th class="rbc-col-date">Date</th>
+                <th class="rbc-col-pilot">Pilot</th>
+                <th class="rbc-col-acft">A/C</th>
                 <th>Weight (kg)</th>
                 <th>Temp</th>
+                <th class="rbc-col-qnh">QNH</th>
                 <th>Flaps</th>
                 <th>Surface</th>
                 <th>Wet?</th>
+                <th>Wind</th>
                 <th>Calc TO Roll</th>
                 <th>Actual TO Roll</th>
-                <th>VR Dist</th>
-                <th>MAP</th>
-                <th>Alt / Routes</th>
               </tr>
             </thead>
             <tbody id="rbc-history-tbody"></tbody>
@@ -622,7 +762,6 @@
       </div>
 
     </div><!-- /page-2 -->
-
     <!-- Action bar -->
     <div class="rbc-action-bar">
       <button class="rbc-btn rbc-btn-edit" id="rbc-edit-btn" onclick="rbcToggleEdit()">✎ EDIT</button>
@@ -630,7 +769,6 @@
       <button class="rbc-btn rbc-btn-cancel" id="rbc-cancel-btn" onclick="rbcCancelEdit()" style="display:none;">CANCEL</button>
       <span class="rbc-status-msg" id="rbc-status-msg"></span>
     </div>
-
   </div><!-- /rbc-sheet -->
 </div><!-- /rbc-overlay -->
 
@@ -648,12 +786,74 @@
     outline: none;
   }
   .rbc-input-sm:focus { border-color: #1565c0; background: #f0f6ff; }
+
+  /* Side selector button group */
+  .rbc-side-btn {
+    padding: 0 8px;
+    height: 30px;
+    border: 1px solid #b0bec5;
+    background: #fff;
+    color: #455a64;
+    font-size: 0.72rem;
+    font-weight: 800;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rbc-side-btn.active {
+    background: #1565c0;
+    border-color: #1565c0;
+    color: #fff;
+  }
+
+  .rbc-restr-del {
+    color: #b71c1c;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  /* ── departure path buttons ── */
+  .rbc-dep-btn {
+    border: 1px solid #b0bec5;
+    background: #fff;
+    color: #455a64;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    padding: 6px 10px;
+    cursor: pointer;
+    flex: 1;
+    text-align: center;
+  }
+  .rbc-dep-btn.active {
+    background: #1565c0;
+    color: #fff;
+    border-color: #1565c0;
+  }
+
+  /* ── photo drag/drop enhancement ── */
+  .rbc-photo-box.dragover {
+    border-color: #1565c0;
+    border-style: solid;
+    background: #e3f2fd;
+  }
+  .rbc-photo-box.edit-mode {
+    border-color: #90a4ae;
+    border-style: solid;
+    cursor: pointer;
+  }
 </style>
 
 <script>
 // ══════════════════════════════════════════════════════════════════
 //  RUNWAY BRIEFING CARD  –  controller
 // ══════════════════════════════════════════════════════════════════
+
+window.__rbcLoadedAt = new Date().toISOString();
+window.__rbcScriptVersion = '2026-05-02-rbc-upgrades-1';
 
 window._rbcState = {
   icao: '',
@@ -663,6 +863,12 @@ window._rbcState = {
   editMode: false,
   dirty: false,
   mapDistM: null,        // go-around distance in metres from threshold
+  mapDistM2: null,       // optional second go-around point
+  mapLabel1: '',         // custom label for MAP 1 cross
+  mapLabel2: '',         // custom label for MAP 2 cross
+  depTraceMode: false,
+  depTraces: null,       // completed trace segments: [[{x,y}], ...]
+  depTraceActive: null,  // segment currently being drawn [{x,y}, ...]
   diagramScale: 1,       // pixels per metre (set when diagram is drawn)
   diagramTopX: 0,
   diagramTopY: 0,
@@ -671,35 +877,129 @@ window._rbcState = {
   callerContext: 'tab5'  // 'tab5' | 'tab7'
 };
 
+function _rbcGetPortalActiveView_() {
+  try {
+    const active = document.querySelector('.view-section.view-active');
+    return String(active && active.id || '').trim().toLowerCase();
+  } catch (e) {
+    return '';
+  }
+}
+
+function _rbcCanOpenInCurrentView_(ctx) {
+  const context = String(ctx || '').trim().toLowerCase();
+  const activeView = _rbcGetPortalActiveView_();
+  if (!activeView) return true;
+
+  // In portal shell, never allow runway briefing to open over Dispatch.
+  if (activeView === 'view-dispatch') return false;
+
+  if (context === 'supervisor') return activeView === 'view-supervisor';
+  if (context === 'tools') return activeView === 'view-tools';
+
+  // Pilot contexts (tab5/tab7) should not open inside portal views.
+  if (context === 'tab5' || context === 'tab7') return false;
+  return false;
+}
+
 // ── open / close ─────────────────────────────────────────────────
 
-window.openRunwayBriefingCard = function(icao, rwyIdent, callerContext) {
+window.openRunwayBriefingCard = function(icao, rwyIdent, callerContext, forcedRunway) {
   const s = window._rbcState;
-  s.icao = String(icao || '').trim().toUpperCase();
-  s.rwyIdent = String(rwyIdent || '').trim().toUpperCase();
-  s.callerContext = callerContext || 'tab5';
+  const forced = (forcedRunway && typeof forcedRunway === 'object') ? forcedRunway : null;
+  const forcedIcao = String(forced && forced.icao || '').trim().toUpperCase();
+  const forcedIdent = String(forced && forced.rwyIdent || '').trim().toUpperCase();
+  const ctx = String(callerContext || '').trim().toLowerCase();
+  const allowedContexts = { tab5: true, tab7: true, supervisor: true, tools: true };
+  if (!allowedContexts[ctx]) return;
+  if (!_rbcCanOpenInCurrentView_(ctx)) return;
+  s.icao = String(forcedIcao || icao || '').trim().toUpperCase();
+  s.rwyIdent = String(forcedIdent || rwyIdent || '').trim().toUpperCase();
+  s.callerContext = ctx;
   s.editMode = false;
   s.dirty = false;
   s.mapDistM = null;
+  s.mapDistM2 = null;
+  s.mapLabel1 = '';
+  s.mapLabel2 = '';
+  s.depTraceMode = false;
+  s.depTraces = null;
+  s.depTraceActive = null;
+  s.acft = String((window.currentBriefingMission && window.currentBriefingMission.acft) || '').trim().toUpperCase();
 
   // Resolve runway object
-  s.runway = _rbcFindRunway(s.icao, s.rwyIdent);
+  s.runway = _rbcNormalizeRunwaySurveyData_(forced || _rbcFindRunway(s.icao, s.rwyIdent));
+
+  // If rwyIdent is still empty, backfill from the resolved runway object.
+  if (!s.rwyIdent && s.runway && s.runway.rwyIdent) {
+    s.rwyIdent = String(s.runway.rwyIdent).trim().toUpperCase();
+  }
+
+  // Do not open a full-screen overlay without runway context.
+  if (!s.icao || !s.rwyIdent) {
+    if (window.M) M.toast({ html: 'Runway briefing unavailable: missing airport/runway.', classes: 'orange' });
+    return;
+  }
 
   const overlay = document.getElementById('rbc-overlay');
-  if (overlay) overlay.style.display = 'block';
+  if (overlay) {
+    overlay.hidden = false;
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('rbc-open');
+    overlay.style.display = 'block';
+  }
   document.body.style.overflow = 'hidden';
 
   rbcSwitchPage(1);
   _rbcRenderPage1();
   _rbcLoadAndRenderPage2();
   _rbcSetEditUI(false);
+
+  const existingClass = String((s.card && s.card.runwayClass) || '').trim();
+  if (!existingClass && _rbcCanEdit()) {
+    _rbcSetEditUI(true);
+    _rbcSetStatus('Runway class is required. Please set class before saving.');
+    const clsEl = document.getElementById('rbc-edit-class');
+    if (clsEl) clsEl.focus();
+  }
 };
+
+// Keep a stable backup reference in case another script overwrites the global.
+window.__rbcOpenRef = window.openRunwayBriefingCard;
 
 window.rbcClose = function() {
   const overlay = document.getElementById('rbc-overlay');
-  if (overlay) overlay.style.display = 'none';
+  if (overlay) {
+    overlay.classList.remove('rbc-open');
+    overlay.style.display = 'none';
+    overlay.hidden = true;
+    overlay.setAttribute('aria-hidden', 'true');
+  }
   document.body.style.overflow = '';
 };
+
+// Safety net: always start hidden, and close on SPA navigation/page transitions.
+(function() {
+  function _rbcForceClosed_() {
+    try {
+      const overlay = document.getElementById('rbc-overlay');
+      if (overlay) {
+        overlay.classList.remove('rbc-open');
+        overlay.style.display = 'none';
+        overlay.hidden = true;
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+      if (document && document.body) document.body.style.overflow = '';
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _rbcForceClosed_);
+  } else {
+    _rbcForceClosed_();
+  }
+  window.addEventListener('pageshow', _rbcForceClosed_);
+  window.addEventListener('hashchange', _rbcForceClosed_);
+})();
 
 // ── page switching ────────────────────────────────────────────────
 
@@ -718,11 +1018,98 @@ function _rbcEsc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function _rbcSameRunwayIdent(a, b) {
+  const left = String(a || '').trim().toUpperCase();
+  const right = String(b || '').trim().toUpperCase();
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const norm = function(v) {
+    const m = String(v || '').trim().toUpperCase().match(/(\d{1,2})([LCR]?)/);
+    if (!m) return String(v || '').trim().toUpperCase();
+    return String(parseInt(m[1], 10)).padStart(2, '0') + (m[2] || '');
+  };
+  return norm(left) === norm(right);
+}
+
+function _rbcContextRunway(icao, rwyIdent) {
+  const s = window._rbcState || {};
+  const ctx = String(s.callerContext || '').trim().toLowerCase();
+  if (ctx === 'tab7') {
+    const arr = window.arrival7 || {};
+    const selected = arr.selectedRunway || null;
+    if (selected
+        && String(arr.toIcao || '').trim().toUpperCase() === String(icao || '').trim().toUpperCase()
+        && _rbcSameRunwayIdent(selected.rwyIdent, rwyIdent)) {
+      return selected;
+    }
+    const runways = Array.isArray(arr.runways) ? arr.runways : [];
+    return runways.find(function(r) {
+      return String(r.icao || '').trim().toUpperCase() === String(icao || '').trim().toUpperCase()
+        && _rbcSameRunwayIdent(r.rwyIdent, rwyIdent);
+    }) || null;
+  }
+  if (ctx === 'tab5') {
+    const perf = window.performanceTab4 || {};
+    const selected = perf.selectedRunway || null;
+    if (selected && _rbcSameRunwayIdent(selected.rwyIdent, rwyIdent)) return selected;
+  }
+  return null;
+}
+
+function _rbcCanEdit() {
+  const s = window._rbcState || {};
+  const ctx = String(s.callerContext || '').trim().toLowerCase();
+  return ctx === 'supervisor' || ctx === 'tools';
+}
+
+const _RBC_VERIFY_KEYS = ['dimensions','diagram','restrictions','obstructions','weather','dangers','forced'];
+
+function _rbcGetVerifyFlags() {
+  const s = window._rbcState || {};
+  if (!s.card || typeof s.card !== 'object') s.card = {};
+  if (!s.card.verifyFlags || typeof s.card.verifyFlags !== 'object') s.card.verifyFlags = {};
+  return s.card.verifyFlags;
+}
+
+function _rbcRefreshVerifyUI() {
+  const s = window._rbcState || {};
+  const canToggle = !!(_rbcCanEdit() && s.editMode);
+  const flags = _rbcGetVerifyFlags();
+  _RBC_VERIFY_KEYS.forEach(function(key) {
+    const isOn = !!flags[key];
+    const btn = document.getElementById('rbc-vbtn-' + key);
+    const pill = document.getElementById('rbc-vpill-' + key);
+    if (btn) {
+      btn.disabled = !canToggle;
+      btn.classList.toggle('active', isOn);
+      btn.textContent = isOn ? 'Pilot Verify ON' : 'Mark Pilot Verify';
+    }
+    if (pill) pill.style.display = isOn ? 'inline-block' : 'none';
+  });
+}
+
+window.rbcToggleVerifyFlag = function(key) {
+  const s = window._rbcState || {};
+  if (!_rbcCanEdit() || !s.editMode) return;
+  if (_RBC_VERIFY_KEYS.indexOf(String(key || '')) < 0) return;
+  const flags = _rbcGetVerifyFlags();
+  const k = String(key || '');
+  flags[k] = !flags[k];
+  s.dirty = true;
+  _rbcRefreshVerifyUI();
+};
+
 function _rbcFindRunway(icao, rwyIdent) {
+  const contextRunway = _rbcContextRunway(icao, rwyIdent);
+  if (contextRunway) return contextRunway;
+
   const perf = window.performanceTab4 || {};
   const runways = Array.isArray(perf.runways) ? perf.runways : [];
   // Try exact match first
-  let rwy = runways.find(r => String(r.rwyIdent||'').toUpperCase() === rwyIdent);
+  let rwy = runways.find(function(r) {
+    return String(r.icao || icao || '').trim().toUpperCase() === String(icao || '').trim().toUpperCase()
+      && _rbcSameRunwayIdent(r.rwyIdent, rwyIdent);
+  });
   if (!rwy) {
     // Try ICAO match via appData
     const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
@@ -735,7 +1122,7 @@ function _rbcFindRunway(icao, rwyIdent) {
         length: parseFloat(apt.runwayLength) || 0,
         width: parseFloat(apt.runwayWidth) || 0,
         slope: parseFloat(apt.runwaySlopePercent) || 0,
-        surface: apt.runwaySurfaceActual || '',
+        surface: apt.runwaySurfaceActual || apt.runwaySurface || apt.surface || apt.SURFACE || '',
         elevation: parseFloat(apt.elevationFt) || 0,
         knownFeatures: [],
         slopeProfile: [],
@@ -750,7 +1137,72 @@ function _rbcFindRunway(icao, rwyIdent) {
       };
     }
   }
-  return rwy || null;
+  return _rbcNormalizeRunwaySurveyData_(rwy || null);
+}
+
+function _rbcNormalizeRunwaySurveyData_(runway) {
+  if (!runway || typeof runway !== 'object') return runway;
+
+  var r = runway;
+  var parsed = null;
+  try {
+    var raw = String(r.knownFeaturesRaw || '').trim();
+    if (raw) {
+      var obj = JSON.parse(raw);
+      parsed = (obj && typeof obj === 'object' && !Array.isArray(obj)) ? obj : null;
+    }
+  } catch (e) {
+    parsed = null;
+  }
+
+  var vo = (r.verifiedOperational && typeof r.verifiedOperational === 'object')
+    ? r.verifiedOperational
+    : ((parsed && parsed.verifiedOperational && typeof parsed.verifiedOperational === 'object') ? parsed.verifiedOperational : {});
+
+  if (!String(r.surface || '').trim()) {
+    r.surface = String((vo && (vo.surface || vo.runwaySurfaceActual || vo.runwaySurface)) || (parsed && (parsed.surface || parsed.runwaySurfaceActual || parsed.runwaySurface)) || '').trim();
+  }
+
+  if (!Array.isArray(r.knownFeatures) || !r.knownFeatures.length) {
+    var features = [];
+    if (Array.isArray(vo.features)) features = vo.features;
+    else if (parsed && Array.isArray(parsed.features)) features = parsed.features;
+    r.knownFeatures = features.map(function(f) {
+      return {
+        name: String((f && (f.name || f.label || f.type || f.icon)) || 'Feature').trim(),
+        side: String((f && f.side) || 'right').trim().toLowerCase(),
+        distance: Number((f && (f.distance != null ? f.distance : f.distanceM)) || 0),
+        icon: String((f && f.icon) || '').trim()
+      };
+    }).filter(function(f) { return isFinite(f.distance) && f.distance >= 0; });
+  }
+
+  if (!Array.isArray(r.surveySlopeSegments) || !r.surveySlopeSegments.length) {
+    if (Array.isArray(vo.slopeSegments)) r.surveySlopeSegments = vo.slopeSegments;
+    else if (parsed && Array.isArray(parsed.slopeSegments)) r.surveySlopeSegments = parsed.slopeSegments;
+  }
+
+  if (!Array.isArray(r.obstacleAngles) || !r.obstacleAngles.length) {
+    var obstacleList = [];
+    if (Array.isArray(vo.obstacleAngles50m)) obstacleList = vo.obstacleAngles50m;
+    else if (Array.isArray(vo.obstacleAngles)) obstacleList = vo.obstacleAngles;
+    else if (parsed && Array.isArray(parsed.obstacleAngles50m)) obstacleList = parsed.obstacleAngles50m;
+    else if (parsed && Array.isArray(parsed.obstacleAngles)) obstacleList = parsed.obstacleAngles;
+    r.obstacleAngles = obstacleList.map(function(o) {
+      return {
+        type: String((o && o.type) || '').trim(),
+        operation: String((o && o.operation) || '').trim().toLowerCase(),
+        fromThreshold: String((o && o.fromThreshold) || '').trim().toUpperCase(),
+        checkpointCorner: String((o && o.checkpointCorner) || '').trim().toUpperCase(),
+        checkpointDistanceM: Number((o && (o.checkpointDistanceM != null ? o.checkpointDistanceM : (o.distanceM != null ? o.distanceM : o.distance))) || 0),
+        angleDeg: Number((o && (o.angleDeg != null ? o.angleDeg : (o.fromThrA50mDeg != null ? o.fromThrA50mDeg : o.fromThrB50mDeg))) || 0)
+      };
+    }).filter(function(o) {
+      return isFinite(o.checkpointDistanceM) && o.checkpointDistanceM >= 0 && isFinite(o.angleDeg);
+    });
+  }
+
+  return r;
 }
 
 function _rbcLoadCard() {
@@ -776,6 +1228,8 @@ function _rbcLoadCard() {
     blob = (vo.briefingCard && typeof vo.briefingCard === 'object') ? vo.briefingCard : {};
   }
 
+  if (!blob || typeof blob !== 'object') blob = {};
+  if (!blob.verifyFlags || typeof blob.verifyFlags !== 'object') blob.verifyFlags = {};
   return blob;
 }
 
@@ -785,6 +1239,34 @@ function _rbcRunwayClass(rwy) {
   if (l >= 900) return '1';
   if (l >= 600) return '2';
   return '3';
+}
+
+function _rbcRunwayPair(ident) {
+  if (!ident) return '–';
+  const raw = String(ident).trim().toUpperCase();
+  const m = raw.match(/^(\d{1,2})([LCR]?)$/);
+  if (!m) return raw;
+  const num = parseInt(m[1], 10);
+  if (isNaN(num) || num < 1 || num > 36) return raw;
+  const suffix = m[2] || '';
+  const recip = ((num + 18 - 1) % 36) + 1;
+  const recipSuffix = suffix === 'L' ? 'R' : (suffix === 'R' ? 'L' : suffix);
+  const a = String(num).padStart(2, '0') + suffix;
+  const b = String(recip).padStart(2, '0') + recipSuffix;
+  return [a, b].sort().join('/');
+}
+
+function _rbcReciprocalRunwayIdent(ident) {
+  if (!ident) return '';
+  const raw = String(ident).trim().toUpperCase();
+  const m = raw.match(/^(\d{1,2})([LCR]?)$/);
+  if (!m) return '';
+  const num = parseInt(m[1], 10);
+  if (!isFinite(num) || num < 1 || num > 36) return '';
+  const suffix = m[2] || '';
+  const recip = ((num + 18 - 1) % 36) + 1;
+  const recipSuffix = suffix === 'L' ? 'R' : (suffix === 'R' ? 'L' : suffix);
+  return String(recip).padStart(2, '0') + recipSuffix;
 }
 
 // ── PAGE 1 render ─────────────────────────────────────────────────
@@ -797,67 +1279,113 @@ function _rbcRenderPage1() {
 
   // Header title
   const title = document.getElementById('rbc-header-title');
-  if (title) title.textContent = (s.icao || '?') + ' · ' + (s.rwyIdent || '?') + ' Briefing Card';
+  if (title) title.textContent = (s.icao || '?') + ' · ' + (_rbcRunwayPair(s.rwyIdent) || s.rwyIdent || '?') + ' Briefing Card';
 
   // Ident grid
-  _rbcSet('rbc-class', 'Class ' + _rbcRunwayClass(rwy));
-  _rbcSet('rbc-ident', s.rwyIdent || '–');
-  _rbcSet('rbc-icao', s.icao || '–');
-
-  // Coordinates from verifiedOperational thresholds or knownObj
-  let coordsText = '–';
-  try {
-    const vo = (rwy && rwy.verifiedOperational) || {};
-    const thr = Array.isArray(vo.thresholds) ? vo.thresholds : [];
-    if (thr.length) {
-      coordsText = thr.map(function(t) {
-        const lat = Number(t.lat || t.latitude || 0).toFixed(5);
-        const lon = Number(t.lon || t.longitude || 0).toFixed(5);
-        const id  = String(t.ident || t.rwy || '').toUpperCase();
-        return (id ? id + ': ' : '') + lat + ', ' + lon;
-      }).join('\n');
-    }
-  } catch (e) {}
-  _rbcSet('rbc-coords', coordsText);
-
-  // Dimensions
-  const intLen  = rwy ? Math.round(Number(rwy.length || 0)) : 0;
-  const intWid  = rwy ? Math.round(Number(rwy.width  || 0)) : 0;
-  const offLen  = rwy ? Math.round(Number((rwy.officialReference && rwy.officialReference.lengthM) || intLen || 0)) : 0;
-  const offWid  = rwy ? Math.round(Number((rwy.officialReference && rwy.officialReference.widthM)  || intWid || 0)) : 0;
-  const cutdown = rwy ? (Number(rwy.cutdownAreaM || 0) > 0 ? Math.round(rwy.cutdownAreaM) + ' m' : '–') : '–';
-  const elev    = rwy ? Math.round(Number(rwy.elevation || 0)) + ' ft' : '–';
-  const surface = rwy ? (rwy.surface || '–') : '–';
-  const slopePct = rwy ? Number(rwy.slope || 0).toFixed(1) + '%' : '–';
-  const survDate = rwy ? String(rwy.internalUpdatedAt || '').substring(0, 10) || '–' : '–';
-
-  _rbcSet('rbc-int-length', intLen ? intLen + ' m' : '–');
-  _rbcSet('rbc-off-length', offLen ? offLen + ' m' : '–');
-  _rbcSet('rbc-int-width',  intWid ? intWid + ' m' : '–');
-  _rbcSet('rbc-off-width',  offWid ? offWid + ' m' : '–');
-  _rbcSet('rbc-cutdown',    cutdown);
-  _rbcSet('rbc-elevation',  elev);
-  _rbcSet('rbc-surface',    surface);
-  _rbcSet('rbc-slope',      slopePct);
-  _rbcSet('rbc-survey-date', survDate);
-
-  // Slope detail labels
-  const slopeDetailEl = document.getElementById('rbc-slope-detail-row');
-  if (slopeDetailEl && rwy) {
-    const segs = Array.isArray(rwy.surveySlopeSegments) && rwy.surveySlopeSegments.length
-      ? rwy.surveySlopeSegments
-      : (Array.isArray(rwy.slopeProfile) ? rwy.slopeProfile : []);
-    if (segs.length > 1) {
-      const labels = segs.map(function(seg) {
-        const dist = Math.round(Number(seg.distanceM || seg.distance || 0));
-        const slp  = Number(seg.slope || 0).toFixed(1);
-        return dist + 'm ' + (seg.slope >= 0 ? '+' : '') + slp + '%';
-      }).join('  →  ');
-      slopeDetailEl.innerHTML = '<div style="font-size:0.72rem; color:#546e7a; font-weight:700; padding-bottom:4px;">⛰ Slope profile: ' + _rbcEsc(labels) + '</div>';
+  const storedClass = String((card && card.runwayClass) || (rwy && rwy.verifiedOperational && rwy.verifiedOperational.runwayClass) || '').trim();
+  const classEl = document.getElementById('rbc-class');
+  if (classEl) {
+    if (storedClass) {
+      classEl.textContent = 'Class ' + storedClass;
+      classEl.classList.remove('class-missing');
+      classEl.title = '';
     } else {
-      slopeDetailEl.innerHTML = '';
+      classEl.textContent = '??';
+      classEl.classList.add('class-missing');
+      classEl.title = 'Runway class must be explicitly set by supervisor.';
     }
   }
+  _rbcSet('rbc-ident', _rbcRunwayPair(s.rwyIdent) || s.rwyIdent || '–');
+  _rbcSet('rbc-icao', s.icao || '–');
+
+  // Coordinates from appData airport or verifiedOperational thresholds
+  let coordsText = '–';
+  let coordsError = null;
+  try {
+    // First try appData airports
+    const airports = Array.isArray(window.appData && window.appData.airports) ? window.appData.airports : [];
+    const airport = airports.find(a => String(a.icao || '').toUpperCase() === (s.icao || '').toUpperCase());
+    
+    if (airport) {
+      const lat = String(airport.lat || airport.latitude || '').trim();
+      const lon = String(airport.lon || airport.longitude || '').trim();
+      if (lat && lon && !isNaN(Number(lat)) && !isNaN(Number(lon))) {
+        const latNum = Number(lat).toFixed(5);
+        const lonNum = Number(lon).toFixed(5);
+        coordsText = latNum + ', ' + lonNum;
+      } else {
+        coordsError = 'Airport coordinates missing in database — runway card needs to be updated.';
+        coordsText = 'ERROR';
+      }
+    } else {
+      coordsError = 'Airport not found in database — please sync airport data.';
+      coordsText = 'ERROR';
+    }
+  } catch (e) {
+    coordsError = 'Error reading coordinates: ' + (e && e.message ? e.message : String(e));
+    coordsText = 'ERROR';
+  }
+  _rbcSet('rbc-coords', coordsText);
+  if (coordsError) {
+    const coordsEl = document.getElementById('rbc-coords');
+    if (coordsEl) {
+      coordsEl.title = coordsError;
+      coordsEl.style.color = '#d32f2f';
+      coordsEl.style.cursor = 'help';
+    }
+  }
+
+  // Dimensions – conditional grid: only show internal if it differs from official
+  const intLen  = Math.round(Number(card.internalLengthM) || (rwy ? Number(rwy.length || 0) : 0));
+  const intWid  = Math.round(Number(card.internalWidthM) || (rwy ? Number(rwy.width || 0) : 0));
+  const offLen  = rwy ? Math.round(Number((rwy.officialReference && rwy.officialReference.lengthM) || intLen || 0)) : 0;
+  const offWid  = rwy ? Math.round(Number((rwy.officialReference && rwy.officialReference.widthM)  || intWid || 0)) : 0;
+  const cutdownVal = card.cutdownAreaM != null ? Number(card.cutdownAreaM) : (rwy ? Number(rwy.cutdownAreaM || 0) : 0);
+  const cutdown  = cutdownVal > 0 ? Math.round(cutdownVal) + ' m' : '–';
+  const elevVal  = Number(card.elevation) > 0 ? Number(card.elevation) : (rwy ? Number(rwy.elevation || 0) : 0);
+  const elev     = elevVal > 0 ? Math.round(elevVal) + ' ft' : '–';
+  const surface  = String(card.surface || (rwy && rwy.surface) || '–').trim() || '–';
+  const slopePct = rwy ? Number(rwy.slope || 0).toFixed(1) + '%' : '–';
+  const survDate = rwy ? String(rwy.internalUpdatedAt || '').substring(0, 10) || '–' : '–';
+  const surveyPilot = rwy ? String(rwy.surveyPilot || '').trim() : '';
+  const hasInternalDiff = !!(rwy && intLen > 0 && offLen > 0 && (intLen !== offLen || intWid !== offWid));
+
+  const dimsGrid = document.getElementById('rbc-dims-grid');
+  if (dimsGrid) {
+    const e = _rbcEsc;
+    const commonCells =
+      '<div class="rbc-cell"><span class="lbl">Cutdown Area</span><span class="val">' + e(cutdown) + '</span></div>' +
+      '<div class="rbc-cell"><span class="lbl">Elevation</span><span class="val">' + e(elev) + '</span></div>' +
+      '<div class="rbc-cell"><span class="lbl">Surface</span><span class="val">' + e(surface) + '</span></div>' +
+      '<div class="rbc-cell"><span class="lbl">Slope</span><span class="val" id="rbc-slope">' + e(slopePct) + '</span></div>' +
+      '<div class="rbc-cell"><span class="lbl">Survey Date</span><span class="val">' + e(survDate) + '</span></div>';
+
+    if (hasInternalDiff) {
+      const pilotNote = surveyPilot ? 'Measured by ' + e(surveyPilot) : 'Internal measurement';
+      const dateNote  = survDate !== '–' ? ' (' + e(survDate) + ')' : '';
+      dimsGrid.innerHTML =
+        '<div class="rbc-cell"><span class="lbl">Official Length</span><span class="val big">' + e(offLen ? offLen + ' m' : '–') + '</span></div>' +
+        '<div class="rbc-cell"><span class="lbl">Official Width</span><span class="val">' + e(offWid ? offWid + ' m' : '–') + '</span></div>' +
+        '<div class="rbc-cell" style="background:#fff8e1; padding:6px; border-radius:4px;">' +
+          '<span class="lbl" style="color:#e65100;">⚠ Internal Length</span>' +
+          '<span class="val big" style="color:#bf360c;">' + e(intLen ? intLen + ' m' : '–') + '</span>' +
+          '<div style="font-size:0.65rem; color:#795548; margin-top:2px;">' + pilotNote + dateNote + '</div>' +
+        '</div>' +
+        '<div class="rbc-cell" style="background:#fff8e1; padding:6px; border-radius:4px;">' +
+          '<span class="lbl" style="color:#e65100;">⚠ Internal Width</span>' +
+          '<span class="val" style="color:#bf360c;">' + e(intWid ? intWid + ' m' : '–') + '</span>' +
+        '</div>' +
+        commonCells;
+    } else {
+      dimsGrid.innerHTML =
+        '<div class="rbc-cell"><span class="lbl">Length</span><span class="val big">' + e(offLen ? offLen + ' m' : '–') + '</span></div>' +
+        '<div class="rbc-cell"><span class="lbl">Width</span><span class="val">' + e(offWid ? offWid + ' m' : '–') + '</span></div>' +
+        commonCells;
+    }
+  }
+
+  // Slope detail labels
+  _rbcUpdateSlopeDetailLabel();
 
   // Diagram
   _rbcDrawDiagram();
@@ -870,7 +1398,15 @@ function _rbcRenderPage1() {
       photoBox.innerHTML = '<img src="' + _rbcEsc(photoUrl) + '" alt="Airstrip photo" onerror="this.parentNode.innerHTML=\'<span>Photo unavailable</span>\'">';
     } else {
       photoBox.innerHTML = '<span>No photo — tap EDIT to add URL</span>';
+      // Terrain features view
+      _rbcRenderFeaturesView();
     }
+      // Departure arrow state (restore button active states)
+      const depDir = (card && card.departureArrow) || null;
+      ['left','straight','right'].forEach(function(d) {
+        const btn = document.getElementById('rbc-dep-' + d);
+        if (btn) btn.classList.toggle('active', d === depDir);
+      });
   }
 
   // Restrictions
@@ -887,6 +1423,27 @@ function _rbcRenderPage1() {
     s.mapDistM = Number(card.mapDistM);
     _rbcShowMapInfo();
   }
+  if (card.mapDistM2 != null) {
+    s.mapDistM2 = Number(card.mapDistM2);
+    _rbcShowMapInfo();
+  }
+  // Load traces — support old format (flat [{x,y}]) and new format ([[{x,y}]])
+  s.depTraces = null;
+  s.depTraceActive = null;
+  if (Array.isArray(card.depTracePoints) && card.depTracePoints.length > 0) {
+    const first = card.depTracePoints[0];
+    if (Array.isArray(first)) {
+      s.depTraces = card.depTracePoints.map(function(seg) { return seg.slice(); });
+    } else if (first && typeof first === 'object') {
+      // old flat format — wrap as single segment
+      s.depTraces = [card.depTracePoints.slice()];
+    }
+  }
+  // MAP cross labels
+  s.mapLabel1 = String(card.mapLabel1 || '').trim();
+  s.mapLabel2 = String(card.mapLabel2 || '').trim();
+
+  _rbcRefreshVerifyUI();
 
   // Revision footer
   const el1 = document.getElementById('rbc-revision-date');
@@ -936,7 +1493,7 @@ function _rbcRenderRestrictions() {
     const mtow = (apt && apt.mtowByModel && typeof apt.mtowByModel === 'object') ? apt.mtowByModel : {};
     Object.keys(mtow).forEach(function(modelKey) {
       const kg = Number(mtow[modelKey] || 0);
-      if (kg > 0) rows.push({ acft: modelKey, dir: 'All', mtow: kg, notes: 'From DB_Airports MTOW' });
+      if (kg > 0) rows.push({ acft: modelKey, runway: s.rwyIdent || 'ALL', mtow: kg, notes: 'From DB_Airports MTOW' });
     });
   }
 
@@ -949,10 +1506,31 @@ function _rbcRenderRestrictions() {
     const mtowVal = Number(r.mtow || 0);
     const mtowClass = mtowVal > 0 ? 'ok' : '';
     return '<tr><td>' + _rbcEsc(r.acft||'–') + '</td>'
-      + '<td>' + _rbcEsc(r.dir||'–') + '</td>'
+      + '<td>' + _rbcEsc(r.runway||r.dir||'–') + '</td>'
       + '<td class="' + mtowClass + '">' + (mtowVal > 0 ? mtowVal + ' kg' : '–') + '</td>'
       + '<td>' + _rbcEsc(r.notes||'–') + '</td></tr>';
   }).join('');
+}
+
+// ── card-overridden data helpers ─────────────────────────────────
+
+function _rbcGetEffectiveSlopeSegsForRunway(runway) {
+  const s = window._rbcState || {};
+  if (s.card && Array.isArray(s.card.slopeSegments) && s.card.slopeSegments.length) {
+    return s.card.slopeSegments;
+  }
+  if (!runway) return [];
+  return (Array.isArray(runway.surveySlopeSegments) && runway.surveySlopeSegments.length)
+    ? runway.surveySlopeSegments
+    : (Array.isArray(runway.slopeProfile) ? runway.slopeProfile : []);
+}
+
+function _rbcGetEffectiveFeaturesForRunway(runway) {
+  const s = window._rbcState || {};
+  if (s.card && Array.isArray(s.card.knownFeatures)) {
+    return s.card.knownFeatures.slice();
+  }
+  return (runway && Array.isArray(runway.knownFeatures)) ? runway.knownFeatures.slice() : [];
 }
 
 // ── DIAGRAM (reuses window.drawRunwayDiagram logic, self-contained) ──
@@ -992,9 +1570,9 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
   const widthM    = Math.max(Number(runway.width  || 0), 0);
 
   const canvasW   = 700;
-  const canvasH   = 470;
+  const canvasH   = 500;
   const topX      = 40;
-  const topY      = 42;
+  const topY      = 56;
   const topHeight = 62;
   const usableWidth = 620;
   const scale     = usableWidth / lengthM;
@@ -1020,12 +1598,16 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
   rp.appendChild(makeEl('circle', { cx:2, cy:2, r:1, fill:'#6f5837' }));
   rp.appendChild(makeEl('circle', { cx:6, cy:5, r:1, fill:'#6f5837' }));
   defs.appendChild(rp);
+    // Arrowhead for departure path
+    const arrowMarker = makeEl('marker', { id: 'rbcDepArrow', markerWidth: 8, markerHeight: 8, refX: 6, refY: 4, orient: 'auto' });
+    arrowMarker.appendChild(makeEl('path', { d: 'M0,0 L0,8 L8,4 z', fill: '#1565c0' }));
+    defs.appendChild(arrowMarker);
   svg.appendChild(defs);
 
   const fill = isAsphalt ? '#5f5f5f' : (isGrass ? 'url(#rbcGrass)' : (/ROUGH|MUD|SAND/.test(surfaceNorm) ? 'url(#rbcRough)' : '#9a9a9a'));
 
   const topGroup = makeEl('g', {});
-  topGroup.appendChild(makeEl('text', { x:topX, y:24, 'font-size':14, fill:'#333', 'font-weight':'700' }, 'TOP VIEW'));
+  topGroup.appendChild(makeEl('text', { x:topX, y:20, 'font-size':14, fill:'#333', 'font-weight':'700' }, 'TOP VIEW'));
   topGroup.appendChild(makeEl('rect', { x:topX, y:topY, width:runwayPx, height:topHeight, fill:fill, stroke:'#2a2a2a', 'stroke-width':1.5, rx:2 }));
 
   if (isAsphalt) {
@@ -1045,40 +1627,154 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
   addBadge(topX+22, 90, thisRwy);
   if (recipN) addBadge(topX+runwayPx-22, -90, recipN);
 
-  // Width label
-  topGroup.appendChild(makeEl('text', { x:topX+(runwayPx/2), y:topY+topHeight+22, 'font-size':13, fill:'#333', 'text-anchor':'middle' },
-    Math.round(lengthM)+'m × '+ Math.round(widthM||0)+'m · '+(runway.surface||'')));
+  const _rbcNorm = function(v) {
+    return String(v || '').toUpperCase().trim().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  };
+  const iconForFeature = function(icon, name) {
+    const key = _rbcNorm(icon || name || '');
+    if (key.indexOf('TREE') >= 0 || key.indexOf('MANGO') >= 0) return '🌳';
+    if (key.indexOf('SCHOOL') >= 0) return '🏫';
+    if (key.indexOf('WINDSOCK') >= 0) return '🎏';
+    if (key.indexOf('POWER') >= 0 || key.indexOf('LINE') >= 0) return '⚡';
+    if (key.indexOf('HOUSE') >= 0 || key.indexOf('BUILD') >= 0) return '🏠';
+    if (key.indexOf('ROAD') >= 0) return '🛣️';
+    return '●';
+  };
+  const iconForObstacle = function(type) {
+    const key = _rbcNorm(type || '');
+    if (key.indexOf('TREE') >= 0) return '🌳';
+    if (key.indexOf('BUILD') >= 0 || key.indexOf('HOUSE') >= 0) return '🏢';
+    if (key.indexOf('HILL') >= 0) return '⛰';
+    if (key.indexOf('ROCK') >= 0) return '🪨';
+    if (key.indexOf('POWER') >= 0 || key.indexOf('LINE') >= 0) return '⚡';
+    return '●';
+  };
 
-  // Official ref
-  const offRef = runway.officialReference || {};
-  if (offRef.lengthM) {
-    topGroup.appendChild(makeEl('text', { x:topX+(runwayPx/2), y:topY+topHeight+36, 'font-size':12, fill:'#0b5394', 'font-weight':'700', 'text-anchor':'middle' },
-      'OFFICIAL: '+Math.round(offRef.lengthM||0)+'m × '+Math.round(offRef.widthM||0)+'m'));
-  }
+  // Features (Tab4-style spacing/lanes)
+  const features = _rbcGetEffectiveFeaturesForRunway(runway);
+  let leftCount = 0;
+  let rightCount = 0;
+  let lastLeftLabelX = -9999;
+  let lastRightLabelX = -9999;
+  const leftSpacing = 46;
+  const rightSpacing = 46;
+  features
+    .slice()
+    .sort(function(a, b) {
+      return Number((a && (a.distance != null ? a.distance : a.distanceM)) || 0)
+        - Number((b && (b.distance != null ? b.distance : b.distanceM)) || 0);
+    })
+    .forEach(function(feat) {
+      const name = String((feat && (feat.name || feat.label || feat.type || feat.icon)) || 'Feature').trim();
+      const distM = Math.max(0, Number((feat && (feat.distance != null ? feat.distance : feat.distanceM)) || 0));
+      if (!(distM >= 0 && distM <= lengthM)) return;
+      const side = String((feat && feat.side) || 'right').toLowerCase() === 'left' ? 'left' : 'right';
+      const icon = iconForFeature(feat && feat.icon, name);
+      const featureX = topX + (distM * scale);
 
-  // Features
-  const features = Array.isArray(runway.knownFeatures) ? runway.knownFeatures : [];
-  features.forEach(function(feat) {
-    const dist = Math.max(0, Number(feat.distance || 0));
-    if (dist > lengthM) return;
-    const side = String(feat.side||'right').toLowerCase();
-    const fx = topX + (dist * scale);
-    const fy = side === 'left' ? topY - 18 : topY + topHeight + 18;
-    topGroup.appendChild(makeEl('line', { x1:fx, y1:side==='left'?topY:topY+topHeight, x2:fx, y2:fy, stroke:'#ff9800', 'stroke-width':1.5 }));
-    topGroup.appendChild(makeEl('text', { x:fx, y:fy, 'font-size':14, 'text-anchor':'middle' }, '●'));
-    topGroup.appendChild(makeEl('text', { x:fx, y:fy+(side==='left'?-6:12), 'font-size':11, fill:'#555', 'text-anchor':'middle' }, Math.round(dist)+'m'));
-  });
+      const isLeftTooClose = side === 'left' && (featureX - lastLeftLabelX) < leftSpacing;
+      const isRightTooClose = side === 'right' && (featureX - lastRightLabelX) < rightSpacing;
+      const showTextLabel = !(isLeftTooClose || isRightTooClose);
 
-  // MAP / go-around Maltese cross
-  if (mapDistM != null && mapDistM >= 0) {
-    const mx = topX + (mapDistM * scale);
+      const lane = side === 'left' ? leftCount++ : rightCount++;
+      const iconY = side === 'left'
+        ? (topY - 22 - (lane * 14))
+        : (topY + topHeight + 30 + (lane * 14));
+      const connectorY = side === 'left' ? (iconY + 6) : (iconY - 6);
+
+      topGroup.appendChild(makeEl('line', {
+        x1: featureX,
+        y1: side === 'left' ? topY : (topY + topHeight),
+        x2: featureX,
+        y2: connectorY,
+        stroke: '#ff9800',
+        'stroke-width': 1.5
+      }));
+      topGroup.appendChild(makeEl('text', {
+        x: featureX,
+        y: iconY,
+        'font-size': 16,
+        'text-anchor': 'middle'
+      }, icon));
+
+      if (showTextLabel) {
+        topGroup.appendChild(makeEl('text', {
+          x: featureX,
+          y: iconY + (side === 'left' ? -8 : 10),
+          'font-size': 14,
+          fill: '#5a5a5a',
+          'text-anchor': 'middle'
+        }, name + ' ' + Math.round(distM) + 'm'));
+        if (side === 'left') lastLeftLabelX = featureX;
+        else lastRightLabelX = featureX;
+      }
+    });
+
+  // MAP / go-around Maltese crosses (support up to two points)
+  var drawMalteseCrossAt = function(distM, labelText) {
+    if (distM == null || !isFinite(distM)) return;
+    const mx = topX + (distM * scale);
     const my = topY + topHeight/2;
     const arm = 10;
     topGroup.appendChild(makeEl('line', { x1:mx-arm, y1:my, x2:mx+arm, y2:my, stroke:'#6a1b9a', 'stroke-width':3 }));
     topGroup.appendChild(makeEl('line', { x1:mx, y1:my-arm, x2:mx, y2:my+arm, stroke:'#6a1b9a', 'stroke-width':3 }));
     topGroup.appendChild(makeEl('line', { x1:mx-arm*0.6, y1:my-arm*0.6, x2:mx+arm*0.6, y2:my+arm*0.6, stroke:'#6a1b9a', 'stroke-width':2 }));
     topGroup.appendChild(makeEl('line', { x1:mx+arm*0.6, y1:my-arm*0.6, x2:mx-arm*0.6, y2:my+arm*0.6, stroke:'#6a1b9a', 'stroke-width':2 }));
-    topGroup.appendChild(makeEl('text', { x:mx, y:topY-6, 'font-size':11, fill:'#6a1b9a', 'font-weight':'800', 'text-anchor':'middle' }, 'MAP'));
+    topGroup.appendChild(makeEl('text', { x:mx + 14, y:my - 10, 'font-size':11, fill:'#6a1b9a', 'font-weight':'800', 'text-anchor':'start' }, labelText));
+  };
+  var _rbc_st2 = window._rbcState;
+  drawMalteseCrossAt(mapDistM, (_rbc_st2 && _rbc_st2.mapLabel1) || 'MAP 1');
+  drawMalteseCrossAt(_rbc_st2 && _rbc_st2.mapDistM2, (_rbc_st2 && _rbc_st2.mapLabel2) || 'MAP 2');
+
+  // Traced departure lines — render all completed segments + active segment
+  var _traceSegs = [];
+  if (_rbc_st2) {
+    if (Array.isArray(_rbc_st2.depTraces)) _traceSegs = _traceSegs.concat(_rbc_st2.depTraces);
+    if (Array.isArray(_rbc_st2.depTraceActive) && _rbc_st2.depTraceActive.length >= 1) _traceSegs.push(_rbc_st2.depTraceActive);
+  }
+  _traceSegs.forEach(function(seg, segIdx) {
+    if (!Array.isArray(seg) || seg.length < 2) return;
+    var pathPts = seg.map(function(p) {
+      // No clamping — allow beyond runway bounds
+      var x = topX + Number(p.x || 0) * runwayPx;
+      var y = topY + Number(p.y || 0) * topHeight;
+      return x + ',' + y;
+    }).join(' ');
+    topGroup.appendChild(makeEl('polyline', {
+      points: pathPts,
+      fill: 'none',
+      stroke: segIdx === _traceSegs.length - 1 && (_rbc_st2 && _rbc_st2.depTraceMode) ? '#42a5f5' : '#1565c0',
+      'stroke-width': 3,
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+      'marker-end': 'url(#rbcDepArrow)'
+    }));
+  });
+  // Departure path arrow
+  const depDir = (window._rbcState && window._rbcState.card && window._rbcState.card.departureArrow) || null;
+  if (depDir) {
+    const startX = topX + runwayPx;
+    const startY = topY + topHeight / 2;
+    const arrowLen = Math.min(130, canvasW - startX - 8);
+    const dy = depDir === 'left' ? -(topHeight * 0.9) : (depDir === 'right' ? (topHeight * 0.9) : 0);
+    const cx1 = startX + arrowLen * 0.35;
+    const cy1 = startY;
+    const cx2 = startX + arrowLen * 0.65;
+    const cy2 = startY + dy * 0.7;
+    const endX = startX + arrowLen;
+    const endY = startY + dy;
+    const arrowPath = 'M ' + startX + ',' + startY
+      + ' C ' + cx1 + ',' + cy1 + ' ' + cx2 + ',' + cy2 + ' ' + endX + ',' + endY;
+    topGroup.appendChild(makeEl('path', {
+      d: arrowPath, fill: 'none', stroke: '#1565c0',
+      'stroke-width': 3, 'stroke-dasharray': '8,4',
+      'marker-end': 'url(#rbcDepArrow)'
+    }));
+    const dirLabel = depDir === 'left' ? '← LEFT' : (depDir === 'right' ? 'RIGHT →' : '↑ STRAIGHT');
+    topGroup.appendChild(makeEl('text', {
+      x: endX, y: endY + (dy <= 0 ? -6 : 14),
+      'font-size': 11, fill: '#1565c0', 'font-weight': '900', 'text-anchor': 'middle'
+    }, dirLabel));
   }
 
   svg.appendChild(topGroup);
@@ -1086,9 +1782,7 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
   // ── SIDE VIEW ─────────────────────────────────────────────────
 
   let profile = [];
-  const segs = Array.isArray(runway.surveySlopeSegments) && runway.surveySlopeSegments.length
-    ? runway.surveySlopeSegments
-    : (Array.isArray(runway.slopeProfile) ? runway.slopeProfile : []);
+  const segs = _rbcGetEffectiveSlopeSegsForRunway(runway);
 
   if (segs.length) {
     const ident = String(runway.rwyIdent||'').toUpperCase();
@@ -1110,7 +1804,7 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
     profile = [{ distance: lengthM, slope: Number(runway.slope||0) }];
   }
 
-  const sideX = topX, sideY = 308, sideH = 84;
+  const sideX = topX, sideY = 332, sideH = 84;
   const elevations = [0];
   let curEl = 0;
   profile.forEach(function(seg) { curEl += seg.distance*seg.slope/100; elevations.push(curEl); });
@@ -1135,6 +1829,104 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
   sideGroup.appendChild(makeEl('rect', { x:sideX, y:sideY, width:runwayPx, height:sideH, fill:'#f3f3f3', stroke:'#ddd' }));
   sideGroup.appendChild(makeEl('polyline', { points:pts.join(' '), fill:'none', stroke:'#00695c', 'stroke-width':3 }));
 
+  const yForDist = function(distM) {
+    const d = Math.max(0, Math.min(lengthM, Number(distM || 0)));
+    let cursor = 0;
+    let elevStart = 0;
+    for (let i = 0; i < profile.length; i++) {
+      const seg = profile[i];
+      const segStart = cursor;
+      const segEnd = cursor + seg.distance;
+      if (d <= segEnd || i === profile.length - 1) {
+        const segSpan = Math.max(0.0001, seg.distance);
+        const t = Math.max(0, Math.min(1, (d - segStart) / segSpan));
+        const elev = elevStart + (seg.distance * seg.slope / 100) * t;
+        return sideY + yOff + usedH - ((elev - minEl) * elScale);
+      }
+      elevStart += (seg.distance * seg.slope / 100);
+      cursor = segEnd;
+    }
+    return sideY + yOff + usedH;
+  };
+
+  const normalizeThrRef = function(raw) {
+    const txt = String(raw || '').trim().toUpperCase().replace(/^RWY\s*/, '');
+    const m = txt.match(/^(\d{1,2})([LCR])?$/);
+    if (!m) return txt;
+    const n = parseInt(m[1], 10);
+    if (!isFinite(n) || n < 1 || n > 36) return txt;
+    return String(n).padStart(2, '0') + (m[2] || '');
+  };
+  const reciprocalThrRef = function(ident) {
+    const txt = normalizeThrRef(ident);
+    const m = txt.match(/^(\d{2})([LCR])?$/);
+    if (!m) return '';
+    const n = parseInt(m[1], 10);
+    const recip = ((n + 18 - 1) % 36) + 1;
+    const side = m[2] || '';
+    const recipSide = side === 'L' ? 'R' : (side === 'R' ? 'L' : side);
+    return String(recip).padStart(2, '0') + recipSide;
+  };
+
+  const thisThr = normalizeThrRef(runway.rwyIdent || thisRwy || '');
+  const oppThr = reciprocalThrRef(thisThr);
+  const obstacleAngles = Array.isArray(runway.obstacleAngles) ? runway.obstacleAngles : [];
+
+  const pickSideObstacle = function(useOpposite) {
+    const candidates = obstacleAngles.filter(function(obs) {
+      const dist = Math.max(0, Math.min(lengthM, Number((obs && (obs.checkpointDistanceM != null ? obs.checkpointDistanceM : (obs.distanceM != null ? obs.distanceM : obs.distance))) || 0)));
+      if (dist < 250) return false;
+      const thr = normalizeThrRef(obs && obs.fromThreshold || '');
+      const corner = String(obs && obs.checkpointCorner || '').trim().toUpperCase();
+      const fromThis = (thr && thr === thisThr) || (!thr && corner !== 'C');
+      const fromOpp = (thr && thr === oppThr) || (!thr && corner === 'C');
+      if (useOpposite ? !fromOpp : !fromThis) return false;
+      const operation = String(obs && obs.operation || '').trim().toLowerCase() || (dist >= 300 ? 'takeoff' : 'landing');
+      return operation === 'takeoff';
+    });
+    return candidates.sort(function(a, b) {
+      return Number((b && b.checkpointDistanceM) || 0) - Number((a && a.checkpointDistanceM) || 0);
+    })[0] || null;
+  };
+
+  const drawObstacleCallout = function(obs, anchorX, anchorY, textAnchor) {
+    if (!obs) return;
+    const dist = Math.max(0, Math.min(lengthM, Number((obs && obs.checkpointDistanceM) || 0)));
+    const baseX = sideX + (dist * scale);
+    const baseY = yForDist(dist);
+    const icon = iconForObstacle(obs && obs.type);
+    const angleDeg = Number((obs && (obs.angleDeg != null ? obs.angleDeg : (obs.fromThrA50mDeg != null ? obs.fromThrA50mDeg : obs.fromThrB50mDeg))) || 0);
+
+    sideGroup.appendChild(makeEl('line', {
+      x1: baseX,
+      y1: baseY,
+      x2: anchorX,
+      y2: anchorY,
+      stroke: '#ef6c00',
+      'stroke-width': 3
+    }));
+    sideGroup.appendChild(makeEl('circle', { cx: baseX, cy: baseY, r: 6, fill: '#37474f' }));
+    sideGroup.appendChild(makeEl('text', {
+      x: anchorX + (textAnchor === 'end' ? -2 : 2),
+      y: anchorY + 7,
+      'font-size': 18,
+      fill: '#2e7d32',
+      'text-anchor': textAnchor
+    }, icon + ' ' + angleDeg.toFixed(1) + '°'));
+    sideGroup.appendChild(makeEl('text', {
+      x: baseX,
+      y: sideY - 12,
+      'font-size': 13,
+      fill: '#546e7a',
+      'text-anchor': 'middle'
+    }, Math.round(dist) + 'm'));
+  };
+
+  const rightAnchorX = sideX + runwayPx + 30;
+  const leftAnchorX = sideX - 30;
+  drawObstacleCallout(pickSideObstacle(false), rightAnchorX, sideY + 20, 'start');
+  drawObstacleCallout(pickSideObstacle(true), leftAnchorX, sideY + 20, 'end');
+
   // Slope labels
   let segPos = 0;
   profile.forEach(function(seg) {
@@ -1156,9 +1948,14 @@ function _rbcShowMapInfo() {
   const el = document.getElementById('rbc-map-info');
   const ds = document.getElementById('rbc-map-dist');
   if (!el) return;
-  if (s.mapDistM != null) {
+  if (s.mapDistM != null || s.mapDistM2 != null) {
     el.style.display = 'block';
-    if (ds) ds.textContent = Math.round(s.mapDistM) + ' m';
+    if (ds) {
+      const vals = [];
+      if (s.mapDistM != null) vals.push((s.mapLabel1 || 'MAP 1') + ' @ ' + Math.round(s.mapDistM) + ' m');
+      if (s.mapDistM2 != null) vals.push((s.mapLabel2 || 'MAP 2') + ' @ ' + Math.round(s.mapDistM2) + ' m');
+      ds.textContent = vals.join(' | ');
+    }
   } else {
     el.style.display = 'none';
   }
@@ -1174,7 +1971,7 @@ function _rbcEnableDiagramTap(enabled) {
 
   if (enabled) {
     container.style.cursor = 'crosshair';
-    if (hint) hint.textContent = 'Tap the diagram to place the Go-Around Point (MAP) ✛';
+    if (hint) hint.textContent = 'Tap to place MAP 1, then MAP 2. Use TRACE PATH to draw departure line.';
     if (editHint) editHint.style.display = 'inline';
     container.onclick = function(e) {
       const svgEl = document.getElementById('rbc-diagram-svg');
@@ -1185,9 +1982,22 @@ function _rbcEnableDiagramTap(enabled) {
       const svgH = 470;
       const clickX = (e.clientX - rect.left) * (svgW / rect.width);
       const st = window._rbcState;
+      if (st.depTraceMode) {
+        const clickY = (e.clientY - rect.top) * (svgH / rect.height);
+        // No clamping — allow traces to go beyond runway bounds
+        const nx = (clickX - st.diagramTopX) / Math.max(1, st.diagramRunwayPx);
+        const ny = (clickY - st.diagramTopY) / Math.max(1, st.diagramTopH);
+        if (!Array.isArray(st.depTraceActive)) st.depTraceActive = [];
+        st.depTraceActive.push({ x: nx, y: ny });
+        st.dirty = true;
+        _rbcDrawDiagram();
+        return;
+      }
+      // MAP placement — no clamping to runway length, allow beyond ends
       const localX = clickX - st.diagramTopX;
-      const distM = Math.max(0, Math.min(Math.round(localX / st.diagramScale), Math.round(Number((st.runway && st.runway.length)||0))));
-      st.mapDistM = distM;
+      const distM = Math.round(localX / Math.max(0.001, st.diagramScale));
+      if (st.mapDistM == null) st.mapDistM = distM;
+      else st.mapDistM2 = distM;
       st.dirty = true;
       _rbcDrawDiagram();
       _rbcShowMapInfo();
@@ -1226,17 +2036,18 @@ window.rbcEditBlock = function(key) {
 
 window.rbcAddRestrictionRow = function() {
   const acft  = String(document.getElementById('rbc-r-acft')?.value || '').trim();
-  const dir   = String(document.getElementById('rbc-r-dir')?.value  || '').trim();
+  const runway = String(document.getElementById('rbc-r-runway')?.value || '').trim();
   const mtow  = Number(document.getElementById('rbc-r-mtow')?.value  || 0);
   const notes = String(document.getElementById('rbc-r-notes')?.value || '').trim();
-  if (!acft) { if (window.M) M.toast({html:'Enter aircraft / model name', classes:'orange'}); return; }
+  if (!acft) { if (window.M) M.toast({html:'Select aircraft type', classes:'orange'}); return; }
+  if (!runway) { if (window.M) M.toast({html:'Select runway', classes:'orange'}); return; }
 
   const s = window._rbcState;
   if (!Array.isArray(s.card.restrictions)) s.card.restrictions = [];
-  s.card.restrictions.push({ acft, dir: dir||'All', mtow: mtow||0, notes });
+  s.card.restrictions.push({ acft: acft, runway: runway, mtow: mtow||0, notes: notes });
   s.dirty = true;
   _rbcRenderRestrictions();
-  ['rbc-r-acft','rbc-r-dir','rbc-r-mtow','rbc-r-notes'].forEach(function(id) {
+  ['rbc-r-mtow','rbc-r-notes'].forEach(function(id) {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -1246,26 +2057,69 @@ window.rbcAddRestrictionRow = function() {
 
 function _rbcSetEditUI(editing) {
   const s = window._rbcState;
-  s.editMode = editing;
+  const canEdit = _rbcCanEdit();
+  s.editMode = canEdit ? editing : false;
 
   const editBtn   = document.getElementById('rbc-edit-btn');
   const saveBtn   = document.getElementById('rbc-save-btn');
   const cancelBtn = document.getElementById('rbc-cancel-btn');
   const reEditor  = document.getElementById('rbc-restrictions-editor');
 
-  if (editBtn)   editBtn.style.display   = editing ? 'none'  : 'inline-block';
-  if (saveBtn)   saveBtn.style.display   = editing ? 'inline-block' : 'none';
-  if (cancelBtn) cancelBtn.style.display = editing ? 'inline-block' : 'none';
-  if (reEditor)  reEditor.style.display  = editing ? 'block' : 'none';
+  if (editBtn)   editBtn.style.display   = canEdit ? (editing ? 'none' : 'inline-block') : 'none';
+  if (saveBtn)   saveBtn.style.display   = canEdit && editing ? 'inline-block' : 'none';
+  if (cancelBtn) cancelBtn.style.display = canEdit && editing ? 'inline-block' : 'none';
+  if (reEditor)  reEditor.style.display  = canEdit && editing ? 'block' : 'none';
+  if (canEdit && editing) {
+    _rbcPopulateRestrictionDropdowns();
+    _rbcPopulateFeatureDropdowns();
+  }
 
   // Show/hide editable hints
   const blocks = ['obstructions','weather','dangers','forced','routes','rwyhist','incidents','othernotes'];
   blocks.forEach(function(key) {
     const view = document.getElementById('rbc-' + key + '-view');
-    if (view) view.classList.toggle('editable-block', editing);
+    if (view) view.classList.toggle('editable-block', canEdit && editing);
   });
 
-  _rbcEnableDiagramTap(editing);
+    // New edit panels
+    const dimsEditPanel = document.getElementById('rbc-dims-edit-panel');
+    const slopeEditor   = document.getElementById('rbc-slope-editor');
+    const featuresEditor = document.getElementById('rbc-features-editor');
+    const departurePanel = document.getElementById('rbc-departure-panel');
+    const photoHint     = document.getElementById('rbc-photo-hint');
+    if (dimsEditPanel) {
+      dimsEditPanel.style.display = (canEdit && editing) ? 'block' : 'none';
+      if (canEdit && editing) _rbcPopulateDimsEdit();
+    }
+    if (slopeEditor) {
+      slopeEditor.style.display = (canEdit && editing) ? 'block' : 'none';
+      if (canEdit && editing) _rbcRenderSlopeList();
+    }
+    if (featuresEditor) {
+      featuresEditor.style.display = (canEdit && editing) ? 'block' : 'none';
+      if (canEdit && editing) _rbcRenderFeaturesList();
+    }
+    if (departurePanel) departurePanel.style.display = (canEdit && editing) ? 'block' : 'none';
+    if (!(canEdit && editing)) s.depTraceMode = false;
+        const mapLabelEditor = document.getElementById('rbc-map-label-editor');
+        if (mapLabelEditor) mapLabelEditor.style.display = (canEdit && editing) ? 'block' : 'none';
+        if (canEdit && editing) {
+          const ml1 = document.getElementById('rbc-map-label1');
+          const ml2 = document.getElementById('rbc-map-label2');
+          if (ml1) ml1.value = s.mapLabel1 || '';
+          if (ml2) ml2.value = s.mapLabel2 || '';
+        }
+    const depTraceBtn = document.getElementById('rbc-dep-trace');
+    if (depTraceBtn) {
+      depTraceBtn.classList.toggle('active', !!s.depTraceMode);
+      depTraceBtn.textContent = s.depTraceMode ? 'DONE SEGMENT ✓' : 'TRACE PATH';
+    }
+    if (photoHint)      photoHint.style.display      = (canEdit && editing) ? 'block' : 'none';
+    // Photo box edit cue
+    const photoBox = document.getElementById('rbc-photo-box');
+    if (photoBox) photoBox.classList.toggle('edit-mode', !!(canEdit && editing));
+  _rbcEnableDiagramTap(canEdit && editing);
+  _rbcRefreshVerifyUI();
 }
 
 window.rbcToggleEdit = function() {
@@ -1288,6 +2142,8 @@ window.rbcSave = function() {
     _rbcSetStatus('Error: no runway selected.');
     return;
   }
+  // Collect dimension edits
+  _rbcCollectDimsEdit();
 
   // Collect any open textareas
   ['obstructions','weather','dangers','forced','routes','rwyhist','incidents','othernotes'].forEach(function(key) {
@@ -1298,7 +2154,31 @@ window.rbcSave = function() {
     }
   });
 
+  const cls = String(s.card.runwayClass || '').trim();
+  if (!cls) {
+    _rbcSetEditUI(true);
+    _rbcSetStatus('Runway class is required (set class before saving).');
+    const clsEl = document.getElementById('rbc-edit-class');
+    if (clsEl) clsEl.focus();
+    return;
+  }
+
   s.card.mapDistM   = s.mapDistM != null ? s.mapDistM : null;
+  s.card.mapDistM2  = s.mapDistM2 != null ? s.mapDistM2 : null;
+  s.card.mapLabel1  = s.mapLabel1 || '';
+  s.card.mapLabel2  = s.mapLabel2 || '';
+  // Collect label inputs if visible
+  const ml1El = document.getElementById('rbc-map-label1');
+  const ml2El = document.getElementById('rbc-map-label2');
+  if (ml1El) s.card.mapLabel1 = s.mapLabel1 = ml1El.value.trim();
+  if (ml2El) s.card.mapLabel2 = s.mapLabel2 = ml2El.value.trim();
+  // Save all completed + active trace segments
+  const allTraces = (s.depTraces || []).slice();
+  if (Array.isArray(s.depTraceActive) && s.depTraceActive.length >= 2) {
+    allTraces.push(s.depTraceActive.slice());
+  }
+  s.card.depTracePoints = allTraces.length ? allTraces : null;
+  s.card.verifyFlags = _rbcGetVerifyFlags();
   s.card.revisedAt  = new Date().toISOString().substring(0,10);
   s.card.revisedBy  = _rbcCurrentUser();
 
@@ -1361,6 +2241,7 @@ function _rbcLoadAndRenderPage2() {
   _rbcSetBlock('rwyhist',   card.rwyhist   || '');
   _rbcSetBlock('incidents', card.incidents || '');
   _rbcSetBlock('othernotes',card.othernotes|| '');
+  _rbcRefreshVerifyUI();
 
   // History
   const loadingEl = document.getElementById('rbc-history-loading');
@@ -1381,7 +2262,7 @@ function _rbcLoadAndRenderPage2() {
     .withFailureHandler(function() {
       if (loadingEl) loadingEl.textContent = 'Could not load flight history.';
     })
-    .getRunwayTakeoffHistory(s.icao, s.rwyIdent, 2);
+    .getRunwayTakeoffHistory(s.icao, s.rwyIdent, 3, s.acft || '');
 }
 
 function _rbcRenderHistory(result) {
@@ -1396,30 +2277,521 @@ function _rbcRenderHistory(result) {
     return;
   }
 
+  const _rbcFmtDateCompact = function(rawDate) {
+    const raw = String(rawDate || '').trim();
+    if (!raw) return '–';
+    const dt = new Date(raw);
+    if (isNaN(dt.getTime())) return raw;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dd = String(dt.getDate()).padStart(2, '0');
+    return dd + '-' + months[dt.getMonth()] + '-' + dt.getFullYear();
+  };
+  const _rbcPilotInitials = function(name) {
+    const clean = String(name || '').trim();
+    if (!clean) return '–';
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (!parts.length) return '–';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return parts.slice(0, 3).map(function(p) { return p.charAt(0).toUpperCase(); }).join('');
+  };
+  const _rbcAcftSuffix = function(reg) {
+    const clean = String(reg || '').trim().toUpperCase();
+    if (!clean) return '–';
+    const dashParts = clean.split('-').filter(Boolean);
+    const base = dashParts.length ? dashParts[dashParts.length - 1] : clean;
+    const alnum = base.replace(/[^A-Z0-9]/g, '');
+    if (!alnum) return '–';
+    return alnum.length > 3 ? alnum.slice(-3) : alnum;
+  };
+
   tbody.innerHTML = records.map(function(r) {
     const actual = r.actualToRollM != null ? Math.round(r.actualToRollM) + ' m' : '–';
     const calc   = r.calcToRollM   != null ? Math.round(r.calcToRollM)   + ' m' : '–';
     const wt     = r.weightKg      != null ? Math.round(r.weightKg) + ' kg' : '–';
-    const vrDist = r.vrDistM       != null ? Math.round(r.vrDistM)  + ' m' : '–';
-    const mapD   = r.mapDistM      != null ? Math.round(r.mapDistM) + ' m' : '–';
+    const qnhTxt = r.qnhHpa != null ? Math.round(Number(r.qnhHpa)) : '–';
+    const pilotInitials = _rbcPilotInitials(r.pilot);
+    const acftShort = _rbcAcftSuffix(r.acft);
+    const dateTxt = _rbcFmtDateCompact(r.date);
+    const windPrimary = (r.windDirDeg != null && r.windSpdKts != null)
+      ? (Math.round(r.windDirDeg) + '°/' + Math.round(r.windSpdKts) + 'kt')
+      : '–';
+    const windComponents = (r.headTailKts != null || r.crosswindKts != null)
+      ? (' H/T ' + (r.headTailKts != null ? Number(r.headTailKts).toFixed(1) : '–')
+        + ' · XW ' + (r.crosswindKts != null ? Number(r.crosswindKts).toFixed(1) : '–'))
+      : '';
+    const windTxt = windPrimary + windComponents;
     return '<tr>'
-      + '<td>' + _rbcEsc(r.date||'–') + '</td>'
-      + '<td>' + _rbcEsc(r.pilot||'–') + '</td>'
-      + '<td>' + _rbcEsc(r.acft||'–') + '</td>'
+      + '<td class="rbc-col-date">' + _rbcEsc(dateTxt) + '</td>'
+      + '<td class="rbc-col-pilot">' + _rbcEsc(pilotInitials) + '</td>'
+      + '<td class="rbc-col-acft">' + _rbcEsc(acftShort) + '</td>'
       + '<td>' + _rbcEsc(wt) + '</td>'
       + '<td>' + _rbcEsc(String(r.tempC!=null?r.tempC+'°C':'–')) + '</td>'
+      + '<td class="rbc-col-qnh">' + _rbcEsc(String(qnhTxt)) + '</td>'
       + '<td>' + _rbcEsc(String(r.flaps!=null?r.flaps+'°':'–')) + '</td>'
       + '<td>' + _rbcEsc(r.surface||'–') + '</td>'
-      + '<td>' + _rbcEsc(r.wet ? 'WET' : 'DRY') + '</td>'
+      + '<td>' + _rbcEsc(r.wet === null || r.wet === undefined ? '–' : (r.wet ? 'WET' : 'DRY')) + '</td>'
+      + '<td>' + _rbcEsc(windTxt) + '</td>'
       + '<td>' + _rbcEsc(calc) + '</td>'
       + '<td><b>' + _rbcEsc(actual) + '</b></td>'
-      + '<td>' + _rbcEsc(vrDist) + '</td>'
-      + '<td>' + _rbcEsc(mapD) + '</td>'
-      + '<td style="font-size:0.7rem;">' + _rbcEsc(r.alternates||'–') + '</td>'
       + '</tr>';
   }).join('');
 
   if (table)   table.style.display   = '';
   if (loading) loading.style.display = 'none';
+}
+
+// ── dims edit helpers ─────────────────────────────────────────────
+
+function _rbcPopulateDimsEdit() {
+  const s = window._rbcState;
+  const rwy = s.runway;
+  const card = s.card || {};
+  const g = function(id) { return document.getElementById(id); };
+  const storedClass = String((card.runwayClass) || (rwy && rwy.verifiedOperational && rwy.verifiedOperational.runwayClass) || '').trim();
+  if (g('rbc-edit-class'))     g('rbc-edit-class').value     = storedClass;
+  if (g('rbc-edit-elevation')) g('rbc-edit-elevation').value = String(Number(card.elevation) > 0 ? card.elevation : ((rwy && rwy.elevation) || ''));
+  if (g('rbc-edit-surface'))   g('rbc-edit-surface').value   = String(card.surface || (rwy && rwy.surface) || '');
+  if (g('rbc-edit-cutdown'))   g('rbc-edit-cutdown').value   = String(card.cutdownAreaM != null ? card.cutdownAreaM : ((rwy && Number(rwy.cutdownAreaM) > 0 ? rwy.cutdownAreaM : '') || ''));
+  if (g('rbc-edit-intlen'))    g('rbc-edit-intlen').value    = String(card.internalLengthM != null ? card.internalLengthM : '');
+  if (g('rbc-edit-intwid'))    g('rbc-edit-intwid').value    = String(card.internalWidthM != null ? card.internalWidthM : '');
+}
+
+function _rbcCollectDimsEdit() {
+  const s = window._rbcState;
+  const g = function(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  const cls = g('rbc-edit-class').toUpperCase();
+  if (cls) s.card.runwayClass = cls;
+  else delete s.card.runwayClass;
+  const elev = parseFloat(g('rbc-edit-elevation'));
+  if (!isNaN(elev) && elev > 0) s.card.elevation = elev;
+  const surf = g('rbc-edit-surface');
+  if (surf) s.card.surface = surf;
+  const cutdown = parseFloat(g('rbc-edit-cutdown'));
+  if (!isNaN(cutdown) && cutdown >= 0) s.card.cutdownAreaM = cutdown;
+  const intLen = parseFloat(g('rbc-edit-intlen'));
+  if (!isNaN(intLen) && intLen > 0) s.card.internalLengthM = intLen;
+  else delete s.card.internalLengthM;
+  const intWid = parseFloat(g('rbc-edit-intwid'));
+  if (!isNaN(intWid) && intWid > 0) s.card.internalWidthM = intWid;
+  else delete s.card.internalWidthM;
+  s.dirty = true;
+}
+
+// ── slope segments ────────────────────────────────────────────────
+
+function _rbcUpdateSlopeDetailLabel() {
+  const slopeDetailEl = document.getElementById('rbc-slope-detail-row');
+  if (!slopeDetailEl) return;
+  const segs = _rbcGetEffectiveSlopeSegsForRunway(window._rbcState && window._rbcState.runway);
+  if (segs.length > 1) {
+    let startM = 0;
+    const labels = segs.map(function(seg) {
+      const dist = Math.round(Number(seg.distanceM != null ? seg.distanceM : (seg.distance || 0)));
+      const slp  = Number(seg.slope || 0).toFixed(1);
+      const label = startM + '–' + (startM + dist) + 'm ' + (Number(slp) >= 0 ? '+' : '') + slp + '%';
+      startM += dist;
+      return label;
+    }).join('  →  ');
+    slopeDetailEl.innerHTML = '<div style="font-size:0.72rem; color:#546e7a; font-weight:700; padding-bottom:4px;">⛰ Slope profile: ' + _rbcEsc(labels) + '</div>';
+  } else {
+    slopeDetailEl.innerHTML = '';
+  }
+}
+
+function _rbcRenderSlopeList() {
+  const list = document.getElementById('rbc-slope-list');
+  if (!list) return;
+  const segs = _rbcGetEffectiveSlopeSegsForRunway(window._rbcState && window._rbcState.runway);
+  if (!segs.length) {
+    list.innerHTML = '<div style="color:#90a4ae; font-size:0.75rem; padding:2px 0;">No slope segments — runway treated as uniform slope.</div>';
+    return;
+  }
+  let startM = 0;
+  list.innerHTML = segs.map(function(seg, i) {
+    const dist = Math.round(Number(seg.distanceM != null ? seg.distanceM : (seg.distance || 0)));
+    const slope = Number(seg.slope || 0).toFixed(1);
+    const label = startM + 'm – ' + (startM + dist) + 'm: ' + (Number(slope) >= 0 ? '+' : '') + slope + '%';
+    startM += dist;
+    return '<div class="rbc-seg-row">'
+      + '<span class="seg-label">' + _rbcEsc(label) + '</span>'
+      + '<button class="seg-del" onclick="rbcRemoveSlopeSegment(' + i + ')">×</button>'
+      + '</div>';
+  }).join('');
+}
+
+window.rbcAddSlopeSegment = function() {
+  const s = window._rbcState;
+  const distEl = document.getElementById('rbc-slope-dist');
+  const pctEl  = document.getElementById('rbc-slope-pct');
+  const dist = Number(distEl && distEl.value || 0);
+  const pct  = Number(pctEl  && pctEl.value  || 0);
+  if (!dist || dist <= 0) { if (window.M) M.toast({html: 'Enter segment distance in metres', classes: 'orange darken-2'}); return; }
+  if (!Array.isArray(s.card.slopeSegments)) {
+    s.card.slopeSegments = _rbcGetEffectiveSlopeSegsForRunway(s.runway).map(function(seg) {
+      return { distanceM: Math.round(Number(seg.distanceM != null ? seg.distanceM : (seg.distance || 0))), slope: Number(seg.slope || 0) };
+    });
+  }
+  s.card.slopeSegments.push({ distanceM: Math.round(dist), slope: pct });
+  s.dirty = true;
+  if (distEl) distEl.value = '';
+  if (pctEl)  pctEl.value  = '';
+  _rbcRenderSlopeList();
+  _rbcUpdateSlopeDetailLabel();
+  _rbcDrawDiagram();
+};
+
+window.rbcRemoveSlopeSegment = function(idx) {
+  const s = window._rbcState;
+  if (!Array.isArray(s.card.slopeSegments)) {
+    s.card.slopeSegments = _rbcGetEffectiveSlopeSegsForRunway(s.runway).map(function(seg) {
+      return { distanceM: Math.round(Number(seg.distanceM != null ? seg.distanceM : (seg.distance || 0))), slope: Number(seg.slope || 0) };
+    });
+  }
+  s.card.slopeSegments.splice(idx, 1);
+  s.dirty = true;
+  _rbcRenderSlopeList();
+  _rbcUpdateSlopeDetailLabel();
+  _rbcDrawDiagram();
+};
+
+// ── terrain features ──────────────────────────────────────────────
+
+function _rbcRenderFeaturesView() {
+  const view = document.getElementById('rbc-features-view');
+  if (!view) return;
+  const feats = _rbcGetEffectiveFeaturesForRunway(window._rbcState && window._rbcState.runway);
+  if (!feats.length) {
+    view.innerHTML = '<div style="color:#90a4ae; font-size:0.75rem; padding:4px 0;">No terrain features recorded.</div>';
+    return;
+  }
+  view.innerHTML = feats.map(function(f) {
+    const name = String(f.name || '');
+    const dist = Math.round(Number(f.distance || f.distanceM || 0));
+    const side = String(f.side || 'right');
+    const runway = String(f.runway || f.runwayIdent || window._rbcState.rwyIdent || '').toUpperCase();
+    const sideLabel = side + ' side' + (runway ? ' of runway ' + runway : '');
+    return '<div class="rbc-seg-row"><span class="seg-label">' + _rbcEsc(name + ' @ ' + dist + 'm (' + sideLabel + ')') + '</span></div>';
+  }).join('');
+}
+
+function _rbcRenderFeaturesList() {
+  const list = document.getElementById('rbc-features-list');
+  if (!list) return;
+  const s = window._rbcState || {};
+  const feats = (s.card && Array.isArray(s.card.knownFeatures))
+    ? s.card.knownFeatures
+    : _rbcGetEffectiveFeaturesForRunway(s.runway);
+  if (!feats.length) {
+    list.innerHTML = '<div style="color:#90a4ae; font-size:0.75rem; padding:2px 0;">No features added yet.</div>';
+    return;
+  }
+  list.innerHTML = feats.map(function(f, i) {
+    const name = String(f.name || '');
+    const dist = Math.round(Number(f.distance || f.distanceM || 0));
+    const side = String(f.side || 'right');
+    const runway = String(f.runway || f.runwayIdent || window._rbcState.rwyIdent || '').toUpperCase();
+    const sideLabel = side + ' side' + (runway ? ' of runway ' + runway : '');
+    return '<div class="rbc-seg-row">'
+      + '<span class="seg-label">' + _rbcEsc(name + ' @ ' + dist + 'm (' + sideLabel + ')') + '</span>'
+      + '<button class="seg-del" onclick="rbcRemoveFeature(' + i + ')">×</button>'
+      + '</div>';
+  }).join('');
+}
+
+window.rbcAddFeature = function() {
+  const s = window._rbcState;
+  const nameEl = document.getElementById('rbc-feat-name');
+  const distEl = document.getElementById('rbc-feat-dist');
+  const sideEl = document.getElementById('rbc-feat-side');
+  const runwayEl = document.getElementById('rbc-feat-runway');
+  const name = String(nameEl && nameEl.value || '').trim();
+  const dist = Number(distEl && distEl.value || 0);
+  const side = String(sideEl && sideEl.value || 'right').trim().toLowerCase();
+  const runway = String(runwayEl && runwayEl.value || s.rwyIdent || '').trim().toUpperCase();
+  if (!name) { if (window.M) M.toast({html: 'Enter feature name or type', classes: 'orange darken-2'}); return; }
+  if (!Array.isArray(s.card.knownFeatures)) {
+    s.card.knownFeatures = _rbcGetEffectiveFeaturesForRunway(s.runway).map(function(f) {
+      return { name: String(f.name || ''), distance: Number(f.distance || f.distanceM || 0), side: String(f.side || 'right'), runway: String(f.runway || f.runwayIdent || s.rwyIdent || '') };
+    });
+  }
+  s.card.knownFeatures.push({ name: name, distance: Math.round(dist), side: side, runway: runway });
+  s.dirty = true;
+  if (nameEl) nameEl.value = '';
+  if (distEl) distEl.value = '';
+  _rbcRenderFeaturesList();
+  _rbcRenderFeaturesView();
+  _rbcDrawDiagram();
+};
+
+window.rbcRemoveFeature = function(idx) {
+  const s = window._rbcState;
+  if (!Array.isArray(s.card.knownFeatures)) {
+    s.card.knownFeatures = _rbcGetEffectiveFeaturesForRunway(s.runway).map(function(f) {
+      return { name: String(f.name || ''), distance: Number(f.distance || f.distanceM || 0), side: String(f.side || 'right'), runway: String(f.runway || f.runwayIdent || s.rwyIdent || '') };
+    });
+  }
+  s.card.knownFeatures.splice(idx, 1);
+  s.dirty = true;
+  _rbcRenderFeaturesList();
+  _rbcRenderFeaturesView();
+  _rbcDrawDiagram();
+};
+
+function _rbcRunwayIdentsForCurrentAirport_() {
+  const s = window._rbcState || {};
+  const out = [];
+  const pushUnique = function(v) {
+    const t = String(v || '').trim().toUpperCase();
+    if (!t) return;
+    if (out.indexOf(t) < 0) out.push(t);
+    const recip = _rbcReciprocalRunwayIdent(t);
+    if (recip && out.indexOf(recip) < 0) out.push(recip);
+  };
+  pushUnique(s.rwyIdent);
+  try {
+    const airports = Array.isArray(window.appData && window.appData.airports) ? window.appData.airports : [];
+    const apt = airports.find(function(a) {
+      return String(a && a.icao || '').trim().toUpperCase() === String(s.icao || '').trim().toUpperCase();
+    });
+    const runways = Array.isArray(apt && apt.runways) ? apt.runways : [];
+    runways.forEach(function(r) { pushUnique(r && r.rwyIdent); });
+  } catch (e) {}
+  return out;
+}
+
+window.rbcSetMapLabel = function(which, value) {
+  const s = window._rbcState;
+  if (!_rbcCanEdit() || !s.editMode) return;
+  const txt = String(value || '').trim();
+  if (which === 2) s.mapLabel2 = txt;
+  else s.mapLabel1 = txt;
+  s.dirty = true;
+  _rbcDrawDiagram();
+  _rbcShowMapInfo();
+};
+
+function _rbcPopulateRestrictionDropdowns() {
+  const acftSel  = document.getElementById('rbc-r-acft');
+  const rwyBtns  = document.getElementById('rbc-r-rwy-btns');
+  const rwyHi    = document.getElementById('rbc-r-runway');
+  const runways  = _rbcRunwayIdentsForCurrentAirport_();
+  const activeRwy = String((window._rbcState && window._rbcState.rwyIdent) || '').trim().toUpperCase();
+
+  // Aircraft type select — populated from appData + current mission aircraft
+  if (acftSel) {
+    const aircraft = Array.isArray(window.appData && window.appData.aircraft) ? window.appData.aircraft : [];
+    const typeSet = {};
+    const types = [];
+    aircraft.forEach(function(a) {
+      const t = String((a && (a.aircraftType || a.type || a.model)) || '').trim().toUpperCase();
+      if (t && !typeSet[t]) { typeSet[t] = true; types.push(t); }
+    });
+    const missionAcft = String((window._rbcState && window._rbcState.acft) || '').trim().toUpperCase();
+    if (missionAcft && !typeSet[missionAcft]) { typeSet[missionAcft] = true; types.push(missionAcft); }
+    types.sort();
+    if (!types.length) types.push(missionAcft || 'UNSPECIFIED');
+    acftSel.innerHTML = types.map(function(t) { return '<option value="' + _rbcEsc(t) + '">' + _rbcEsc(t) + '</option>'; }).join('');
+  }
+
+  // Runway buttons — one per ident, active = current runway
+  if (rwyBtns) {
+    const opts = runways.length ? runways : (activeRwy ? [activeRwy] : ['--']);
+    rwyBtns.innerHTML = opts.map(function(r) {
+      const active = r === activeRwy ? ' active' : '';
+      return '<button type="button" class="rbc-side-btn' + active + '" data-val="' + _rbcEsc(r) + '" onclick="rbcSelectRestrRwy(this)">' + _rbcEsc(r) + '</button>';
+    }).join('');
+    if (rwyHi) rwyHi.value = activeRwy || (runways[0] || '');
+  }
+}
+
+function _rbcPopulateFeatureDropdowns() {
+  const rwyBtns  = document.getElementById('rbc-feat-rwy-btns');
+  const rwyHi    = document.getElementById('rbc-feat-runway');
+  const runways  = _rbcRunwayIdentsForCurrentAirport_();
+  const activeRwy = String((window._rbcState && window._rbcState.rwyIdent) || '').trim().toUpperCase();
+
+  // Runway buttons — one per ident
+  if (rwyBtns) {
+    const opts = runways.length ? runways : (activeRwy ? [activeRwy] : ['--']);
+    rwyBtns.innerHTML = opts.map(function(rw) {
+      const active = rw === activeRwy ? ' active' : '';
+      return '<button type="button" class="rbc-side-btn' + active + '" data-val="' + _rbcEsc(rw) + '" onclick="rbcSelectFeatRwy(this)">' + _rbcEsc(rw) + '</button>';
+    }).join('');
+    if (rwyHi) rwyHi.value = activeRwy || (runways[0] || '');
+  }
+  // Reset side buttons to default 'left'
+  document.querySelectorAll('#rbc-feat-side-btns .rbc-side-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-side') === 'left');
+  });
+  var hi = document.getElementById('rbc-feat-side');
+  if (hi) hi.value = 'left';
+}
+
+window.rbcSelectFeatRwy = function(btn) {
+  document.querySelectorAll('#rbc-feat-rwy-btns .rbc-side-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  var hi = document.getElementById('rbc-feat-runway');
+  if (hi) hi.value = btn.getAttribute('data-val') || '';
+};
+
+window.rbcSelectRestrRwy = function(btn) {
+  document.querySelectorAll('#rbc-r-rwy-btns .rbc-side-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  var hi = document.getElementById('rbc-r-runway');
+  if (hi) hi.value = btn.getAttribute('data-val') || '';
+};
+
+window.rbcSelectSide = function(btn) {
+  document.querySelectorAll('#rbc-feat-side-btns .rbc-side-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  var hi = document.getElementById('rbc-feat-side');
+  if (hi) hi.value = btn.getAttribute('data-side') || 'left';
+};
+
+window.rbcToggleDepartureTraceMode = function() {
+  const s = window._rbcState;
+  if (!_rbcCanEdit() || !s.editMode) return;
+  if (s.depTraceMode) {
+    // Turning off — finalize current segment if it has >= 2 points
+    if (Array.isArray(s.depTraceActive) && s.depTraceActive.length >= 2) {
+      if (!Array.isArray(s.depTraces)) s.depTraces = [];
+      s.depTraces.push(s.depTraceActive.slice());
+      s.dirty = true;
+    }
+    s.depTraceActive = null;
+    s.depTraceMode = false;
+  } else {
+    // Turning on — start a new segment
+    s.depTraceActive = [];
+    s.depTraceMode = true;
+  }
+  const btn = document.getElementById('rbc-dep-trace');
+  if (btn) {
+    btn.classList.toggle('active', !!s.depTraceMode);
+    btn.textContent = s.depTraceMode ? 'DONE SEGMENT ✓' : 'TRACE PATH';
+  }
+  _rbcSetStatus(s.depTraceMode ? 'Trace active — click points on diagram. Click DONE SEGMENT when finished.' : 'Segment saved. Click TRACE PATH to start another.');
+  _rbcEnableDiagramTap(_rbcCanEdit() && s.editMode);
+  _rbcDrawDiagram();
+};
+
+window.rbcClearDepartureTrace = function() {
+  const s = window._rbcState;
+  if (!_rbcCanEdit() || !s.editMode) return;
+  s.depTraces = null;
+  s.depTraceActive = null;
+  s.depTraceMode = false;
+  if (s.card) s.card.depTracePoints = null;
+  s.dirty = true;
+  const btn = document.getElementById('rbc-dep-trace');
+  if (btn) { btn.classList.remove('active'); btn.textContent = 'TRACE PATH'; }
+  _rbcDrawDiagram();
+};
+
+// ── departure path ────────────────────────────────────────────────
+
+window.rbcSetDeparture = function(dir) {
+  const s = window._rbcState;
+  if (!_rbcCanEdit() || !s.editMode) return;
+  // Legacy function kept for compatibility; departure arrows are no longer used.
+  if (s.card) s.card.departureArrow = null;
+  s.dirty = true;
+  _rbcDrawDiagram();
+};
+
+// ── photo drag / drop / paste ─────────────────────────────────────
+
+window.rbcPhotoDragOver = function(e) {
+  e.preventDefault(); e.stopPropagation();
+  if (!(window._rbcState && window._rbcState.editMode)) return;
+  const box = document.getElementById('rbc-photo-box');
+  if (box) box.classList.add('dragover');
+};
+
+window.rbcPhotoDragLeave = function(e) {
+  const box = document.getElementById('rbc-photo-box');
+  if (box) box.classList.remove('dragover');
+};
+
+window.rbcPhotoDrop = function(e) {
+  e.preventDefault(); e.stopPropagation();
+  const box = document.getElementById('rbc-photo-box');
+  if (box) box.classList.remove('dragover');
+  if (!(window._rbcState && window._rbcState.editMode)) return;
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if (files && files.length) _rbcHandlePhotoFile(files[0]);
+};
+
+(function() {
+  document.addEventListener('paste', function(e) {
+    const s = window._rbcState;
+    const overlay = document.getElementById('rbc-overlay');
+    if (!overlay || !overlay.classList.contains('rbc-open')) return;
+    if (!s || !s.editMode) return;
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') >= 0) {
+        const file = items[i].getAsFile();
+        if (file) { _rbcHandlePhotoFile(file); break; }
+      }
+    }
+  });
+})();
+
+function _rbcHandlePhotoFile(file) {
+  if (!file || !file.type || !file.type.match(/^image\//)) {
+    _rbcSetStatus('Not an image file.');
+    return;
+  }
+  const statusEl = document.getElementById('rbc-photo-upload-status');
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Reading image...'; }
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const dataUrl = String(ev.target.result || '');
+    const parts = dataUrl.split(',');
+    if (parts.length < 2) { _rbcSetStatus('Could not read image.'); return; }
+    const base64 = parts[1];
+    const mimeType = file.type;
+    const s = window._rbcState;
+    const icaoSafe = String(s.icao || 'XX').replace(/[^A-Z0-9]/g, '');
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const fileName = file.name || ('airstrip_' + icaoSafe + '_' + Date.now() + '.' + ext);
+    // Show preview immediately
+    const box = document.getElementById('rbc-photo-box');
+    if (box) box.innerHTML = '<img src="' + dataUrl + '" alt="Airstrip photo" style="width:100%;height:auto;border-radius:4px;">';
+    if (statusEl) statusEl.textContent = 'Uploading to Google Drive...';
+    if (!(window.google && google.script && google.script.run)) {
+      s.card.airstripPhoto = dataUrl;
+      s.dirty = true;
+      if (statusEl) { statusEl.textContent = 'Preview only — will upload when online.'; }
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (statusEl) statusEl.style.display = 'none';
+        if (result && result.success) {
+          s.card.airstripPhoto = result.url;
+          s.dirty = true;
+          if (box) box.innerHTML = '<img src="' + _rbcEsc(result.url) + '" alt="Airstrip photo" style="width:100%;height:auto;border-radius:4px;">';
+          _rbcSetStatus('Photo uploaded to Drive ✓');
+        } else {
+          _rbcSetStatus('Upload failed: ' + _rbcEsc(String((result && result.error) || 'unknown error')));
+        }
+      })
+      .withFailureHandler(function(err) {
+        if (statusEl) statusEl.style.display = 'none';
+        const msg = String(err || '');
+        if (/access denied|permission|insufficient/i.test(msg)) {
+          s.card.airstripPhoto = dataUrl;
+          s.dirty = true;
+          _rbcSetStatus('Drive permission denied. Saved local embedded photo instead.');
+          return;
+        }
+        _rbcSetStatus('Upload error: ' + _rbcEsc(msg));
+      })
+      .uploadAirstripPhotoToDrive(s.icao, s.rwyIdent, base64, mimeType, fileName);
+  };
+  reader.readAsDataURL(file);
 }
 </script>

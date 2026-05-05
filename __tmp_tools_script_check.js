@@ -1,1484 +1,4 @@
-<style>
-  #tools-container { min-height:100%; background:#edf1f4; padding:16px; font-family:"Segoe UI",sans-serif; }
-  .tools-action-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
-  .tools-action-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:#fff; border:1px solid #d1dce6; border-radius:12px; padding:14px 18px; min-width:110px; cursor:pointer; transition:background 0.12s,box-shadow 0.12s; box-shadow:0 2px 6px rgba(0,0,0,0.07); font-family:inherit; }
-  .tools-action-btn:hover { background:#e8f0fe; box-shadow:0 4px 12px rgba(0,0,0,0.12); }
-  .tools-action-btn i   { font-size:2rem; color:#0b5394; }
-  .tools-action-btn span { font-size:0.76rem; font-weight:800; color:#1a3a5c; text-transform:uppercase; text-align:center; }
-  .tools-panel { background:#fff; border-radius:10px; border:1px solid #d8e0e8; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:16px; margin-bottom:16px; display:none; }
-  .tools-panel.open { display:block; }
-  .tools-panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-  .tools-panel-title  { margin:0; color:#0b5394; font-weight:800; font-size:1rem; text-transform:uppercase; letter-spacing:0.03em; }
-  .tools-panel-close  { background:none; border:none; cursor:pointer; color:#90a4ae; font-size:1.4rem; line-height:1; padding:0; }
-  .tools-field { margin-bottom:10px; }
-  .tools-field label  { display:block; margin-bottom:3px; font-size:0.76rem; color:#0b5394; font-weight:700; text-transform:uppercase; }
-  .tools-field input, .tools-field select, .tools-field textarea { width:100%; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; min-height:36px; padding:0 8px; font-size:0.92rem; background:#fff; font-family:inherit; }
-  .tools-field textarea { padding:8px; resize:vertical; min-height:84px; }
-  .tools-row { display:flex; gap:8px; }
-  .tools-row > .tools-field { flex:1; }
-  .tools-btn-row { display:flex; gap:8px; margin-top:12px; }
-  .tools-btn-row button { flex:1; border:none; border-radius:8px; height:38px; font-weight:800; font-size:0.82rem; cursor:pointer; }
-  .btn-tp { background:#2e7d32; color:#fff; }
-  .btn-ts { background:#546e7a; color:#fff; }
-  .btn-ta { background:#1565c0; color:#fff; }
-  #tools-wp-preview-map    { height:190px; border:1px solid #d1dbe6; border-radius:8px; display:none; margin-top:6px; }
-  #tools-wp-preview-coords { display:none; margin-top:6px; font-size:0.8rem; font-weight:700; color:#0b5394; }
-  #tools-airport-search-input { width:100%; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; height:38px; padding:0 10px; font-size:0.92rem; margin-bottom:10px; }
-  .tools-airport-card    { background:#f7fbff; border:1px solid #d0e3f7; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
-  .tools-airport-name    { font-weight:800; color:#0b5394; font-size:0.95rem; margin-bottom:4px; }
-  .tools-airport-meta    { font-size:0.78rem; color:#546e7a; margin-bottom:8px; }
-  .tools-airport-actions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-  .tools-apbtn        { border:none; border-radius:6px; padding:5px 10px; font-size:0.75rem; font-weight:800; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
-  .tools-apbtn-blue   { background:#1565c0; color:#fff; }
-  .tools-apbtn-teal   { background:#00695c; color:#fff; }
-  .tools-apbtn-earth  { background:#37474f; color:#fff; }
-  .tools-apbtn-map    { background:#2e7d32; color:#fff; }
-  .tools-apbtn-fuel   { background:#2e7d32; color:#fff; }
-  .tools-apbtn-nofuel { background:#eceff1; color:#78909c; cursor:default; }
-  #tools-contact-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center; }
-  #tools-contact-overlay.open { display:flex; }
-  #tools-contact-box  { background:#fff; border-radius:12px; padding:20px; width:min(94vw,440px); max-height:86vh; overflow-y:auto; position:relative; }
-  .tools-contact-title { font-size:1rem; font-weight:800; color:#0b5394; margin:0 0 4px 0; }
-  .tools-contact-sub   { font-size:0.78rem; color:#78909c; margin:0 0 12px 0; }
-  .tools-contact-row   { display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:7px 0; font-size:0.85rem; }
-  .tools-contact-row:last-child { border-bottom:none; }
-  .tools-contact-label { color:#546e7a; font-weight:700; }
-  .tools-contact-val   { color:#263238; font-weight:600; text-align:right; max-width:60%; }
-  .tools-contact-notes { margin-top:10px; background:#f7f9fc; border-left:4px solid #1976d2; padding:8px 10px; font-size:0.82rem; border-radius:4px; color:#37474f; white-space:pre-wrap; }
-  #tools-rwy-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9998; align-items:center; justify-content:center; }
-  #tools-rwy-overlay.open { display:flex; }
-  #tools-rwy-box  { background:#fff; border-radius:12px; padding:20px; width:min(96vw,680px); max-height:90vh; overflow-y:auto; position:relative; }
-  #tools-rwy-title { font-size:1rem; font-weight:800; color:#0b5394; margin:0 0 2px 0; }
-  #tools-rwy-sub   { font-size:0.78rem; color:#78909c; margin:0 0 12px 0; }
-  #tools-airport-edit-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10000; align-items:center; justify-content:center; }
-  #tools-airport-edit-overlay.open { display:flex; }
-  #tools-airport-edit-box { background:#fff; border-radius:12px; padding:18px; width:min(96vw,760px); max-height:90vh; overflow-y:auto; position:relative; }
-  #tools-airport-edit-title { font-size:1rem; font-weight:800; color:#0b5394; margin:0 0 2px 0; }
-  #tools-airport-edit-sub { font-size:0.78rem; color:#78909c; margin:0 0 10px 0; }
-  .tools-airport-edit-block { border:1px solid #dbe7f3; border-radius:8px; padding:10px; background:#f9fcff; margin-bottom:10px; }
-  .tools-airport-edit-block h4 { margin:0 0 8px 0; font-size:0.82rem; font-weight:800; color:#0b5394; text-transform:uppercase; }
-  .tools-airport-edit-check { display:flex; align-items:center; gap:8px; margin:0 0 10px 0; font-size:0.82rem; font-weight:700; color:#1a3a5c; }
-  .tools-airport-edit-check input { margin:0; }
-  .tools-cache-row { padding:12px; border-bottom:1px solid #eee; cursor:pointer; }
-  .tools-cache-row:hover { background:#f0f4f8; }
-  #tools-fuel-adjust-panel { background:#f7fbff; border:1px solid #d0e3f7; border-radius:8px; padding:14px; margin-top:12px; display:none; }
-  #tools-fuel-adjust-panel.open { display:block; }
-  #tools-dbadd-fields { display:grid; grid-template-columns:1fr; gap:8px; max-height:52vh; overflow:auto; padding-right:4px; }
-  #tools-dbadd-preview-map { height:210px; border:1px solid #d1dbe6; border-radius:8px; display:none; margin-top:8px; }
-  #tools-dbadd-preview-coords { display:none; margin-top:6px; font-size:0.8rem; font-weight:700; color:#0b5394; }
-  .tools-dbadd-help { margin:6px 0 0 0; font-size:0.76rem; color:#546e7a; }
-  .tools-search-box { background:#f7fbff; border:1px solid #d0e3f7; border-radius:8px; padding:10px; margin-bottom:12px; }
-  .tools-search-results { max-height:180px; overflow:auto; border:1px solid #e0e6eb; border-radius:8px; background:#fff; }
-  .tools-search-item { padding:8px 10px; border-bottom:1px solid #eef2f5; cursor:pointer; }
-  .tools-search-item:last-child { border-bottom:none; }
-  .tools-search-item:hover { background:#f3f8fd; }
-  .tools-search-name { font-weight:800; color:#0b5394; font-size:0.88rem; }
-  .tools-search-meta { font-size:0.76rem; color:#607d8b; margin-top:2px; }
-  .tools-donation-box { background:#f7fbff; border:1px solid #d0e3f7; border-radius:8px; padding:12px; margin-bottom:12px; }
-  .tools-donation-note { font-size:0.78rem; color:#546e7a; margin-top:6px; }
-  .tools-donation-map { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-  .tools-donation-sample { width:100%; border-collapse:collapse; font-size:0.76rem; }
-  .tools-donation-sample th, .tools-donation-sample td { border:1px solid #dbe4ee; padding:5px 6px; text-align:left; }
-  .tools-donation-sample th { background:#eff5fb; color:#0b5394; font-weight:800; }
-  .tools-donation-row { border:1px solid #dbe4ee; border-radius:8px; padding:10px; margin-bottom:8px; background:#fff; }
-  .tools-donation-row-head { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
-  .tools-donation-badge { display:inline-block; padding:3px 8px; border-radius:999px; font-size:0.72rem; font-weight:800; }
-  .tools-donation-badge.new { background:#e8f5e9; color:#1b5e20; }
-  .tools-donation-badge.possible_duplicate { background:#fff8e1; color:#8d6e00; }
-  .tools-donation-badge.likely_duplicate { background:#ffebee; color:#b71c1c; }
-  .tools-donation-badge.invalid { background:#eceff1; color:#455a64; }
-  .tools-donation-decision { font-size:0.73rem; font-weight:800; color:#0b5394; margin-top:4px; }
-  .tools-mini-btn { border:none; border-radius:6px; padding:5px 8px; font-size:0.74rem; font-weight:800; cursor:pointer; }
-  .tools-mini-btn.commit { background:#2e7d32; color:#fff; }
-  .tools-mini-btn.duplicate { background:#c62828; color:#fff; }
-  .tools-mini-btn.ignore { background:#546e7a; color:#fff; }
-  .tools-donation-badge.auto_matched { background:#e3f2fd; color:#0d47a1; }
-  .tools-donation-badge.needs_selection { background:#fff3e0; color:#e65100; }
-  .tools-donation-campaign-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #f0f4f8; flex-wrap:wrap; }
-  .tools-donation-campaign-row:last-child { border-bottom:none; }
-  .tools-donation-campaign-label { flex:1; min-width:160px; font-size:0.82rem; font-weight:700; color:#263238; display:flex; align-items:center; gap:6px; }
-  .tools-donation-campaign-count { font-size:0.72rem; color:#90a4ae; font-weight:600; }
-  .tools-donation-campaign-sel { flex:1; min-width:200px; font-size:0.82rem !important; height:34px !important; }
-  .tools-ac-note { font-size:0.78rem; color:#546e7a; margin:0 0 10px 0; }
-  .tools-ac-mode { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
-  .tools-ac-mode button { height:34px; border:none; border-radius:6px; padding:0 12px; font-size:0.78rem; font-weight:800; cursor:pointer; background:#eceff1; color:#455a64; }
-  .tools-ac-mode button.active { background:#0b5394; color:#fff; }
-  .tools-ac-section { border:1px solid #dbe4ee; border-radius:8px; padding:10px; margin-bottom:10px; background:#fff; }
-  .tools-ac-title { font-size:0.82rem; font-weight:800; color:#0b5394; margin-bottom:8px; }
-  .tools-ac-row { border:1px dashed #dbe4ee; border-radius:8px; padding:8px; margin-bottom:8px; }
-  .tools-ac-row-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-  .tools-ac-grid { display:grid; grid-template-columns:repeat(2, minmax(180px, 1fr)); gap:8px; }
-  .tools-ac-field label { display:block; font-size:0.72rem; font-weight:700; color:#607d8b; margin-bottom:4px; }
-  .tools-ac-field input { width:100%; height:34px; border:1px solid #d1dbe6; border-radius:6px; padding:0 8px; font-size:0.8rem; box-sizing:border-box; }
-  .tools-ac-envelope-preview { margin-top:10px; border:1px solid #dbe4ee; border-radius:8px; background:#f8fbff; padding:8px; }
-  .tools-ac-envelope-note { font-size:0.74rem; color:#607d8b; margin-bottom:6px; }
-  .tools-ac-envelope-svg { width:100%; height:230px; display:block; }
-  .tools-route-ctx-label { background:rgba(255,255,255,0.85); border:1px solid #cfd8dc; color:#37474f; font-size:0.68rem; font-weight:700; padding:1px 4px; border-radius:3px; box-shadow:none; }
-  .tools-route-mode-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-  .tools-route-mode-btn { height:34px; border:none; border-radius:6px; padding:0 12px; font-size:0.78rem; font-weight:800; cursor:pointer; background:#eceff1; color:#455a64; }
-  .tools-route-mode-btn.active { background:#0b5394; color:#fff; }
-  .tools-route-manager-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
-  .tools-route-manager-grid .full { grid-column:1 / -1; }
-  .tools-syl-plan { border:1px solid #dbe7f3; border-radius:10px; background:#f8fbff; padding:10px; margin-top:8px; }
-  .tools-syl-plan h4 { margin:0 0 6px 0; font-size:0.82rem; font-weight:800; color:#0b5394; text-transform:uppercase; }
-  .tools-syl-plan-note { margin:0 0 8px 0; font-size:0.75rem; color:#546e7a; }
-  .tools-syl-q { margin-bottom:8px; }
-  .tools-syl-q label { display:block; font-size:0.76rem; font-weight:800; color:#455a64; margin-bottom:4px; text-transform:none; }
-  .tools-syl-q input, .tools-syl-q select, .tools-syl-q textarea { width:100%; min-height:34px; box-sizing:border-box; }
-  .tools-syl-route-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
-  .tools-syl-route-summary { margin-top:6px; font-size:0.76rem; color:#455a64; font-weight:700; }
-  .tools-syl-add-stop { height:34px; border:none; border-radius:6px; padding:0 10px; font-size:0.74rem; font-weight:800; cursor:pointer; background:#1565c0; color:#fff; }
-  .tools-syl-order-list { margin-top:8px; border:1px solid #d1dbe6; border-radius:8px; background:#fff; }
-  .tools-syl-order-row { display:grid; grid-template-columns:26px 1fr auto; gap:8px; align-items:center; padding:6px 8px; border-bottom:1px solid #edf2f7; }
-  .tools-syl-order-row:last-child { border-bottom:none; }
-  .tools-syl-order-idx { font-size:0.78rem; font-weight:800; color:#607d8b; }
-  .tools-syl-order-label { font-size:0.78rem; font-weight:700; color:#263238; }
-  .tools-syl-order-actions { display:flex; gap:4px; }
-  .tools-syl-order-actions button { height:28px; border:none; border-radius:6px; padding:0 8px; font-size:0.72rem; font-weight:800; cursor:pointer; }
-  .tools-syl-order-actions .updown { background:#eceff1; color:#37474f; }
-  .tools-syl-order-actions .remove { background:#c62828; color:#fff; }
-  .tools-syl-maneuver-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:4px 8px; margin-top:6px; }
-  .tools-syl-maneuver-grid label { display:flex; gap:6px; align-items:center; font-size:0.78rem; color:#37474f; font-weight:700; text-transform:none; }
-  @media (max-width: 880px) {
-    .tools-syl-route-grid { grid-template-columns:1fr; }
-    .tools-syl-maneuver-grid { grid-template-columns:1fr; }
-  }
-  .tools-route-preview-map { height:280px; border:1px solid #d1dbe6; border-radius:8px; display:none; margin-top:8px; }
-  .tools-route-preview-coords { display:none; margin-top:6px; font-size:0.8rem; font-weight:700; color:#0b5394; }
-  .tools-route-muted { font-size:0.76rem; color:#607d8b; }
-  .tools-route-select-wrap { margin-bottom:10px; }
-  @media (max-width: 760px) {
-    .tools-route-manager-grid { grid-template-columns:1fr; }
-  }
-  .tools-report-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-bottom:12px; }
-  .tools-report-card { background:#f7fbff; border:1px solid #d0e3f7; border-radius:8px; padding:10px; }
-  .tools-report-card-label { font-size:0.72rem; font-weight:800; color:#607d8b; text-transform:uppercase; margin-bottom:4px; }
-  .tools-report-card-value { font-size:1.15rem; font-weight:800; color:#0b5394; }
-  .tools-report-section { background:#f9fcff; border:1px solid #dbe7f3; border-radius:8px; padding:10px; margin-bottom:10px; }
-  .tools-report-section-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
-  .tools-report-section-head h4 { margin:0; font-size:0.82rem; font-weight:800; color:#0b5394; text-transform:uppercase; }
-  .tools-report-meta { font-size:0.75rem; color:#607d8b; font-weight:700; }
-  .tools-build-meta { margin:-6px 0 12px 0; font-size:0.72rem; color:#78909c; font-weight:700; }
-  .tools-diag-meta { margin-top:6px; font-size:0.73rem; color:#607d8b; font-weight:700; }
-  .tools-report-table-wrap { overflow:auto; border:1px solid #dbe4ee; border-radius:8px; background:#fff; }
-  .tools-report-table { width:100%; border-collapse:collapse; font-size:0.78rem; }
-  .tools-report-table th, .tools-report-table td { border-bottom:1px solid #edf2f7; padding:7px 8px; text-align:left; white-space:nowrap; }
-  .tools-report-table th { background:#eff5fb; color:#0b5394; font-weight:800; position:sticky; top:0; z-index:1; }
-  .tools-report-table tr:last-child td { border-bottom:none; }
-  .tools-report-empty { color:#90a4ae; font-size:0.85rem; padding:10px 0; }
-  .tools-report-intro { background:linear-gradient(135deg,#f7fbff 0%,#eef6ff 100%); border:1px solid #d7e6f5; border-radius:10px; padding:12px; margin-bottom:12px; }
-  .tools-report-intro-title { font-size:0.86rem; font-weight:900; color:#0b5394; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px; }
-  .tools-report-intro-copy { font-size:0.79rem; color:#546e7a; margin:0; }
-  .tools-report-category-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin:12px 0; }
-  .tools-report-category-btn { border:1px solid #cddceb; border-radius:10px; background:#fff; color:#455a64; padding:10px 12px; text-align:left; cursor:pointer; transition:background 0.12s,border-color 0.12s,box-shadow 0.12s; }
-  .tools-report-category-btn.active { background:#0b5394; border-color:#0b5394; color:#fff; box-shadow:0 6px 18px rgba(11,83,148,0.18); }
-  .tools-report-category-label { display:block; font-size:0.78rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; }
-  .tools-report-category-sub { display:block; margin-top:3px; font-size:0.72rem; font-weight:700; opacity:0.8; }
-  .tools-report-category-meta { font-size:0.76rem; color:#607d8b; font-weight:700; margin:0 0 10px 0; }
-  .tools-report-export-groups { display:grid; gap:8px; margin-top:8px; }
-  .tools-report-export-group { display:none; }
-  .tools-report-export-group.active { display:flex; gap:8px; flex-wrap:wrap; }
-  .tools-report-export-group button { flex:1 1 180px; }
-  .tools-report-group { display:none; }
-  .tools-report-group.active { display:block; }
-  .tools-report-roadmap-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px; }
-  .tools-report-roadmap-card { background:#fff; border:1px solid #dbe4ee; border-radius:8px; padding:10px; }
-  .tools-report-roadmap-status { display:inline-block; margin-bottom:6px; padding:3px 8px; border-radius:999px; font-size:0.68rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; }
-  .tools-report-roadmap-status.live { background:#e8f5e9; color:#1b5e20; }
-  .tools-report-roadmap-status.next { background:#fff3e0; color:#e65100; }
-  .tools-report-roadmap-status.later { background:#eceff1; color:#455a64; }
-  .tools-report-roadmap-title { font-size:0.82rem; font-weight:900; color:#0b5394; margin-bottom:4px; }
-  .tools-report-roadmap-copy { font-size:0.76rem; color:#546e7a; margin:0 0 8px 0; }
-  .tools-report-roadmap-meta { font-size:0.72rem; color:#78909c; font-weight:700; }
-  .tools-flight-detail-search { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:end; }
-  .tools-flight-detail-layout { display:grid; grid-template-columns:2fr 1fr; gap:8px; }
-  .tools-flight-detail-col { display:grid; gap:8px; }
-  .tools-flight-detail-kv { display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:6px; }
-  .tools-flight-detail-kv-item { background:#fff; border:1px solid #dbe4ee; border-radius:7px; padding:7px 8px; }
-  .tools-flight-detail-kv-label { font-size:0.76rem; font-weight:900; color:#546e7a; text-transform:uppercase; margin-bottom:2px; line-height:1.05; }
-  .tools-flight-detail-kv-value { font-size:1rem; color:#263238; font-weight:800; line-height:1.18; white-space:pre-wrap; word-break:break-word; }
-  .tools-flight-detail-card { background:#fff; border:1px solid #dbe4ee; border-radius:7px; padding:8px; }
-  .tools-flight-detail-card h5 { margin:0 0 6px 0; font-size:0.84rem; font-weight:900; color:#0b5394; text-transform:uppercase; letter-spacing:0.01em; }
-  .tools-flight-detail-graph-wrap { background:#f8fbff; border:1px solid #dbe7f3; border-radius:8px; padding:8px; }
-  .tools-flight-detail-graph-meta { font-size:0.88rem; color:#455a64; font-weight:700; margin-top:6px; line-height:1.2; }
-  @media (max-width: 900px) {
-    .tools-flight-detail-layout { grid-template-columns:1fr; }
-  }
-  .tools-discrepancy-row { border:1px solid #dbe4ee; border-radius:8px; padding:8px; background:#fff; margin-bottom:8px; }
-  .tools-discrepancy-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
-  .tools-discrepancy-id { font-size:0.74rem; font-weight:800; color:#0b5394; }
-  .tools-discrepancy-status { font-size:0.72rem; font-weight:800; color:#455a64; background:#eceff1; border-radius:999px; padding:3px 8px; }
-  .tools-discrepancy-desc { font-size:0.82rem; color:#263238; margin-bottom:6px; white-space:pre-wrap; }
-  .tools-discrepancy-meta { font-size:0.74rem; color:#607d8b; font-weight:700; margin-bottom:8px; }
-  .tools-discrepancy-actions { display:flex; gap:6px; flex-wrap:wrap; }
-  .tools-master-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
-  .tools-master-note { font-size:0.78rem; color:#546e7a; margin:0 0 10px 0; }
-  .tools-dutylogs-table-wrap { overflow:auto; border:1px solid #dbe4ee; border-radius:8px; background:#fff; max-height:360px; }
-  .tools-dutylogs-table { width:100%; border-collapse:collapse; font-size:0.78rem; }
-  .tools-dutylogs-table th, .tools-dutylogs-table td { border-bottom:1px solid #edf2f7; padding:7px 8px; text-align:left; white-space:nowrap; }
-  .tools-dutylogs-table th { background:#eff5fb; color:#0b5394; font-weight:800; position:sticky; top:0; z-index:1; }
-  .tools-dutylogs-editor { margin-top:10px; border:1px solid #dbe4ee; border-radius:8px; background:#f9fcff; padding:10px; }
-  .tools-dutylogs-linkbtn { border:none; background:none; color:#1565c0; font-weight:800; cursor:pointer; padding:0; text-decoration:underline; }
-  .tools-dutylogs-detailbox { margin:8px 0; border:1px solid #dbe4ee; border-radius:8px; background:#fff; padding:10px; }
-  .tools-dutylogs-detailtitle { font-size:0.74rem; font-weight:800; color:#0b5394; text-transform:uppercase; margin-bottom:5px; }
-  .tools-dutylogs-detailtext { font-size:0.8rem; color:#263238; white-space:pre-wrap; line-height:1.45; }
-  .tools-dutylogs-flightline { font-size:0.78rem; color:#37474f; padding:4px 0; border-bottom:1px solid #eef3f7; }
-  .tools-perm-table-wrap { overflow:auto; border:1px solid #dbe4ee; border-radius:8px; background:#fff; max-height:420px; }
-  .tools-perm-table { width:100%; border-collapse:collapse; font-size:0.76rem; }
-  .tools-perm-table th, .tools-perm-table td { border-bottom:1px solid #edf2f7; padding:6px 8px; text-align:left; }
-  .tools-perm-table th { background:#eff5fb; color:#0b5394; font-weight:800; position:sticky; top:0; z-index:1; white-space:nowrap; }
-  .tools-perm-cell-center { text-align:center; }
-</style>
-
-<div id="tools-container">
-  <div class="tools-action-grid">
-    <button class="tools-action-btn" onclick="toolsOpenPanel('pax')"><i class="material-icons">person_add</i><span>Add Passenger</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenPassengerEditor()"><i class="material-icons">manage_accounts</i><span>Edit Passenger</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenPanel('fuel')"><i class="material-icons">local_gas_station</i><span>Fuel Cache</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenPanel('waypoint')"><i class="material-icons">add_location</i><span>Add Waypoint</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenPanel('airports')"><i class="material-icons">flight_land</i><span>Airports</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenReportsPanel()"><i class="material-icons">assessment</i><span>Reports</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenDiscrepancyPanel()"><i class="material-icons">report_problem</i><span>Report Discrepancy</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenDbAdd('airports')"><i class="material-icons">add_business</i><span>Add Airport</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenStaffPanel()"><i class="material-icons">badge</i><span>Add/Edit Staff</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenPilotAuthPanel()"><i class="material-icons">verified_user</i><span>Pilot Authorizations</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenSavedRoutesPanel()"><i class="material-icons">route</i><span>Route Manager</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenTrainingModulePanel()"><i class="material-icons">school</i><span>Training Modules</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenDbAdd('syllabus')"><i class="material-icons">menu_book</i><span>Plano de Aula</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenPracticalEvalPanel()"><i class="material-icons">fact_check</i><span>Avaliação Prática</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenSchedulerPanel()"><i class="material-icons">event_available</i><span>Scheduler</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenMasterConfigPanel()"><i class="material-icons">tune</i><span>Master Config</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenDutyLogsPanel()"><i class="material-icons">schedule</i><span>Duty Time Logs</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenPermissionsPanel()"><i class="material-icons">admin_panel_settings</i><span>Permissions</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenDbAdd('schedcoverage')"><i class="material-icons">rule_folder</i><span>Sched Coverage Rules</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenDbAdd('schedcompat')"><i class="material-icons">balance</i><span>Sched Compat Rules</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenAircraftDocsPanel()"><i class="material-icons">menu_book</i><span>Aircraft Docs</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenAircraftBuilder()"><i class="material-icons">flight_takeoff</i><span>Add Aircraft</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenDonationImport()"><i class="material-icons">upload_file</i><span>Import Donations</span></button>
-  </div>
-  <div id="tools-build-meta" class="tools-build-meta">Tools build: loading...</div>
-
-  <!-- Passenger Panel -->
-  <div id="tools-panel-pax" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title" id="tools-pax-panel-title">Add New Passenger</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('pax')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0; flex:1 1 auto;"><label for="tools-pax-search">Search Existing Passenger</label><input id="tools-pax-search" type="text" placeholder="Name, ID, or phone" oninput="toolsSearchPassengers()"></div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 132px;"><button class="btn-ta" type="button" onclick="toolsSearchPassengers()">SEARCH</button></div>
-      </div>
-      <div id="tools-pax-search-results" class="tools-search-results" style="margin-top:8px;"><div style="color:#90a4ae;font-size:0.85rem;padding:10px;">Search to edit an existing passenger, or leave blank to add a new one.</div></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field" style="flex:2"><label for="tools-pax-name">Passenger Name</label><input id="tools-pax-name" type="text" placeholder="Full Name"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pax-id-type">ID Type</label><input id="tools-pax-id-type" type="text" placeholder="CPF / Passport"></div>
-      <div class="tools-field"><label for="tools-pax-id-num">ID Number</label><input id="tools-pax-id-num" type="text"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pax-weight">Weight (kg)</label><input id="tools-pax-weight" type="number" inputmode="decimal" step="0.1"></div>
-      <div class="tools-field"><label for="tools-pax-dob">Date of Birth</label><input id="tools-pax-dob" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-pax-dob')"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pax-gender">Gender</label><select id="tools-pax-gender" class="browser-default"><option value="M">Male</option><option value="F">Female</option></select></div>
-      <div class="tools-field"><label for="tools-pax-phone">Phone</label><input id="tools-pax-phone" type="text"></div>
-    </div>
-    <div class="tools-btn-row">
-      <button class="btn-tp" onclick="toolsSavePax()">SAVE PASSENGER</button>
-      <button class="btn-ta" onclick="toolsResetPassengerEditor()">NEW PASSENGER</button>
-      <button class="btn-ts" onclick="toolsClearPax()">CLEAR</button>
-    </div>
-  </div>
-
-  <!-- Fuel Cache Panel -->
-  <div id="tools-panel-fuel" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Fuel Cache</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('fuel')">&times;</button>
-    </div>
-    <input id="tools-fuel-search" type="text" placeholder="Search ICAO or location…" oninput="toolsFilterFuelList()" style="width:100%;box-sizing:border-box;border:1px solid #c8d3de;border-radius:6px;height:36px;padding:0 10px;font-size:0.92rem;margin-bottom:10px;">
-    <div id="tools-fuel-list"></div>
-    <div id="tools-fuel-adjust-panel">
-      <div style="font-weight:800;color:#0b5394;font-size:0.95rem;" id="tools-adj-title">Update Fuel</div>
-      <div style="font-size:0.78rem;color:#78909c;margin-bottom:12px;" id="tools-adj-sub"></div>
-      <div class="tools-field"><label for="tools-adj-pilot">Pilot</label><select id="tools-adj-pilot" class="browser-default"><option value="" disabled selected>Select Pilot</option></select></div>
-      <div class="tools-field"><label for="tools-adj-acft">Aircraft</label><select id="tools-adj-acft" class="browser-default"><option value="" disabled selected>Select Aircraft</option></select></div>
-      <div style="margin-bottom:10px;">
-        <div style="font-size:0.76rem;font-weight:700;color:#0b5394;margin-bottom:6px;text-transform:uppercase;">Fuel Action</div>
-        <div style="display:flex;gap:8px;">
-          <button type="button" id="tools-fuel-add-btn" onclick="toolsSetFuelMode('add')" style="flex:1;height:46px;border:none;border-radius:8px;background:#2e7d32;color:#fff;font-size:0.9rem;font-weight:800;cursor:pointer;">ADD FUEL</button>
-          <button type="button" id="tools-fuel-sub-btn" onclick="toolsSetFuelMode('subtract')" style="flex:1;height:46px;border:none;border-radius:8px;background:#ffcdd2;color:#8b0000;font-size:0.9rem;font-weight:800;cursor:pointer;">REMOVE FUEL</button>
-        </div>
-        <input type="hidden" id="tools-adj-mode" value="add">
-      </div>
-      <div class="tools-field"><label id="tools-adj-amount-label" for="tools-adj-amount">Liters to add</label><input id="tools-adj-amount" type="number" inputmode="numeric" min="1" step="1" placeholder="Enter liters"></div>
-      <div style="margin-bottom:12px;">
-        <div style="font-size:0.72rem;color:#777;font-weight:700;margin-bottom:6px;">Quick amount</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button type="button" onclick="toolsSetFuelAmount(10)"  style="height:38px;min-width:56px;padding:0 12px;border:1px solid #cfd8dc;border-radius:8px;background:#fff;font-weight:800;color:#0b5394;cursor:pointer;">10L</button>
-          <button type="button" onclick="toolsSetFuelAmount(20)"  style="height:38px;min-width:56px;padding:0 12px;border:1px solid #cfd8dc;border-radius:8px;background:#fff;font-weight:800;color:#0b5394;cursor:pointer;">20L</button>
-          <button type="button" onclick="toolsSetFuelAmount(50)"  style="height:38px;min-width:56px;padding:0 12px;border:1px solid #cfd8dc;border-radius:8px;background:#fff;font-weight:800;color:#0b5394;cursor:pointer;">50L</button>
-          <button type="button" onclick="toolsSetFuelAmount(100)" style="height:38px;min-width:56px;padding:0 12px;border:1px solid #cfd8dc;border-radius:8px;background:#fff;font-weight:800;color:#0b5394;cursor:pointer;">100L</button>
-        </div>
-      </div>
-      <div class="tools-btn-row">
-        <button class="btn-ts" onclick="toolsCloseAdjust()">BACK</button>
-        <button class="btn-tp" onclick="toolsSubmitFuelAdjustment()">CONFIRM &amp; LOG</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Waypoint Panel -->
-  <div id="tools-panel-waypoint" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Waypoint Admin</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('waypoint')">&times;</button>
-    </div>
-    <p style="margin:0 0 10px 0;font-size:0.78rem;color:#555;">Accepts decimal <code>-2.1234</code>, DMS <code>S 06 05 22</code>, or decimal-minutes <code>S 6 5.383</code></p>
-    <div class="tools-field"><label for="tools-wp-id">Waypoint ID</label><input id="tools-wp-id" type="text" placeholder="WP_NORTH01"></div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-wp-lat">Latitude</label><input id="tools-wp-lat" type="text" placeholder="e.g. S 06 05 22" oninput="toolsUpdateWaypointPreview()"></div>
-      <div class="tools-field"><label for="tools-wp-lon">Longitude</label><input id="tools-wp-lon" type="text" placeholder="e.g. W 060 12 34" oninput="toolsUpdateWaypointPreview()"></div>
-    </div>
-    <div class="tools-field"><label for="tools-wp-type">Type</label><select id="tools-wp-type" class="browser-default"><option value="FIX">FIX</option><option value="WATER RUNWAY">WATER RUNWAY</option></select></div>
-    <div id="tools-wp-preview-map"></div>
-    <div id="tools-wp-preview-coords"></div>
-    <div class="tools-btn-row">
-      <button class="btn-tp" onclick="toolsSaveWaypoint()">SAVE WAYPOINT</button>
-      <button class="btn-ts" onclick="toolsClearWaypointForm()">CLEAR</button>
-    </div>
-  </div>
-
-  <!-- Airports Panel -->
-  <div id="tools-panel-airports" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Airports</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('airports')">&times;</button>
-    </div>
-    <div id="tools-airport-sync-meta" style="font-size:0.76rem;color:#607d8b;font-weight:700;margin:-2px 0 8px 0;">Last DB_Airports sync: never</div>
-    <input id="tools-airport-search-input" type="text" placeholder="Search by ICAO or name…" oninput="toolsFilterAirports()">
-    <div id="tools-airport-list"><div style="color:#90a4ae;font-size:0.85rem;padding:8px 0;">Type to search airports.</div></div>
-  </div>
-
-  <div id="tools-panel-aircraftdocs" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Aircraft Docs</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('aircraftdocs')">&times;</button>
-    </div>
-    <p class="tools-ac-note">Use your existing aircraft list from DB_Aircraft and keep per-aircraft document links in DB_Aircraft_Docs for offline tracking.</p>
-    <div class="tools-row">
-      <div class="tools-field">
-        <label for="tools-airdocs-aircraft">Aircraft</label>
-        <select id="tools-airdocs-aircraft" class="browser-default" onchange="toolsAircraftDocsOnAircraftChange()">
-          <option value="" selected>Select aircraft</option>
-        </select>
-      </div>
-      <div class="tools-field" style="max-width:190px;">
-        <label>&nbsp;</label>
-        <button class="btn-ta" type="button" onclick="toolsLoadAircraftDocs()">REFRESH</button>
-      </div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field" style="flex:1;">
-        <label for="tools-airdocs-folder">Drive Folder URL (from DB_Aircraft)</label>
-        <input id="tools-airdocs-folder" type="text" readonly placeholder="Add DOCUMENTS_FOLDER_URL or DRIVE_FOLDER_URL in DB_Aircraft to auto-fill this">
-      </div>
-      <div class="tools-field" style="max-width:190px;">
-        <label>&nbsp;</label>
-        <button class="btn-ts" type="button" onclick="toolsOpenAircraftDocsFolder()">OPEN FOLDER</button>
-      </div>
-    </div>
-    <div id="tools-airdocs-status" style="font-size:0.78rem; color:#607d8b; font-weight:700; margin:6px 0 10px 0;">Pick an aircraft to load docs.</div>
-    <div id="tools-airdocs-list" class="tools-report-table-wrap" style="margin-bottom:12px;"></div>
-
-    <div class="tools-airport-edit-block" style="background:#fff;">
-      <h4>Add / Update Document</h4>
-      <input id="tools-airdocs-row" type="hidden" value="">
-      <input id="tools-airdocs-file" type="file" style="display:none;" onchange="toolsAircraftDocsOnFileSelected_()">
-      <div style="background:#f0f4f8; border-radius:6px; padding:10px 12px; margin-bottom:12px;">
-        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:#546e7a; font-weight:700; margin-bottom:6px;">Upload File to Drive Folder</div>
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px;">
-          <button class="btn-ta" type="button" onclick="document.getElementById('tools-airdocs-file').click()" style="white-space:nowrap; flex-shrink:0;">CHOOSE FILE</button>
-          <span id="tools-airdocs-file-name" style="font-size:0.82rem; color:#455a64; font-style:italic; flex:1; min-width:120px;">No file selected</span>
-          <button class="btn-tp" type="button" onclick="toolsUploadAircraftDoc_()" style="white-space:nowrap; flex-shrink:0;">UPLOAD</button>
-        </div>
-        <div id="tools-airdocs-normalized-name" style="font-size:0.78rem; color:#1565c0; font-weight:700; min-height:16px;"></div>
-      </div>
-      <div class="tools-row">
-        <div class="tools-field"><label for="tools-airdocs-type">Doc Type</label><input id="tools-airdocs-type" type="text" placeholder="AFM / MEL / Insurance / W&B" oninput="toolsAircraftDocsUpdateNormalizedName_()"></div>
-        <div class="tools-field"><label for="tools-airdocs-name">Doc Name <span style="color:#90a4ae; text-transform:none;">(auto-set on upload)</span></label><input id="tools-airdocs-name" type="text" placeholder="C208B AFM Rev 05"></div>
-      </div>
-      <div class="tools-row">
-        <div class="tools-field" style="flex:2;"><label for="tools-airdocs-url">Drive File URL <span style="color:#90a4ae; text-transform:none;">(auto-set on upload, or enter manually)</span></label><input id="tools-airdocs-url" type="text" placeholder="https://drive.google.com/file/..."></div>
-        <div class="tools-field"><label for="tools-airdocs-rev">Revision</label><input id="tools-airdocs-rev" type="text" placeholder="Rev 05"></div>
-      </div>
-      <div class="tools-row">
-        <div class="tools-field"><label for="tools-airdocs-effective">Effective Date</label><input id="tools-airdocs-effective" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-airdocs-effective')"></div>
-        <div class="tools-field"><label for="tools-airdocs-expiry">Expiry Date <span style="color:#90a4ae; text-transform:none;">(optional)</span></label><input id="tools-airdocs-expiry" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-airdocs-expiry')"></div>
-        <div class="tools-field" style="display:flex; align-items:flex-end; gap:14px;">
-          <label style="display:flex; align-items:center; gap:6px; margin:0; text-transform:none;"><input id="tools-airdocs-required" type="checkbox" checked> Required</label>
-          <label style="display:flex; align-items:center; gap:6px; margin:0; text-transform:none;"><input id="tools-airdocs-critical" type="checkbox" checked> Critical</label>
-        </div>
-      </div>
-      <div class="tools-field"><label for="tools-airdocs-notes">Notes</label><textarea id="tools-airdocs-notes" style="min-height:64px;"></textarea></div>
-      <div class="tools-btn-row">
-        <button class="btn-tp" type="button" onclick="toolsSaveAircraftDoc()">SAVE LINK</button>
-        <button class="btn-ta" type="button" onclick="toolsMarkAircraftDocsOffline()">MARK OFFLINE CONFIRMED</button>
-        <button class="btn-ts" type="button" onclick="toolsClearAircraftDocForm()">CLEAR</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="tools-panel-reports" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Reports</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('reports')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-report-start-date">Start Date</label>
-          <input id="tools-report-start-date" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-report-start-date')">
-        </div>
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-report-end-date">End Date</label>
-          <input id="tools-report-end-date" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-report-end-date')">
-        </div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 132px;"><button class="btn-ta" type="button" onclick="toolsLoadReports()">RUN REPORTS</button></div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 110px;"><button class="btn-ts" type="button" onclick="toolsClearReportFilters()">CLEAR</button></div>
-      </div>
-      <div id="tools-report-range-meta" class="tools-report-meta" style="margin-top:8px;">Range: all dates</div>
-      <div id="tools-report-diag-meta" class="tools-diag-meta">Diagnostics: idle</div>
-      <div class="tools-report-intro">
-        <div class="tools-report-intro-title">Report Families</div>
-        <p class="tools-report-intro-copy">Use one shared date range, then switch between Finance, Flight Ops, Maintenance, Training, and Compliance. Finance and Flight Ops are live now; the other families are organized so the next reports can drop into the same panel without changing the workflow.</p>
-      </div>
-      <div class="tools-report-category-bar">
-        <button class="tools-report-category-btn active" type="button" data-tools-report-category="finance" onclick="toolsSetReportCategory('finance')"><span class="tools-report-category-label">Finance</span><span class="tools-report-category-sub">Funds, donations, allocations</span></button>
-        <button class="tools-report-category-btn" type="button" data-tools-report-category="flight" onclick="toolsSetReportCategory('flight')"><span class="tools-report-category-label">Flight Ops</span><span class="tools-report-category-sub">Flights, pilots, utilization</span></button>
-        <button class="tools-report-category-btn" type="button" data-tools-report-category="maintenance" onclick="toolsSetReportCategory('maintenance')"><span class="tools-report-category-label">Maintenance</span><span class="tools-report-category-sub">Discrepancies and due items</span></button>
-        <button class="tools-report-category-btn" type="button" data-tools-report-category="training" onclick="toolsSetReportCategory('training')"><span class="tools-report-category-label">Training</span><span class="tools-report-category-sub">Authorizations and readiness</span></button>
-        <button class="tools-report-category-btn" type="button" data-tools-report-category="compliance" onclick="toolsSetReportCategory('compliance')"><span class="tools-report-category-label">Compliance</span><span class="tools-report-category-sub">Docs, scheduler, audit</span></button>
-      </div>
-      <div id="tools-report-category-meta" class="tools-report-category-meta">Finance focuses on current fund usage and the next funding reports already supported by the data model.</div>
-      <div class="tools-report-export-groups">
-        <div id="tools-report-exports-finance" class="tools-report-export-group active">
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('fund-usage')">EXPORT FUND CSV</button>
-        </div>
-        <div id="tools-report-exports-flight" class="tools-report-export-group">
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('flights')">EXPORT FLIGHTS CSV</button>
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('pilot-logbook')">EXPORT PILOT LOGBOOK CSV</button>
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('monthly-totals')">EXPORT MONTHLY CSV</button>
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('flight-detail')">EXPORT FLIGHT DETAIL CSV</button>
-        </div>
-        <div id="tools-report-exports-maintenance" class="tools-report-export-group"></div>
-        <div id="tools-report-exports-training" class="tools-report-export-group"></div>
-        <div id="tools-report-exports-compliance" class="tools-report-export-group"></div>
-      </div>
-    </div>
-    <div id="tools-report-group-finance" class="tools-report-group active">
-      <div id="tools-report-summary" class="tools-report-cards"></div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Fund Usage</h4>
-          <div id="tools-report-fund-meta" class="tools-report-meta"></div>
-        </div>
-        <div id="tools-report-fund-body"></div>
-      </div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Finance Queue</h4>
-          <div class="tools-report-meta">Organized next so exports and filters stay consistent</div>
-        </div>
-        <div class="tools-report-roadmap-grid">
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Donation Inflow</div>
-            <p class="tools-report-roadmap-copy">Monthly donation totals by fund, campaign, importer batch, and duplicate-review status.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Donations_Ledger, DB_Fund_Ledger, donation staging batches</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Mission Funding Allocation</div>
-            <p class="tools-report-roadmap-copy">Allocated versus finalized spend by mission, aircraft, pilot, and fund source.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Mission_Funding_Allocations, Dispatch, Log_Flights</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status later">Later</div>
-            <div class="tools-report-roadmap-title">Account Reconciliation</div>
-            <p class="tools-report-roadmap-copy">Fund balance movement across donations in, mission use, reversals, and adjustments.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Fund_Ledger with transaction normalization</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tools-report-group-flight" class="tools-report-group">
-      <div id="tools-report-flight-summary" class="tools-report-cards"></div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Flight Detail (By Flight ID)</h4>
-          <div id="tools-report-flightdetail-meta" class="tools-report-meta">Load one flight to view all saved fields, W&B, debrief, fuel/times, and passengers.</div>
-        </div>
-        <div class="tools-flight-detail-search" style="margin-bottom:8px;">
-          <div class="tools-field" style="margin-bottom:0;">
-            <label for="tools-report-flight-id">Flight ID</label>
-            <input id="tools-report-flight-id" type="text" placeholder="ADS26-001-01">
-          </div>
-          <button class="btn-ta" type="button" onclick="toolsLoadFlightDetailReport_()">LOAD FLIGHT DETAIL</button>
-          <button class="btn-ts" type="button" onclick="(function(){ var el=document.getElementById('tools-report-flight-id'); if(el) el.value=''; _toolsFlightDetailData=null; toolsRenderFlightDetailReport_(null); })()">CLEAR</button>
-        </div>
-        <div id="tools-report-flightdetail-body"><div class="tools-report-empty">Enter a Flight ID and click LOAD FLIGHT DETAIL.</div></div>
-      </div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Flights</h4>
-          <div id="tools-report-flight-meta" class="tools-report-meta"></div>
-        </div>
-        <div id="tools-report-flight-body"></div>
-      </div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Pilot Log Book</h4>
-          <div id="tools-report-pilot-meta" class="tools-report-meta"></div>
-        </div>
-        <div id="tools-report-pilot-body"></div>
-      </div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Monthly Flight Totals By Type</h4>
-          <div id="tools-report-monthly-meta" class="tools-report-meta"></div>
-        </div>
-        <div id="tools-report-monthly-body"></div>
-      </div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Flight Ops Queue</h4>
-          <div class="tools-report-meta">Fits the same date filters and CSV pattern</div>
-        </div>
-        <div class="tools-report-roadmap-grid">
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Aircraft Utilization</div>
-            <p class="tools-report-roadmap-copy">Hours, legs, and landings by tail number and month to support fleet planning.</p>
-            <div class="tools-report-roadmap-meta">Data: Log_Flights, Dispatch</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Passenger Movement</div>
-            <p class="tools-report-roadmap-copy">Passenger, route, aircraft, and mission usage based on transaction-linked passenger records.</p>
-            <div class="tools-report-roadmap-meta">Data: Transactions plus Dispatch flight legs</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status later">Later</div>
-            <div class="tools-report-roadmap-title">Route Frequency</div>
-            <p class="tools-report-roadmap-copy">Most-used city pairs and repeat sectors across mission types and pilots.</p>
-            <div class="tools-report-roadmap-meta">Data: Dispatch route normalization and origin/destination cleanup</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tools-report-group-maintenance" class="tools-report-group">
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Maintenance Reports</h4>
-          <div class="tools-report-meta">Best next domain after Finance and Flight Ops</div>
-        </div>
-        <div class="tools-report-roadmap-grid">
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Open Discrepancies</div>
-            <p class="tools-report-roadmap-copy">Open, deferred, and closed discrepancy counts by aircraft, age, reporter, and status.</p>
-            <div class="tools-report-roadmap-meta">Data: aircraft open squawks, discrepancy audit trail, debrief-ingested reports</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Due and Overdue Maintenance</div>
-            <p class="tools-report-roadmap-copy">Assignment status by aircraft, task category, tach due, and date due.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Maint_Assignments, DB_Maint_Log</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status later">Later</div>
-            <div class="tools-report-roadmap-title">Repeat Squawk Trend</div>
-            <p class="tools-report-roadmap-copy">Surface recurring discrepancies by aircraft and component so maintenance focus becomes obvious.</p>
-            <div class="tools-report-roadmap-meta">Data: discrepancy description normalization and category tagging</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tools-report-group-training" class="tools-report-group">
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Training Reports</h4>
-          <div class="tools-report-meta">Crew qualification, currency, and readiness</div>
-        </div>
-        <div class="tools-report-roadmap-grid">
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Pilot Authorizations</div>
-            <p class="tools-report-roadmap-copy">Authorization status, role, aircraft type, and expiry view by pilot or fleet.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Pilot_Authorizations</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Training Completion</div>
-            <p class="tools-report-roadmap-copy">Module completion, practical pass/fail, and recurrent training due soon or overdue.</p>
-            <div class="tools-report-roadmap-meta">Data: REF_Training_Modules, staff training records, practical evaluations</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status live">Live Elsewhere</div>
-            <div class="tools-report-roadmap-title">Readiness</div>
-            <p class="tools-report-roadmap-copy">The Readiness tool already computes qualification state; this category gives it a reporting home.</p>
-            <div class="tools-report-roadmap-meta">Data: staff, authorizations, modules, readiness calculation output</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tools-report-group-compliance" class="tools-report-group">
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Compliance Reports</h4>
-          <div class="tools-report-meta">Document control, scheduler controls, and audit-oriented summaries</div>
-        </div>
-        <div class="tools-report-roadmap-grid">
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Aircraft Docs Expiry</div>
-            <p class="tools-report-roadmap-copy">Required and critical document gaps, expiries, and offline-confirmed status by aircraft.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Aircraft_Docs, aircraft folder metadata</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Scheduler Coverage Gaps</div>
-            <p class="tools-report-roadmap-copy">Unfilled roles, incompatible assignments, and month-level staffing gaps.</p>
-            <div class="tools-report-roadmap-meta">Data: scheduler rules, permissions, qualifications, assignments</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status later">Later</div>
-            <div class="tools-report-roadmap-title">Import Audit Trail</div>
-            <p class="tools-report-roadmap-copy">Donation import batch outcomes, duplicate resolutions, and admin action history.</p>
-            <div class="tools-report-roadmap-meta">Data: donation staging, review decisions, fund ledger entries</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="tools-panel-discrepancy" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Report Discrepancy</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('discrepancy')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-disc-aircraft">Aircraft</label>
-          <select id="tools-disc-aircraft" class="browser-default" onchange="toolsDiscrepancyOnAircraftChanged_()"></select>
-        </div>
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-disc-date">Report Date</label>
-          <input id="tools-disc-date" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-disc-date')">
-        </div>
-      </div>
-      <div class="tools-row">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-disc-tach">Tach At Report</label>
-          <input id="tools-disc-tach" type="number" inputmode="decimal" step="0.1" oninput="toolsDiscrepancySyncDeferral_()">
-        </div>
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-disc-reporter">Reporter</label>
-          <input id="tools-disc-reporter" type="text">
-        </div>
-      </div>
-      <div class="tools-row">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-disc-status">Status</label>
-          <select id="tools-disc-status" class="browser-default" onchange="toolsDiscrepancySyncDeferral_()">
-            <option value="OPEN">Open</option>
-            <option value="DEFERRED_50_HOUR">Deferred 50 Hour</option>
-            <option value="DEFERRED_100_HOUR">Deferred 100 Hour</option>
-            <option value="DEFERRED_TO_DATE">Deferred To Date</option>
-            <option value="CLOSED">Closed</option>
-            <option value="CANCELED">Canceled</option>
-          </select>
-        </div>
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-disc-defer-tach">Deferred Until Tach</label>
-          <input id="tools-disc-defer-tach" type="number" inputmode="decimal" step="0.1">
-        </div>
-      </div>
-      <div class="tools-row">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-disc-defer-date">Deferred Until Date</label>
-          <input id="tools-disc-defer-date" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-disc-defer-date')">
-        </div>
-        <div class="tools-field" style="margin-bottom:0;"></div>
-      </div>
-      <div class="tools-field" style="margin-top:8px; margin-bottom:0;">
-        <label for="tools-disc-description">Description</label>
-        <textarea id="tools-disc-description" style="min-height:90px;"></textarea>
-      </div>
-      <div class="tools-btn-row" style="margin-top:10px;">
-        <button class="btn-ta" type="button" onclick="toolsDiscrepancySubmit_()">REPORT DISCREPANCY</button>
-        <button class="btn-ts" type="button" onclick="toolsDiscrepancyClearForm_()">CLEAR</button>
-      </div>
-    </div>
-    <div class="tools-report-section">
-      <div class="tools-report-section-head">
-        <h4>Existing Discrepancies</h4>
-        <div id="tools-disc-meta" class="tools-report-meta"></div>
-      </div>
-      <div id="tools-disc-list"></div>
-    </div>
-  </div>
-
-  <div id="tools-panel-staff" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Add/Edit Staff</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('staff')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-staff-select">Selecionar Staff Existente</label>
-          <select id="tools-staff-select" class="browser-default" onchange="toolsStaffLoadSelected_()"></select>
-        </div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 130px;">
-          <button class="btn-ts" type="button" onclick="toolsStaffClearForm_()">NOVO</button>
-        </div>
-      </div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-staff-name">Nome</label><input id="tools-staff-name" type="text"></div>
-      <div class="tools-field"><label for="tools-staff-email">Email</label><input id="tools-staff-email" type="email"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-staff-id">Staff ID</label><input id="tools-staff-id" type="text"></div>
-      <div class="tools-field"><label for="tools-staff-role">Função Principal</label><select id="tools-staff-role" class="browser-default"></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-staff-active">Ativo</label><select id="tools-staff-active" class="browser-default"><option value="Y">Sim</option><option value="N">Não</option></select></div>
-      <div class="tools-field"><label for="tools-staff-notes">Notas</label><input id="tools-staff-notes" type="text"></div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:10px 0;">
-      <label><input type="checkbox" id="tools-staff-can-edit-disc"> Pode editar discrepâncias</label>
-      <label><input type="checkbox" id="tools-staff-can-approve-def"> Pode aprovar deferimentos</label>
-      <label><input type="checkbox" id="tools-staff-can-edit-mx"> Pode editar manutenção</label>
-      <label><input type="checkbox" id="tools-staff-can-follow"> Pode flight follow</label>
-      <label><input type="checkbox" id="tools-staff-can-coordinate"> Pode coordenar voos</label>
-      <label><input type="checkbox" id="tools-staff-can-stock"> Pode gerenciar estoque</label>
-      <label><input type="checkbox" id="tools-staff-can-instruct"> Pode instruir</label>
-      <label><input type="checkbox" id="tools-staff-can-inspect"> Pode inspecionar</label>
-    </div>
-    <div class="tools-btn-row">
-      <button class="btn-ts" type="button" onclick="toolsStaffClearForm_()">LIMPAR</button>
-      <button class="btn-tp" type="button" onclick="toolsStaffSave_()">SALVAR STAFF</button>
-    </div>
-  </div>
-
-  <div id="tools-panel-pilotauth" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Pilot Authorizations</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('pilotauth')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-pilotauth-select">Selecionar Autorização</label>
-          <select id="tools-pilotauth-select" class="browser-default" onchange="toolsPilotAuthLoadSelected_()"></select>
-        </div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 130px;">
-          <button class="btn-ts" type="button" onclick="toolsPilotAuthClearForm_()">NOVO</button>
-        </div>
-      </div>
-      <div id="tools-pilotauth-meta" class="tools-report-meta" style="margin-top:8px;">Nenhuma autorização carregada.</div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-staff">Staff</label><select id="tools-pilotauth-staff" class="browser-default"></select></div>
-      <div class="tools-field"><label for="tools-pilotauth-aircraft">Aircraft Type</label><select id="tools-pilotauth-aircraft" class="browser-default"></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-role">Authorization Role</label><select id="tools-pilotauth-role" class="browser-default"></select></div>
-      <div class="tools-field"><label for="tools-pilotauth-type">Authorization Type</label><select id="tools-pilotauth-type" class="browser-default"></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-status">Status</label><select id="tools-pilotauth-status" class="browser-default"></select></div>
-      <div class="tools-field"><label for="tools-pilotauth-date">Date Authorized</label><input id="tools-pilotauth-date" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-pilotauth-date')"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-expiry">Expiry Date</label><input id="tools-pilotauth-expiry" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-pilotauth-expiry')"></div>
-      <div class="tools-field"><label for="tools-pilotauth-signoff">Instructor Signoff</label><input id="tools-pilotauth-signoff" type="text"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-source">Source</label><input id="tools-pilotauth-source" type="text" placeholder="Check ride, line check, etc."></div>
-      <div class="tools-field"><label for="tools-pilotauth-notes">Notes</label><input id="tools-pilotauth-notes" type="text"></div>
-    </div>
-    <div class="tools-btn-row">
-      <button class="btn-ts" type="button" onclick="toolsPilotAuthClearForm_()">LIMPAR</button>
-      <button class="btn-ts" type="button" onclick="toolsPilotAuthDelete_()">EXCLUIR</button>
-      <button class="btn-tp" type="button" onclick="toolsPilotAuthSave_()">SALVAR AUTORIZAÇÃO</button>
-    </div>
-  </div>
-
-  <div id="tools-panel-trainingmodule" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Training Modules</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('trainingmodule')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-module-select">Selecionar Módulo</label>
-          <select id="tools-module-select" class="browser-default" onchange="toolsModuleLoadSelected_()"></select>
-        </div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 130px;">
-          <button class="btn-ts" type="button" onclick="toolsModuleClearForm_()">NOVO</button>
-        </div>
-      </div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-module-id">Module ID</label><input id="tools-module-id" type="text" placeholder="MX-BRAKE-CHK"></div>
-      <div class="tools-field"><label for="tools-module-name">Module Name</label><input id="tools-module-name" type="text"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-module-role">Role Code</label><select id="tools-module-role" class="browser-default" onchange="toolsModuleAutoFillIdName_()"></select></div>
-      <div class="tools-field"><label for="tools-module-component">Component</label><select id="tools-module-component" class="browser-default" onchange="toolsModuleAutoFillIdName_()"><option value="THEORY">THEORY</option><option value="PRACTICAL">PRACTICAL</option><option value="MIXED">MIXED</option></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-module-type">Module Type</label><select id="tools-module-type" class="browser-default" onchange="toolsModuleAutoFillIdName_()"><option value="INITIAL">INITIAL</option><option value="RECURRENT">RECURRENT</option></select></div>
-      <div class="tools-field"><label for="tools-module-pass">Pass Threshold (%)</label><input id="tools-module-pass" type="number" inputmode="numeric" min="0" max="100"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-module-recurrent">Recurrent Days</label><input id="tools-module-recurrent" type="number" inputmode="numeric" min="0"></div>
-      <div class="tools-field"><label for="tools-module-active">Ativo</label><select id="tools-module-active" class="browser-default"><option value="Y">Sim</option><option value="N">Não</option></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-module-practical">Exige Avaliação Prática</label><select id="tools-module-practical" class="browser-default"><option value="Y">Sim</option><option value="N">Não</option></select></div>
-      <div class="tools-field"><label for="tools-module-notes">Notas</label><input id="tools-module-notes" type="text"></div>
-    </div>
-    <div class="tools-btn-row">
-      <button class="btn-ts" type="button" onclick="toolsModuleClearForm_()">LIMPAR</button>
-      <button id="tools-module-delete-btn" class="btn-td" type="button" onclick="toolsModuleDelete_()" style="display:none;">DELETAR</button>
-      <button class="btn-ts" type="button" onclick="toolsModuleShowLessonForm_()">AUTO-CRIAR AULA</button>
-      <button class="btn-tp" type="button" onclick="toolsModuleSave_()">SALVAR MÓDULO</button>
-    </div>
-    <div id="tools-module-lesson-form" style="display:none; margin-top:10px; padding:12px; background:#e8f0fe; border-radius:8px; border-left:3px solid #1a73e8;">
-      <label style="font-size:0.8rem; color:#0b5394; font-weight:700; display:block; margin-bottom:6px;">Informações adicionais para o conteúdo (opcional):</label>
-      <textarea id="tools-module-lesson-context" style="width:100%; min-height:80px; font-size:0.82rem; border:1px solid #b0bec5; border-radius:4px; padding:6px; box-sizing:border-box;" placeholder="Ex: Operação em Roraima, rotas BVB-PVH. Incluir procedimentos para área remota e voos noturnos. Destacar comunicação em zonas sem cobertura de rádio..."></textarea>
-      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-        <button class="btn-tp" type="button" onclick="toolsModuleAutoCreateLesson_()">GERAR DOCUMENTO</button>
-        <button class="btn-ts" type="button" onclick="document.getElementById('tools-module-lesson-form').style.display='none'">CANCELAR</button>
-        <span id="tools-module-lesson-status" style="font-size:0.75rem; color:#546e7a;"></span>
-      </div>
-    </div>
-  </div>
-
-  <div id="tools-panel-practical" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Formulário de Avaliação Prática</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('practical')">&times;</button>
-    </div>
-    <p style="margin:0 0 10px 0;font-size:0.8rem;color:#546e7a;">O avaliador abre este formulário em branco. Nome do supervisor é preenchido automaticamente pelo login, e você escolhe staff e módulo no dropdown.</p>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-practical-evaluator">Supervisor/Avaliador</label><input id="tools-practical-evaluator" type="text" readonly></div>
-      <div class="tools-field"><label for="tools-practical-date">Data da Avaliação</label><input id="tools-practical-date" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-practical-date')"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-practical-staff">Staff</label><select id="tools-practical-staff" class="browser-default"></select></div>
-      <div class="tools-field"><label for="tools-practical-module">Módulo</label><select id="tools-practical-module" class="browser-default"></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-practical-result">Resultado</label><select id="tools-practical-result" class="browser-default"><option value="PASS">Aprovado</option><option value="FAIL">Reprovado</option></select></div>
-      <div class="tools-field"><label for="tools-practical-aircraft">Aeronave</label><input id="tools-practical-aircraft" type="text" placeholder="PR-ABC"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-practical-tach">Tach na Avaliação</label><input id="tools-practical-tach" type="number" inputmode="decimal" step="0.1"></div>
-      <div class="tools-field"><label for="tools-practical-location">Local</label><input id="tools-practical-location" type="text"></div>
-    </div>
-    <div class="tools-field"><label for="tools-practical-observations">Observações</label><textarea id="tools-practical-observations" style="min-height:90px;"></textarea></div>
-    <div class="tools-btn-row">
-      <button class="btn-ts" type="button" onclick="toolsPracticalClearForm_()">LIMPAR</button>
-      <button class="btn-tp" type="button" onclick="toolsPracticalSave_()">SALVAR AVALIAÇÃO</button>
-    </div>
-  </div>
-
-  <div id="tools-panel-readiness" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Readiness</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('readiness')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0;"><label for="tools-readiness-staff">Staff</label><select id="tools-readiness-staff" class="browser-default"></select></div>
-        <div class="tools-field" style="margin-bottom:0;"><label for="tools-readiness-module">Módulo (opcional)</label><select id="tools-readiness-module" class="browser-default"></select></div>
-        <div class="tools-field" style="margin-bottom:0;"><label for="tools-readiness-aircraft-type">Aircraft Type (opcional)</label><select id="tools-readiness-aircraft-type" class="browser-default"></select></div>
-        <div class="tools-field" style="margin-bottom:0;"><label for="tools-readiness-auth-role">Pilot Auth Role (opcional)</label><select id="tools-readiness-auth-role" class="browser-default"></select></div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 150px;"><button class="btn-ta" type="button" onclick="toolsRunReadiness_()">CALCULAR</button></div>
-      </div>
-      <div id="tools-readiness-summary" class="tools-report-meta" style="margin-top:8px;">Selecione staff e clique em calcular.</div>
-    </div>
-    <div id="tools-readiness-body"></div>
-  </div>
-
-  <div id="tools-panel-scheduler" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Scheduler</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('scheduler')">&times;</button>
-    </div>
-    <p style="margin:0 0 10px 0;font-size:0.8rem;color:#546e7a;">Run scheduler setup, preview auto-division, and commit automatic assignments for a month.</p>
-    <div class="tools-row" style="align-items:flex-end;">
-      <div class="tools-field" style="margin-bottom:0; max-width:180px;">
-        <label for="tools-scheduler-month">Schedule Month</label>
-        <input id="tools-scheduler-month" type="text" placeholder="YYYY-MM">
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:180px;">
-        <button class="btn-ts" type="button" onclick="toolsSchedulerSetup_()">SETUP SCHEMA</button>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:180px;">
-        <button class="btn-ta" type="button" onclick="toolsSchedulerPreview_()">DRY RUN</button>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:180px;">
-        <button class="btn-tp" type="button" onclick="toolsSchedulerGenerate_()">GENERATE</button>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:180px;">
-        <button class="btn-ts" type="button" onclick="toolsSchedulerLoadAssignments_()">VIEW ASSIGNMENTS</button>
-      </div>
-    </div>
-    <div class="tools-row" style="align-items:center; margin-top:8px;">
-      <div class="tools-field" style="margin-bottom:0; flex:1 1 auto;">
-        <label style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:#455a64; cursor:pointer;">
-          <input id="tools-scheduler-sync-before-test" type="checkbox" style="margin:0;">
-          Sync unavailable events from calendar before running tests
-        </label>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:220px;">
-        <button class="btn-ts" type="button" onclick="toolsSchedulerSyncAvailability_()">SYNC AVAILABILITY</button>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:220px;">
-        <button class="btn-ts" type="button" onclick="toolsSchedulerLoadAvailability_()">VIEW AVAILABILITY</button>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:220px;">
-        <button class="btn-ta" type="button" onclick="toolsSchedulerRunTests_()">RUN TEST SUITE</button>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:220px; margin-top:6px; display:flex; align-items:center; gap:6px;">
-        <input type="checkbox" id="tools-scheduler-training-sync-dry" checked style="margin:0;">
-        <label for="tools-scheduler-training-sync-dry" style="font-size:0.75rem; color:#546e7a; margin:0;">Preview only</label>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:220px;">
-        <button class="btn-ts" type="button" onclick="toolsSchedulerPreviewTrainingSync_()">PREVIEW TRAINING SYNC</button>
-      </div>
-      <div class="tools-field" style="margin-bottom:0; max-width:220px;">
-        <button class="btn-ta" type="button" onclick="toolsSchedulerApplyTrainingSync_()">APPLY TRAINING SYNC</button>
-      </div>
-    </div>
-    <div id="tools-scheduler-status" class="tools-report-meta" style="margin-top:8px;">Select a month and run dry run first.</div>
-    <div id="tools-scheduler-results" class="tools-report-table-wrap" style="margin-top:10px;"></div>
-  </div>
-
-  <div id="tools-panel-masterconfig" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Master Configuration</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('masterconfig')">&times;</button>
-    </div>
-    <p class="tools-master-note">Configurações centrais da operação. A seção abaixo controla os gatilhos automáticos de duty time.</p>
-    <div class="tools-report-section">
-      <div class="tools-report-section-head">
-        <h4>Duty Time Configurations</h4>
-        <div id="tools-master-meta" class="tools-report-meta"></div>
-      </div>
-      <div class="tools-master-grid">
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label>Pontos de Geofence <span style="font-weight:400; color:#78909c; font-size:0.78rem;">(clique no mapa para adicionar, ou digite abaixo)</span></label>
-          <div id="tools-master-geofence-map" style="height:220px; border:1px solid #d1dbe6; border-radius:8px; margin-bottom:8px;"></div>
-          <ol id="tools-master-geofence-list" style="margin:0 0 8px 0; padding-left:20px; font-size:0.82rem; color:#37474f; min-height:24px;"></ol>
-          <div style="display:flex; gap:6px; align-items:flex-start;">
-            <textarea id="tools-master-home-airports" placeholder="-3.1416, -60.0212&#10;45°33'34.76&quot;N, 93°36'19.44&quot;W" style="flex:1; min-height:70px; font-size:0.8rem;"></textarea>
-            <div style="display:flex; flex-direction:column; gap:4px;">
-              <button class="btn-ts" type="button" style="white-space:nowrap;" onclick="toolsMasterGeofencePreview_()">VISUALIZAR</button>
-              <button class="btn-ts" type="button" style="white-space:nowrap;" onclick="toolsMasterGeofenceClearAll_()">LIMPAR</button>
-            </div>
-          </div>
-          <div class="tools-dbadd-help">Uma coordenada por linha. Aceita decimal (ex: -3.14, -60.02), DMS (ex: S 03°08'30&quot;, W 060°01'16&quot;) ou decimal-minutos.</div>
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-alert-recipients">Alert Recipients</label>
-          <input id="tools-master-alert-recipients" type="text" placeholder="ops@empresa.com, chefe@empresa.com">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-morning-time">Morning Alert Time</label>
-          <input id="tools-master-morning-time" type="time" placeholder="08:00">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-evening-time">Evening Alert Time</label>
-          <input id="tools-master-evening-time" type="time" placeholder="17:00">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-morning-window">Morning Window (min)</label>
-          <input id="tools-master-morning-window" type="number" inputmode="numeric" min="10" step="5" placeholder="120">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-evening-window">Evening Window (min)</label>
-          <input id="tools-master-evening-window" type="number" inputmode="numeric" min="10" step="5" placeholder="180">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-geofence-km">Geofence Radius (metros)</label>
-          <input id="tools-master-geofence-km" type="number" inputmode="decimal" min="100" step="50" placeholder="8000">
-        </div>
-      </div>
-      <div class="tools-btn-row">
-        <button class="btn-ts" type="button" onclick="toolsLoadMasterConfig_()">RELOAD</button>
-        <button class="btn-tp" type="button" onclick="toolsSaveMasterConfig_()">SAVE CONFIG</button>
-      </div>
-    </div>
-    <div class="tools-report-section" style="margin-top:10px;">
-      <div class="tools-report-section-head">
-        <h4>Scheduler Configurations</h4>
-        <div id="tools-master-scheduler-meta" class="tools-report-meta"></div>
-      </div>
-      <div class="tools-master-grid">
-        <div class="tools-field">
-          <label for="tools-master-sched-calendar-id">Availability Calendar ID</label>
-          <input id="tools-master-sched-calendar-id" type="text" placeholder="intranet@asasdesocorro.org.br">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-sched-publish-day">Publish Day Of Month</label>
-          <input id="tools-master-sched-publish-day" type="number" min="1" max="31" inputmode="numeric" placeholder="15">
-        </div>
-      </div>
-      <div style="font-size:0.78rem; color:#607d8b; margin-top:4px;">Applies to staffing scheduler only (availability sync + auto-publish cadence).</div>
-    </div>
-
-    <div class="tools-report-section" style="margin-top:10px;">
-      <div class="tools-report-section-head">
-        <h4>Flight Following Configurations</h4>
-        <div id="tools-master-ff-meta" class="tools-report-meta"></div>
-      </div>
-      <div class="tools-master-grid">
-        <div class="tools-field">
-          <label for="tools-master-ff-recipients">Inbound/Ops Recipients</label>
-          <input id="tools-master-ff-recipients" type="text" placeholder="acompanhamento@asasdesocorro.org.br, supervisor@empresa.com">
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label for="tools-master-ff-outbound-map">Outbound Device Emails By Aircraft</label>
-          <textarea id="tools-master-ff-outbound-map" placeholder="PTABC=inreach-address-1@inreach.garmin.com&#10;PTDEF=inreach-address-2@inreach.garmin.com" style="min-height:90px; font-size:0.8rem;"></textarea>
-          <div class="tools-dbadd-help">Uma linha por aeronave. Formato: REG=EMAIL (ex: PTABC=inreach@garmin.com). Se não houver mapeamento, usa Inbound/Ops Recipients.</div>
-        </div>
-      </div>
-      <div class="tools-btn-row">
-        <button class="btn-ts" type="button" onclick="toolsLoadMasterFlightFollowConfig_()">RELOAD FF</button>
-        <button class="btn-tp" type="button" onclick="toolsSaveMasterFlightFollowConfig_()">SAVE FF CONFIG</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="tools-panel-dutylogs" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Duty Time Logs</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('dutylogs')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-dutylogs-pilot">Pilot</label>
-          <select id="tools-dutylogs-pilot" class="browser-default"></select>
-        </div>
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-dutylogs-from">From</label>
-          <input id="tools-dutylogs-from" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-dutylogs-from')">
-        </div>
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-dutylogs-to">To</label>
-          <input id="tools-dutylogs-to" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-dutylogs-to')">
-        </div>
-        <div class="tools-field" style="margin-bottom:0; max-width:180px;">
-          <button class="btn-ta" type="button" onclick="toolsLoadDutyLogs_()">LOAD LOGS</button>
-        </div>
-      </div>
-      <div id="tools-dutylogs-meta" class="tools-report-meta" style="margin-top:8px;">Carregando...</div>
-    </div>
-    <div class="tools-dutylogs-table-wrap">
-      <table class="tools-dutylogs-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Pilot</th>
-            <th>Status</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>Flight Hrs</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="tools-dutylogs-list"></tbody>
-      </table>
-    </div>
-    <div id="tools-dutylogs-editor" class="tools-dutylogs-editor" style="display:none;">
-      <div id="tools-dutylogs-edit-head" class="tools-report-meta" style="margin-bottom:8px;"></div>
-      <div id="tools-dutylogs-edit-flight-meta" class="tools-report-meta" style="margin-bottom:8px;"></div>
-      <div id="tools-dutylogs-edit-summary-box" class="tools-dutylogs-detailbox" style="display:none;">
-        <div class="tools-dutylogs-detailtitle">Activity Summary</div>
-        <div id="tools-dutylogs-edit-summary-view" class="tools-dutylogs-detailtext"></div>
-      </div>
-      <div id="tools-dutylogs-edit-description-box" class="tools-dutylogs-detailbox" style="display:none;">
-        <div class="tools-dutylogs-detailtitle">Activity Details</div>
-        <div id="tools-dutylogs-edit-description-view" class="tools-dutylogs-detailtext"></div>
-      </div>
-      <div id="tools-dutylogs-edit-flights-box" class="tools-dutylogs-detailbox" style="display:none;">
-        <div class="tools-dutylogs-detailtitle">Flights Logged That Day</div>
-        <div id="tools-dutylogs-edit-flights-view"></div>
-      </div>
-      <div class="tools-row">
-        <div class="tools-field"><label for="tools-dutylogs-edit-status">Status</label><input id="tools-dutylogs-edit-status" type="text" placeholder="DUTY_OPEN / DUTY_CLOSE"></div>
-        <div class="tools-field"><label for="tools-dutylogs-edit-start">Start Time</label><input id="tools-dutylogs-edit-start" type="text" placeholder="08:10"></div>
-        <div class="tools-field"><label for="tools-dutylogs-edit-end">End Time</label><input id="tools-dutylogs-edit-end" type="text" placeholder="18:25"></div>
-        <div class="tools-field"><label for="tools-dutylogs-edit-flight-hours">Flight Hours</label><input id="tools-dutylogs-edit-flight-hours" type="number" inputmode="decimal" min="0" step="0.1"></div>
-      </div>
-      <div class="tools-field"><label for="tools-dutylogs-edit-summary">Summary</label><input id="tools-dutylogs-edit-summary" type="text"></div>
-      <div class="tools-field"><label for="tools-dutylogs-edit-description">Description</label><textarea id="tools-dutylogs-edit-description" style="min-height:80px;"></textarea></div>
-      <div class="tools-btn-row">
-        <button class="btn-ts" type="button" onclick="toolsDutyLogClearEditor_()">CLEAR</button>
-        <button class="btn-tp" type="button" onclick="toolsDutyLogSaveEditor_()">SAVE LOG</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="tools-panel-permissions" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Permissions</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('permissions')">&times;</button>
-    </div>
-    <p class="tools-master-note">Gerencie permissões operacionais por email usando o backend de SCHED_Permissions.</p>
-    <div class="tools-search-box">
-      <div class="tools-row">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-perm-new-email">Staff Email</label>
-          <input id="tools-perm-new-email" type="email" placeholder="piloto@empresa.com">
-        </div>
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-perm-new-notes">Notes</label>
-          <input id="tools-perm-new-notes" type="text" placeholder="Ex: supervisor on-call">
-        </div>
-      </div>
-      <div class="tools-row" style="align-items:center;">
-        <label><input type="checkbox" id="tools-perm-new-view" checked> View</label>
-        <label><input type="checkbox" id="tools-perm-new-generate"> Generate</label>
-        <label><input type="checkbox" id="tools-perm-new-edit"> Edit Assign</label>
-        <label><input type="checkbox" id="tools-perm-new-lock"> Lock Assign</label>
-        <label><input type="checkbox" id="tools-perm-new-publish"> Publish</label>
-        <label><input type="checkbox" id="tools-perm-new-rules"> Edit Rules</label>
-        <label><input type="checkbox" id="tools-perm-new-manage"> Manage Perms</label>
-        <label><input type="checkbox" id="tools-perm-new-active" checked> Active</label>
-      </div>
-      <div class="tools-btn-row" style="margin-top:10px;">
-        <button class="btn-ts" type="button" onclick="toolsLoadPermissions_()">RELOAD</button>
-        <button class="btn-tp" type="button" onclick="toolsSaveNewPermission_()">ADD OR UPDATE</button>
-      </div>
-      <div id="tools-perm-status" class="tools-report-meta" style="margin-top:8px;">Carregando permissões...</div>
-    </div>
-    <div class="tools-perm-table-wrap">
-      <table class="tools-perm-table">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>View</th>
-            <th>Generate</th>
-            <th>Edit</th>
-            <th>Lock</th>
-            <th>Publish</th>
-            <th>Rules</th>
-            <th>Manage</th>
-            <th>Active</th>
-            <th>Notes</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="tools-perm-list"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="tools-panel-dbadd" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title" id="tools-dbadd-title">Add Record</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('dbadd')">&times;</button>
-    </div>
-    <p id="tools-dbadd-sub" style="margin:0 0 10px 0;font-size:0.8rem;color:#546e7a;">Loading fields...</p>
-    <div id="tools-dbadd-airport-geo-row" style="display:none; margin:0 0 10px 0;">
-      <button class="btn-ta" type="button" onclick="toolsDbUseCurrentLocation_()">USE MY CURRENT LOCATION</button>
-      <span style="font-size:0.74rem; color:#607d8b; margin-left:8px;">Fills latitude/longitude from device GPS.</span>
-    </div>
-    <div id="tools-dbadd-fields"></div>
-    <datalist id="tools-route-point-list"></datalist>
-    <div id="tools-dbadd-preview-map"></div>
-    <div id="tools-dbadd-preview-coords"></div>
-    <div class="tools-btn-row">
-      <button class="btn-ts" onclick="toolsClearDbAddForm()">CLEAR</button>
-      <button class="btn-tp" onclick="toolsSaveDbAdd()">SAVE RECORD</button>
-    </div>
-  </div>
-
-  <div id="tools-panel-routesaved" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Route Manager</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('routesaved')">&times;</button>
-    </div>
-    <div class="tools-route-mode-row">
-      <button class="tools-route-mode-btn active" data-tools-route-mode="add" onclick="toolsRouteSetMode('add')">Add</button>
-      <button class="tools-route-mode-btn" data-tools-route-mode="edit" onclick="toolsRouteSetMode('edit')">Edit</button>
-      <button class="tools-route-mode-btn" data-tools-route-mode="delete" onclick="toolsRouteSetMode('delete')">Delete</button>
-    </div>
-    <div id="tools-route-mode-label" class="tools-route-muted" style="margin-bottom:8px;">Create a new route.</div>
-    <div id="tools-route-select-wrap" class="tools-route-select-wrap" style="display:none;">
-      <select id="tools-route-select" class="browser-default" onchange="toolsRouteLoadSelected()"></select>
-    </div>
-    <div class="tools-route-manager-grid">
-      <div class="tools-field">
-        <label for="tools-route-origin">Origin</label>
-        <input id="tools-route-origin" type="text" list="tools-route-point-list" oninput="toolsRouteNormalizeAirport(this); toolsRouteRefreshPreview()">
-      </div>
-      <div class="tools-field">
-        <label for="tools-route-destination">Destination</label>
-        <input id="tools-route-destination" type="text" list="tools-route-point-list" oninput="toolsRouteNormalizeAirport(this); toolsRouteRefreshPreview()">
-      </div>
-      <div class="tools-field full">
-        <label for="tools-route-waypoint-list">Waypoint List</label>
-        <input id="tools-route-waypoint-list" type="text" list="tools-route-point-list" placeholder="PAPA-PALIMIU, SJMH" oninput="toolsRouteRefreshPreview()">
-      </div>
-    </div>
-    <datalist id="tools-route-point-list"></datalist>
-    <div id="tools-route-preview-map" class="tools-route-preview-map"></div>
-    <div id="tools-route-preview-coords" class="tools-route-preview-coords"></div>
-    <div class="tools-btn-row">
-      <button class="btn-ts" onclick="toolsRouteClearForm()">CLEAR</button>
-      <button id="tools-route-delete-btn" class="btn-ts" style="display:none;background:#c62828;" onclick="toolsRouteDeleteSelected()">DELETE</button>
-      <button id="tools-route-save-btn" class="btn-tp" onclick="toolsRouteSaveCurrent()">SAVE ROUTE</button>
-    </div>
-  </div>
-
-  <div id="tools-panel-aircraftbuild" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Add New Aircraft</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('aircraftbuild')">&times;</button>
-    </div>
-    <p class="tools-ac-note">Choose one mode: start from scratch or copy an existing aircraft and verify/edit every field before saving.</p>
-    <div class="tools-ac-mode">
-      <button id="tools-ac-mode-scratch" type="button" class="active" onclick="toolsAircraftSetMode('scratch')">FROM SCRATCH</button>
-      <button id="tools-ac-mode-copy" type="button" onclick="toolsAircraftSetMode('copy')">COPY AND VERIFY</button>
-    </div>
-    <div class="tools-row" id="tools-ac-copy-row" style="display:none;">
-      <div class="tools-field" style="flex:1 1 auto;">
-        <label for="tools-ac-source">Source Aircraft</label>
-        <select id="tools-ac-source" class="browser-default"></select>
-      </div>
-      <div class="tools-field" style="flex:0 0 140px; margin-top:20px;">
-        <button class="btn-ta" type="button" onclick="toolsAircraftLoadSource()">LOAD COPY</button>
-      </div>
-    </div>
-    <div id="tools-ac-note" class="tools-ac-note" style="margin-bottom:8px;">Loading aircraft template…</div>
-    <div id="tools-ac-sections" style="display:none;">
-      <div class="tools-ac-section">
-        <div class="tools-ac-title">DB_Aircraft</div>
-        <div id="tools-ac-aircraft-rows"></div>
-      </div>
-      <div class="tools-ac-section">
-        <div class="tools-ac-row-head">
-          <div class="tools-ac-title" style="margin:0;">REF_Airframes</div>
-          <button class="btn-ts" type="button" onclick="toolsAircraftAddRow('airframes')">ADD ROW</button>
-        </div>
-        <div id="tools-ac-airframes-rows"></div>
-      </div>
-      <div class="tools-ac-section">
-        <div class="tools-ac-row-head">
-          <div class="tools-ac-title" style="margin:0;">REF_Envelopes</div>
-          <button class="btn-ts" type="button" onclick="toolsAircraftAddRow('envelopes')">ADD ROW</button>
-        </div>
-        <div id="tools-ac-envelopes-rows"></div>
-        <div id="tools-ac-envelope-preview" class="tools-ac-envelope-preview"></div>
-      </div>
-      <div class="tools-ac-section">
-        <div class="tools-ac-row-head">
-          <div class="tools-ac-title" style="margin:0;">Aircraft_Roll_Numbers</div>
-          <button class="btn-ts" type="button" onclick="toolsAircraftAddRow('rollnumbers')">ADD ROW</button>
-        </div>
-        <div id="tools-ac-rollnumbers-rows"></div>
-      </div>
-      <div class="tools-btn-row">
-        <button class="btn-ts" type="button" onclick="toolsAircraftResetForm()">RESET FORM</button>
-        <button class="btn-tp" type="button" onclick="toolsAircraftSaveBundle()">SAVE NEW AIRCRAFT SET</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="tools-panel-donations" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Import Donations</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('donations')">&times;</button>
-    </div>
-
-    <div class="tools-donation-box">
-      <div class="tools-btn-row" style="margin-top:0; margin-bottom:10px;">
-        <button class="btn-ts" type="button" onclick="toolsSetupDonationSchema()">CREATE / VALIDATE DONATION TABLES</button>
-      </div>
-      <div class="tools-donation-note">Run this once from Tools to create the donation import sheets and Drive folder if they do not exist yet.</div>
-      <div class="tools-row">
-        <div class="tools-field">
-          <label for="tools-donation-fund">Default Fund <span style="font-weight:400;color:#90a4ae;">(for unlisted campaigns)</span></label>
-          <select id="tools-donation-fund" class="browser-default"></select>
-        </div>
-        <div class="tools-field">
-          <label for="tools-donation-imported-by">Admin</label>
-          <input id="tools-donation-imported-by" type="text" placeholder="Admin name or email">
-        </div>
-      </div>
-      <div class="tools-field">
-        <label for="tools-donation-file">Source File</label>
-        <input id="tools-donation-file" type="file" accept=".csv,.pdf,text/csv,application/pdf">
-      </div>
-      <div class="tools-btn-row">
-        <button class="btn-ta" type="button" onclick="toolsAnalyzeDonationFile()">ANALYZE FILE</button>
-      </div>
-      <div id="tools-donation-analysis-note" class="tools-donation-note"></div>
-    </div>
-
-    <div id="tools-donation-mapping-box" class="tools-donation-box" style="display:none;">
-      <div style="font-size:0.8rem; font-weight:800; color:#0b5394; margin-bottom:8px;">Column Mapping</div>
-      <div class="tools-donation-map">
-        <div class="tools-field"><label for="tools-donation-map-donor">Donor</label><select id="tools-donation-map-donor" class="browser-default"></select></div>
-        <div class="tools-field"><label for="tools-donation-map-date">Date</label><select id="tools-donation-map-date" class="browser-default"></select></div>
-        <div class="tools-field"><label for="tools-donation-map-amount">Amount</label><select id="tools-donation-map-amount" class="browser-default"></select></div>
-        <div class="tools-field"><label for="tools-donation-map-description">Description</label><select id="tools-donation-map-description" class="browser-default"></select></div>
-        <div class="tools-field"><label for="tools-donation-map-campaign">Campaign / Project <span style="font-weight:400;color:#90a4ae;">(optional)</span></label><select id="tools-donation-map-campaign" class="browser-default"></select></div>
-      </div>
-      <div id="tools-donation-sample-wrap" style="margin-top:8px;"></div>
-      <div id="tools-donation-campaign-box" style="display:none; margin-top:12px;">
-        <div style="font-size:0.8rem; font-weight:800; color:#0b5394; margin-bottom:4px;">Campaign / Project → Fund Assignment</div>
-        <div class="tools-donation-note" style="margin-bottom:8px;">Each campaign found in the file must be assigned to a fund. Auto-matched campaigns are pre-filled. Set Default Fund above to cover any unassigned rows.</div>
-        <div id="tools-donation-campaign-rows"></div>
-      </div>
-      <div class="tools-btn-row">
-        <button class="btn-tp" type="button" onclick="toolsStageDonationImport()">STAGE FOR REVIEW</button>
-      </div>
-    </div>
-
-    <div id="tools-donation-review-box" class="tools-donation-box" style="display:none;">
-      <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:8px;">
-        <div>
-          <div id="tools-donation-review-title" style="font-size:0.9rem; font-weight:800; color:#0b5394;"></div>
-          <div id="tools-donation-review-meta" class="tools-donation-note"></div>
-        </div>
-        <button class="btn-tp" type="button" onclick="toolsCommitDonationBatch()">COMMIT REVIEWED ROWS</button>
-      </div>
-      <div id="tools-donation-review-list"></div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Contact overlay -->
-<div id="tools-contact-overlay" onclick="toolsCloseContactOverlay(event)">
-  <div id="tools-contact-box">
-    <button onclick="toolsCloseContactOverlay(null)" style="position:absolute;top:10px;right:14px;background:none;border:none;cursor:pointer;font-size:1.4rem;color:#90a4ae;">&times;</button>
-    <p class="tools-contact-title" id="tools-contact-title">Fuel Contact</p>
-    <p class="tools-contact-sub" id="tools-contact-sub"></p>
-    <div id="tools-contact-rows"></div>
-    <div id="tools-contact-notes" class="tools-contact-notes" style="display:none;"></div>
-  </div>
-</div>
-
-<!-- Runway overlay -->
-<div id="tools-rwy-overlay" onclick="toolsCloseRwyOverlay(event)">
-  <div id="tools-rwy-box">
-    <button onclick="toolsCloseRwyOverlay(null)" style="position:absolute;top:10px;right:14px;background:none;border:none;cursor:pointer;font-size:1.4rem;color:#90a4ae;">&times;</button>
-    <p id="tools-rwy-title">RUNWAY PREVIEW</p>
-    <p id="tools-rwy-sub"></p>
-    <div id="tools-rwy-body"></div>
-  </div>
-</div>
-
-<!-- Airport edit overlay -->
-<div id="tools-airport-edit-overlay" onclick="toolsCloseAirportEditOverlay(event)">
-  <div id="tools-airport-edit-box">
-    <button onclick="toolsCloseAirportEditOverlay(null)" style="position:absolute;top:10px;right:14px;background:none;border:none;cursor:pointer;font-size:1.4rem;color:#90a4ae;">&times;</button>
-    <p id="tools-airport-edit-title">Edit Airport</p>
-    <p id="tools-airport-edit-sub">DB_Airports, fuel contact, and optional fuel cache.</p>
-
-    <div class="tools-airport-edit-block">
-      <h4>Airport Record (DB_Airports)</h4>
-      <div id="tools-airport-json-count" style="font-size:0.76rem;color:#607d8b;font-weight:700;margin-bottom:8px;">Columns: 0</div>
-      <div class="tools-row" style="align-items:flex-start;">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-airport-official-json">ANAC Official Fields</label>
-          <textarea id="tools-airport-official-json" readonly style="min-height:140px;font-family:monospace;background:#f7fbff;"></textarea>
-        </div>
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-airport-survey-json">Runway Survey Fields</label>
-          <textarea id="tools-airport-survey-json" readonly style="min-height:140px;font-family:monospace;background:#f7fbff;"></textarea>
-        </div>
-      </div>
-      <div class="tools-field" style="margin-top:8px;margin-bottom:8px;">
-        <label for="tools-airport-other-json">Other Saved Fields</label>
-        <textarea id="tools-airport-other-json" readonly style="min-height:100px;font-family:monospace;background:#f7fbff;"></textarea>
-      </div>
-      <div class="tools-field" style="margin-bottom:0;">
-        <label for="tools-airport-edit-json">All DB_Airports Columns (Editable JSON)</label>
-        <textarea id="tools-airport-edit-json" placeholder="{}" oninput="toolsSyncAirportJsonViews_()" style="min-height:220px;font-family:monospace;"></textarea>
-      </div>
-    </div>
-
-    <div class="tools-airport-edit-block">
-      <h4>Fuel Availability</h4>
-      <label class="tools-airport-edit-check" for="tools-airport-fuel-available">
-        <input id="tools-airport-fuel-available" type="checkbox" onchange="toolsToggleFuelCacheSection('available')">
-        1) Fuel Available (supplier)
-      </label>
-    </div>
-
-    <div class="tools-airport-edit-block" id="tools-airport-contact-block">
-      <h4>Fuel Contact (DB_Contacts)</h4>
-      <div class="tools-row">
-        <div class="tools-field"><label for="tools-airport-contact-name">Contato</label><input id="tools-airport-contact-name" type="text"></div>
-        <div class="tools-field"><label for="tools-airport-contact-mobile">Celular</label><input id="tools-airport-contact-mobile" type="text"></div>
-      </div>
-      <div class="tools-row">
-        <div class="tools-field"><label for="tools-airport-contact-phone2">Telefone 2</label><input id="tools-airport-contact-phone2" type="text"></div>
-        <div class="tools-field"><label for="tools-airport-contact-perm">Permanencia</label><input id="tools-airport-contact-perm" type="text"></div>
-      </div>
-      <div class="tools-field" style="margin-bottom:0;"><label for="tools-airport-contact-notes">Anotacoes</label><textarea id="tools-airport-contact-notes" style="min-height:80px;"></textarea></div>
-    </div>
-
-    <div class="tools-airport-edit-block">
-      <h4>Fuel Cache (DB_Fuel_Caches)</h4>
-      <label class="tools-airport-edit-check" for="tools-airport-cache-enabled">
-        <input id="tools-airport-cache-enabled" type="checkbox" onchange="toolsToggleFuelCacheSection('cache')">
-        2) Fuel Cache (our stock)
-      </label>
-      <div id="tools-airport-cache-fields" style="display:none;">
-        <div class="tools-row">
-          <div class="tools-field"><label for="tools-airport-cache-location">Location Name</label><input id="tools-airport-cache-location" type="text"></div>
-          <div class="tools-field"><label for="tools-airport-cache-fuel-type">Fuel Type</label><input id="tools-airport-cache-fuel-type" type="text" placeholder="AVGAS"></div>
-        </div>
-        <div class="tools-row">
-          <div class="tools-field"><label for="tools-airport-cache-qty">Fuel Qty (L)</label><input id="tools-airport-cache-qty" type="number" inputmode="decimal" step="1"></div>
-          <div class="tools-field"><label for="tools-airport-cache-updated-by">Last Updated By</label><input id="tools-airport-cache-updated-by" type="text"></div>
-        </div>
-        <div class="tools-field" style="margin-bottom:0;"><label for="tools-airport-cache-notes">Cache Notes</label><textarea id="tools-airport-cache-notes" style="min-height:80px;"></textarea></div>
-      </div>
-    </div>
-
-    <div class="tools-btn-row">
-      <button class="btn-ts" type="button" onclick="toolsCloseAirportEditOverlay(null)">CANCEL</button>
-      <button class="btn-tp" type="button" onclick="toolsSaveAirportProfile()">SAVE AIRPORT</button>
-    </div>
-  </div>
-</div>
-
-<script>
+﻿
   var _toolsWpPreviewMap = null, _toolsWpPreviewMarker = null;
   var _toolsPageBootstrapped = false;
   var _toolsSelectedCache = null, _toolsContactLoadingIcao = null;
@@ -1543,7 +63,7 @@
 
   function toolsPrettyLabel_(raw) {
     // Converts sheet header names to readable plain text:
-    // "TRAINING_CODE" → "Training Code", "REQUIRED_HOURS" → "Required Hours"
+    // "TRAINING_CODE" â†’ "Training Code", "REQUIRED_HOURS" â†’ "Required Hours"
     return String(raw || '')
       .replace(/[_]+/g, ' ')
       .trim()
@@ -1915,7 +435,7 @@
 
     mapEl.style.display = 'block';
     coordsEl.style.display = 'block';
-    coordsEl.textContent = 'Resolved route: ' + points.map(function(point) { return point.label; }).join(' → ');
+    coordsEl.textContent = 'Resolved route: ' + points.map(function(point) { return point.label; }).join(' â†’ ');
 
     toolsEnsureLeaflet_(function() {
       if (!_toolsDbPreviewMap) {
@@ -2026,7 +546,7 @@
 
     mapEl.style.display = 'block';
     coordsEl.style.display = 'block';
-    coordsEl.textContent = '→ ' + pos.lat.toFixed(6) + ', ' + pos.lon.toFixed(6);
+    coordsEl.textContent = 'â†’ ' + pos.lat.toFixed(6) + ', ' + pos.lon.toFixed(6);
     toolsEnsureLeaflet_(function() {
       if (!_toolsDbPreviewMap) {
         _toolsDbPreviewMap = L.map('tools-dbadd-preview-map', { zoomControl: true, attributionControl: false });
@@ -2274,7 +794,7 @@
     }
     mapEl.style.display = 'block';
     coordsEl.style.display = 'block';
-    coordsEl.textContent = 'Resolved route: ' + points.map(function(point) { return point.label; }).join(' → ');
+    coordsEl.textContent = 'Resolved route: ' + points.map(function(point) { return point.label; }).join(' â†’ ');
 
     toolsEnsureLeaflet_(function() {
       if (!_toolsRoutePreviewMap) {
@@ -2606,18 +1126,18 @@
     if (!box || !titleEl || !metaEl || !listEl) return;
     var batch = res.batch || {};
     var rows = Array.isArray(res.rows) ? res.rows : [];
-    titleEl.textContent = String(batch.batchId || '') + (batch.fileName ? ' • ' + batch.fileName : '');
+    titleEl.textContent = String(batch.batchId || '') + (batch.fileName ? ' â€¢ ' + batch.fileName : '');
     metaEl.innerHTML = 'Status: <b>' + String(batch.status || '') + '</b>'
-      + (batch.fundId ? ' • Fund: <b>' + batch.fundId + '</b>' : '')
-      + ' • Unresolved: <b>' + Number(batch.unresolvedCount || 0) + '</b>'
-      + (batch.fileUrl ? ' • <a href="' + batch.fileUrl + '" target="_blank" rel="noopener">Source File</a>' : '');
+      + (batch.fundId ? ' â€¢ Fund: <b>' + batch.fundId + '</b>' : '')
+      + ' â€¢ Unresolved: <b>' + Number(batch.unresolvedCount || 0) + '</b>'
+      + (batch.fileUrl ? ' â€¢ <a href="' + batch.fileUrl + '" target="_blank" rel="noopener">Source File</a>' : '');
     listEl.innerHTML = rows.map(function(row) {
       var badgeClass = String(row.matchStatus || '').toLowerCase();
       return '<div class="tools-donation-row">'
         + '<div class="tools-donation-row-head">'
         + '<div>'
         + '<div style="font-size:0.9rem; font-weight:800; color:#0b5394;">' + String(row.donorRaw || '(blank donor)') + '</div>'
-        + '<div class="tools-donation-note">' + String(row.txDate || '(no date)') + ' • R$ ' + (Number(row.amountBrl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + (row.fundId ? ' • ' + row.fundId : '') + (row.descriptionRaw ? ' • ' + String(row.descriptionRaw) : '') + '</div>'
+        + '<div class="tools-donation-note">' + String(row.txDate || '(no date)') + ' â€¢ R$ ' + (Number(row.amountBrl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + (row.fundId ? ' â€¢ ' + row.fundId : '') + (row.descriptionRaw ? ' â€¢ ' + String(row.descriptionRaw) : '') + '</div>'
         + (row.matchedDonationId ? '<div class="tools-donation-note">Matched donation: ' + row.matchedDonationId + ' (' + Number(row.matchConfidence || 0) + '%)</div>' : '')
         + (row.notes ? '<div class="tools-donation-note">' + row.notes + '</div>' : '')
         + '</div>'
@@ -2698,7 +1218,7 @@
       if (record.weight) meta.push(record.weight + 'kg');
       return '<div class="tools-search-item" onclick="toolsLoadPassengerRecord_(\'' + safePayload + '\')">'
         + '<div class="tools-search-name">' + (record.name || 'Unnamed Passenger') + '</div>'
-        + '<div class="tools-search-meta">' + (meta.join(' • ') || 'Open to edit') + '</div>'
+        + '<div class="tools-search-meta">' + (meta.join(' â€¢ ') || 'Open to edit') + '</div>'
         + '</div>';
     }).join('');
   }
@@ -2817,13 +1337,13 @@
     }).join('');
 
     var pilotAuthSelect = document.getElementById('tools-pilotauth-select');
-    if (pilotAuthSelect) pilotAuthSelect.innerHTML = '<option value="">Nova autorização...</option>' + pilotAuthorizations.map(function(item) {
+    if (pilotAuthSelect) pilotAuthSelect.innerHTML = '<option value="">Nova autorizaÃ§Ã£o...</option>' + pilotAuthorizations.map(function(item) {
       var label = [item.pilotName || 'Sem piloto', item.aircraftType || 'Sem aeronave', item.role || 'Sem role', item.expiryDate ? ('exp ' + item.expiryDate) : 'sem vencimento'].join(' | ');
       return '<option value="' + toolsAircraftEscape_(String(item.rowNumber || '')) + '">' + toolsAircraftEscape_(label) + '</option>';
     }).join('');
 
     var pilotAuthMeta = document.getElementById('tools-pilotauth-meta');
-    if (pilotAuthMeta) pilotAuthMeta.textContent = pilotAuthorizations.length ? (pilotAuthorizations.length + ' autorizações carregadas.') : 'Nenhuma autorização cadastrada.';
+    if (pilotAuthMeta) pilotAuthMeta.textContent = pilotAuthorizations.length ? (pilotAuthorizations.length + ' autorizaÃ§Ãµes carregadas.') : 'Nenhuma autorizaÃ§Ã£o cadastrada.';
 
     if (pilotAuthTypeSel && !String(pilotAuthTypeSel.value || '').trim()) pilotAuthTypeSel.value = 'INITIAL';
     if (pilotAuthStatusSel && !String(pilotAuthStatusSel.value || '').trim()) pilotAuthStatusSel.value = 'ACTIVE';
@@ -2843,7 +1363,7 @@
     if (readinessStaffSel) readinessStaffSel.innerHTML = staffOptions;
 
     var readinessModuleSel = document.getElementById('tools-readiness-module');
-    if (readinessModuleSel) readinessModuleSel.innerHTML = '<option value="">Todos os módulos</option>' + modules.map(function(m) {
+    if (readinessModuleSel) readinessModuleSel.innerHTML = '<option value="">Todos os mÃ³dulos</option>' + modules.map(function(m) {
       return '<option value="' + toolsAircraftEscape_(String(m.moduleId || '')) + '">' + toolsAircraftEscape_(String(m.moduleId || '') + ' - ' + String(m.moduleName || '')) + '</option>';
     }).join('');
 
@@ -2859,7 +1379,7 @@
 
     var moduleSel = document.getElementById('tools-module-select');
     if (moduleSel) {
-      moduleSel.innerHTML = '<option value="">Novo módulo...</option>' + modules.map(function(m) {
+      moduleSel.innerHTML = '<option value="">Novo mÃ³dulo...</option>' + modules.map(function(m) {
         var label = String(m.moduleId || '') + ' - ' + String(m.moduleName || '') + (m.active ? '' : ' [INATIVO]');
         return '<option value="' + toolsAircraftEscape_(String(m.moduleId || '')) + '">' + toolsAircraftEscape_(label) + '</option>';
       }).join('');
@@ -2942,13 +1462,13 @@
       canInspect: (document.getElementById('tools-staff-can-inspect') || {}).checked ? 'Y' : 'N'
     };
     if (!payload.staffName || !payload.email) {
-      toolsToast_('Nome e email são obrigatórios.', 'orange');
+      toolsToast_('Nome e email sÃ£o obrigatÃ³rios.', 'orange');
       return;
     }
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Não foi possível salvar staff', 'red');
+          toolsToast_((res && res.error) ? res.error : 'NÃ£o foi possÃ­vel salvar staff', 'red');
           return;
         }
         toolsToast_('Staff salvo com sucesso.', 'green');
@@ -3048,17 +1568,17 @@
     };
 
     if (!payload.aircraftType || !payload.role) {
-      toolsToast_('Aircraft type e authorization role são obrigatórios.', 'orange');
+      toolsToast_('Aircraft type e authorization role sÃ£o obrigatÃ³rios.', 'orange');
       return;
     }
 
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Não foi possível salvar autorização', 'red');
+          toolsToast_((res && res.error) ? res.error : 'NÃ£o foi possÃ­vel salvar autorizaÃ§Ã£o', 'red');
           return;
         }
-        toolsToast_('Autorização salva com sucesso.', 'green');
+        toolsToast_('AutorizaÃ§Ã£o salva com sucesso.', 'green');
         toolsPilotAuthClearForm_();
         toolsLoadStaffSetupData_(true);
       })
@@ -3070,17 +1590,17 @@
 
   function toolsPilotAuthDelete_() {
     if (!(_toolsSelectedPilotAuthRow >= 2)) {
-      toolsToast_('Selecione uma autorização para excluir.', 'orange');
+      toolsToast_('Selecione uma autorizaÃ§Ã£o para excluir.', 'orange');
       return;
     }
-    if (!window.confirm('Excluir esta autorização de piloto?')) return;
+    if (!window.confirm('Excluir esta autorizaÃ§Ã£o de piloto?')) return;
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Não foi possível excluir autorização', 'red');
+          toolsToast_((res && res.error) ? res.error : 'NÃ£o foi possÃ­vel excluir autorizaÃ§Ã£o', 'red');
           return;
         }
-        toolsToast_('Autorização excluída.', 'green');
+        toolsToast_('AutorizaÃ§Ã£o excluÃ­da.', 'green');
         toolsPilotAuthClearForm_();
         toolsLoadStaffSetupData_(true);
       })
@@ -3130,11 +1650,11 @@
     var comp = compEl ? String(compEl.value || 'THEORY') : 'THEORY';
     if (!role) return;
     var roleShort = { OP_PILOT_LAND:'OPL', OP_PILOT_ANF:'OPA', OP_INSTR_PILOT_LAND:'IPL', OP_INSTR_PILOT_ANF:'IPA', FLIGHT_INSTRUCTOR:'FI', FLIGHT_FOLLOWER:'FF', FLIGHT_COORDINATOR:'FC', FLIGHT_SUPERVISOR:'FS', MECHANIC:'MEC', MECHANIC_TRAINEE:'MECT', INSPECTOR:'INSP', SRM:'SRM', STOCKROOM:'STK' };
-    var roleNamePt = { OP_PILOT_LAND:'Piloto Operacional Terrestre', OP_PILOT_ANF:'Piloto Operacional ANF', OP_INSTR_PILOT_LAND:'Piloto Instrutor Terrestre', OP_INSTR_PILOT_ANF:'Piloto Instrutor ANF', FLIGHT_INSTRUCTOR:'Instrutor de Voo', FLIGHT_FOLLOWER:'Acompanhador de Voo', FLIGHT_COORDINATOR:'Coordenador de Voo', FLIGHT_SUPERVISOR:'Supervisor de Voo', MECHANIC:'Mecânico', MECHANIC_TRAINEE:'Mecânico em Treinamento', INSPECTOR:'Inspetor', SRM:'Gerente de Segurança e Risco', STOCKROOM:'Almoxarife' };
+    var roleNamePt = { OP_PILOT_LAND:'Piloto Operacional Terrestre', OP_PILOT_ANF:'Piloto Operacional ANF', OP_INSTR_PILOT_LAND:'Piloto Instrutor Terrestre', OP_INSTR_PILOT_ANF:'Piloto Instrutor ANF', FLIGHT_INSTRUCTOR:'Instrutor de Voo', FLIGHT_FOLLOWER:'Acompanhador de Voo', FLIGHT_COORDINATOR:'Coordenador de Voo', FLIGHT_SUPERVISOR:'Supervisor de Voo', MECHANIC:'MecÃ¢nico', MECHANIC_TRAINEE:'MecÃ¢nico em Treinamento', INSPECTOR:'Inspetor', SRM:'Gerente de SeguranÃ§a e Risco', STOCKROOM:'Almoxarife' };
     var typeShort  = { INITIAL:'INIT', RECURRENT:'REC' };
     var typeNamePt = { INITIAL:'Inicial', RECURRENT:'Recorrente' };
     var compShort  = { THEORY:'TEO', PRACTICAL:'PRAT', MIXED:'MIX' };
-    var compNamePt = { THEORY:'Teoria', PRACTICAL:'Prática', MIXED:'Teórico-Prático' };
+    var compNamePt = { THEORY:'Teoria', PRACTICAL:'PrÃ¡tica', MIXED:'TeÃ³rico-PrÃ¡tico' };
     var code = (roleShort[role] || role.replace(/[^A-Z0-9]/g,'').substring(0,4)) + '-' + (typeShort[type] || type.substring(0,3)) + '-' + (compShort[comp] || comp.substring(0,3));
     var name = (roleNamePt[role] || role) + ' \u2014 ' + (compNamePt[comp] || comp) + ' ' + (typeNamePt[type] || type);
     if (idEl)   idEl.value   = code;
@@ -3188,18 +1708,18 @@
 
   function toolsModuleDelete_() {
     if (!_toolsSelectedModuleRow || _toolsSelectedModuleRow < 2) {
-      toolsToast_('Selecione um módulo para deletar.', 'orange');
+      toolsToast_('Selecione um mÃ³dulo para deletar.', 'orange');
       return;
     }
     var moduleId = String((document.getElementById('tools-module-id') || {}).value || '').trim();
-    if (!confirm('Deletar módulo "' + moduleId + '"? Esta ação não pode ser desfeita.')) return;
+    if (!confirm('Deletar mÃ³dulo "' + moduleId + '"? Esta aÃ§Ã£o nÃ£o pode ser desfeita.')) return;
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Não foi possível deletar módulo.', 'red');
+          toolsToast_((res && res.error) ? res.error : 'NÃ£o foi possÃ­vel deletar mÃ³dulo.', 'red');
           return;
         }
-        toolsToast_('Módulo deletado.', 'green');
+        toolsToast_('MÃ³dulo deletado.', 'green');
         toolsModuleClearForm_();
         toolsLoadStaffSetupData_(true);
       })
@@ -3246,16 +1766,16 @@
       notes: String((document.getElementById('tools-module-notes') || {}).value || '').trim()
     };
     if (!payload.moduleId || !payload.moduleName) {
-      toolsToast_('Module ID e Module Name são obrigatórios.', 'orange');
+      toolsToast_('Module ID e Module Name sÃ£o obrigatÃ³rios.', 'orange');
       return;
     }
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Não foi possível salvar módulo', 'red');
+          toolsToast_((res && res.error) ? res.error : 'NÃ£o foi possÃ­vel salvar mÃ³dulo', 'red');
           return;
         }
-        toolsToast_('Módulo salvo com sucesso.', 'green');
+        toolsToast_('MÃ³dulo salvo com sucesso.', 'green');
         toolsLoadStaffSetupData_(true);
       })
       .withFailureHandler(function(err) {
@@ -3309,16 +1829,16 @@
       return;
     }
     if (!payload.moduleId || !payload.evaluatedAt) {
-      toolsToast_('Módulo e data são obrigatórios.', 'orange');
+      toolsToast_('MÃ³dulo e data sÃ£o obrigatÃ³rios.', 'orange');
       return;
     }
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Não foi possível salvar avaliação', 'red');
+          toolsToast_((res && res.error) ? res.error : 'NÃ£o foi possÃ­vel salvar avaliaÃ§Ã£o', 'red');
           return;
         }
-        toolsToast_('Avaliação salva: ' + String(res.practicalId || ''), 'green');
+        toolsToast_('AvaliaÃ§Ã£o salva: ' + String(res.practicalId || ''), 'green');
         toolsPracticalClearForm_();
       })
       .withFailureHandler(function(err) {
@@ -3330,7 +1850,7 @@
   function toolsRenderReadinessInto_(summaryEl, bodyEl, res) {
     if (!summaryEl || !bodyEl) return;
     if (!res || !res.success) {
-      summaryEl.textContent = (res && res.error) ? res.error : 'Não foi possível calcular prontidão';
+      summaryEl.textContent = (res && res.error) ? res.error : 'NÃ£o foi possÃ­vel calcular prontidÃ£o';
       bodyEl.innerHTML = '';
       return;
     }
@@ -3342,18 +1862,18 @@
     var overallReady = !!summary.overallReady;
     var summaryParts = [
       String(staff.staffName || staff.email || 'Staff'),
-      String(summary.readyCount || 0) + '/' + String(summary.moduleCount || 0) + ' módulos prontos',
+      String(summary.readyCount || 0) + '/' + String(summary.moduleCount || 0) + ' mÃ³dulos prontos',
       overallReady ? 'PRONTO' : 'PENDENTE'
     ];
     if (auth && auth.required) {
-      summaryParts.push('Autorização: ' + (auth.ready ? 'OK' : 'PENDENTE'));
+      summaryParts.push('AutorizaÃ§Ã£o: ' + (auth.ready ? 'OK' : 'PENDENTE'));
     }
     summaryEl.textContent = summaryParts.join(' | ');
 
     var authHtml = '';
     if (auth && auth.required) {
       authHtml = '<div style="margin:0 0 10px 0; padding:8px 10px; border-radius:8px; background:' + (auth.ready ? '#e8f5e9' : '#fff3e0') + '; color:#37474f; font-size:0.8rem;">'
-        + '<strong>Autorização:</strong> '
+        + '<strong>AutorizaÃ§Ã£o:</strong> '
         + (auth.ready ? 'Ativa' : 'Pendente')
         + (auth.authorizationStatus ? ' (' + String(auth.authorizationStatus) + ')' : '')
         + (auth.aircraftType ? ' | Aircraft: ' + String(auth.aircraftType) : '')
@@ -3362,7 +1882,7 @@
     }
 
     if (!rows.length) {
-      bodyEl.innerHTML = authHtml + '<div class="tools-report-empty">Nenhum módulo aplicável encontrado para este staff.</div>';
+      bodyEl.innerHTML = authHtml + '<div class="tools-report-empty">Nenhum mÃ³dulo aplicÃ¡vel encontrado para este staff.</div>';
       return;
     }
     var tableRows = rows.map(function(row) {
@@ -3371,13 +1891,13 @@
         teoria: row.theoryPassed ? 'OK' : 'Pendente',
         pratica: row.practicalRequired ? (row.practicalPassed ? 'OK' : 'Pendente') : 'N/A',
         validade: row.dueDate || 'Sem vencimento',
-        pronto: row.ready ? 'SIM' : 'NÃO'
+        pronto: row.ready ? 'SIM' : 'NÃƒO'
       };
     });
     bodyEl.innerHTML = authHtml + toolsRenderReportTable_([
-      { key: 'modulo', label: 'Módulo' },
+      { key: 'modulo', label: 'MÃ³dulo' },
       { key: 'teoria', label: 'Teoria' },
-      { key: 'pratica', label: 'Prática' },
+      { key: 'pratica', label: 'PrÃ¡tica' },
       { key: 'validade', label: 'Validade' },
       { key: 'pronto', label: 'Pronto' }
     ], tableRows);
@@ -3395,13 +1915,13 @@
     }
     var summaryEl = document.getElementById('tools-readiness-summary');
     var bodyEl = document.getElementById('tools-readiness-body');
-    if (summaryEl) summaryEl.textContent = 'Calculando prontidão...';
+    if (summaryEl) summaryEl.textContent = 'Calculando prontidÃ£o...';
     if (bodyEl) bodyEl.innerHTML = '';
 
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          if (summaryEl) summaryEl.textContent = (res && res.error) ? res.error : 'Não foi possível calcular prontidão';
+          if (summaryEl) summaryEl.textContent = (res && res.error) ? res.error : 'NÃ£o foi possÃ­vel calcular prontidÃ£o';
           toolsToast_((res && res.error) ? res.error : 'Readiness failed', 'red');
           return;
         }
@@ -3537,7 +2057,7 @@
     }).join('');
     var table = rows.length
       ? '<table class="tools-report-table"><thead><tr><th>Action</th><th>Email</th><th>Role</th><th>Active</th><th>Valid Until</th><th>Reason</th></tr></thead><tbody>' + rows + '</tbody></table>'
-      : '<p style="font-size:0.8rem;color:#607d8b;padding:8px 0;">No changes needed — all qualifications are already in sync.</p>';
+      : '<p style="font-size:0.8rem;color:#607d8b;padding:8px 0;">No changes needed â€” all qualifications are already in sync.</p>';
     toolsSchedulerSetStatus_(modeLabel + ': ' + res.actions.length + ' action(s).', '#2e7d32');
     if (out) out.innerHTML = table;
   }
@@ -3881,7 +2401,7 @@
         listEl.appendChild(li);
       });
       if (!points.length && lines.length) {
-        listEl.innerHTML = '<li style="color:#c62828">Formato não reconhecido. Use decimal (lat, lng) ou DMS.</li>';
+        listEl.innerHTML = '<li style="color:#c62828">Formato nÃ£o reconhecido. Use decimal (lat, lng) ou DMS.</li>';
       }
     }
 
@@ -3938,7 +2458,7 @@
   function toolsMasterParseCoordLine_(line) {
     if (!line) return null;
     // Strip degree/minute/second symbols, normalize separators
-    var cleaned = line.replace(/[°′'″"]/g, ' ').replace(/\s+/g, ' ').trim();
+    var cleaned = line.replace(/[Â°â€²'â€³"]/g, ' ').replace(/\s+/g, ' ').trim();
 
     // --- Full DMS: handles both "N 45 33 34.73 W 93 36 19.50" AND "45 33 34.73 N 93 36 19.50 W" ---
     // Pattern: optional-dir  deg  min  sec  optional-dir  AND  optional-dir  deg  min  sec  optional-dir
@@ -4011,7 +2531,7 @@
     var c = cfg || {};
     document.getElementById('tools-master-home-airports').value = String(c.DUTY_GEOFENCE_COORDS || '');
     document.getElementById('tools-master-alert-recipients').value = String(c.DUTY_ALERT_RECIPIENTS || '');
-    // Strip full Date string if sheet stored as Date — keep only HH:MM
+    // Strip full Date string if sheet stored as Date â€” keep only HH:MM
     var morningRaw = String(c.DUTY_MORNING_ALERT_TIME || '');
     var eveningRaw = String(c.DUTY_EVENING_ALERT_TIME || '');
     var timeRe = /(\d{1,2}):(\d{2})/;
@@ -4053,7 +2573,7 @@
           return;
         }
         toolsApplyMasterFlightFollowConfig_(res.ffConfig || {});
-        toolsSetMasterFfMeta_(res.canManageConfig ? 'Flight Following config loaded. Edição habilitada.' : 'Flight Following config loaded. Visualização apenas.', res.canManageConfig ? '#2e7d32' : '#ef6c00');
+        toolsSetMasterFfMeta_(res.canManageConfig ? 'Flight Following config loaded. EdiÃ§Ã£o habilitada.' : 'Flight Following config loaded. VisualizaÃ§Ã£o apenas.', res.canManageConfig ? '#2e7d32' : '#ef6c00');
       })
       .withFailureHandler(function(err) {
         toolsSetMasterFfMeta_('Error: ' + (err && err.message ? err.message : String(err)), '#c62828');
@@ -4126,12 +2646,12 @@
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsSetMasterMeta_((res && res.error) ? res.error : 'Falha ao carregar configuração', '#c62828');
+          toolsSetMasterMeta_((res && res.error) ? res.error : 'Falha ao carregar configuraÃ§Ã£o', '#c62828');
           return;
         }
         _toolsMasterConfigData = res;
         toolsApplyMasterConfig_(res.dutyConfig || {});
-        var msg = res.canManageConfig ? 'Config mode: edição habilitada.' : 'Modo piloto: visualização apenas.';
+        var msg = res.canManageConfig ? 'Config mode: ediÃ§Ã£o habilitada.' : 'Modo piloto: visualizaÃ§Ã£o apenas.';
         toolsSetMasterMeta_(msg, res.canManageConfig ? '#2e7d32' : '#ef6c00');
 
         google.script.run
@@ -4146,7 +2666,7 @@
               .withSuccessHandler(function(profile) {
                 _toolsSchedulerAccessProfile = (profile && profile.success) ? profile : null;
                 var canEdit = !!(profile && profile.permissions && profile.permissions.CAN_EDIT_RULES);
-                toolsSetMasterSchedulerMeta_(canEdit ? 'Scheduler config loaded. Edição habilitada.' : 'Scheduler config loaded. Visualização apenas.', canEdit ? '#2e7d32' : '#ef6c00');
+                toolsSetMasterSchedulerMeta_(canEdit ? 'Scheduler config loaded. EdiÃ§Ã£o habilitada.' : 'Scheduler config loaded. VisualizaÃ§Ã£o apenas.', canEdit ? '#2e7d32' : '#ef6c00');
               })
               .withFailureHandler(function() {
                 _toolsSchedulerAccessProfile = null;
@@ -4180,7 +2700,7 @@
           toolsToast_('Scheduler config salva. Duty config continua restrita ao supervisor.', 'green');
         },
         onFailure: function() {
-          toolsToast_('Sem permissão para salvar configuração mestre ou scheduler.', 'orange');
+          toolsToast_('Sem permissÃ£o para salvar configuraÃ§Ã£o mestre ou scheduler.', 'orange');
         },
         onError: function() {
           toolsToast_('Erro ao salvar scheduler config.', 'red');
@@ -4199,7 +2719,7 @@
           return;
         }
         toolsApplyMasterConfig_(res.dutyConfig || payload.config);
-        toolsSetMasterMeta_('Configuração salva. Atualizados: ' + Number(res.updated || 0) + ' | Novos: ' + Number(res.created || 0), '#2e7d32');
+        toolsSetMasterMeta_('ConfiguraÃ§Ã£o salva. Atualizados: ' + Number(res.updated || 0) + ' | Novos: ' + Number(res.created || 0), '#2e7d32');
         toolsSaveMasterSchedulerConfig_({
           onSuccess: function() {
             toolsToast_('Duty config e scheduler salvas.', 'green');
@@ -4289,7 +2809,7 @@
         _toolsDutyLogsRows = Array.isArray(res.rows) ? res.rows : [];
         toolsRenderDutyLogsRows_();
         if (meta) {
-          meta.textContent = 'Logs: ' + _toolsDutyLogsRows.length + ' | Janela: ' + String((res.applied || {}).fromYmd || '') + ' até ' + String((res.applied || {}).toYmd || '');
+          meta.textContent = 'Logs: ' + _toolsDutyLogsRows.length + ' | Janela: ' + String((res.applied || {}).fromYmd || '') + ' atÃ© ' + String((res.applied || {}).toYmd || '');
           meta.style.color = '#2e7d32';
         }
       })
@@ -4306,7 +2826,7 @@
     var tbody = document.getElementById('tools-dutylogs-list');
     if (!tbody) return;
     if (!_toolsDutyLogsRows.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="color:#90a4ae;">Nenhum log encontrado no período.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="color:#90a4ae;">Nenhum log encontrado no perÃ­odo.</td></tr>';
       toolsDutyLogClearEditor_();
       return;
     }
@@ -4423,7 +2943,7 @@
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Não foi possível salvar log.', 'red');
+          toolsToast_((res && res.error) ? res.error : 'NÃ£o foi possÃ­vel salvar log.', 'red');
           return;
         }
         toolsToast_('Log atualizado.', 'green');
@@ -4464,25 +2984,25 @@
     google.script.run
       .withSuccessHandler(function(profile) {
         if (!profile || !profile.success) {
-          toolsPermSetStatus_((profile && profile.error) ? profile.error : 'Sem acesso ao perfil de permissões.', '#c62828');
+          toolsPermSetStatus_((profile && profile.error) ? profile.error : 'Sem acesso ao perfil de permissÃµes.', '#c62828');
           return;
         }
         _toolsPermCanManage = !!(profile.permissions && profile.permissions.CAN_MANAGE_PERMISSIONS);
         if (!_toolsPermCanManage) {
-          toolsPermSetStatus_('Você não possui CAN_MANAGE_PERMISSIONS.', '#ef6c00');
-          document.getElementById('tools-perm-list').innerHTML = '<tr><td colspan="11" style="color:#90a4ae;">Permissão necessária: CAN_MANAGE_PERMISSIONS.</td></tr>';
+          toolsPermSetStatus_('VocÃª nÃ£o possui CAN_MANAGE_PERMISSIONS.', '#ef6c00');
+          document.getElementById('tools-perm-list').innerHTML = '<tr><td colspan="11" style="color:#90a4ae;">PermissÃ£o necessÃ¡ria: CAN_MANAGE_PERMISSIONS.</td></tr>';
           return;
         }
 
         google.script.run
           .withSuccessHandler(function(res) {
             if (!res || !res.success) {
-              toolsPermSetStatus_((res && res.error) ? res.error : 'Falha ao carregar permissões.', '#c62828');
+              toolsPermSetStatus_((res && res.error) ? res.error : 'Falha ao carregar permissÃµes.', '#c62828');
               return;
             }
             _toolsPermRows = Array.isArray(res.rows) ? res.rows : [];
             toolsRenderPermissions_();
-            toolsPermSetStatus_('Permissões carregadas: ' + _toolsPermRows.length, '#2e7d32');
+            toolsPermSetStatus_('PermissÃµes carregadas: ' + _toolsPermRows.length, '#2e7d32');
           })
           .withFailureHandler(function(err) {
             toolsPermSetStatus_('Error: ' + (err && err.message ? err.message : String(err)), '#c62828');
@@ -4499,7 +3019,7 @@
     var tbody = document.getElementById('tools-perm-list');
     if (!tbody) return;
     if (!_toolsPermRows.length) {
-      tbody.innerHTML = '<tr><td colspan="11" style="color:#90a4ae;">Nenhuma linha de permissão encontrada.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" style="color:#90a4ae;">Nenhuma linha de permissÃ£o encontrada.</td></tr>';
       return;
     }
     var keys = toolsPermissionKeys_();
@@ -4535,17 +3055,17 @@
 
   function toolsSavePermissionRow_(rowNumber, email) {
     if (!_toolsPermCanManage) {
-      toolsToast_('Sem permissão para editar permissões.', 'orange');
+      toolsToast_('Sem permissÃ£o para editar permissÃµes.', 'orange');
       return;
     }
     var payload = toolsPermissionPayloadFromRow_(rowNumber, email);
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Falha ao salvar permissão.', 'red');
+          toolsToast_((res && res.error) ? res.error : 'Falha ao salvar permissÃ£o.', 'red');
           return;
         }
-        toolsToast_('Permissão salva para ' + payload.email, 'green');
+        toolsToast_('PermissÃ£o salva para ' + payload.email, 'green');
         toolsLoadPermissions_();
       })
       .withFailureHandler(function(err) {
@@ -4556,7 +3076,7 @@
 
   function toolsSaveNewPermission_() {
     if (!_toolsPermCanManage) {
-      toolsToast_('Sem permissão para editar permissões.', 'orange');
+      toolsToast_('Sem permissÃ£o para editar permissÃµes.', 'orange');
       return;
     }
     var email = String((document.getElementById('tools-perm-new-email') || {}).value || '').trim().toLowerCase();
@@ -4579,10 +3099,10 @@
     google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
-          toolsToast_((res && res.error) ? res.error : 'Falha ao salvar permissão.', 'red');
+          toolsToast_((res && res.error) ? res.error : 'Falha ao salvar permissÃ£o.', 'red');
           return;
         }
-        toolsToast_('Permissão criada/atualizada para ' + email, 'green');
+        toolsToast_('PermissÃ£o criada/atualizada para ' + email, 'green');
         toolsLoadPermissions_();
       })
       .withFailureHandler(function(err) {
@@ -4976,7 +3496,7 @@
 
     mapEl.style.display = 'block';
     coordsEl.style.display = 'block';
-    coordsEl.textContent = 'Rota resolvida: ' + points.map(function(point) { return point.label; }).join(' → ');
+    coordsEl.textContent = 'Rota resolvida: ' + points.map(function(point) { return point.label; }).join(' â†’ ');
 
     toolsEnsureLeaflet_(function() {
       if (!_toolsDbPreviewMap) {
@@ -5073,9 +3593,9 @@
     var summaryEl = document.getElementById('tools-syl-route-summary');
     var stopsEl = document.getElementById('tools-syl-stop-boxes');
     if (summaryEl) {
-      var routeText = (state.stops || []).map(function(stop) { return String(stop.location || '').trim().toUpperCase(); }).filter(Boolean).join(' → ');
+      var routeText = (state.stops || []).map(function(stop) { return String(stop.location || '').trim().toUpperCase(); }).filter(Boolean).join(' â†’ ');
       if ((state.invalidRouteTokens || []).length) {
-        summaryEl.textContent = 'Pontos inválidos (cadastre em Aeroportos/Waypoints): ' + state.invalidRouteTokens.join(', ');
+        summaryEl.textContent = 'Pontos invÃ¡lidos (cadastre em Aeroportos/Waypoints): ' + state.invalidRouteTokens.join(', ');
       } else {
         summaryEl.textContent = routeText ? ('Ordem da rota: ' + routeText) : 'Ordem da rota: aguardando origem e destino.';
       }
@@ -5185,13 +3705,13 @@
     var title = String(descEl && descEl.value || '').trim() || 'Plano de Aula';
 
     var html = ''
-      + '<!doctype html><html><head><meta charset="utf-8"><title>Pré-visualização Plano de Aula</title>'
+      + '<!doctype html><html><head><meta charset="utf-8"><title>PrÃ©-visualizaÃ§Ã£o Plano de Aula</title>'
       + '<style>body{font-family:Arial,sans-serif;padding:18px;background:#f4f7fb;color:#1f2937}h2{margin:0 0 8px 0;color:#0b5394}h3{margin:14px 0 6px 0;color:#0b5394}table{width:100%;border-collapse:collapse;background:#fff}th,td{border:1px solid #dbe4ee;padding:6px 8px;font-size:13px}th{background:#eff5fb;text-align:left}.meta{font-size:13px;line-height:1.6}.pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#dbeafe;color:#0b5394;font-weight:700;margin-left:6px}</style></head><body>'
       + '<h2>' + title.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</h2>'
-      + '<div class="meta">Código: <b>' + (code || '---') + '</b> <span class="pill">' + toolsSyllabusCategoryLabel_(state.category) + '</span><br>'
+      + '<div class="meta">CÃ³digo: <b>' + (code || '---') + '</b> <span class="pill">' + toolsSyllabusCategoryLabel_(state.category) + '</span><br>'
       + 'Aeronave: <b>' + (acft || '---') + '</b><br>'
-      + 'Data: ________ &nbsp; Matrícula: ________ &nbsp; Piloto: ________ &nbsp; Instrutor: ________<br>'
-      + (state.externalLessonName ? ('Referência: <b>' + state.externalLessonName.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</b><br>') : '')
+      + 'Data: ________ &nbsp; MatrÃ­cula: ________ &nbsp; Piloto: ________ &nbsp; Instrutor: ________<br>'
+      + (state.externalLessonName ? ('ReferÃªncia: <b>' + state.externalLessonName.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</b><br>') : '')
       + (state.routeCheckPrompt ? ('Rota check: <b>' + state.routeCheckPrompt.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</b><br>') : '')
       + (state.runwayCheckLocation ? ('Pista check: <b>' + state.runwayCheckLocation.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</b><br>') : '')
       + '</div>'
@@ -5210,7 +3730,7 @@
       + '</body></html>';
 
     var w = window.open('', '_blank', 'width=980,height=760');
-    if (!w) { toolsToast_('Pop-up bloqueado. Permita pop-ups para pré-visualizar.', 'orange'); return; }
+    if (!w) { toolsToast_('Pop-up bloqueado. Permita pop-ups para prÃ©-visualizar.', 'orange'); return; }
     w.document.open();
     w.document.write(html);
     w.document.close();
@@ -5225,11 +3745,11 @@
       return { ok: false, message: 'Defina pelo menos origem e destino para a rota.' };
     }
     if (!(plan.maneuvers || []).length) {
-      return { ok: false, message: 'Adicione pelo menos uma manobra e ordene a sequência.' };
+      return { ok: false, message: 'Adicione pelo menos uma manobra e ordene a sequÃªncia.' };
     }
 
     if ((state.invalidRouteTokens || []).length) {
-      return { ok: false, message: 'Pontos inválidos na rota: ' + state.invalidRouteTokens.join(', ') };
+      return { ok: false, message: 'Pontos invÃ¡lidos na rota: ' + state.invalidRouteTokens.join(', ') };
     }
 
     var unresolved = (plan.stops || []).map(function(stop) {
@@ -5238,7 +3758,7 @@
       return !toolsDbResolvePoint_(token);
     });
     if (unresolved.length) {
-      return { ok: false, message: 'Pontos não cadastrados em Aeroportos/Waypoints: ' + unresolved.join(', ') };
+      return { ok: false, message: 'Pontos nÃ£o cadastrados em Aeroportos/Waypoints: ' + unresolved.join(', ') };
     }
 
     var planKey = toolsDbFindKey_(['LESSON_PLAN_JSON', 'TRAINING_PLAN_JSON', 'PLAN_JSON']);
@@ -5301,7 +3821,7 @@
       if (state.externalLessonName) snippets.push('Aula Ref.: ' + String(state.externalLessonName));
       if (state.routeCheckPrompt) snippets.push('Rota Check: ' + String(state.routeCheckPrompt));
       if (state.runwayCheckLocation) snippets.push('Pista Check: ' + String(state.runwayCheckLocation));
-      if (profile) snippets.push('Perfil Planejado: ' + profile + ' (somente referência)');
+      if (profile) snippets.push('Perfil Planejado: ' + profile + ' (somente referÃªncia)');
       if (maneuversText) snippets.push('Manobras Planejadas: ' + maneuversText);
       var current = String(payload[notesKey] || '').trim();
       var compact = snippets.join(' | ');
@@ -5339,7 +3859,7 @@
       fieldsEl.innerHTML =
         '<div class="tools-syl-plan">'
         + '<h4>Perguntas do Plano de Aula</h4>'
-        + '<p class="tools-syl-plan-note">Preencha as perguntas. Rota limitada a pontos existentes em DB_Airports e DB_Waypoints, com pré-visualização no mapa.</p>'
+        + '<p class="tools-syl-plan-note">Preencha as perguntas. Rota limitada a pontos existentes em DB_Airports e DB_Waypoints, com prÃ©-visualizaÃ§Ã£o no mapa.</p>'
         + '<div class="tools-row">'
         + '<div class="tools-field tools-syl-q"><label for="tools-syl-category">Tipo de voo</label>'
         + '<select id="tools-syl-category" class="browser-default">'
@@ -5360,20 +3880,20 @@
             + '<input id="tools-db-' + descKey + '" data-tools-db-key="' + descKey + '" type="text" placeholder="Nome do plano"></div>')
           : '')
         + (codeKey
-          ? ('<div class="tools-syl-q"><label for="tools-db-' + codeKey + '">Código da aula</label>'
-            + '<input id="tools-db-' + codeKey + '" data-tools-db-key="' + codeKey + '" type="text" placeholder="Código automático">'
+          ? ('<div class="tools-syl-q"><label for="tools-db-' + codeKey + '">CÃ³digo da aula</label>'
+            + '<input id="tools-db-' + codeKey + '" data-tools-db-key="' + codeKey + '" type="text" placeholder="CÃ³digo automÃ¡tico">'
             + '<div class="tools-syl-plan-note" style="margin-top:4px;">Formato: PREFIXO-ACFT-ORIG_DESTINO.</div></div>')
           : '')
         + '<div class="tools-syl-route-grid">'
         + '<div class="tools-syl-q"><label for="tools-syl-origin">Origem (ICAO/WP)</label><input id="tools-syl-origin" type="text" list="tools-syl-route-points-list" placeholder="SWXX"></div>'
-        + '<div class="tools-syl-q"><label for="tools-syl-via">Via (separar por vírgula)</label><input id="tools-syl-via" type="text" list="tools-syl-route-points-list" placeholder="SJMH, PAPA-PALIMIU"></div>'
+        + '<div class="tools-syl-q"><label for="tools-syl-via">Via (separar por vÃ­rgula)</label><input id="tools-syl-via" type="text" list="tools-syl-route-points-list" placeholder="SJMH, PAPA-PALIMIU"></div>'
         + '<div class="tools-syl-q"><label for="tools-syl-destination">Destino (ICAO/WP)</label><input id="tools-syl-destination" type="text" list="tools-syl-route-points-list" placeholder="SBCF"></div>'
         + '</div>'
         + '<datalist id="tools-syl-route-points-list">' + toolsSyllabusRoutePointOptionsHtml_() + '</datalist>'
         + '<div id="tools-syl-route-summary" class="tools-syl-route-summary">Ordem da rota: aguardando origem e destino.</div>'
         + '<h4 style="margin-top:10px;">Pousos e toque-e-arremetida por ponto</h4>'
         + '<div id="tools-syl-stop-boxes" class="tools-syl-order-list"></div>'
-        + '<h4 style="margin-top:10px;">Manobras e ordem de execução</h4>'
+        + '<h4 style="margin-top:10px;">Manobras e ordem de execuÃ§Ã£o</h4>'
         + '<div class="tools-row" style="align-items:flex-end;">'
         + '<div class="tools-field" style="margin-bottom:0;">'
         + '<label for="tools-syl-maneuver-pick">Lista de manobras</label>'
@@ -5392,15 +3912,15 @@
         + '<div id="tools-syl-maneuver-order" class="tools-syl-order-list"></div>'
         + '<div class="tools-row" style="margin-top:10px;">'
         + (hoursKey ? ('<div class="tools-field tools-syl-q"><label for="tools-db-' + hoursKey + '">Horas requeridas</label><input id="tools-db-' + hoursKey + '" data-tools-db-key="' + hoursKey + '" type="number" step="0.1" min="0"></div>') : '')
-        + (fuelKey ? ('<div class="tools-field tools-syl-q"><label for="tools-db-' + fuelKey + '">Combustível requerido</label><input id="tools-db-' + fuelKey + '" data-tools-db-key="' + fuelKey + '" type="number" step="1" min="0"></div>') : '')
+        + (fuelKey ? ('<div class="tools-field tools-syl-q"><label for="tools-db-' + fuelKey + '">CombustÃ­vel requerido</label><input id="tools-db-' + fuelKey + '" data-tools-db-key="' + fuelKey + '" type="number" step="1" min="0"></div>') : '')
         + (ballastKey ? ('<div class="tools-field tools-syl-q"><label for="tools-db-' + ballastKey + '">Lastro requerido</label><input id="tools-db-' + ballastKey + '" data-tools-db-key="' + ballastKey + '" type="number" step="1" min="0"></div>') : '')
         + '</div>'
         + '<div class="tools-btn-row" style="margin-top:8px; margin-bottom:8px;">'
-        + '<button class="btn-ts" type="button" onclick="toolsSyllabusAutoName_(true)">GERAR CÓDIGO</button>'
-        + '<button class="btn-ta" type="button" onclick="toolsSyllabusPreviewLessonPlan_()">PRÉ-VISUALIZAR PLANO</button>'
+        + '<button class="btn-ts" type="button" onclick="toolsSyllabusAutoName_(true)">GERAR CÃ“DIGO</button>'
+        + '<button class="btn-ta" type="button" onclick="toolsSyllabusPreviewLessonPlan_()">PRÃ‰-VISUALIZAR PLANO</button>'
         + '</div>'
         + '<label style="display:flex;align-items:center;gap:8px;font-size:0.78rem;color:#37474f;font-weight:700;text-transform:none;margin-bottom:8px;">'
-        + '<input id="tools-syl-autoname" type="checkbox" checked> Manter nome automático sincronizado'
+        + '<input id="tools-syl-autoname" type="checkbox" checked> Manter nome automÃ¡tico sincronizado'
         + '</label>'
         + (routeKey ? ('<input id="tools-db-' + routeKey + '" data-tools-db-key="' + routeKey + '" type="hidden">') : '')
         + (runwayKey ? ('<input id="tools-db-' + runwayKey + '" data-tools-db-key="' + runwayKey + '" type="hidden">') : '')
@@ -5540,7 +4060,7 @@
           return;
         }
         var msg = toolsKindLabel_(_toolsDbAddKind) + ' saved successfully';
-        if (res.airportPhotoFolder && res.airportPhotoFolder.url) msg += ' • Drive folder created';
+        if (res.airportPhotoFolder && res.airportPhotoFolder.url) msg += ' â€¢ Drive folder created';
         toolsToast_(msg, 'green');
         toolsClearDbAddForm();
 
@@ -6656,7 +5176,7 @@
     toolsOpenPanel('aircraftbuild');
     var noteEl = document.getElementById('tools-ac-note');
     var sectionsEl = document.getElementById('tools-ac-sections');
-    if (noteEl) noteEl.textContent = 'Loading aircraft template…';
+    if (noteEl) noteEl.textContent = 'Loading aircraft templateâ€¦';
     if (sectionsEl) sectionsEl.style.display = 'none';
 
     google.script.run
@@ -6682,10 +5202,10 @@
     var sel = document.getElementById('tools-ac-source');
     if (!sel) return;
     var options = (_toolsAircraftBuilderData && Array.isArray(_toolsAircraftBuilderData.aircraftOptions)) ? _toolsAircraftBuilderData.aircraftOptions : [];
-    sel.innerHTML = '<option value="">Select aircraft…</option>' + options.map(function(item) {
+    sel.innerHTML = '<option value="">Select aircraftâ€¦</option>' + options.map(function(item) {
       var reg = String(item.registration || '').trim();
       var acType = String(item.aircraftType || '').trim();
-      return '<option value="' + toolsAircraftEscape_(reg) + '">' + toolsAircraftEscape_(reg + (acType ? ' • ' + acType : '')) + '</option>';
+      return '<option value="' + toolsAircraftEscape_(reg) + '">' + toolsAircraftEscape_(reg + (acType ? ' â€¢ ' + acType : '')) + '</option>';
     }).join('');
   }
 
@@ -6716,7 +5236,7 @@
     var reg = String((sel && sel.value) || '').trim();
     if (!reg) { toolsToast_('Choose a source aircraft first.', 'orange'); return; }
     var noteEl = document.getElementById('tools-ac-note');
-    if (noteEl) noteEl.textContent = 'Loading copy template for ' + reg + '…';
+    if (noteEl) noteEl.textContent = 'Loading copy template for ' + reg + 'â€¦';
 
     google.script.run
       .withSuccessHandler(function(res) {
@@ -7043,9 +5563,9 @@
       + '</tr></thead><tbody>';
     var body = rows.map(function(r, idx) {
       var safeUrl = toolsEscapeHtml_(r.driveUrl || '');
-      var openBtn = safeUrl ? ('<a class="tools-apbtn tools-apbtn-blue" href="' + safeUrl + '" target="_blank" rel="noopener">Open</a>') : '<span style="color:#90a4ae;">—</span>';
+      var openBtn = safeUrl ? ('<a class="tools-apbtn tools-apbtn-blue" href="' + safeUrl + '" target="_blank" rel="noopener">Open</a>') : '<span style="color:#90a4ae;">â€”</span>';
       var expiryStr = String(r.expiryDate || '').trim();
-      var expiryCell = '<span style="color:#90a4ae;">—</span>';
+      var expiryCell = '<span style="color:#90a4ae;">â€”</span>';
       if (expiryStr) {
         var expDate = new Date(expiryStr + 'T00:00:00');
         var expColor = '#2e7d32';
@@ -7056,10 +5576,10 @@
       return '<tr>'
         + '<td>' + toolsEscapeHtml_(r.docType || '') + '</td>'
         + '<td style="max-width:200px; word-break:break-all;">' + toolsEscapeHtml_(r.docName || '') + '</td>'
-        + '<td>' + toolsEscapeHtml_(r.effectiveDate || '—') + '</td>'
+        + '<td>' + toolsEscapeHtml_(r.effectiveDate || 'â€”') + '</td>'
         + '<td>' + expiryCell + '</td>'
-        + '<td>' + toolsEscapeHtml_(r.uploadDate || '—') + '</td>'
-        + '<td>' + toolsEscapeHtml_(r.lastVerifiedOffline || '—') + '</td>'
+        + '<td>' + toolsEscapeHtml_(r.uploadDate || 'â€”') + '</td>'
+        + '<td>' + toolsEscapeHtml_(r.lastVerifiedOffline || 'â€”') + '</td>'
         + '<td>' + openBtn + '</td>'
         + '<td><button class="tools-mini-btn commit" type="button" onclick="toolsLoadAircraftDocIntoForm_(' + idx + ')">Edit</button></td>'
         + '<td><button class="tools-mini-btn" style="background:#ffebee; color:#c62828; border:1px solid #ef9a9a;" type="button" onclick="toolsDeleteAircraftDoc_(' + idx + ')">Del</button></td>'
@@ -7454,7 +5974,7 @@
       var safeIcao=String(f.icao).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       return '<div class="tools-cache-row" onclick="toolsOpenAdjust(\''+safeIcao+'\')">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;">'+
-        '<span style="font-weight:800;color:#0b5394;font-size:0.9rem;">'+f.icao+' – '+(f.location||'Unknown')+'</span>'+
+        '<span style="font-weight:800;color:#0b5394;font-size:0.9rem;">'+f.icao+' â€“ '+(f.location||'Unknown')+'</span>'+
         '<span style="background:#0b5394;color:#fff;border-radius:4px;padding:2px 8px;font-size:0.8rem;font-weight:700;">'+Math.round(f.qty||0)+'L</span></div>'+
         '<div style="font-size:0.78rem;color:#90a4ae;margin-top:2px;">'+(f.type||'AVGAS')+'</div></div>';
     }).join('');
@@ -7551,7 +6071,7 @@
     var mapEl=document.getElementById('tools-wp-preview-map'),crdEl=document.getElementById('tools-wp-preview-coords');
     if(!mapEl||!crdEl)return;
     if(isNaN(lat)||isNaN(lon)||lat<-90||lat>90||lon<-180||lon>180){mapEl.style.display='none';crdEl.style.display='none';return;}
-    mapEl.style.display='block';crdEl.style.display='block';crdEl.textContent='→ '+lat.toFixed(6)+', '+lon.toFixed(6);
+    mapEl.style.display='block';crdEl.style.display='block';crdEl.textContent='â†’ '+lat.toFixed(6)+', '+lon.toFixed(6);
     toolsEnsureLeaflet_(function(){
       if(!_toolsWpPreviewMap){_toolsWpPreviewMap=L.map('tools-wp-preview-map',{zoomControl:true,attributionControl:false});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:16,minZoom:2}).addTo(_toolsWpPreviewMap);}
       _toolsWpPreviewMap.setView([lat,lon],11);
@@ -7748,7 +6268,7 @@
     if(otherEl)otherEl.value=JSON.stringify(grouped.other,null,2);
     if(countEl){
       var total=Object.keys(fields&&typeof fields==='object'?fields:{}).length;
-      countEl.textContent='Columns: '+total+' • ANAC Official: '+Object.keys(grouped.official).length+' • Survey: '+Object.keys(grouped.survey).length+' • Other: '+Object.keys(grouped.other).length;
+      countEl.textContent='Columns: '+total+' â€¢ ANAC Official: '+Object.keys(grouped.official).length+' â€¢ Survey: '+Object.keys(grouped.survey).length+' â€¢ Other: '+Object.keys(grouped.other).length;
     }
   }
   function toolsSyncAirportJsonViews_(){
@@ -7775,7 +6295,7 @@
     var titleEl=document.getElementById('tools-airport-edit-title');
     var subEl=document.getElementById('tools-airport-edit-sub');
     var jsonEl=document.getElementById('tools-airport-edit-json');
-    if(titleEl)titleEl.textContent='Edit Airport — '+code;
+    if(titleEl)titleEl.textContent='Edit Airport â€” '+code;
     if(subEl)subEl.textContent='Update DB_Airports data, fuel contact, and optional fuel cache.';
     if(jsonEl){
       var pretty='{}';
@@ -7838,7 +6358,7 @@
         var ident=String(row.runwayIdent||'').trim().toUpperCase();if(!ident)return;
         var pairKey=toolsRwyPairKey_(ident)||ident;
         if(rwyPairsSeen[pairKey])return;rwyPairsSeen[pairKey]=true;
-        rwyLines.push(pairKey+' — '+Math.round(row.runwayLength||0)+'m × '+Math.round(row.runwayWidth||0)+'m');
+        rwyLines.push(pairKey+' â€” '+Math.round(row.runwayLength||0)+'m Ã— '+Math.round(row.runwayWidth||0)+'m');
       });
       var rwyText=rwyLines.length?rwyLines.join('<br>'):'No runway data';
       var hasFuel=toolsAirportHasFuel_(a.fuelAvailable);
@@ -7850,14 +6370,14 @@
       var icaoSafe=icao.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       return '<div class="tools-airport-card">'
         +'<div class="tools-airport-name">'+nome+' <span style="font-weight:600;color:#546e7a;">('+icao+')</span></div>'
-        +'<div class="tools-airport-meta"><span style="font-weight:700;">'+rwyText+'</span>'+(metaParts.length?'<br><span>'+metaParts.join(' · ')+'</span>':'')+ '</div>'
+        +'<div class="tools-airport-meta"><span style="font-weight:700;">'+rwyText+'</span>'+(metaParts.length?'<br><span>'+metaParts.join(' Â· ')+'</span>':'')+ '</div>'
         +'<div class="tools-airport-actions">'
         +'<button class="tools-apbtn" style="background:#455a64;color:#fff;" onclick="toolsOpenAirportEditor(\''+icaoSafe+'\', false)"><i class="material-icons" style="font-size:1rem;">edit</i> Edit</button>'
         +'<button class="tools-apbtn tools-apbtn-blue" onclick="toolsShowRunwayPreview(\''+icaoSafe+'\')"><i class="material-icons" style="font-size:1rem;">grid_on</i> Runway</button>'
         +'<button class="tools-apbtn tools-apbtn-teal" onclick="toolsOpenDriveFolder(\''+icaoSafe+'\')"><i class="material-icons" style="font-size:1rem;">folder_open</i> Drive</button>'
         +'<a class="tools-apbtn tools-apbtn-earth" href="'+geUrl+'" target="_blank" rel="noopener"><i class="material-icons" style="font-size:1rem;">public</i> Earth</a>'
         +'<button class="tools-apbtn tools-apbtn-map" onclick="toolsShareAirportMap(\''+icaoSafe+'\')"><i class="material-icons" style="font-size:1rem;">share</i> Share Map</button>'
-        +(hasFuel?'<button class="tools-apbtn tools-apbtn-fuel" onclick="toolsShowFuelContact(\''+icaoSafe+'\')"><i class="material-icons" style="font-size:1rem;">local_gas_station</i> FUEL ✓</button>':'')
+        +(hasFuel?'<button class="tools-apbtn tools-apbtn-fuel" onclick="toolsShowFuelContact(\''+icaoSafe+'\')"><i class="material-icons" style="font-size:1rem;">local_gas_station</i> FUEL âœ“</button>':'')
         +(hasFuel
           ?'<button class="tools-apbtn" style="background:#ef6c00;color:#fff;" onclick="toolsSetAirportFuel(\''+icaoSafe+'\', false)">Set No Fuel</button>'
           :'<button class="tools-apbtn" style="background:#2e7d32;color:#fff;" onclick="toolsOpenAirportEditor(\''+icaoSafe+'\', true)">Mark Fuel Available</button>')
@@ -8095,10 +6615,10 @@
     };
     var leftThr = normThr(leftIdent);
     // Obstacle dots are placed OUTSIDE the runway ends.
-    // Landing at leftThr  → obstacle is past the LEFT end (approach from outside).
-    // Takeoff from leftThr → obstacle is past the RIGHT end (climb-out to the right).
-    // Landing at rightThr → obstacle is past the RIGHT end.
-    // Takeoff from rightThr → obstacle is past the LEFT end.
+    // Landing at leftThr  â†’ obstacle is past the LEFT end (approach from outside).
+    // Takeoff from leftThr â†’ obstacle is past the RIGHT end (climb-out to the right).
+    // Landing at rightThr â†’ obstacle is past the RIGHT end.
+    // Takeoff from rightThr â†’ obstacle is past the LEFT end.
     var leftTipX = 50, rightTipX = sideX + runwayPx + 60;
     var leftStack = 0, rightStack = 0;
     var obsGroupsSvg = obstacles.slice(0,8).map(function(obs, idx) {
@@ -8198,7 +6718,7 @@
   function toolsShowFuelContact(icao){
     if(_toolsContactLoadingIcao===icao)return;
     _toolsContactLoadingIcao=icao;
-    if(window.M)M.toast({html:'Loading contact…',classes:'blue'});
+    if(window.M)M.toast({html:'Loading contactâ€¦',classes:'blue'});
     google.script.run
       .withSuccessHandler(function(res){
         _toolsContactLoadingIcao=null;
@@ -8214,8 +6734,8 @@
         rEl=document.getElementById('tools-contact-rows'),nEl=document.getElementById('tools-contact-notes'),
         ov=document.getElementById('tools-contact-overlay');
     if(!tEl||!rEl||!ov)return;
-    tEl.textContent='Fuel Contact — '+res.icao;sEl.textContent=res.municipio||'';
-    var fields=[{label:'Has Fuel?',val:res.hasFuel},{label:'Permanência',val:res.permanencia},{label:'Contato',val:res.contato},{label:'Celular',val:res.celular},{label:'Telefone 2',val:res.telefone2},{label:'Temos Cadastro?',val:res.temsCadastro}];
+    tEl.textContent='Fuel Contact â€” '+res.icao;sEl.textContent=res.municipio||'';
+    var fields=[{label:'Has Fuel?',val:res.hasFuel},{label:'PermanÃªncia',val:res.permanencia},{label:'Contato',val:res.contato},{label:'Celular',val:res.celular},{label:'Telefone 2',val:res.telefone2},{label:'Temos Cadastro?',val:res.temsCadastro}];
     rEl.innerHTML=fields.filter(function(f){return f.val&&String(f.val).trim();}).map(function(f){return '<div class="tools-contact-row"><span class="tools-contact-label">'+f.label+'</span><span class="tools-contact-val">'+f.val+'</span></div>';}).join('');
     if(res.anotacoes&&String(res.anotacoes).trim()){nEl.textContent=res.anotacoes;nEl.style.display='block';}else{nEl.style.display='none';}
     ov.classList.add('open');
@@ -8262,4 +6782,4 @@
   window.toolsUpdateWaypointPreview=toolsUpdateWaypointPreview;
   window.toolsClearWaypointForm=toolsClearWaypointForm;
   window.toolsSaveWaypoint=toolsSaveWaypoint;
-</script>
+

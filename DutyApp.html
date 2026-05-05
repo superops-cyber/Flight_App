@@ -316,6 +316,12 @@
       border-radius: 10px;
       padding: 9px;
       background: #fff;
+      cursor: pointer;
+    }
+
+    .registry.active {
+      border-color: #90caf9;
+      box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.08);
     }
 
     .registry-head {
@@ -353,6 +359,55 @@
     .pill.ok { color: var(--ok); border-color: #a5d6a7; background: #e8f5e9; }
     .pill.warn { color: var(--warn); border-color: #ffcc80; background: #fff3e0; }
     .pill.bad { color: var(--bad); border-color: #ef9a9a; background: #ffebee; }
+
+    .registry-flights {
+      margin: 4px 0 6px 0;
+      padding: 5px 7px;
+      background: #f0f7ff;
+      border-radius: 7px;
+      border-left: 3px solid #90caf9;
+    }
+
+    .registry-fh-line {
+      font-size: 0.72rem;
+      font-weight: 900;
+      color: #1565c0;
+      margin-bottom: 3px;
+    }
+
+    .registry-flight-item {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      font-size: 0.7rem;
+      color: #37474f;
+      padding: 1px 0;
+    }
+
+    .rfi-id { font-weight: 700; color: #0d47a1; }
+    .rfi-acft { color: #546e7a; }
+    .rfi-route { color: #455a64; }
+
+    .registry-details {
+      margin-top: 6px;
+      border-top: 1px dashed #cfd8dc;
+      padding-top: 6px;
+    }
+
+    .registry-detail-title {
+      font-size: 0.68rem;
+      font-weight: 900;
+      color: #607d8b;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+    }
+
+    .registry-detail-row {
+      font-size: 0.72rem;
+      color: #37474f;
+      padding: 2px 0;
+    }
 
     .empty {
       color: var(--muted);
@@ -480,11 +535,8 @@
       <div id="shift-list"></div>
 
       <div class="btn-row" style="margin-top:8px;">
-        <button class="warn" type="button" onclick="dutyCloseCurrentAndAddShift(false)">Fechar fim e abrir novo inicio</button>
-      </div>
-
-      <div class="btn-row" style="margin-top:10px;">
-        <button class="primary" type="button" onclick="dutyFinalizeDay(false)">Encerrar dia</button>
+        <button class="primary" type="button" onclick="dutyAddShift(false)">+ Adicionar shift</button>
+        <button class="warn" type="button" onclick="dutyFinalizeDay(false)">Fechar dia</button>
       </div>
     </section>
 
@@ -661,6 +713,7 @@
       snapshot: null,
       logs: [],
       shifts: [],
+      expandedRegistryDateYmd: '',
       editingDateYmd: '',
       editingShifts: [],
       loading: false,
@@ -859,12 +912,65 @@
       let lockClass = 'field-lock';
       if (locked && !unlocked) lockClass += ' locked';
       if (unlocked) lockClass += ' unlocked-override';
+      const isLockedNow = !!locked && !unlocked;
       return ''
         + '<div class="field ' + lockClass + '" id="' + scope + '-field-' + index + '-' + kind + '">'
         + '  <label>' + (kind === 'start' ? 'Inicio' : 'Fim') + ' <span style="font-size:0.68rem;font-weight:400;opacity:0.65;">(BSB)</span></label>'
-        + '  <input id="' + inputId + '" type="time" value="' + dutyEscape(value || '') + '" ' + (locked && !unlocked ? 'readonly' : '') + '>'
-        + '  <span class="lock-icon" id="' + lockId + '" title="Campo bloqueado. Toque para sobrescrever." onclick="dutyToggleLock(\'' + scope + '\',' + index + ',\'' + kind + '\')">' + (unlocked ? '🔓' : '🔒') + '</span>'
+        + '  <input id="' + inputId + '" type="text" inputmode="numeric" placeholder="08:00, 8, 1pm" onblur="dutyHandleTimeBlur(\'' + scope + '\',' + index + ',\'' + kind + '\')" value="' + dutyEscape(value || '') + '" ' + (isLockedNow ? 'readonly' : '') + '>'
+        + '  <span class="lock-icon" id="' + lockId + '" title="Toque para bloquear/desbloquear." onclick="dutyToggleLock(\'' + scope + '\',' + index + ',\'' + kind + '\')">' + (isLockedNow ? '🔒' : '🔓') + '</span>'
         + '</div>';
+    }
+
+    function dutyNormalizeTimeInput(raw) {
+      const s = String(raw || '').trim().toLowerCase().replace(/\s+/g, '');
+      if (!s) return '';
+
+      let m = s.match(/^(\d{1,2})$/);
+      if (m) {
+        const h0 = Number(m[1]);
+        if (h0 >= 0 && h0 <= 23) return String(h0).padStart(2, '0') + ':00';
+        return '';
+      }
+
+      m = s.match(/^(\d{1,2}):(\d{2})$/);
+      if (m) {
+        const h1 = Number(m[1]);
+        const n1 = Number(m[2]);
+        if (h1 >= 0 && h1 <= 23 && n1 >= 0 && n1 <= 59) {
+          return String(h1).padStart(2, '0') + ':' + String(n1).padStart(2, '0');
+        }
+        return '';
+      }
+
+      m = s.match(/^(\d{1,2})(am|pm)$/);
+      if (m) {
+        const h2 = Number(m[1]);
+        if (!(h2 >= 1 && h2 <= 12)) return '';
+        const hh2 = m[2] === 'pm' ? (h2 === 12 ? 12 : h2 + 12) : (h2 === 12 ? 0 : h2);
+        return String(hh2).padStart(2, '0') + ':00';
+      }
+
+      m = s.match(/^(\d{1,2}):(\d{2})(am|pm)$/);
+      if (m) {
+        const h3 = Number(m[1]);
+        const n3 = Number(m[2]);
+        if (!(h3 >= 1 && h3 <= 12) || !(n3 >= 0 && n3 <= 59)) return '';
+        const hh3 = m[3] === 'pm' ? (h3 === 12 ? 12 : h3 + 12) : (h3 === 12 ? 0 : h3);
+        return String(hh3).padStart(2, '0') + ':' + String(n3).padStart(2, '0');
+      }
+
+      return '';
+    }
+
+    function dutyHandleTimeBlur(scope, index, kind) {
+      const inputEl = document.getElementById(scope + '-shift-' + index + '-' + kind);
+      if (!inputEl) return;
+      const raw = String(inputEl.value || '').trim();
+      if (!raw) return;
+      const normalized = dutyNormalizeTimeInput(raw);
+      if (normalized) {
+        inputEl.value = normalized;
+      }
     }
 
     function dutyRenderShiftList(isEdit) {
@@ -893,15 +999,69 @@
       }).join('');
     }
 
-    function dutyToggleLock(scope, index, kind) {
+    async function dutyPersistMainShiftLock_(index, kind, valueLabel) {
+      try {
+        dutySetLoading(true);
+        const shifts = dutyReadShiftList(false);
+        const shift = shifts[index];
+        if (!shift) return;
+
+        const description = String(document.getElementById('description') && document.getElementById('description').value || '').trim();
+        const department = String(document.getElementById('department') && document.getElementById('department').value || '').trim();
+        const payload = dutyPayloadForShift(shift, description, department, false);
+        const res = await dutySaveShiftPayload(payload);
+        if (!res || res.success !== true) {
+          throw new Error(res && res.error ? res.error : 'Falha ao salvar shift');
+        }
+
+        dutySetBanner((kind === 'start' ? 'Inicio' : 'Fim') + ' bloqueado em ' + valueLabel + '.', 'ok');
+        await dutyLoadBootstrap();
+      } catch (err) {
+        dutySetBanner(err && err.message ? err.message : String(err), 'bad');
+      } finally {
+        dutySetLoading(false);
+      }
+    }
+
+    async function dutyToggleLock(scope, index, kind) {
       const list = scope === 'edit' ? dutyState.editingShifts : dutyState.shifts;
       const shift = list[index];
       if (!shift) return;
       const lockedKey = kind === 'start' ? 'lockedStart' : 'lockedEnd';
       const unlockedKey = kind === 'start' ? 'unlockedStart' : 'unlockedEnd';
-      if (!shift[lockedKey]) return;
-      shift[unlockedKey] = true;
+      const inputEl = document.getElementById(scope + '-shift-' + index + '-' + kind);
+      const valueNowRaw = String(inputEl && inputEl.value || '').trim();
+      const valueNow = dutyNormalizeTimeInput(valueNowRaw);
+      const isLocked = !!shift[lockedKey] && !shift[unlockedKey];
+
+      if (!isLocked) {
+        if (!valueNow) {
+          dutySetBanner('Horario invalido. Use 08:00, 8, 1pm ou 1:00pm.', 'warn');
+          return;
+        }
+        if (inputEl) inputEl.value = valueNow;
+        shift[lockedKey] = true;
+        shift[unlockedKey] = false;
+      } else {
+        shift[unlockedKey] = true;
+      }
       dutyRenderShiftList(scope === 'edit');
+
+      if (scope === 'main' && !isLocked) {
+        await dutyPersistMainShiftLock_(index, kind, valueNow);
+      }
+    }
+
+    function dutyToggleRegistryDetails(dateYmd) {
+      const key = String(dateYmd || '').trim();
+      if (!key) return;
+      dutyState.expandedRegistryDateYmd = dutyState.expandedRegistryDateYmd === key ? '' : key;
+      dutyRenderRecentRegistries();
+    }
+
+    function dutyOpenEditFromRegistry(ev, dateYmd) {
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+      dutyOpenEditModal(dateYmd);
     }
 
     function dutyReadShiftList(isEdit) {
@@ -910,10 +1070,14 @@
       return list.map(function(shift, index) {
         const startEl = document.getElementById(scope + '-shift-' + index + '-start');
         const endEl = document.getElementById(scope + '-shift-' + index + '-end');
+        const startVal = dutyNormalizeTimeInput(String(startEl && startEl.value || '').trim());
+        const endVal = dutyNormalizeTimeInput(String(endEl && endEl.value || '').trim());
+        if (startEl && startVal && startEl.value !== startVal) startEl.value = startVal;
+        if (endEl && endVal && endEl.value !== endVal) endEl.value = endVal;
         return {
           rowNumber: Number(shift.rowNumber || 0),
-          startTime: String(startEl && startEl.value || '').trim(),
-          endTime: String(endEl && endEl.value || '').trim(),
+          startTime: startVal,
+          endTime: endVal,
           status: String(shift.status || '').trim()
         };
       }).filter(function(shift) {
@@ -992,22 +1156,96 @@
         const dayRows = grouped[dateKey].slice().sort(function(a, b) {
           return Number(a.rowNumber || 0) - Number(b.rowNumber || 0);
         });
-        const shiftCount = dayRows.length;
-        const topStatus = String(dayRows[dayRows.length - 1].status || '').trim();
+        const topRow = dayRows[dayRows.length - 1];
+        const isExpanded = String(dutyState.expandedRegistryDateYmd || '') === String(dateKey);
+        const topStatus = String(topRow.status || '').trim();
         const tone = dutyStatusTone(topStatus);
         const start = String(dayRows[0].startTime || '--');
-        const end = String(dayRows[dayRows.length - 1].endTime || '--');
+        const end = String(topRow.endTime || '--');
+
+        // Compute duty duration
+        let dutyHrsStr = '';
+        if (dayRows[0].startTime && topRow.endTime) {
+          const toMin = function(t) {
+            const p = String(t || '').split(':');
+            return p.length >= 2 ? Number(p[0]) * 60 + Number(p[1]) : NaN;
+          };
+          const diff = toMin(topRow.endTime) - toMin(dayRows[0].startTime);
+          if (isFinite(diff) && diff > 0) dutyHrsStr = (diff / 60).toFixed(1) + 'h serviço';
+        }
+
+        // Collect flights (deduplicated by flightId; all rows for same day share same derived flights)
+        const seenFlights = {};
+        const flights = [];
+        dayRows.forEach(function(r) {
+          (Array.isArray(r.flights) ? r.flights : []).forEach(function(f) {
+            const fid = String(f.flightId || f.flight_id || '').trim();
+            if (!fid || seenFlights[fid]) return;
+            seenFlights[fid] = true;
+            flights.push(f);
+          });
+        });
+
+        // Flight hours: prefer derivedFlightHours, fallback to stored flightHours
+        const derivedFh = Number(topRow.derivedFlightHours || 0);
+        const storedFh = Number(topRow.flightHours || 0);
+        const fhVal = derivedFh > 0 ? derivedFh : storedFh;
+
+        let flightsHtml = '';
+        if (flights.length) {
+          const flightItems = flights.map(function(f) {
+            const id = dutyEscape(String(f.flightId || f.flight_id || '').trim());
+            const acft = dutyEscape(String(f.aircraft || f.acft || '').trim());
+            const from = dutyEscape(String(f.from || f.origin || '').trim());
+            const to = dutyEscape(String(f.to || f.dest || '').trim());
+            const hrs = Number(f.totalTime || f.hours || f.flightHours || 0);
+            const hrsStr = (isFinite(hrs) && hrs > 0) ? ' · ' + hrs.toFixed(1) + 'h' : '';
+            const route = (from && to) ? from + ' → ' + to : (from || to || '');
+            return '<div class="registry-flight-item">'
+              + '<span class="rfi-id">' + id + '</span>'
+              + (acft ? '<span class="rfi-acft">' + acft + '</span>' : '')
+              + (route ? '<span class="rfi-route">' + route + '</span>' : '')
+              + hrsStr
+              + '</div>';
+          }).join('');
+          flightsHtml = '<div class="registry-flights">'
+            + '<div class="registry-fh-line">✈ ' + (fhVal > 0 ? fhVal.toFixed(1) + 'h voo' : 'Voos registrados') + '</div>'
+            + flightItems
+            + '</div>';
+        } else if (fhVal > 0) {
+          flightsHtml = '<div class="registry-flights">'
+            + '<div class="registry-fh-line">✈ ' + fhVal.toFixed(1) + 'h voo</div>'
+            + '</div>';
+        }
+
+        const detailsDescription = dutyEscape(String(topRow.description || topRow.summaryText || '').trim() || 'Sem descrição.');
+        const shiftsHtml = dayRows.map(function(r, idx) {
+          const s = dutyEscape(String(r.startTime || '--'));
+          const e = dutyEscape(String(r.endTime || '--'));
+          const st = dutyEscape(String(r.status || '--'));
+          return '<div class="registry-detail-row">Shift ' + (idx + 1) + ': ' + s + ' → ' + e + ' (' + st + ')</div>';
+        }).join('');
+        const detailsHtml = isExpanded
+          ? ('<div class="registry-details">'
+            + '<div class="registry-detail-title">Detalhes</div>'
+            + shiftsHtml
+            + '<div class="registry-detail-row" style="margin-top:4px;">Descrição: ' + detailsDescription + '</div>'
+            + '</div>')
+          : '';
+
         return ''
-          + '<div class="registry">'
+          + '<div class="registry ' + (isExpanded ? 'active' : '') + '" onclick="dutyToggleRegistryDetails(\'' + dutyEscape(dateKey) + '\')">'
           + '  <div class="registry-head">'
           + '    <div>'
           + '      <div class="registry-title">' + dutyEscape(dutyFormatDatePt(dateKey)) + '</div>'
-          + '      <div class="registry-sub">Shifts: ' + shiftCount + ' | Inicio: ' + dutyEscape(start) + ' | Fim: ' + dutyEscape(end) + '</div>'
+          + '      <div class="registry-sub">Inicio: ' + dutyEscape(start) + ' | Fim: ' + dutyEscape(end) + (dutyHrsStr ? ' | ' + dutyHrsStr : '') + '</div>'
           + '    </div>'
           + '    <div class="pill ' + tone + '">' + dutyEscape(topStatus || 'status') + '</div>'
           + '  </div>'
+          + flightsHtml
+          + detailsHtml
           + '  <div class="btn-row">'
-          + '    <button class="secondary" type="button" onclick="dutyOpenEditModal(\'' + dutyEscape(dateKey) + '\')">Editar</button>'
+          + '    <button class="secondary" type="button" onclick="dutyOpenEditFromRegistry(event,\'' + dutyEscape(dateKey) + '\')">Editar</button>'
           + '  </div>'
           + '</div>';
       }).join('');
@@ -1109,7 +1347,16 @@
         endTime: shift.endTime,
         summaryText: mergedDescription,
         description: mergedDescription,
-        flightHours: '',
+        flightHours: (function() {
+          var inputId = isEdit ? 'edit-flight-hours' : 'flight-hours';
+          var el = document.getElementById(inputId);
+          var raw = String(el && el.value || '').trim().replace(',', '.');
+          var n = parseFloat(raw);
+          if (isFinite(n) && n >= 0) return n;
+          var auto = dutyState.snapshot && dutyState.snapshot.autofill;
+          var autoN = auto ? parseFloat(auto.totalFlightHours) : NaN;
+          return isFinite(autoN) && autoN >= 0 ? autoN : '';
+        })(),
         autoSummary: dutyState.snapshot && dutyState.snapshot.autofill ? dutyState.snapshot.autofill : {}
       };
       if (shift.rowNumber >= 2) payload.rowNumber = shift.rowNumber;
@@ -1119,6 +1366,105 @@
     async function dutySaveShiftPayload(payload) {
       if (payload.rowNumber >= 2) return dutyCallServer('updateDutyAppLog', payload);
       return dutyCallServer('saveDutyAppEntry', payload);
+    }
+
+    function dutyFindOpenShiftIndex(shifts) {
+      for (let i = shifts.length - 1; i >= 0; i--) {
+        const s = shifts[i] || {};
+        if (s.startTime && !s.endTime) return i;
+      }
+      return -1;
+    }
+
+    function dutyEnsureMainShiftForStart(shifts) {
+      if (!Array.isArray(shifts) || !shifts.length) {
+        return [{
+          rowNumber: 0,
+          startTime: '',
+          endTime: '',
+          status: 'DUTY_OPEN'
+        }];
+      }
+
+      const openIdx = dutyFindOpenShiftIndex(shifts);
+      if (openIdx >= 0) return shifts;
+
+      const last = shifts[shifts.length - 1] || {};
+      if (!last.startTime) return shifts;
+
+      shifts.push({
+        rowNumber: 0,
+        startTime: '',
+        endTime: '',
+        status: 'DUTY_OPEN'
+      });
+      return shifts;
+    }
+
+    async function dutySaveStartNow() {
+      try {
+        dutySetLoading(true);
+
+        let shifts = dutyReadShiftList(false);
+        shifts = dutyEnsureMainShiftForStart(shifts);
+
+        const targetIdx = dutyFindOpenShiftIndex(shifts) >= 0
+          ? dutyFindOpenShiftIndex(shifts)
+          : (shifts.length - 1);
+        const shift = shifts[targetIdx] || { rowNumber: 0, startTime: '', endTime: '', status: 'DUTY_OPEN' };
+        const now = dutyNowBsb().hhmm;
+
+        if (!shift.startTime) shift.startTime = now;
+
+        const description = String(document.getElementById('description') && document.getElementById('description').value || '').trim();
+        const department = String(document.getElementById('department') && document.getElementById('department').value || '').trim();
+        const payload = dutyPayloadForShift(shift, description, department, false);
+
+        const res = await dutySaveShiftPayload(payload);
+        if (!res || res.success !== true) {
+          throw new Error(res && res.error ? res.error : 'Falha ao salvar inicio da jornada');
+        }
+
+        dutySetBanner('Inicio registrado as ' + dutyEscape(shift.startTime) + '.', 'ok');
+        await dutyLoadBootstrap();
+      } catch (err) {
+        dutySetBanner(err && err.message ? err.message : String(err), 'bad');
+      } finally {
+        dutySetLoading(false);
+      }
+    }
+
+    async function dutySaveEndNow() {
+      try {
+        dutySetLoading(true);
+
+        const shifts = dutyReadShiftList(false);
+        const openIdx = dutyFindOpenShiftIndex(shifts);
+        if (openIdx < 0) {
+          dutySetBanner('Nenhum shift aberto. Registre o inicio primeiro.', 'warn');
+          return;
+        }
+
+        const shift = shifts[openIdx];
+        const now = dutyNowBsb().hhmm;
+        if (!shift.endTime) shift.endTime = now;
+
+        const description = String(document.getElementById('description') && document.getElementById('description').value || '').trim();
+        const department = String(document.getElementById('department') && document.getElementById('department').value || '').trim();
+        const payload = dutyPayloadForShift(shift, description, department, false);
+
+        const res = await dutySaveShiftPayload(payload);
+        if (!res || res.success !== true) {
+          throw new Error(res && res.error ? res.error : 'Falha ao salvar fim da jornada');
+        }
+
+        dutySetBanner('Fim registrado as ' + dutyEscape(shift.endTime) + '.', 'ok');
+        await dutyLoadBootstrap();
+      } catch (err) {
+        dutySetBanner(err && err.message ? err.message : String(err), 'bad');
+      } finally {
+        dutySetLoading(false);
+      }
     }
 
     async function dutyFinalizeDay(isEdit) {
@@ -1173,7 +1519,7 @@
       if (row) row.style.display = 'none';
     }
 
-    function dutyConfirmAddDay() {
+    async function dutyConfirmAddDay() {
       const dateInput = document.getElementById('add-day-date');
       const dateVal = String(dateInput && dateInput.value || '').trim();
       if (!dateVal || !/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
@@ -1181,7 +1527,10 @@
         return;
       }
       dutyHideAddDay();
-      dutyOpenEditModal(dateVal);
+      dutyState.selectedDateYmd = dateVal;
+      dutyApplyHeader();
+      await dutyLoadBootstrap();
+      dutySetBanner('Dia ' + dutyFormatDatePt(dateVal) + ' carregado para edição.', 'ok');
     }
 
     function dutyOpenEditModal(dateYmd) {
@@ -1444,21 +1793,11 @@
       el.className = inside ? 'show' : 'show outside';
     }
 
-    function dutyGeoQuickStart_() {
-      // Populate start time with current time and scroll to shift list
-      var now = dutyNowBsb().hhmm;
-      var shifts = dutyState.shifts;
-      if (shifts.length === 0) {
-        dutyAddShift(false);
-      }
-      var lastShift = shifts[shifts.length - 1];
-      if (!lastShift.startTime) {
-        lastShift.startTime = now;
-        dutyRenderShiftList(false);
-      }
+    async function dutyGeoQuickStart_() {
+      // Quick geofence action saves duty start immediately.
+      await dutySaveStartNow();
       var shiftList = document.getElementById('shift-list');
       if (shiftList) shiftList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      dutySetBanner('Início ' + now + ' preenchido. Confirme e salve.', 'ok');
     }
   </script>
 </body>

@@ -1,1210 +1,4 @@
-<style>
-  p, li, span, div, label {
-    line-height: 1.08;
-    margin-bottom: 0;
-  }
-
-  h1, h2, h3, h4 {
-    line-height: 1;
-    margin-bottom: 0;
-  }
-
-  #wb-container {
-    background-color: #f1f3f4;
-    font-family: 'Segoe UI', sans-serif;
-    font-size: 22.5px;
-    min-height: 100vh;
-    padding: 3px;
-  }
-
-  .wb-header {
-    background: white;
-    padding: 3px 5px;
-    border-radius: 6px;
-    margin-bottom: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1px 8px;
-    align-items: flex-start;
-  }
-
-  .wb-header-title {
-    margin: 0;
-    color: #0b5394;
-    font-size: 1.41rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-  }
-
-  .wb-header-meta {
-    display: flex;
-    flex: 1 1 420px;
-    flex-wrap: wrap;
-    gap: 1px 6px;
-    align-items: baseline;
-  }
-
-  .wb-header-meta-item {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    white-space: nowrap;
-    min-width: 0;
-  }
-
-  .wb-header-label {
-    color: #666;
-    font-size: 1.08rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-
-  .wb-header-value {
-    font-weight: 700;
-    color: #0b5394;
-    font-size: 1.44rem;
-  }
-
-  .wb-header-info {
-    display: none;
-  }
-
-  .wb-main-grid {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 3px;
-    align-items: stretch;
-    margin-bottom: 0;
-  }
-
-  .wb-manifest-card {
-    flex: 1.62 1 500px;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .wb-side-panel {
-    flex: 0.72 1 236px;
-    min-width: 224px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .wb-summary-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    margin-bottom: 0;
-    align-items: stretch;
-  }
-
-  .wb-bottom-summary {
-    margin-top: 3px;
-  }
-
-  .wb-summary-grid > .wb-card {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .wb-summary-card,
-  .wb-envelope-card {
-    flex: 1 1 100%;
-  }
-
-  .wb-diagram-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .wb-card {
-    background: white;
-    padding: 3px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    min-width: 0;
-  }
-
-  .wb-card h3 {
-    margin: 0 0 2px 0;
-    color: #0b5394;
-    font-size: 1.35rem;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 1px;
-  }
-
-  :root {
-    --manifest-cols: minmax(0, 1fr) 150px 60px 96px;
-    --manifest-cols-860: minmax(0, 1fr) 140px 56px 92px;
-    --manifest-cols-720: minmax(0, 1fr) 132px 52px 88px;
-  }
-
-  .manifest-row {
-    display: grid;
-    grid-template-columns: var(--manifest-cols);
-    gap: 3px;
-    align-items: center;
-    padding: 1px 0;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 1.23rem;
-  }
-
-  .manifest-row > div {
-    min-width: 0;
-  }
-
-  .manifest-row > div:nth-child(2),
-  .manifest-row > div:nth-child(3) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .manifest-row > div:nth-child(2) {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-  }
-
-  .manifest-row.header {
-    font-weight: 700;
-    color: #0b5394;
-    background: #f5f5f5;
-    padding: 2px 0;
-    border-radius: 4px;
-    margin-bottom: 1px;
-    font-size: 1.02rem;
-  }
-
-  .manifest-row.header > div:nth-child(2),
-  .manifest-row.header > div:nth-child(3) {
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  .manifest-row.header > div:nth-child(4) {
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .wb-check-btn {
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: #4caf50;
-    color: white;
-    font-size: 1.17rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    transition: opacity 0.2s;
-    flex-shrink: 0;
-  }
-
-  .wb-check-btn:hover {
-    opacity: 0.82;
-  }
-
-  .seat-status-btn {
-    min-width: 76px;
-    height: 24px;
-    padding: 1px 6px;
-    margin: 0;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 0.87rem;
-    font-weight: 700;
-    color: white;
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-
-  .seat-status-btn:hover {
-    opacity: 0.82;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
-  }
-
-  .seat-status-btn.cargo {
-    background: #ff9800;
-  }
-
-  .seat-status-btn.base {
-    background: #9e9e9e;
-  }
-
-  .seat-status-btn.install {
-    background: #4caf50;
-  }
-
-  .wb-manifest-btn {
-    padding: 3px 6px;
-    font-size: 1.08rem;
-    font-weight: 700;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    line-height: 1.1;
-    white-space: nowrap;
-  }
-
-  .wb-manifest-btn.verify   { background: #ffb300; color: #1f1f1f; }
-  .wb-manifest-btn.verified { background: #2e7d32; }
-  .wb-manifest-btn.edit     { background: #2196f3; }
-  .wb-manifest-btn.save     { background: #2e7d32; }
-  .wb-manifest-btn.cancel   { background: #f44336; }
-
-  .wb-verified-chip {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-    padding: 2px 6px;
-    border-radius: 6px;
-    background: #2e7d32;
-    color: #fff;
-    font-size: 0.74rem;
-    font-weight: 800;
-    line-height: 1;
-    white-space: nowrap;
-  }
-
-  .wb-lock-btn {
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 50%;
-    background: #546e7a;
-    color: #fff;
-    font-size: 0.95rem;
-    font-weight: 900;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-  }
-
-  /* Cargo area input styling - compact */
-  .manifest-row input[type="number"] {
-    padding: 1px 3px;
-    height: 22px;
-    font-size: 1.17rem;
-  }
-
-  .manifest-cargo-input {
-    width: 54px;
-    max-width: 54px;
-    min-width: 54px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .manifest-row.total {
-    font-weight: 700;
-    background: #e3f2fd;
-    border-top: 2px solid #0b5394;
-    margin-top: 2px;
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-size: 1.26rem;
-  }
-
-  .weight-diff {
-    font-weight: 700;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 1.08rem;
-  }
-
-  .weight-diff.match {
-    color: #2e7d32;
-  }
-
-  .weight-diff.mismatch {
-    color: white;
-    background: #d32f2f;
-  }
-
-  .wb-input-group {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 6px;
-  }
-
-  .wb-input-group input {
-    flex: 1;
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-family: monospace;
-  }
-
-  .wb-btn {
-    padding: 3px 6px;
-    background: #1565c0;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 700;
-    transition: background 0.2s;
-    font-size: 1.08rem;
-    line-height: 1.1;
-    white-space: nowrap;
-  }
-
-  .wb-btn:hover {
-    background: #0b47a9;
-  }
-
-  .wb-btn.secondary {
-    background: #546e7a;
-  }
-
-  .wb-btn.secondary:hover {
-    background: #455a64;
-  }
-
-  .wb-btn.danger {
-    background: #d32f2f;
-  }
-
-  .wb-btn.danger:hover {
-    background: #b71c1c;
-  }
-
-  .cg-graph {
-    position: relative;
-    width: 100%;
-    height: clamp(186px, 24vh, 220px);
-    border: 2px solid #0b5394;
-    border-radius: 4px;
-    background: white;
-    margin-top: 4px;
-  }
-
-  .cg-graph canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  .envelope-status {
-    margin-top: 4px;
-    padding: 3px 4px;
-    border-radius: 4px;
-    font-weight: 700;
-    text-align: center;
-    font-size: 1.08rem;
-  }
-
-  .envelope-status.safe {
-    background: #c8e6c9;
-    color: #1b5e20;
-  }
-
-  .envelope-status.unsafe {
-    background: #ffcdd2;
-    color: #b71c1c;
-  }
-
-  .seat-toggle {
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    margin: 2px;
-    background: #f5f5f5;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1.17rem;
-    font-weight: bold;
-    user-select: none;
-    border: 2px solid #e0e0e0;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    line-height: 1;
-  }
-
-  .seat-toggle:hover {
-    background: #e0e0e0;
-    transform: scale(1.05);
-  }
-
-  .seat-toggle.status-installed {
-    background: #4caf50;
-    border-color: #2e7d32;
-    color: white;
-  }
-
-  .seat-toggle.status-cargo {
-    background: #ff9800;
-    border-color: #f57c00;
-    color: white;
-  }
-
-  .seat-toggle.status-base {
-    background: #999;
-    border-color: #757575;
-    color: white;
-  }
-
-  .seat-toggle-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: bold;
-  }
-
-  .seat-badge {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 1.17rem;
-    font-weight: bold;
-    text-transform: uppercase;
-  }
-
-  .seat-badge.installed {
-    background: #2e7d32;
-    color: white;
-  }
-
-  .seat-badge.cargo {
-    background: #f57c00;
-    color: white;
-  }
-
-  .seat-badge.base {
-    background: #757575;
-    color: white;
-  }
-
-  .seat-passenger-info {
-    font-size: 1.2rem;
-    margin-top: 2px;
-    color: #666;
-  }
-
-  .seat-controls {
-    display: flex;
-    gap: 6px;
-    margin-top: 6px;
-  }
-
-  .seat-controls button {
-    flex: 1;
-    padding: 6px;
-    font-size: 1.32rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background: #1565c0;
-    color: white;
-    transition: background 0.2s;
-  }
-
-  .seat-controls button:hover {
-    background: #0b47a9;
-  }
-
-  .seat-controls button.secondary {
-    background: #757575;
-  }
-
-  .seat-controls button.secondary:hover {
-    background: #616161;
-  }
-
-  /* Aircraft diagram styles */
-  .aircraft-diagram {
-    background: #f9f9f9;
-    border: 2px solid #ddd;
-    border-radius: 4px;
-    padding: 2px;
-    margin-bottom: 0;
-    text-align: center;
-    display: inline-block;
-  }
-
-  .aircraft-svg {
-    max-width: 100%;
-    height: auto;
-  }
-
-  .seat-circle {
-    transition: all 0.3s;
-  }
-
-  .seat-circle:hover {
-    opacity: 0.7;
-  }
-
-  .seat-label {
-    font-size: 16.5px;
-    font-weight: bold;
-  }
-
-  /* Aircraft fuselage flexbox styles */
-  .aircraft-fuselage {
-    min-width: 2.35in;
-    height: 1.88in;
-    border: 2px solid #333;
-    border-radius: 30px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    align-items: center;
-    background: #e0e0e0;
-    padding: 3px 6px;
-    box-sizing: border-box;
-    gap: 2px;
-  }
-
-  .aircraft-row {
-    display: flex;
-    gap: 3px;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-  }
-
-  .aircraft-seat-slot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    min-width: 54px;
-  }
-
-  .aircraft-seat-title {
-    font-size: 11.4px;
-    font-weight: 800;
-    color: #37474f;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    line-height: 1;
-    text-align: center;
-    min-height: 12px;
-  }
-
-  .aircraft-seat {
-    padding: 1px 5px;
-    border: 1px solid #333;
-    border-radius: 4px;
-    font-size: 15px;
-    font-weight: 700;
-    white-space: nowrap;
-    min-width: 26px;
-    text-align: center;
-    background: #bdbdbd;
-    color: #333;
-  }
-
-  .aircraft-seat.installed {
-    background: #4caf50;
-    color: white;
-  }
-
-  .aircraft-seat.cargo {
-    background: #ff9800;
-    color: white;
-  }
-
-  .aircraft-seat.empty {
-    background: #e8e8e8;
-    color: #999;
-  }
-
-  .aircraft-zone {
-    padding: 2px 5px;
-    border: 1px dashed #555;
-    border-radius: 6px;
-    background: #f5f5f5;
-    font-size: 13.5px;
-    font-weight: 700;
-    white-space: nowrap;
-    color: #555;
-  }
-
-  .aircraft-zone-d {
-    margin-top: 2px;
-    padding: 2px 4px;
-    border: 1px dashed #666;
-    border-radius: 6px;
-    background: #fff8e1;
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #666;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .stored-seat-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 4px;
-    background: #ff9800;
-    color: white;
-    border-radius: 3px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .pax-reassign-select {
-    width: 100%;
-    padding: 4px;
-    margin-top: 4px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    font-size: 1.35rem;
-  }
-
-  .totals-section {
-    background: #f5f5f5;
-    padding: 3px;
-    border-radius: 6px;
-    margin-top: 4px;
-  }
-
-  .totals-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 5px;
-  }
-
-  .totals-item {
-    text-align: center;
-  }
-
-  .totals-label {
-    color: #666;
-    text-transform: uppercase;
-    font-size: 0.915rem;
-    letter-spacing: 0.02em;
-    margin-bottom: 2px;
-  }
-
-  .totals-value {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #0b5394;
-  }
-
-  .action-buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-  }
-
-  .action-buttons button {
-    flex: 1;
-    padding: 8px;
-    font-weight: bold;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-    font-size: 1.275rem;
-  }
-
-  .action-buttons .btn-save {
-    background: #2e7d32;
-    color: white;
-  }
-
-  .action-buttons .btn-save:hover {
-    background: #1b5e20;
-  }
-
-  .action-buttons .btn-clear {
-    background: #f57c00;
-    color: white;
-  }
-
-  .action-buttons .btn-clear:hover {
-    background: #e65100;
-  }
-
-  .pax-cargo-summary-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    font-size: 1.11rem;
-  }
-
-  .pax-cargo-summary-table th:first-child,
-  .pax-cargo-summary-table td:first-child {
-    text-align: left;
-    width: 48%;
-  }
-
-  .pax-cargo-summary-table th {
-    background: #0b5394;
-    color: white;
-    padding: 3px 4px;
-    border-bottom: 1px solid #e0e0e0;
-    text-align: right;
-  }
-
-  .pax-cargo-summary-table td {
-    text-align: right;
-    padding: 3px 4px;
-  }
-
-  .pax-cargo-summary-table tr:nth-child(even) {
-    background: #f9f9f9;
-  }
-
-  .pax-cargo-summary-table .summary-total {
-    background: #e3f2fd;
-    font-weight: bold;
-  }
-
-  .cargo-dispatch-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .cargo-dispatch-list li {
-    padding: 5px 0;
-    border-bottom: 1px solid #e0e0e0;
-    font-size: 1.32rem;
-  }
-
-  .cargo-dispatch-list li:last-child {
-    border-bottom: none;
-  }
-
-  #wb-manifest-rows {
-    max-height: clamp(320px, 58vh, 560px);
-    overflow: auto;
-    padding-right: 1px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .wb-waiting-panel {
-    margin-top: 3px;
-    padding: 3px;
-    background: #fff3e0;
-    border: 2px dashed #f57c00;
-    border-radius: 4px;
-    display: none;
-  }
-
-  .wb-waiting-title {
-    font-weight: 700;
-    margin-bottom: 3px;
-    color: #e65100;
-    font-size: 1.14rem;
-  }
-
-  #wb-waiting-list {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    max-height: 110px;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .wb-tool-panel {
-    margin-top: 3px;
-    padding: 3px;
-    background: #f5f8ff;
-    border: 1px solid #d6e4ff;
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .wb-tool-header {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .wb-tool-title {
-    font-weight: 700;
-    color: #0b5394;
-    font-size: 1.14rem;
-  }
-
-  .wb-tool-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    align-items: flex-end;
-  }
-
-  .wb-field {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .wb-field--passenger {
-    flex: 1 1 140px;
-  }
-
-  .wb-field--cargo {
-    flex: 0 0 88px;
-  }
-
-  .wb-field--fund {
-    flex: 0 1 88px;
-  }
-
-  .wb-field--rate {
-    flex: 0 0 60px;
-  }
-
-  .wb-field--freight-weight {
-    flex: 0 0 98px;
-  }
-
-  .wb-field--freight-fund {
-    flex: 1 1 102px;
-  }
-
-  .wb-field--freight-rate {
-    flex: 0 0 62px;
-  }
-
-  .wb-field-label {
-    font-size: 0.975rem;
-    color: #666;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .wb-tool-grid select,
-  .wb-tool-grid input {
-    width: auto;
-    min-width: 0;
-    height: 24px;
-    padding: 1px 3px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1.11rem;
-    background: white;
-  }
-
-  .wb-field--passenger select,
-  .wb-field--fund select,
-  .wb-field--freight-fund select {
-    width: 100%;
-  }
-
-  .wb-tool-grid .wb-btn,
-  .wb-tool-header .wb-btn {
-    height: 24px;
-  }
-
-  .wb-aircraft-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    align-items: center;
-  }
-
-  .wb-cargo-ref {
-    flex: none;
-    min-width: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 1px;
-  }
-
-  .wb-cargo-ref-title {
-    font-weight: 700;
-    font-size: 1.11rem;
-    color: #0b5394;
-    text-align: center;
-  }
-
-  .wb-inline-note {
-    background: #e3f2fd;
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-size: 0.99rem;
-    margin-top: 2px;
-  }
-
-  .wb-kpi-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    text-align: center;
-  }
-
-  .wb-kpi-item {
-    flex: 1 1 calc(33.333% - 6px);
-    min-width: 72px;
-  }
-
-  #wb-cargo-pod-diagram svg {
-    max-width: 96%;
-    height: auto;
-    display: block;
-  }
-
-  @media (max-width: 860px) {
-    .wb-manifest-card {
-      flex-basis: 430px;
-    }
-
-    .wb-side-panel {
-      min-width: 214px;
-    }
-
-    .manifest-row {
-      grid-template-columns: var(--manifest-cols-860);
-    }
-  }
-
-  @media (max-width: 720px) {
-    .wb-main-grid {
-      flex-wrap: wrap;
-    }
-
-    .wb-manifest-card,
-    .wb-side-panel {
-      flex: 1 1 100%;
-      min-width: 0;
-    }
-
-    #wb-manifest-rows,
-    #wb-waiting-list {
-      max-height: none;
-      overflow: visible;
-    }
-
-    .wb-kpi-item {
-      flex-basis: calc(50% - 6px);
-    }
-
-    .manifest-row {
-      grid-template-columns: var(--manifest-cols-720);
-    }
-  }
-</style>
-
-<div id="wb-container">
-
-  <!-- Main Grid: Manifest + Aircraft Diagram -->
-  <div class="wb-main-grid">
-    <!-- Left: Manifest Delta -->
-    <div class="wb-card wb-manifest-card">
-      <h3>Manifest Delta (Planned vs Actual)</h3>
-      
-      <div class="manifest-row header">
-        <div>Item</div>
-        <div>Actual (kg)</div>
-        <div>Arm</div>
-        <div>Status</div>
-      </div>
-
-      <div id="wb-manifest-rows"></div>
-      
-      <div class="manifest-row total">
-        <div><b>TOTAL</b></div>
-        <div id="wb-total-actual" style="font-weight:bold; color:#0b5394;">0</div>
-        <div>-</div>
-        <div></div>
-      </div>
-
-      <!-- Passengers Waiting to be Loaded -->
-      <div id="wb-waiting-passengers" class="wb-waiting-panel">
-        <div class="wb-waiting-title">Passengers Waiting to be Loaded</div>
-        <div id="wb-waiting-list"></div>
-      </div>
-
-      <div id="wb-offline-load-tools" class="wb-tool-panel">
-        <div class="wb-tool-header">
-          <div class="wb-tool-title">Add Passenger / Cargo</div>
-        </div>
-
-        <div class="wb-tool-grid">
-          <div class="wb-field wb-field--passenger">
-            <div class="wb-field-label">Passenger</div>
-            <select id="wb-add-pax-select" class="browser-default" onchange="window.onWbPaxPick()"></select>
-          </div>
-          <div class="wb-field wb-field--cargo">
-            <div class="wb-field-label">Cargo (kg)</div>
-            <input id="wb-add-pax-cargo" type="number" inputmode="decimal" step="0.1" min="0" value="0">
-          </div>
-          <div class="wb-field wb-field--fund">
-            <div class="wb-field-label">Fund</div>
-            <select id="wb-add-pax-fund" class="browser-default"></select>
-          </div>
-          <div class="wb-field wb-field--rate">
-            <div class="wb-field-label">Rate</div>
-            <select id="wb-add-pax-rate" class="browser-default"></select>
-          </div>
-          <button class="wb-btn" onclick="window.addOfflinePaxToWb()">Add Pax</button>
-        </div>
-
-        <div id="wb-freight-tools" class="wb-tool-grid" style="display:flex; margin-top:4px;">
-          <div class="wb-field wb-field--freight-weight">
-            <div class="wb-field-label">Cargo (kg)</div>
-            <input id="wb-add-freight-kg" type="number" inputmode="decimal" step="0.1" min="0" value="0">
-          </div>
-          <div class="wb-field wb-field--freight-fund">
-            <div class="wb-field-label">Freight Fund</div>
-            <select id="wb-add-freight-fund" class="browser-default"></select>
-          </div>
-          <div class="wb-field wb-field--freight-rate">
-            <div class="wb-field-label">Freight Rate</div>
-            <select id="wb-add-freight-rate" class="browser-default"></select>
-          </div>
-          <button class="wb-btn secondary" onclick="window.addOfflineFreightToWb()">Add Freight</button>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Right: Aircraft + CG -->
-    <div class="wb-side-panel">
-      <div class="wb-card">
-        <h3>Aircraft Loading</h3>
-        <div class="wb-aircraft-layout">
-          <div class="aircraft-diagram" id="wb-aircraft-diagram"></div>
-          <div class="wb-cargo-ref">
-            <div class="wb-cargo-ref-title">Cargo Pod Ref</div>
-            <div id="wb-cargo-pod-diagram"></div>
-          </div>
-        </div>
-        <div class="wb-inline-note">
-          <b>Smart Loading:</b> Heaviest forward. Cargo areas shown when seats are stowed.
-        </div>
-      </div>
-      <div class="wb-card wb-envelope-card">
-        <h3>Center of Gravity Envelope</h3>
-        <div class="cg-graph">
-          <canvas id="wb-cg-canvas"></canvas>
-        </div>
-        <div class="envelope-status" id="wb-envelope-status">
-          Loading...
-        </div>
-        <div style="margin-top:8px; display:block; width:100%;">
-          <button class="wb-btn secondary" type="button" style="width:100%;" onclick="if(typeof window.openQuickPassengerModal==='function'){window.openQuickPassengerModal({ context: 'tab3' });}else if(typeof window.openPaxModal==='function'){window.openPaxModal();}">+ New Passenger</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="wb-card wb-summary-card wb-bottom-summary">
-    <table class="pax-cargo-summary-table">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Planned</th>
-          <th>Actual</th>
-          <th>Delta</th>
-        </tr>
-      </thead>
-      <tbody id="wb-pax-cargo-table">
-        <tr><td colspan="4" style="text-align:center; color:#999;">Loading...</td></tr>
-      </tbody>
-    </table>
-
-    <div class="totals-section">
-      <div class="wb-kpi-grid">
-        <div class="wb-kpi-item">
-          <div class="totals-label">Gross Weight</div>
-          <div class="totals-value" id="wb-gross-weight">0 kg</div>
-        </div>
-        <div class="wb-kpi-item">
-          <div class="totals-label">Max Takeoff</div>
-          <div class="totals-value" id="wb-mtow">0 kg</div>
-        </div>
-        <div class="wb-kpi-item">
-          <div class="totals-label">Weight Margin</div>
-          <div class="totals-value" id="wb-weight-remaining">0 kg</div>
-        </div>
-        <div class="wb-kpi-item">
-          <div class="totals-label">Empty Weight</div>
-          <div class="totals-value" id="wb-empty-weight">0 kg</div>
-        </div>
-        <div class="wb-kpi-item">
-          <div class="totals-label">Total Moment</div>
-          <div class="totals-value" id="wb-total-moment">0</div>
-        </div>
-        <div class="wb-kpi-item">
-          <div class="totals-label">CG Position</div>
-          <div class="totals-value" id="wb-cg-position">0.00 in</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<div id="wb-keypad-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.50);z-index:10001;display:none;align-items:center;justify-content:center;padding:12px;" onclick="if(event.target===this)window.wbKeypadCancel_()">
-  <div style="width:min(560px,96vw);background:#fff;border-radius:12px;padding:12px;box-shadow:0 12px 34px rgba(0,0,0,0.28);">
-    <div id="wb-keypad-title" style="color:#0b5394;font-size:1rem;text-transform:uppercase;margin-bottom:8px;font-weight:900;"></div>
-    <div id="wb-keypad-display" style="width:100%;height:56px;border:2px solid #90caf9;border-radius:10px;color:#0b5394;background:#eef6ff;font-size:1.8rem;font-weight:900;text-align:right;padding:8px 14px;margin-bottom:10px;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;user-select:none;"></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">
-      <button onclick="window.wbKeypadPress_('7')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">7</button>
-      <button onclick="window.wbKeypadPress_('8')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">8</button>
-      <button onclick="window.wbKeypadPress_('9')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">9</button>
-      <button onclick="window.wbKeypadPress_('4')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">4</button>
-      <button onclick="window.wbKeypadPress_('5')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">5</button>
-      <button onclick="window.wbKeypadPress_('6')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">6</button>
-      <button onclick="window.wbKeypadPress_('1')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">1</button>
-      <button onclick="window.wbKeypadPress_('2')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">2</button>
-      <button onclick="window.wbKeypadPress_('3')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">3</button>
-      <button onclick="window.wbKeypadPress_('C')" style="height:60px;border-radius:8px;border:2px solid #ffcdd2;background:#fff5f5;color:#c62828;font-size:1.1rem;font-weight:900;">CLEAR</button>
-      <button onclick="window.wbKeypadPress_('0')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">0</button>
-      <button onclick="window.wbKeypadPress_('BKSP')" style="height:60px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1rem;font-weight:900;">BKSP</button>
-    </div>
-    <div id="wb-keypad-dot-row" style="display:none;margin-top:7px;">
-      <button onclick="window.wbKeypadPress_('.')" style="width:100%;height:52px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-size:1.35rem;font-weight:900;">.</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
-      <button onclick="window.wbKeypadCancel_()" style="height:52px;border-radius:8px;border:2px solid #d6e4f5;background:#fff;color:#546e7a;font-size:1rem;font-weight:900;">Cancel</button>
-      <button onclick="window.wbKeypadOK_()" style="height:52px;border-radius:8px;border:2px solid #1565c0;background:#1976d2;color:#fff;font-size:1rem;font-weight:900;">OK</button>
-    </div>
-  </div>
-</div>
-
-<script>
+﻿
 
 (function() {
   var modal = document.getElementById('wb-keypad-modal');
@@ -1239,12 +33,6 @@ function wbNum_(value, fallback) {
 
 function wbNormName_(value) {
   return String(value || '').trim();
-}
-
-function wbFirstName_(value) {
-  const full = wbNormName_(value);
-  if (!full) return '';
-  return full.split(/\s+/)[0] || full;
 }
 
 function wbMissionIdFromFlightId_(flightId) {
@@ -2064,7 +852,7 @@ function wbBuildOfflinePayload_(flightId) {
     pilotWeightEstimateReason: String(pilotWeightInfo.reason || ''),
     date: String(mission.date || ''),
     time: String(leg.time || mission.time || ''),
-    route: `${String(leg.from || '').trim().toUpperCase()} -> ${String(leg.to || '').trim().toUpperCase()}`,
+    route: `${String(leg.from || '').trim().toUpperCase()}ΓåÆ${String(leg.to || '').trim().toUpperCase()}`,
     airframeData: {
       Empty_Weight: emptyWeight,
       Empty_Arm: emptyArm,
@@ -2088,9 +876,21 @@ function wbBuildOfflinePayload_(flightId) {
 
 window.onWbPaxPick = function() {
   const paxSelect = document.getElementById('wb-add-pax-select');
-  if (!paxSelect) return;
+  const weightInput = document.getElementById('wb-add-pax-weight');
+  if (!paxSelect || !weightInput) return;
   const name = wbNormName_(paxSelect.value);
-  if (!name) return;
+  if (!name) {
+    weightInput.value = '';
+    return;
+  }
+  const passengers = (window.appData && Array.isArray(window.appData.passengers)) ? window.appData.passengers : [];
+  const hit = passengers.find(function(p) {
+    return wbNormName_(p && p.name).toUpperCase() === name.toUpperCase();
+  });
+  const existing = (window.wbData.waitingPassengers || []).find(function(p) {
+    return wbNormName_(p && p.name).toUpperCase() === name.toUpperCase();
+  });
+  weightInput.value = String(wbNum_((existing && existing.weight), wbNum_(hit && hit.weight, 80)));
 };
 
 window.refreshOfflineLoadTools = function() {
@@ -2116,7 +916,7 @@ window.refreshOfflineLoadTools = function() {
   paxSelect.innerHTML = '<option value="">Select Passenger</option>' + dedupedPassengers.map(function(p) {
     const name = wbNormName_(p && p.name);
     const weight = wbNum_(p && p.weight, 80);
-    return `<option value="${name}" data-wb-weight="${weight}">${name} (${Math.round(weight)}kg)</option>`;
+    return `<option value="${name}">${name} (${Math.round(weight)}kg)</option>`;
   }).join('');
 
   const funds = Array.isArray(source.funds) ? source.funds : [];
@@ -2137,8 +937,8 @@ window.refreshOfflineLoadTools = function() {
   freightRate.innerHTML = rateHtml;
 
   const freightTools = document.getElementById('wb-freight-tools');
-  if (freightTools) {
-    freightTools.style.display = 'flex';
+  if (freightTools && !freightTools.dataset.initialized) {
+    freightTools.style.display = 'none';
     freightTools.dataset.initialized = '1';
   }
 
@@ -2152,10 +952,8 @@ window.toggleOfflineFreightTools = function() {
 };
 
 window.addOfflinePaxToWb = function() {
-  const paxSelectEl = document.getElementById('wb-add-pax-select');
-  const name = wbNormName_((paxSelectEl || {}).value);
-  const selectedOpt = paxSelectEl && paxSelectEl.selectedOptions ? paxSelectEl.selectedOptions[0] : null;
-  const weight = wbNum_(selectedOpt && selectedOpt.getAttribute('data-wb-weight'), 0);
+  const name = wbNormName_((document.getElementById('wb-add-pax-select') || {}).value);
+  const weight = wbNum_((document.getElementById('wb-add-pax-weight') || {}).value, 0);
   const cargo = Math.max(0, wbNum_((document.getElementById('wb-add-pax-cargo') || {}).value, 0));
   const fund = String((document.getElementById('wb-add-pax-fund') || {}).value || '').trim();
   const rate = String((document.getElementById('wb-add-pax-rate') || {}).value || '').trim();
@@ -2607,7 +1405,7 @@ window.updateWBUI = function() {
     let routeText = window.wbData.route || '';
     if (!routeText && window.currentBriefingMission && Array.isArray(window.currentBriefingMission.legs) && window.currentBriefingMission.legs.length) {
       const firstLeg = window.currentBriefingMission.legs[0] || {};
-      routeText = `${String(firstLeg.from || '').trim().toUpperCase()} -> ${String(firstLeg.to || '').trim().toUpperCase()}`;
+      routeText = `${String(firstLeg.from || '').trim().toUpperCase()}ΓåÆ${String(firstLeg.to || '').trim().toUpperCase()}`;
     }
     document.getElementById('wb-route').textContent = routeText || '---';
   }
@@ -2627,13 +1425,13 @@ window.updateWBUI = function() {
   const envelopeEl = document.getElementById('wb-envelope-status');
   if (!hasRealEnvelope) {
     envelopeEl.className = 'envelope-status unsafe';
-    envelopeEl.textContent = '[WARN] NO REAL ENVELOPE DATA - FLIGHT MUST NOT PROCEED';
+    envelopeEl.textContent = 'Γ£ù NO REAL ENVELOPE DATA ΓÇö FLIGHT MUST NOT PROCEED';
   } else if (isSafe) {
     envelopeEl.className = 'envelope-status safe';
-    envelopeEl.textContent = '[OK] WITHIN ENVELOPE';
+    envelopeEl.textContent = 'Γ£ô WITHIN ENVELOPE';
   } else {
     envelopeEl.className = 'envelope-status unsafe';
-    envelopeEl.textContent = '[WARN] OUTSIDE ENVELOPE - CG or Weight Limit Exceeded';
+    envelopeEl.textContent = 'Γ£ù OUTSIDE ENVELOPE - CG or Weight Limit Exceeded';
   }
 
   // Render passenger & cargo summary table
@@ -2652,6 +1450,34 @@ window.renderPaxCargoSummary = function() {
 
   const rows = [];
   const seats = window.wbData.seats || {};
+
+  let pilotSeatId = '';
+  let pilotPlanned = 0;
+  let pilotActual = 0;
+  Object.keys(seats).forEach(seatId => {
+    const seat = seats[seatId];
+    if (seat.status === 'installed' && seat.passenger && seat.passenger.name && window.wbData.pilot && seat.passenger.name === window.wbData.pilot) {
+      pilotSeatId = seatId;
+      pilotPlanned = seat.passenger.plannedWeight || seat.passenger.weight || 0;
+      pilotActual = seat.passenger.actualWeight || seat.passenger.weight || 0;
+    }
+  });
+
+  if (pilotSeatId) {
+    const pilotEstimateFlag = !!(window.wbData && window.wbData.pilotWeightEstimated);
+    const pilotEstimateReason = String((window.wbData && window.wbData.pilotWeightEstimateReason) || 'Estimated pilot weight used for this calculation.');
+    const pilotWarn = pilotEstimateFlag
+      ? `<span role="button" tabindex="0" title="${pilotEstimateReason}" onclick="wbShowPilotWeightEstimateInfo_()" style="display:inline-flex; align-items:center; justify-content:center; margin-left:6px; width:16px; height:16px; border-radius:999px; background:#c62828; color:#fff; font-size:0.72rem; font-weight:900; cursor:pointer;">!</span>`
+      : '';
+    rows.push(`
+      <tr>
+        <td><b>${window.wbData.pilot}</b>${pilotWarn} <span style="color:#999; font-size:1.275rem;">(${pilotSeatId})</span></td>
+        <td style="text-align:right;">${Math.round(pilotPlanned)}</td>
+        <td style="text-align:right;">${Math.round(pilotActual)}</td>
+        <td style="text-align:right; font-weight:bold; color:#777;">Pilot</td>
+      </tr>
+    `);
+  }
   
   // Add each passenger (installed seats only), excluding pilot
   Object.keys(seats).forEach(seatId => {
@@ -2712,8 +1538,6 @@ window.renderPaxCargoSummary = function() {
   Object.keys(seats).forEach(seatId => {
     const seat = seats[seatId];
     if (seat.status === 'installed' && seat.passenger) {
-      const isPilot = window.wbData.pilot && seat.passenger.name === window.wbData.pilot;
-      if (isPilot) return;
       totalPlanned += (seat.passenger.plannedWeight || seat.passenger.weight) || 0;
       totalActual += (seat.passenger.actualWeight || seat.passenger.weight) || 0;
     }
@@ -2905,13 +1729,13 @@ window.renderManifest = function() {
   installedSeats.forEach(({ seatId, seat }) => {
     const seatWeight = seat.weight || 0;
     const occupantWeight = seat.occupiedWeight || 0;
-
-    // Single-line seat row: seat + seat weight + first-name occupant.
-    let nameHTML = `<b>${seatId} <span style="color:#666; font-weight:700;">(${seatWeight}kg)</span></b>`;
+    
+    // Seat name with weight in small font, and occupant
+    let nameHTML = `<b>${seatId}</b> <small style="color:#999; font-weight:normal;">(${seatWeight}kg)</small>`;
     if (seat.passenger && seat.passenger.name) {
-      nameHTML += ` <span style="color:#455a64;">${wbFirstName_(seat.passenger.name)}</span>`;
+      nameHTML += `<br><small style="color:#666; margin-left:8px;">Γöö ${seat.passenger.name}</small>`;
     } else if (!seat.locked) {
-      nameHTML += ` <span style="color:#999;">Empty</span>`;
+      nameHTML += `<br><small style="color:#999; margin-left:8px;">Γöö Empty</small>`;
     }
     
     // Planned weight column - original dispatch weight
@@ -2934,53 +1758,43 @@ window.renderManifest = function() {
       
       plannedWeightHTML = `<span>${plannedWeight.toFixed(1)}</span>`;
       
-      // Actual weight with verify/edit/lock controls (pilot is fixed, non-editable)
-      if (isPilotSeat) {
-        actualWeightHTML = `
-          <div style="display:flex; align-items:center; gap:4px;">
-            <span id="weight-display-${seatId}" style="font-weight:600; color:#2e7d32;">${actualWeight.toFixed(1)}</span>
-          </div>
-        `;
-      } else {
-        actualWeightHTML = `
+      // Actual weight with verify/edit buttons
+      actualWeightHTML = `
         <div style="display:flex; align-items:center; gap:4px;">
-          <span id="weight-display-${seatId}" style="font-weight:${isVerified ? '600' : 'normal'}; color:${isVerified ? '#2e7d32' : '#333'}; ${isVerified ? '' : 'display:none;'}">
+          <span id="weight-display-${seatId}" style="font-weight:${isVerified ? '600' : 'normal'}; color:${isVerified ? '#2e7d32' : '#333'};">
             ${actualWeight.toFixed(1)}
           </span>
           <input id="weight-input-${seatId}" type="number" inputmode="decimal" step="0.1" value="${actualWeight}" 
-                 style="border-color:#2196f3; ${isVerified ? 'display:none;' : 'display:inline-block; width:62px;'}"
+                 style="border-color:#2196f3; display:none;"
                  onkeydown="if(event.key==='Enter') window.savePassengerWeight('${seatId}')">
+            ${isPilotSeat ? `<span style="font-size:1.2rem; color:#777; font-weight:700;">Pilot</span>` : `
           <button onclick="window.verifyPassengerWeight('${seatId}')" 
                   id="verify-btn-${seatId}"
                   title="Verify weight"
-                  class="wb-manifest-btn verify" ${isVerified ? 'style="display:none;"' : ''}>
-            VERIFY
+                  class="wb-check-btn" ${isVerified ? 'style="display:none;"' : ''}>
+            Γ£ô
           </button>
-          <button onclick="window.editPassengerWeight('${seatId}')"
-                  id="unlock-btn-${seatId}"
-                  title="Unlock to edit"
-                  class="wb-lock-btn" ${isVerified ? '' : 'style="display:none;"'}>
-            🔒
+          <button onclick="window.editPassengerWeight('${seatId}')" 
+                  id="edit-btn-${seatId}"
+                  title="Edit weight"
+                  class="wb-manifest-btn edit" ${isVerified ? '' : 'style="display:none;"'}>
+            Γ£Å∩╕Å
           </button>
-          <span id="verified-chip-${seatId}" class="wb-verified-chip" ${isVerified ? '' : 'style="display:none;"'}>
-            <span style="font-size:0.9rem; line-height:1;">✓</span>
-            <span>OK</span>
-          </span>
+                  `}
           <button onclick="window.savePassengerWeight('${seatId}')" 
                   id="save-btn-${seatId}"
                   title="Save weight"
                   class="wb-manifest-btn save" style="display:none;">
-            Save
+            Γ£ô
           </button>
           <button onclick="window.cancelEditWeight('${seatId}')" 
                   id="cancel-btn-${seatId}"
                   title="Cancel"
                   class="wb-manifest-btn cancel" style="display:none;">
-            Cancel
+            Γ£ò
           </button>
         </div>
       `;
-      }
       
       deltaHTML = `<span class="weight-diff ${diffClass}">${diff >= 0 ? '+' : ''}${diff.toFixed(1)}</span>`;
     } else {
@@ -2992,7 +1806,7 @@ window.renderManifest = function() {
     // Controls column
     let controlsHTML = '';
     if (seat.locked) {
-      controlsHTML = '';
+      controlsHTML = '<span style="color:#999; font-size:1.35rem;">≡ƒöÆ Locked</span>';
     } else {
       controlsHTML = `<div style="display:flex; justify-content:flex-end;">${wbStatusCycleButtonHtml_(seatId, seat.status)}</div>`;
     }
@@ -3011,12 +1825,19 @@ window.renderManifest = function() {
   const fuelItem = window.wbData.items.find(item => item.type === 'fuel');
   if (fuelItem) {
     const actualWeight = parseFloat(fuelItem.actualWeight) || 0;
-    const roundedFuelWeight = Math.round(actualWeight);
     const fuelLiters = actualWeight > 0 ? Math.round(actualWeight / 0.72) : 0;
     rows.push(`
       <div class="manifest-row">
         <div><b>${fuelItem.name} (${fuelLiters} L)</b></div>
-        <div><span style="font-weight:bold; color:#0b5394;">${roundedFuelWeight}</span></div>
+        <div>
+          <input type="number"
+                 inputmode="decimal"
+                 value="${actualWeight}"
+                 step="0.1"
+                 disabled
+                 class="manifest-cargo-input"
+                 style="background:#f5f5f5; color:#666;">
+        </div>
         <div>${(parseFloat(fuelItem.arm) || 0).toFixed(1)}</div>
         <div></div>
       </div>
@@ -3054,7 +1875,7 @@ window.renderManifest = function() {
     
     let areaLabel = `<b>${area.name}</b>${maxDisplay}`;
     if (maxExceeded) {
-      areaLabel += ` <span style="color:#d32f2f; font-weight:bold; font-size:1.26rem;">[X] EXCEEDS MAX</span>`;
+      areaLabel += ` <span style="color:#d32f2f; font-weight:bold; font-size:1.26rem;">ΓÜá∩╕Å EXCEEDS MAX</span>`;
     }
     
     rows.push(`
@@ -3071,7 +1892,7 @@ window.renderManifest = function() {
                    const val = parseFloat(this.value) || 0;
                    const max = ${maxWeightKg} || 0;
                    if (max > 0 && val > max) {
-                     M.toast({html: '[X] Exceeds max weight of ' + Math.round(max) + 'kg', displayLength: 3000});
+                     M.toast({html: 'ΓÜá∩╕Å Exceeds max weight of ' + Math.round(max) + 'kg', displayLength: 3000});
                      this.value = '${actualWeight}';
                      return;
                    }
@@ -3112,14 +1933,14 @@ window.renderManifest = function() {
   cargoSeats.forEach(({ seatId, seat }) => {
     const seatWeight = seat.weight || 0;
     const occupantWeight = seat.occupiedWeight || 0;
-
-    let nameHTML = `<b>${seatId} <span style="color:#666; font-weight:700;">(${seatWeight}kg)</span></b>`;
+    
+    let nameHTML = `<b>${seatId}</b> <small style="color:#999; font-weight:normal;">(${seatWeight}kg)</small>`;
     if (seat.passenger && seat.passenger.name) {
-      nameHTML += ` <span style="color:#455a64;">${wbFirstName_(seat.passenger.name)}</span>`;
+      nameHTML += `<br><small style="color:#666; margin-left:8px;">Γöö ${seat.passenger.name}</small>`;
     }
     
     const controlsHTML = seat.locked
-      ? ''
+      ? '<span style="color:#999; font-size:1.35rem;">≡ƒöÆ Locked</span>'
       : `<div style="display:flex; justify-content:flex-end;">${wbStatusCycleButtonHtml_(seatId, seat.status)}</div>`;
     
     rows.push(`
@@ -3143,11 +1964,12 @@ window.renderManifest = function() {
   
   baseSeats.forEach(({ seatId, seat }) => {
     const seatWeight = seat.weight || 0;
-
-    let nameHTML = `<b>${seatId} <span style="color:#666; font-weight:700;">(${seatWeight}kg)</span></b>`;
+    
+    let nameHTML = `<b>${seatId}</b> <small style="color:#999; font-weight:normal;">(${seatWeight}kg)</small>`;
+    nameHTML += `<br><small style="color:#999; margin-left:8px;">Γöö Left at base</small>`;
     
     const controlsHTML = seat.locked
-      ? ''
+      ? '<span style="color:#999; font-size:1.35rem;">≡ƒöÆ Locked</span>'
       : `<div style="display:flex; justify-content:flex-end;">${wbStatusCycleButtonHtml_(seatId, seat.status)}</div>`;
     
     rows.push(`
@@ -3178,7 +2000,7 @@ window.renderManifest = function() {
           }).map(seatId => `
             <button onclick="window.assignPassengerToSeat('${seatId}', '${p.name}')" 
                     class="wb-manifest-btn edit">
-              Assign ${seatId}
+              ΓåÆ ${seatId}
             </button>
           `).join('')}
         </div>
@@ -3194,7 +2016,7 @@ window.renderManifest = function() {
   // Update totals using the same seat-aware WB model used by summary/graph.
   const wbTotals = (typeof window.calculateWB === 'function') ? window.calculateWB() : null;
   const actualTotal = wbTotals ? Number(wbTotals.totalWeight || 0) : 0;
-  document.getElementById('wb-total-actual').textContent = String(Math.round(actualTotal));
+  document.getElementById('wb-total-actual').textContent = actualTotal.toFixed(1);
   
   // Hide the old seat toggle section since seats are now in manifest
   const togglesContainer = document.getElementById('wb-seat-toggles');
@@ -3209,14 +2031,11 @@ window.renderManifest = function() {
 window.verifyPassengerWeight = function(seatId) {
   const seat = window.wbData.seats[seatId];
   if (!seat || !seat.passenger) return;
-
-  const inputEl = document.getElementById(`weight-input-${seatId}`);
-  const typedWeight = wbNum_(inputEl && inputEl.value, 0);
-  if (!(typedWeight > 0)) {
-    if (window.M) M.toast({ html: 'Enter a valid weight before verify', classes: 'orange', displayLength: 2000 });
-    return;
+  
+  // Set actualWeight to current weight if not already set
+  if (!seat.passenger.actualWeight) {
+    seat.passenger.actualWeight = seat.passenger.weight;
   }
-  seat.passenger.actualWeight = typedWeight;
   seat.passenger.verified = true;
   
   // Update occupiedWeight to use actual weight
@@ -3241,25 +2060,21 @@ window.editPassengerWeight = function(seatId) {
   const displayEl = document.getElementById(`weight-display-${seatId}`);
   const inputEl = document.getElementById(`weight-input-${seatId}`);
   const verifyBtn = document.getElementById(`verify-btn-${seatId}`);
-  const unlockBtn = document.getElementById(`unlock-btn-${seatId}`);
-  const verifiedChip = document.getElementById(`verified-chip-${seatId}`);
+  const editBtn = document.getElementById(`edit-btn-${seatId}`);
   const saveBtn = document.getElementById(`save-btn-${seatId}`);
   const cancelBtn = document.getElementById(`cancel-btn-${seatId}`);
   
   if (displayEl) displayEl.style.display = 'none';
   if (inputEl) {
     inputEl.style.display = 'inline-block';
-    inputEl.style.width = '62px';
     inputEl.value = seat.passenger.actualWeight || seat.passenger.weight;
     inputEl.focus();
     inputEl.select();
   }
   if (verifyBtn) verifyBtn.style.display = 'none';
-  if (unlockBtn) unlockBtn.style.display = 'none';
-  if (verifiedChip) verifiedChip.style.display = 'none';
+  if (editBtn) editBtn.style.display = 'none';
   if (saveBtn) saveBtn.style.display = 'inline-block';
   if (cancelBtn) cancelBtn.style.display = 'inline-block';
-  if (seat.passenger) seat.passenger.verified = false;
 };
 
 /**
@@ -3329,8 +2144,7 @@ window.cancelEditWeight = function(seatId) {
   // Show display, hide input
   const displayEl = document.getElementById(`weight-display-${seatId}`);
   const verifyBtn = document.getElementById(`verify-btn-${seatId}`);
-  const unlockBtn = document.getElementById(`unlock-btn-${seatId}`);
-  const verifiedChip = document.getElementById(`verified-chip-${seatId}`);
+  const editBtn = document.getElementById(`edit-btn-${seatId}`);
   const saveBtn = document.getElementById(`save-btn-${seatId}`);
   const cancelBtn = document.getElementById(`cancel-btn-${seatId}`);
   
@@ -3340,20 +2154,9 @@ window.cancelEditWeight = function(seatId) {
   if (cancelBtn) cancelBtn.style.display = 'none';
   
   if (seat.passenger.verified) {
-    if (verifyBtn) verifyBtn.style.display = 'none';
-    if (unlockBtn) unlockBtn.style.display = 'inline-flex';
-    if (verifiedChip) verifiedChip.style.display = 'inline-flex';
-    if (displayEl) displayEl.style.display = 'inline';
-    if (inputEl) inputEl.style.display = 'none';
+    if (editBtn) editBtn.style.display = 'inline-block';
   } else {
-    if (displayEl) displayEl.style.display = 'none';
-    if (inputEl) {
-      inputEl.style.display = 'inline-block';
-      inputEl.style.width = '62px';
-    }
     if (verifyBtn) verifyBtn.style.display = 'inline-block';
-    if (unlockBtn) unlockBtn.style.display = 'none';
-    if (verifiedChip) verifiedChip.style.display = 'none';
   }
 };
 
@@ -3403,7 +2206,7 @@ window.renderSeatToggles = function() {
       
       passengerInfo = `
         <div class="seat-passenger-info">
-          Pax: ${seat.passenger.name} (${seat.occupiedWeight || 0}kg)
+          ≡ƒæñ ${seat.passenger.name} (${seat.occupiedWeight || 0}kg)
           ${paxDropdown}
         </div>
       `;
@@ -3436,7 +2239,7 @@ window.renderSeatToggles = function() {
 
     // Hide controls for locked seats (e.g., pilot)
     const controlsHTML = seat.locked
-      ? `<div class="seat-controls" style="color:#999; font-size:1.275rem; font-style:italic;">Locked - cannot modify</div>`
+      ? `<div class="seat-controls" style="color:#999; font-size:1.275rem; font-style:italic;">≡ƒöÆ Locked - cannot modify</div>`
       : `<div class="seat-controls">
           <button onclick="window.changeSeatStatus('${seatName}', 'installed')" 
                   ${status === 'installed' ? 'disabled' : ''}>
@@ -3935,7 +2738,7 @@ window.renderAircraftDiagram = function() {
   fuselageHTML += `<span style="margin-right:4px;">Zone D:</span>`;
   if (storedSeats.length > 0) {
     storedSeats.forEach(abbr => {
-      fuselageHTML += `<div class="stored-seat-label">Seat ${abbr}</div>`;
+      fuselageHTML += `<div class="stored-seat-label">≡ƒÆ║ ${abbr}</div>`;
     });
   } else {
     fuselageHTML += `<span style="font-size:13.5px; color:#999;">Available</span>`;
@@ -3949,7 +2752,7 @@ window.renderAircraftDiagram = function() {
     baseBoxHTML = `
       <div style="margin-top:10px; padding:6px 10px; border:2px dashed #999; border-radius:8px; background:#e8e8e8; display:flex; flex-wrap:wrap; gap:4px; align-items:center; justify-content:center;">
         <span style="margin-right:4px; color:#666; font-weight:bold; font-size:16.5px;">BASE:</span>
-        ${baseSeats.map(abbr => `<div class="stored-seat-label" style="background:#9e9e9e;">Seat ${abbr}</div>`).join('')}
+        ${baseSeats.map(abbr => `<div class="stored-seat-label" style="background:#9e9e9e;">≡ƒÆ║ ${abbr}</div>`).join('')}
       </div>
     `;
   }
@@ -4075,7 +2878,7 @@ window.saveWBLog = function(options) {
       },
       onFailure: function(err) {
         console.error('Save failed', err);
-        if (!silent && window.M) M.toast({ html: 'Failed to save W&B - check console', classes: 'red' });
+        if (!silent && window.M) M.toast({ html: 'Failed to save W&B ΓÇö check console', classes: 'red' });
       }
     });
     return;
@@ -4154,7 +2957,7 @@ function applyWBPayload_(data) {
   }
 
   const missionRoute = (window.currentBriefingMission && Array.isArray(window.currentBriefingMission.legs) && window.currentBriefingMission.legs.length)
-    ? `${String(window.currentBriefingMission.legs[0].from || '').trim().toUpperCase()} -> ${String(window.currentBriefingMission.legs[0].to || '').trim().toUpperCase()}`
+    ? `${String(window.currentBriefingMission.legs[0].from || '').trim().toUpperCase()}ΓåÆ${String(window.currentBriefingMission.legs[0].to || '').trim().toUpperCase()}`
     : '';
 
   const aircraftReg = String(data.aircraft || '').trim();
@@ -4290,39 +3093,4 @@ window.tab3ValidateBeforeProceed = function() {
   return true;
 };
 
-window.tab3ClearForNextLeg = function() {
-  if (!window.wbData || typeof window.wbData !== 'object') return;
 
-  try {
-    window.wbData.waitingPassengers = [];
-    window.wbData.seatAssignments = {};
-    window.wbData.cargoManifest = [];
-
-    if (window.wbData.cargoAreaWeights && typeof window.wbData.cargoAreaWeights === 'object') {
-      Object.keys(window.wbData.cargoAreaWeights).forEach(function(areaId) {
-        const row = window.wbData.cargoAreaWeights[areaId] || {};
-        window.wbData.cargoAreaWeights[areaId] = {
-          planned: Number(row.planned || 0),
-          actual: 0
-        };
-      });
-    }
-
-    if (Array.isArray(window.wbData.items)) {
-      window.wbData.items.forEach(function(item) {
-        const type = String(item && item.type || '').toLowerCase();
-        if (type === 'freight' || type === 'cargo' || type === 'pax_cargo') {
-          item.actualWeight = 0;
-        }
-      });
-    }
-
-    if (typeof window.updateWBUI === 'function') window.updateWBUI();
-    if (typeof window.renderManifest === 'function') window.renderManifest();
-    if (typeof window.renderSeatToggles === 'function') window.renderSeatToggles();
-  } catch (e) {
-    console.warn('tab3ClearForNextLeg failed', e);
-  }
-};
-
-</script>
