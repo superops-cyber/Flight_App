@@ -263,14 +263,22 @@
     }
 
     .field-lock .lock-icon {
-      display: inline;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
       position: absolute;
-      right: 10px;
-      top: 31px;
+      right: 8px;
+      top: 36px;
       font-size: 0.92rem;
-      color: #607d8b;
+      color: #455a64;
       cursor: pointer;
       user-select: none;
+      border: 1px solid #b0bec5;
+      border-radius: 999px;
+      background: #eceff1;
+      font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
     }
 
     .field-lock input {
@@ -283,6 +291,11 @@
       border: 1.5px solid #adb5bd !important;
       pointer-events: none;
       padding-right: 30px;
+    }
+
+    .field-lock.locked .lock-icon {
+      background: #dfe5e8;
+      border-color: #90a4ae;
     }
 
     .field-lock.unlocked-override input {
@@ -1040,6 +1053,8 @@
           return;
         }
         if (inputEl) inputEl.value = valueNow;
+        if (kind === 'start') shift.startTime = valueNow;
+        else shift.endTime = valueNow;
         shift[lockedKey] = true;
         shift[unlockedKey] = false;
       } else {
