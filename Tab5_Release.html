@@ -362,10 +362,6 @@
     const legs = Array.isArray(mission && mission.legs) ? mission.legs : [];
     if (!legs.length) return {};
 
-    const isComplete = function(leg) {
-      return String((leg && leg.logStatus) || 'PENDING').toUpperCase() === 'COMPLETE';
-    };
-
     const activeId = String(
       window.activeLegFlightId
       || mission.activeLegFlightId
@@ -379,15 +375,12 @@
           return String(v || '').trim() === activeId;
         });
       });
-      if (found && !isComplete(found)) return found;
+      if (found) return found;
     }
 
     const pending = legs.find(function(leg) {
-      return !isComplete(leg);
+      return String((leg && leg.logStatus) || 'PENDING').toUpperCase() !== 'COMPLETE';
     });
-    if (pending && pending.flightLegId) {
-      try { window.activeLegFlightId = String(pending.flightLegId || '').trim(); } catch (e) {}
-    }
     return pending || legs[legs.length - 1] || legs[0] || {};
   }
 
@@ -460,7 +453,6 @@
       ? Math.round(cutdownInputNum)
       : cutdownFromData;
     const cutdownAreaLabel = (cutdownAreaM == null || !isFinite(cutdownAreaM)) ? 'Unknown' : (String(cutdownAreaM) + ' m');
-    const cutdownEdited = isFinite(cutdownInputNum) && cutdownInputNum >= 0 && (cutdownFromData == null || Math.round(cutdownInputNum) !== cutdownFromData);
 
     const takeoffRollM = Math.round(Number(result.takeoffRollM || 0));
     const rollStopM = Math.round(Number(result.combinedRollM || 0));
@@ -477,8 +469,6 @@
     const windSpd = Math.round(Number(document.getElementById('perf-wind-speed')?.value || 0));
     const tempRaw = String(document.getElementById('perf-temp')?.value || '').trim();
     const tempC = tempRaw === '' ? null : Number(tempRaw);
-    const qnhRaw = String(document.getElementById('perf-qnh')?.value || '').trim();
-    const qnhHpa = qnhRaw === '' ? null : Number(qnhRaw);
     const flapRaw = String(document.getElementById('perf-flaps')?.value || '').trim();
     const flaps = flapRaw === '' ? null : Number(flapRaw);
     const humidityRaw = String(document.getElementById('perf-humidity')?.value || '').trim();
@@ -534,13 +524,10 @@
       slopePct: slopePct,
       cutdownAreaM: cutdownAreaM,
       cutdownAreaLabel: cutdownAreaLabel,
-      cutdownBaselineM: cutdownFromData,
-      cutdownEdited: cutdownEdited,
       heading: heading,
       windDir: windDir,
       windSpd: windSpd,
       tempC: isFinite(tempC) ? tempC : null,
-      qnhHpa: isFinite(qnhHpa) ? qnhHpa : null,
       flaps: isFinite(flaps) ? flaps : null,
       humidity: isFinite(humidity) ? humidity : null,
       headTailKts: headTailKts,
@@ -879,11 +866,6 @@
     const wbCtx = _releaseGetWbSnapshot();
     const runwayCtx = _releaseGetRunwayContext(mission || {}, activeLeg);
     const msgObj = window.releaseTab5State.currentMsg || {};
-    const cutdownValue = Number(runwayCtx && runwayCtx.cutdownAreaM);
-    if (!isFinite(cutdownValue) || cutdownValue <= 0) {
-      if (window.M) M.toast({ html: 'Cutdown Area is required before brakes release and supervisor approval.', classes: 'red' });
-      return;
-    }
 
     const payload = {
       missionId: window.releaseTab5State.missionId,
@@ -904,26 +886,25 @@
       rwyIdent: String(runwayCtx.runwayIdent || '').trim().toUpperCase(),
       pilotName: String(mission && mission.pilot || '').trim(),
       pilotEmail: String(mission && mission.meta && mission.meta.pilotEmail || '').trim(),
-      notes: 'Pilot-edited cutdown area requires supervisor review',
+      notes: 'Dispatch release runway approval request',
       survey: {
         missionId: payload.missionId,
         flightId: payload.flightId,
         flightLegId: payload.flightLegId,
-        runwaySnapshot: {
-          fromIcao: String(runwayCtx.fromIcao || '').trim().toUpperCase(),
-          runwayIdent: String(runwayCtx.runwayIdent || '').trim().toUpperCase(),
-          cutdownAreaM: Math.round(cutdownValue),
-          cutdownAreaLabel: String(runwayCtx.cutdownAreaLabel || ''),
-          cutdownBaselineM: (runwayCtx.cutdownBaselineM == null ? null : Number(runwayCtx.cutdownBaselineM)),
-          cutdownEdited: !!runwayCtx.cutdownEdited,
-          pilotName: String(mission && mission.pilot || '').trim(),
-          editSource: 'TAB5_RELEASE'
-        },
+        riskTotal: score.total,
+        riskDetail: window.releaseTab5State.selected,
+        runwaySnapshot: runwayCtx,
+        wbSnapshot: wbCtx,
         sentAt: new Date().toISOString()
       },
       official: {
-        cutdownAreaM: Math.round(cutdownValue),
-        cutdownBaselineM: (runwayCtx.cutdownBaselineM == null ? null : Number(runwayCtx.cutdownBaselineM))
+        lengthM: Number(runwayCtx.runwayLengthM || 0),
+        widthM: Number(runwayCtx.runwayWidthM || 0),
+        surface: String(runwayCtx.surface || '').trim(),
+        headingDeg: Number(runwayCtx.heading || 0),
+        maxTakeoffWeight: Number(runwayCtx.maxTakeoffWeight || 0),
+        mtowModelKey: String(runwayCtx.mtowModelKey || ''),
+        mtowByModel: (runwayCtx.mtowByModel && typeof runwayCtx.mtowByModel === 'object') ? runwayCtx.mtowByModel : {}
       }
     };
 
@@ -979,19 +960,17 @@
     };
 
     if (typeof window.runOrQueueServerAction === 'function') {
-      if (runwayCtx && runwayCtx.cutdownEdited) {
-        try {
-          window.runOrQueueServerAction({
-            method: 'submitRunwayApprovalRequest',
-            args: [runwayApprovalPayload],
-            label: 'Runway approval request'
-          }, {
-            onSuccess: function() {},
-            onQueued: function() {},
-            onFailure: function(err) { console.warn('submitRunwayApprovalRequest failed', err); }
-          });
-        } catch (e) { console.warn('submitRunwayApprovalRequest enqueue failed', e); }
-      }
+      try {
+        window.runOrQueueServerAction({
+          method: 'submitRunwayApprovalRequest',
+          args: [runwayApprovalPayload],
+          label: 'Runway approval request'
+        }, {
+          onSuccess: function() {},
+          onQueued: function() {},
+          onFailure: function(err) { console.warn('submitRunwayApprovalRequest failed', err); }
+        });
+      } catch (e) { console.warn('submitRunwayApprovalRequest enqueue failed', e); }
       window.runOrQueueServerAction({
         method: 'releaseBrakes',
         args: [payload],

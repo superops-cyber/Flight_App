@@ -350,16 +350,6 @@
     vertical-align: middle;
   }
   .rbc-history-table tr:nth-child(even) td { background: #f4f7fb; }
-  .rbc-history-table .rbc-col-date,
-  .rbc-history-table .rbc-col-pilot,
-  .rbc-history-table .rbc-col-acft,
-  .rbc-history-table .rbc-col-qnh {
-    white-space: nowrap;
-  }
-  .rbc-history-table .rbc-col-date { width: 92px; }
-  .rbc-history-table .rbc-col-pilot { width: 44px; text-align: center; }
-  .rbc-history-table .rbc-col-acft { width: 58px; text-align: center; }
-  .rbc-history-table .rbc-col-qnh { width: 68px; text-align: center; }
 
   /* ── action bar ── */
   .rbc-action-bar {
@@ -739,21 +729,23 @@
         <div class="rbc-section-title">Last Takeoff Performance Records (this runway)</div>
         <div class="rbc-section-body" style="padding:6px; overflow-x:auto;">
           <div id="rbc-history-loading" style="text-align:center; color:#90a4ae; font-weight:700; padding:12px;">Loading flight history...</div>
-          <table class="rbc-history-table" id="rbc-history-table" style="display:none; min-width:760px;">
+          <table class="rbc-history-table" id="rbc-history-table" style="display:none; min-width:820px;">
             <thead>
               <tr>
-                <th class="rbc-col-date">Date</th>
-                <th class="rbc-col-pilot">Pilot</th>
-                <th class="rbc-col-acft">A/C</th>
+                <th>Date</th>
+                <th>Pilot</th>
+                <th>Aircraft</th>
                 <th>Weight (kg)</th>
                 <th>Temp</th>
-                <th class="rbc-col-qnh">QNH</th>
                 <th>Flaps</th>
                 <th>Surface</th>
                 <th>Wet?</th>
                 <th>Wind</th>
                 <th>Calc TO Roll</th>
                 <th>Actual TO Roll</th>
+                <th>Start &#x2192; VR</th>
+                <th>MAP Dist</th>
+                <th>Alternates</th>
               </tr>
             </thead>
             <tbody id="rbc-history-tbody"></tbody>
@@ -2277,41 +2269,12 @@ function _rbcRenderHistory(result) {
     return;
   }
 
-  const _rbcFmtDateCompact = function(rawDate) {
-    const raw = String(rawDate || '').trim();
-    if (!raw) return '–';
-    const dt = new Date(raw);
-    if (isNaN(dt.getTime())) return raw;
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const dd = String(dt.getDate()).padStart(2, '0');
-    return dd + '-' + months[dt.getMonth()] + '-' + dt.getFullYear();
-  };
-  const _rbcPilotInitials = function(name) {
-    const clean = String(name || '').trim();
-    if (!clean) return '–';
-    const parts = clean.split(/\s+/).filter(Boolean);
-    if (!parts.length) return '–';
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return parts.slice(0, 3).map(function(p) { return p.charAt(0).toUpperCase(); }).join('');
-  };
-  const _rbcAcftSuffix = function(reg) {
-    const clean = String(reg || '').trim().toUpperCase();
-    if (!clean) return '–';
-    const dashParts = clean.split('-').filter(Boolean);
-    const base = dashParts.length ? dashParts[dashParts.length - 1] : clean;
-    const alnum = base.replace(/[^A-Z0-9]/g, '');
-    if (!alnum) return '–';
-    return alnum.length > 3 ? alnum.slice(-3) : alnum;
-  };
-
   tbody.innerHTML = records.map(function(r) {
     const actual = r.actualToRollM != null ? Math.round(r.actualToRollM) + ' m' : '–';
     const calc   = r.calcToRollM   != null ? Math.round(r.calcToRollM)   + ' m' : '–';
     const wt     = r.weightKg      != null ? Math.round(r.weightKg) + ' kg' : '–';
-    const qnhTxt = r.qnhHpa != null ? Math.round(Number(r.qnhHpa)) : '–';
-    const pilotInitials = _rbcPilotInitials(r.pilot);
-    const acftShort = _rbcAcftSuffix(r.acft);
-    const dateTxt = _rbcFmtDateCompact(r.date);
+    const vrDist  = r.vrDistM       != null ? Math.round(r.vrDistM)  + ' m' : '–';
+    const mapD    = r.mapDistM      != null ? Math.round(r.mapDistM) + ' m' : '–';
     const windPrimary = (r.windDirDeg != null && r.windSpdKts != null)
       ? (Math.round(r.windDirDeg) + '°/' + Math.round(r.windSpdKts) + 'kt')
       : '–';
@@ -2321,18 +2284,20 @@ function _rbcRenderHistory(result) {
       : '';
     const windTxt = windPrimary + windComponents;
     return '<tr>'
-      + '<td class="rbc-col-date">' + _rbcEsc(dateTxt) + '</td>'
-      + '<td class="rbc-col-pilot">' + _rbcEsc(pilotInitials) + '</td>'
-      + '<td class="rbc-col-acft">' + _rbcEsc(acftShort) + '</td>'
+      + '<td>' + _rbcEsc(r.date||'–') + '</td>'
+      + '<td>' + _rbcEsc(r.pilot||'–') + '</td>'
+      + '<td>' + _rbcEsc(r.acft||'–') + '</td>'
       + '<td>' + _rbcEsc(wt) + '</td>'
       + '<td>' + _rbcEsc(String(r.tempC!=null?r.tempC+'°C':'–')) + '</td>'
-      + '<td class="rbc-col-qnh">' + _rbcEsc(String(qnhTxt)) + '</td>'
       + '<td>' + _rbcEsc(String(r.flaps!=null?r.flaps+'°':'–')) + '</td>'
       + '<td>' + _rbcEsc(r.surface||'–') + '</td>'
       + '<td>' + _rbcEsc(r.wet === null || r.wet === undefined ? '–' : (r.wet ? 'WET' : 'DRY')) + '</td>'
       + '<td>' + _rbcEsc(windTxt) + '</td>'
       + '<td>' + _rbcEsc(calc) + '</td>'
       + '<td><b>' + _rbcEsc(actual) + '</b></td>'
+      + '<td>' + _rbcEsc(vrDist) + '</td>'
+      + '<td>' + _rbcEsc(mapD) + '</td>'
+      + '<td style="font-size:0.7rem;">' + _rbcEsc(r.alternates||'\u2013') + '</td>'
       + '</tr>';
   }).join('');
 

@@ -263,7 +263,7 @@
     }
 
     .field-lock .lock-icon {
-      display: none;
+      display: inline;
       position: absolute;
       right: 10px;
       top: 31px;
@@ -273,16 +273,16 @@
       user-select: none;
     }
 
+    .field-lock input {
+      padding-right: 30px;
+    }
+
     .field-lock.locked input {
       background: #e9ecef !important;
       color: #666 !important;
       border: 1.5px solid #adb5bd !important;
       pointer-events: none;
       padding-right: 30px;
-    }
-
-    .field-lock.locked .lock-icon {
-      display: inline;
     }
 
     .field-lock.unlocked-override input {

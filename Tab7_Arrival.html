@@ -302,13 +302,19 @@
 
 <div id="arrival7-wrap">
   <div class="arrival7-panel">
-    <div style="display:flex; align-items:center; justify-content:flex-end; margin:0 0 6px 0;">
-      <button class="info-btn-arr7" onclick="openArr7SafetyMatrixInfo()" title="View safety matrix guidance">ⓘ Matrix Info</button>
+    <div class="arrival7-title">Tab 7: Landing Performance & Arrival Risk</div>
+
+    <div class="arrival7-sub" style="display: flex; align-items: center; justify-content: space-between;">
+      <span>Arrival FRAT</span>
+      <button class="info-btn-arr7" onclick="openArr7SafetyMatrixInfo()" title="View safety matrix guidance">ⓘ Info</button>
     </div>
     <div id="arrival7-risk-rows"></div>
     <div id="arrival7-risk-total" class="risk-total green">Risk 5/15 - Low</div>
 
+    <div class="arrival7-sub">Arrival Performance Inputs</div>
     <div class="arrival7-grid">
+      <div class="arrival7-entry-banner">Pilot entry required: select runway/surface/condition and enter slope, QNH, temperature, and wind. Grey fields are auto-filled reference values.</div>
+
       <div class="field"><label>Airport</label><input id="arr7-airport" readonly></div>
       <div class="field arr7-pilot-entry"><label>Runway</label><select id="arr7-runway" class="browser-default"></select></div>
       <div class="field"><label>Landing Weight kg</label><input id="arr7-weight" type="number" inputmode="numeric" readonly></div>
@@ -333,6 +339,7 @@
 
     <div class="arrival7-buttons">
       <button id="arr7-photo-btn" class="btn-photo" onclick="window.openArrivalAirstripPhoto()">AIRSTRIP PHOTO</button>
+      <button id="arr7-chart-btn" class="btn-chart" onclick="window.openArrivalChart()">VIEW CHART</button>
       <button id="arr7-briefcard-btn" class="btn-chart" style="background:#6a1b9a;"
         onclick="(function(){ var rwy = window.arrival7 && window.arrival7.selectedRunway; openRunwayBriefingCard(String(window.arrival7 && window.arrival7.toIcao||''), String(rwy && rwy.rwyIdent||''), 'tab7', rwy || null); })()">BRIEFING CARD</button>
     </div>
@@ -387,7 +394,6 @@
     chartUrl: '',
     photoUrl: '',
     lastResult: null,
-    traceOpen: false,
     keypadMode: '',
     slopeOverridden: false,
     windConfirmed: false
@@ -2098,24 +2104,10 @@
   };
 
   window.openArrivalAirstripPhoto = function() {
-    const _arr7ResolveExternalUrl = function(raw) {
-      const val = String(raw || '').trim();
-      if (!val) return '';
-      if (/^https?:\/\//i.test(val)) return val;
-      if (/^[A-Za-z0-9_-]{20,}$/.test(val)) return 'https://drive.google.com/file/d/' + val + '/view';
-      const mPath = val.match(/\/d\/([A-Za-z0-9_-]{20,})/);
-      if (mPath && mPath[1]) return 'https://drive.google.com/file/d/' + mPath[1] + '/view';
-      const mId = val.match(/[?&]id=([A-Za-z0-9_-]{20,})/);
-      if (mId && mId[1]) return 'https://drive.google.com/file/d/' + mId[1] + '/view';
-      return val;
-    };
-    const url = _arr7ResolveExternalUrl(window.arrival7.photoUrl || '');
+    const url = String(window.arrival7.photoUrl || '').trim();
     if (!url) {
       if (window.M) M.toast({html:'No airstrip photo URL found', classes:'orange'});
       return;
-    }
-    if (navigator.onLine === false && window.M) {
-      M.toast({html:'Offline: photo may not load unless already cached', classes:'orange', displayLength:2600});
     }
     window.open(url, '_blank');
   };
@@ -2200,22 +2192,8 @@
             }
           } catch (e) { console.warn('leg cache update (COMPLETE) failed', e); }
         })();
-        try {
-          if (typeof window.refreshMissionStatusFromLegCache_ === 'function') {
-            window.refreshMissionStatusFromLegCache_(window.arrival7.missionId, window.currentBriefingMission || null);
-          }
-        } catch (e) { console.warn('refreshMissionStatusFromLegCache_ failed', e); }
-        try {
-          if (typeof window.resetLegUiForNextLeg_ === 'function') {
-            window.resetLegUiForNextLeg_();
-          }
-        } catch (e) { console.warn('resetLegUiForNextLeg_ failed', e); }
         if (window.M) M.toast({html:'On Blocks recorded', classes:'green'});
-        try {
-          var legs = Array.isArray(window.currentBriefingMission && window.currentBriefingMission.legs) ? window.currentBriefingMission.legs : [];
-          var nextLeg = legs.find(function(l) { return String((l && l.logStatus) || 'PENDING').toUpperCase() !== 'COMPLETE'; }) || null;
-          window.activeLegFlightId = String((nextLeg && nextLeg.flightLegId) || payload.flightLegId || '');
-        } catch (e) {}
+        try { window.activeLegFlightId = String(payload.flightLegId || ''); } catch (e) {}
         if (typeof window.switchTab === 'function') window.switchTab(8);
       };
 
@@ -2263,14 +2241,12 @@
     if (!tr) {
       panel.style.display = 'none';
       body.style.display = 'none';
-      window.arrival7.traceOpen = false;
       if (btn) btn.textContent = '▶ Calculation Trace';
       return;
     }
     panel.style.display = '';
-    const traceOpen = window.arrival7.traceOpen === true;
-    body.style.display = traceOpen ? '' : 'none';
-    if (btn) btn.textContent = (traceOpen ? '▼' : '▶') + ' Calculation Trace';
+    body.style.display = '';
+    if (btn) btn.textContent = '▼ Calculation Trace';
 
     const factors = result && result.factors ? result.factors : {};
     const toDa = Number(factors.daTakeoff || 1).toFixed(4);
@@ -2327,10 +2303,8 @@
     const btn = document.getElementById('arr7-trace-toggle');
     if (!body) return;
     const isOpen = body.style.display !== 'none';
-    const nextOpen = !isOpen;
-    body.style.display = nextOpen ? '' : 'none';
-    window.arrival7.traceOpen = nextOpen;
-    if (btn) btn.textContent = (nextOpen ? '▼' : '▶') + ' Calculation Trace';
+    body.style.display = isOpen ? 'none' : '';
+    if (btn) btn.textContent = (isOpen ? '▶' : '▼') + ' Calculation Trace';
   };
 
   function _arr7EstimateFuelBurnKg_(leg, wbData) {
@@ -2389,17 +2363,11 @@
 
     const firstLeg = (function() {
       var legs = mission.legs;
-      var isComplete = function(leg) {
-        return String((leg && leg.logStatus) || 'PENDING').toUpperCase() === 'COMPLETE';
-      };
       if (window.activeLegFlightId) {
         var found = legs.find(function(l) { return String(l.flightLegId || '') === String(window.activeLegFlightId); });
-        if (found && !isComplete(found)) return found;
+        if (found) return found;
       }
-      var firstPending = legs.find(function(l) { return !isComplete(l); });
-      if (firstPending && firstPending.flightLegId) {
-        try { window.activeLegFlightId = String(firstPending.flightLegId || '').trim(); } catch (e) {}
-      }
+      var firstPending = legs.find(function(l) { return (l.logStatus || 'PENDING') !== 'COMPLETE'; });
       return firstPending || legs[legs.length - 1] || legs[0];
     })() || {};
     const acftReg = String(mission.acft || '').trim().toUpperCase();
