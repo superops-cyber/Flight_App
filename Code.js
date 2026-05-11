@@ -1278,6 +1278,7 @@ function saveMission(data) {
  rewriteSheetData_(dispatchSheet, keptDispatchRows);
 
  if (transSheet) {
+   _financeReverseMissionTransactions_(ss, missionId, Session.getActiveUser().getEmail() || 'system', 'MISSION_EDIT_REWRITE');
    const transData = transSheet.getDataRange().getValues();
    const keptTransRows = [transData[0]].concat(
      transData.slice(1).filter(r => String(r[0]).indexOf(missionId) !== 0)
@@ -2525,6 +2526,302 @@ function _getSupervisorApprovalPassword_() {
   return '';
 }
 
+function _financeNormHeader_(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+}
+
+function _financeFindHeaderIndex_(headers, aliases, fallbackIdx) {
+  var normalized = (headers || []).map(function(h) { return _financeNormHeader_(h); });
+  var list = Array.isArray(aliases) ? aliases : [aliases];
+  for (var i = 0; i < list.length; i++) {
+    var idx = normalized.indexOf(_financeNormHeader_(list[i]));
+    if (idx >= 0) return idx;
+  }
+  return typeof fallbackIdx === 'number' ? fallbackIdx : -1;
+}
+
+function _financeEnsureSheetHeaders_(ss, sheetName, headers) {
+  var sh = ss.getSheetByName(sheetName);
+  if (!sh) {
+    sh = ss.insertSheet(sheetName);
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+    return sh;
+  }
+  var existing = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0];
+  var existingNorm = existing.map(_financeNormHeader_);
+  (headers || []).forEach(function(header) {
+    var label = String(header || '').trim();
+    if (!label) return;
+    if (existingNorm.indexOf(_financeNormHeader_(label)) >= 0) return;
+    sh.getRange(1, sh.getLastColumn() + 1).setValue(label);
+    existingNorm.push(_financeNormHeader_(label));
+  });
+  return sh;
+}
+
+function _financeEnsureFundBalanceColumn_(fundSheet) {
+  if (!fundSheet) return { nameIdx: -1, balanceIdx: -1 };
+  var headers = fundSheet.getRange(1, 1, 1, Math.max(fundSheet.getLastColumn(), 1)).getValues()[0];
+  var nameIdx = _financeFindHeaderIndex_(headers, ['NAME', 'FUND_NAME', 'FUND NAME'], 0);
+  var balanceIdx = _financeFindHeaderIndex_(headers, ['CURRENT_BALANCE', 'BALANCE'], -1);
+  if (balanceIdx < 0) {
+    balanceIdx = headers.length;
+    fundSheet.getRange(1, balanceIdx + 1).setValue('CURRENT_BALANCE');
+  }
+  return { nameIdx: nameIdx, balanceIdx: balanceIdx };
+}
+
+function _financeEnsureLedgerSheet_(ss) {
+  return _financeEnsureSheetHeaders_(ss, APP_SHEETS.FUND_LEDGER, [
+    'LEDGER_ID',
+    'FUND_ID',
+    'ENTRY_DATE',
+    'ENTRY_TYPE',
+    'AMOUNT_BRL',
+    'RELATED_ID',
+    'RELATED_TYPE',
+    'SOURCE_BATCH_ID',
+    'MISSION_ID',
+    'DONATION_ID',
+    'NOTE',
+    'CREATED_AT',
+    'CREATED_BY'
+  ]);
+}
+
+function _financeEnsureAllocSheet_(ss) {
+  return _financeEnsureSheetHeaders_(ss, APP_SHEETS.MISSION_FUNDING_ALLOCATIONS, [
+    'ALLOCATION_ID',
+    'MISSION_ID',
+    'FLIGHT_ID',
+    'FUND_ID',
+    'DONATION_ID',
+    'ALLOC_AMOUNT_BRL',
+    'ALLOCATION_STAGE',
+    'RESERVED_AT',
+    'FINALIZED_AT',
+    'RELEASED_AT',
+    'CREATED_BY',
+    'NOTES'
+  ]);
+}
+
+function _financePostMissionTransactions_(ss, missionId, actorEmail) {
+  var transSheet = ss.getSheetByName(APP_SHEETS.TRANSACTIONS);
+  if (!transSheet) return { posted: 0, skipped: 0, warnings: ['DB_Transactions not found'] };
+
+  var transData = transSheet.getDataRange().getValues();
+  if (!transData || transData.length < 2) return { posted: 0, skipped: 0, warnings: [] };
+
+  var headers = transData[0] || [];
+  var flightIdx = _financeFindHeaderIndex_(headers, ['FLIGHT_ID', 'MISSION_ID'], 0);
+  var fundIdx = _financeFindHeaderIndex_(headers, ['FUND', 'FUND_NAME'], 1);
+  var paxIdx = _financeFindHeaderIndex_(headers, ['PASSENGER_NAME', 'NAME'], 2);
+  var amountIdx = _financeFindHeaderIndex_(headers, ['CHARGED_AMOUNT', 'AMOUNT'], 6);
+  var statusIdx = _financeFindHeaderIndex_(headers, ['STATUS'], 7);
+  if (statusIdx >= headers.length) statusIdx = 7;
+  if (headers.length <= statusIdx || _financeNormHeader_(headers[statusIdx]) !== 'STATUS') {
+    transSheet.getRange(1, statusIdx + 1).setValue('STATUS');
+  }
+
+  var postedAtIdx = _financeFindHeaderIndex_(headers, ['POSTED_AT'], -1);
+  if (postedAtIdx < 0) {
+    postedAtIdx = Math.max(transSheet.getLastColumn(), statusIdx + 1);
+    transSheet.getRange(1, postedAtIdx + 1).setValue('POSTED_AT');
+  }
+
+  var fundSheet = ss.getSheetByName(APP_SHEETS.FUNDS);
+  if (!fundSheet) return { posted: 0, skipped: 0, warnings: ['DB_Funds not found'] };
+  var fundIdxs = _financeEnsureFundBalanceColumn_(fundSheet);
+  var fundData = fundSheet.getDataRange().getValues();
+  var fundByName = {};
+  for (var fr = 1; fr < fundData.length; fr++) {
+    var fundName = String(fundData[fr][fundIdxs.nameIdx] || '').trim();
+    if (!fundName) continue;
+    var bal = parseFloat(fundData[fr][fundIdxs.balanceIdx]);
+    if (!isFinite(bal)) bal = 0;
+    fundByName[fundName] = { row: fr + 1, balance: bal };
+  }
+
+  var ledgerSheet = _financeEnsureLedgerSheet_(ss);
+  var allocSheet = _financeEnsureAllocSheet_(ss);
+  var now = new Date();
+  var nowIso = now.toISOString();
+  var actor = String(actorEmail || 'system');
+
+  var posted = 0;
+  var skipped = 0;
+  var warnings = [];
+
+  for (var i = 1; i < transData.length; i++) {
+    var row = transData[i];
+    var flightId = String(row[flightIdx] || '').trim();
+    if (!flightId || flightId.indexOf(String(missionId)) !== 0) continue;
+
+    var status = String(row[statusIdx] || 'PENDING').trim().toUpperCase();
+    if (status === 'POSTED') continue;
+    if (status === 'REVERSED') {
+      skipped++;
+      continue;
+    }
+
+    var fundNameRaw = String(row[fundIdx] || '').trim();
+    var amount = parseFloat(row[amountIdx]);
+    if (!fundNameRaw || !isFinite(amount) || amount <= 0) {
+      skipped++;
+      warnings.push('Skipped tx row ' + (i + 1) + ' due to missing fund or invalid amount');
+      continue;
+    }
+
+    var fundRec = fundByName[fundNameRaw];
+    if (!fundRec) {
+      skipped++;
+      warnings.push('Fund not found in DB_Funds: ' + fundNameRaw + ' (tx row ' + (i + 1) + ')');
+      continue;
+    }
+
+    fundRec.balance = Number((fundRec.balance - amount).toFixed(2));
+    fundSheet.getRange(fundRec.row, fundIdxs.balanceIdx + 1).setValue(fundRec.balance);
+
+    transSheet.getRange(i + 1, statusIdx + 1).setValue('POSTED');
+    transSheet.getRange(i + 1, postedAtIdx + 1).setValue(nowIso);
+
+    var ledgerId = 'LED_' + Utilities.getUuid().slice(0, 8).toUpperCase();
+    var paxName = String(row[paxIdx] || '').trim();
+    ledgerSheet.appendRow([
+      ledgerId,
+      fundNameRaw,
+      now,
+      'MISSION_OUT',
+      -Math.abs(amount),
+      flightId,
+      'MISSION_TRANSACTION',
+      '',
+      missionId,
+      '',
+      (paxName ? ('PAX: ' + paxName + ' | ') : '') + 'Auto-post from transaction',
+      nowIso,
+      actor
+    ]);
+
+    allocSheet.appendRow([
+      'ALC_' + Utilities.getUuid().slice(0, 8).toUpperCase(),
+      missionId,
+      flightId,
+      fundNameRaw,
+      '',
+      Number(amount.toFixed(2)),
+      'FINALIZED',
+      '',
+      nowIso,
+      '',
+      actor,
+      'Auto-posted from DB_Transactions'
+    ]);
+
+    posted++;
+  }
+
+  return { posted: posted, skipped: skipped, warnings: warnings };
+}
+
+function _financeReverseMissionTransactions_(ss, missionId, actorEmail, reason) {
+  var transSheet = ss.getSheetByName(APP_SHEETS.TRANSACTIONS);
+  if (!transSheet) return { reversed: 0, skipped: 0, warnings: [] };
+
+  var transData = transSheet.getDataRange().getValues();
+  if (!transData || transData.length < 2) return { reversed: 0, skipped: 0, warnings: [] };
+
+  var headers = transData[0] || [];
+  var flightIdx = _financeFindHeaderIndex_(headers, ['FLIGHT_ID', 'MISSION_ID'], 0);
+  var fundIdx = _financeFindHeaderIndex_(headers, ['FUND', 'FUND_NAME'], 1);
+  var amountIdx = _financeFindHeaderIndex_(headers, ['CHARGED_AMOUNT', 'AMOUNT'], 6);
+  var statusIdx = _financeFindHeaderIndex_(headers, ['STATUS'], 7);
+  if (statusIdx >= headers.length) statusIdx = 7;
+  if (headers.length <= statusIdx || _financeNormHeader_(headers[statusIdx]) !== 'STATUS') {
+    transSheet.getRange(1, statusIdx + 1).setValue('STATUS');
+  }
+
+  var reversedAtIdx = _financeFindHeaderIndex_(headers, ['REVERSED_AT'], -1);
+  if (reversedAtIdx < 0) {
+    reversedAtIdx = Math.max(transSheet.getLastColumn(), statusIdx + 1);
+    transSheet.getRange(1, reversedAtIdx + 1).setValue('REVERSED_AT');
+  }
+
+  var fundSheet = ss.getSheetByName(APP_SHEETS.FUNDS);
+  if (!fundSheet) return { reversed: 0, skipped: 0, warnings: ['DB_Funds not found'] };
+  var fundIdxs = _financeEnsureFundBalanceColumn_(fundSheet);
+  var fundData = fundSheet.getDataRange().getValues();
+  var fundByName = {};
+  for (var fr = 1; fr < fundData.length; fr++) {
+    var fundName = String(fundData[fr][fundIdxs.nameIdx] || '').trim();
+    if (!fundName) continue;
+    var bal = parseFloat(fundData[fr][fundIdxs.balanceIdx]);
+    if (!isFinite(bal)) bal = 0;
+    fundByName[fundName] = { row: fr + 1, balance: bal };
+  }
+
+  var ledgerSheet = _financeEnsureLedgerSheet_(ss);
+  var now = new Date();
+  var nowIso = now.toISOString();
+  var actor = String(actorEmail || 'system');
+  var noteReason = String(reason || 'MISSION_REVERSE').trim();
+
+  var reversed = 0;
+  var skipped = 0;
+  var warnings = [];
+
+  for (var i = 1; i < transData.length; i++) {
+    var row = transData[i];
+    var flightId = String(row[flightIdx] || '').trim();
+    if (!flightId || flightId.indexOf(String(missionId)) !== 0) continue;
+
+    var status = String(row[statusIdx] || 'PENDING').trim().toUpperCase();
+    if (status !== 'POSTED') continue;
+
+    var fundNameRaw = String(row[fundIdx] || '').trim();
+    var amount = parseFloat(row[amountIdx]);
+    if (!fundNameRaw || !isFinite(amount) || amount <= 0) {
+      skipped++;
+      warnings.push('Skipped reversal tx row ' + (i + 1) + ' due to missing fund or invalid amount');
+      continue;
+    }
+
+    var fundRec = fundByName[fundNameRaw];
+    if (!fundRec) {
+      skipped++;
+      warnings.push('Fund not found in DB_Funds for reversal: ' + fundNameRaw + ' (tx row ' + (i + 1) + ')');
+      continue;
+    }
+
+    fundRec.balance = Number((fundRec.balance + amount).toFixed(2));
+    fundSheet.getRange(fundRec.row, fundIdxs.balanceIdx + 1).setValue(fundRec.balance);
+
+    transSheet.getRange(i + 1, statusIdx + 1).setValue('REVERSED');
+    transSheet.getRange(i + 1, reversedAtIdx + 1).setValue(nowIso);
+
+    ledgerSheet.appendRow([
+      'LED_' + Utilities.getUuid().slice(0, 8).toUpperCase(),
+      fundNameRaw,
+      now,
+      'MISSION_REVERSAL',
+      Number(amount.toFixed(2)),
+      flightId,
+      'MISSION_TRANSACTION',
+      '',
+      missionId,
+      '',
+      noteReason,
+      nowIso,
+      actor
+    ]);
+
+    reversed++;
+  }
+
+  return { reversed: reversed, skipped: skipped, warnings: warnings };
+}
+
 function _verifySupervisorApprovalPassword_(password) {
   const configured = _getSupervisorApprovalPassword_();
   if (!configured) {
@@ -2543,8 +2840,10 @@ const sheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
 if (!sheet) return "Error: DB missing";
 const data = sheet.getDataRange().getValues();
 const user = "Admin";
+let missionFound = false;
 for (let i = 1; i < data.length; i++) {
 if (String(data[i][DISPATCH_COL.MISSION_ID]) === String(missionId)) {
+ missionFound = true;
  const pilotName = String(data[i][DISPATCH_COL.PILOT] || '').trim();
  const pilotKey = pilotName.toUpperCase();
  if (!pilotName || pilotKey === 'PILOT TBD' || pilotKey === 'TBD' || pilotKey === 'UNASSIGNED') {
@@ -2552,6 +2851,9 @@ if (String(data[i][DISPATCH_COL.MISSION_ID]) === String(missionId)) {
  }
  sheet.getRange(i + 1, DISPATCH_COL.STATUS + 1).setValue("APPROVED");
 }
+}
+if (missionFound) {
+  _financePostMissionTransactions_(ss, missionId, Session.getActiveUser().getEmail() || 'Admin');
 }
 invalidateScheduledMissionsCache_();
 const audit = ss.getSheetByName(APP_SHEETS.AUDIT);
@@ -4368,6 +4670,7 @@ function cancelMissionFromDatabase(missionId) {
  // 1. REVERSE ALL FUEL FOR THIS MISSION
  // We do this first so we can read the log data before deleting it
  reverseFuelForMission(missionId);
+ _financeReverseMissionTransactions_(ss, missionId, Session.getActiveUser().getEmail() || 'system', 'MISSION_CANCEL');
 
 
  // 2. DELETE FROM DB_DISPATCH
