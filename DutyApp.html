@@ -1606,6 +1606,18 @@
       if (overlay) overlay.style.display = 'none';
     }
 
+    function dutyCanAutoRefresh_() {
+      const todayYmd = dutyNowBsb().ymd;
+      const overlay = document.getElementById('edit-overlay');
+      const editOpen = !!(overlay && overlay.style.display === 'flex');
+      return !editOpen && String(dutyState.selectedDateYmd || '') === String(todayYmd);
+    }
+
+    function dutyRefreshIfCurrentDay_() {
+      if (!dutyCanAutoRefresh_()) return;
+      dutyLoadBootstrap();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       dutyState.selectedDateYmd = dutyNowBsb().ymd;
 
@@ -1619,6 +1631,11 @@
 
       dutyLoadBootstrap();
       dutyGeoInit_();
+
+      window.addEventListener('focus', dutyRefreshIfCurrentDay_);
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') dutyRefreshIfCurrentDay_();
+      });
 
       document.addEventListener('keydown', function(ev) {
         if (ev.key === 'Escape') {

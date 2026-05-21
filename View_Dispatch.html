@@ -184,6 +184,10 @@ font-weight: bold;
 <option value="">Training Code (Optional)</option>
 </select>
 <div id="trainingRouteHint" style="margin-top:6px; font-size:0.72rem; color:#546e7a; min-height:16px;"></div>
+<div class="input-field" style="margin-top:8px;">
+<input type="text" id="fDescription" placeholder="Kayapo Conference" maxlength="140" required>
+<label class="active" for="fDescription">Required Flight Description</label>
+</div>
 <div class="section-title">Crew & Aircraft</div>
 <select id="aircraft" class="browser-default" onchange="calculateTotals()"><option value="" disabled selected>Select Aircraft</option></select>
 <div id="aircraftSquawkWarning" style="color:#ef6c00; font-size:0.75rem; font-weight:bold; min-height:15px;"></div>
@@ -1730,6 +1734,7 @@ return;
 }
 box.innerHTML = visibleMissions.map(m => {
 const routeLabel = String(m.route || '').trim() || [m.from, m.to].filter(Boolean).join(' - ') || m.to || 'N/A';
+const descLabel = String(m.flightDescription || '').trim();
 return `
 <div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; transition: background 0.2s; position: relative;"
      onclick="loadDispatchMission('${m.id}')"
@@ -1750,6 +1755,7 @@ return `
   <div style="font-size:0.75rem; color:#0b5394; margin-top:4px;">
     ${routeLabel}
   </div>
+  ${descLabel ? `<div style="font-size:0.74rem; color:#6d4c41; margin-top:3px;"><b>Desc:</b> ${descLabel}</div>` : ''}
 </div>
 `;
 }).join('');
@@ -1801,6 +1807,9 @@ google.script.run
    document.getElementById('copilot').value = m.meta.copilot || "";
    document.getElementById('flightType').value = m.meta.type || "";
    document.getElementById('fDate').value = m.meta.date || "";
+   if (document.getElementById('fDescription')) {
+     document.getElementById('fDescription').value = m.meta.flightDescription || "";
+   }
  }
  document.getElementById('missionIdDisp').innerText = "ID: " + m.id;
  window._loadedMissionId = m.id;
@@ -2023,8 +2032,10 @@ function commitManualFuel(idx, value) {
 function updateMissionCrew() {
  if (!missionLegs.length) { M.toast({ html: 'No mission loaded.' }); return; }
  const pilotVal = document.getElementById('pilot').value;
+ const descVal = String((document.getElementById('fDescription') || {}).value || '').trim();
  const copilotVal = document.getElementById('copilot').value;
  if (!pilotVal || pilotVal === '') { M.toast({ html: 'Select a PIC before saving.' }); return; }
+ if (!descVal) { M.toast({ html: 'Flight description is required.' }); return; }
  const btn = document.getElementById('updateCrewBar').querySelector('button');
  if (btn) { btn.disabled = true; btn.innerText = 'SAVING...'; }
  const mH = {
@@ -2035,6 +2046,7 @@ function updateMissionCrew() {
    pilot: pilotVal,
    copilot: copilotVal,
    notes: '',
+   flightDescription: descVal,
    legs: missionLegs
  };
  google.script.run
@@ -2169,6 +2181,13 @@ function finalizeMission() {
   const btn = document.getElementById('btnFinalize');
   if(btn) { btn.disabled = true; btn.innerText = "SAVING..."; }
 
+  const flightDescription = String((document.getElementById('fDescription') || {}).value || '').trim();
+  if (!flightDescription) {
+    if(btn) { btn.disabled = false; btn.innerText = "FINALIZE & LOG MISSION"; }
+    M.toast({ html: 'Flight description is required (example: Kayapo Conference).' });
+    return;
+  }
+
   // 0. PRE-PROCESS LEGS FOR CACHE DATA
   missionLegs.forEach((leg, idx) => {
     const isFuelStop = fuelStopLegs.includes(idx);
@@ -2212,6 +2231,7 @@ function finalizeMission() {
     pilot: document.getElementById('pilot').value,
     copilot: document.getElementById('copilot').value,
     notes: document.getElementById('fNotes') ? document.getElementById('fNotes').value : "", 
+    flightDescription: flightDescription,
     training: selectedTrainingCode ? {
       code: selectedTrainingCode,
       description: String(selectedSyllabus && selectedSyllabus.description || ''),

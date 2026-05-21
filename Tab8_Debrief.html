@@ -1481,6 +1481,8 @@ window.submitDebriefLog = function() {
         isTrainingFlight: true,
         trainingCode: trainingCode,
         flightResult: flightResult,
+        traineeName: String((window.debrief8 && window.debrief8.mission && window.debrief8.mission.meta && window.debrief8.mission.meta.training && window.debrief8.mission.meta.training.student) || (window.debrief8 && window.debrief8.mission && window.debrief8.mission.copilot) || '').trim(),
+        instructorName: String((window.debrief8 && window.debrief8.mission && window.debrief8.mission.meta && window.debrief8.mission.meta.training && window.debrief8.mission.meta.training.instructor) || (window.debrief8 && window.debrief8.mission && window.debrief8.mission.pilot) || '').trim(),
         runwayChecks: runwayChecks
       };
     }
@@ -1488,7 +1490,7 @@ window.submitDebriefLog = function() {
     const payload = {
       flightLegId: window.debrief8.flightLegId,
       missionId: String(window.debrief8 && window.debrief8.mission && window.debrief8.mission.id || ''),
-      pilotName: String(window.debrief8 && window.debrief8.mission && window.debrief8.mission.pilot || ''),
+      pilotName: String((trainingDebrief && trainingDebrief.traineeName) || (window.debrief8 && window.debrief8.mission && window.debrief8.mission.pilot) || ''),
       endTach: endTach,
       fuelEnd: fuelEnd,
       fuelUsed: fuelUsed,
@@ -1557,6 +1559,28 @@ window.submitDebriefLog = function() {
 
     const onDebriefDone = function() {
       updateLocalAircraftTach_(payload.endTach);
+      try {
+        const mission = (window.debrief8 && window.debrief8.mission && typeof window.debrief8.mission === 'object')
+          ? window.debrief8.mission
+          : null;
+        const completedFlightLegId = String(payload.flightLegId || '').trim();
+        if (mission && Array.isArray(mission.legs) && completedFlightLegId) {
+          const completedIdx = mission.legs.findIndex(function(leg) {
+            return String(leg && leg.flightLegId || '').trim() === completedFlightLegId;
+          });
+          if (completedIdx >= 0) {
+            mission.legs[completedIdx].logStatus = 'COMPLETE';
+            mission.legs[completedIdx].landed = payload.landed || mission.legs[completedIdx].landed || '';
+            mission.legs[completedIdx].brakesApplied = payload.brakesApplied || mission.legs[completedIdx].brakesApplied || '';
+            const nextPending = mission.legs.find(function(leg) {
+              return String(leg && leg.logStatus || 'PENDING').toUpperCase() !== 'COMPLETE';
+            });
+            window.activeLegFlightId = nextPending
+              ? String(nextPending.flightLegId || '').trim()
+              : '';
+          }
+        }
+      } catch (eLocal) { console.warn('local debrief leg completion update failed', eLocal); }
       try {
         if (typeof window.refreshMissionStatusFromLegCache_ === 'function') {
           const missionId = String((window.debrief8 && window.debrief8.mission && window.debrief8.mission.id) || '').trim();

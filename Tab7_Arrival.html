@@ -339,7 +339,6 @@
 
     <div class="arrival7-buttons">
       <button id="arr7-photo-btn" class="btn-photo" onclick="window.openArrivalAirstripPhoto()">AIRSTRIP PHOTO</button>
-      <button id="arr7-chart-btn" class="btn-chart" onclick="window.openArrivalChart()">VIEW CHART</button>
       <button id="arr7-briefcard-btn" class="btn-chart" style="background:#6a1b9a;"
         onclick="(function(){ var rwy = window.arrival7 && window.arrival7.selectedRunway; openRunwayBriefingCard(String(window.arrival7 && window.arrival7.toIcao||''), String(rwy && rwy.rwyIdent||''), 'tab7', rwy || null); })()">BRIEFING CARD</button>
     </div>
@@ -2107,15 +2106,6 @@
     const url = String(window.arrival7.photoUrl || '').trim();
     if (!url) {
       if (window.M) M.toast({html:'No airstrip photo URL found', classes:'orange'});
-      return;
-    }
-    window.open(url, '_blank');
-  };
-
-  window.openArrivalChart = function() {
-    const url = String(window.arrival7.chartUrl || '').trim();
-    if (!url) {
-      if (window.M) M.toast({html:'No chart URL found', classes:'orange'});
       return;
     }
     window.open(url, '_blank');

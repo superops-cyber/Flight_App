@@ -201,6 +201,7 @@
       <div class="col s6"><p><strong>Pilot:</strong> <span id="qvPilot"></span></p></div>
       <div class="col s6"><p><strong>Takeoff:</strong> <span id="qvTakeoff"></span></p></div>
       <div class="col s6"><p><strong>Route:</strong> <span id="qvRoute"></span></p></div>
+      <div class="col s12"><p style="margin-top:0;"><strong>Description:</strong> <span id="qvDescription" style="color:#5d4037; font-weight:700;"></span></p></div>
       <div class="col s12"><hr style="border-top:1px dashed #ccc;"></div>
       <div class="col s6"><p><strong>Flight Time:</strong> <span id="qvFlt" style="font-weight:bold; color:#0b5394;"></span></p></div>
       <div class="col s6"><p><strong>Duty Time:</strong> <span id="qvDuty" style="font-weight:bold; color:#0b5394;"></span></p></div>
@@ -594,6 +595,7 @@
             document.getElementById('qvFlt').innerText = fmt(p.fltTime) + " hr";
             document.getElementById('qvDuty').innerText = fmt(p.dutyTime) + " hr";
             document.getElementById('qvRoute').innerText = p.route;
+            document.getElementById('qvDescription').innerText = String(p.flightDescription || '').trim() || 'Not provided';
 
             var qvDispatchBtn = document.getElementById('qvEditBtn');
             var qvSupervisorBtn = document.getElementById('qvSupervisorBtn');

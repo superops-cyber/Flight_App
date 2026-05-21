@@ -32,6 +32,8 @@ const APP_SHEETS = {
   TRAINING_MODULES: 'REF_Training_Modules',
   STAFF_TRAINING: 'DB_Staff_Training_Records',
   STAFF_PRACTICALS: 'DB_Staff_Practical_Evaluations',
+  FLIGHT_LESSON_EVALS: 'DB_Flight_Lesson_Evals',
+  MANEUVERS: 'Ref_Maneuvers',
   MAINT_TEMPLATES: 'DB_Maint_Templates',
   MAINT_ASSIGNMENTS: 'DB_Maint_Assignments',
   MAINT_LOG: 'DB_Maint_Log',

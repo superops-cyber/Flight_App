@@ -590,6 +590,13 @@
       const runwayGapLegs = normalizedLegs.filter(function(leg) {
         return !!(leg && leg.runwayGap && leg.runwayGap.needsAttention);
       });
+      const missionDescription = String((m.meta && m.meta.flightDescription) || '').trim();
+      const missionRequests = Array.isArray(m.meta && m.meta.communicationRequests)
+        ? m.meta.communicationRequests
+        : [];
+      const openRequestCount = missionRequests.filter(function(req) {
+        return String(req && req.status || '').trim().toUpperCase() !== 'CLOSED';
+      }).length;
       
       if (unauthorizedLegs && !m.meta.copilot) warnings.push("Dest Check Needed");
       if (runwayGapLegs.length) warnings.push("Runway Internal Data Alert");
@@ -603,6 +610,8 @@
       // 2. RENDER TOP SUMMARY
       const container = document.getElementById('detailPanel');
       container.innerHTML = `
+        ${missionDescription ? `<div style="margin-bottom:10px; padding:10px 12px; border-left:4px solid #6d4c41; background:#fdf7f2; border-radius:4px;"><div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:#6d4c41; font-weight:800;">Dispatch Flight Description</div><div style="font-size:0.9rem; color:#4e342e; font-weight:700; margin-top:2px;">${missionDescription}</div></div>` : ''}
+        ${openRequestCount ? `<div style="margin-bottom:12px; padding:8px 10px; border:1px solid #90caf9; background:#e3f2fd; border-radius:4px; font-size:0.78rem; color:#0d47a1;"><b>${openRequestCount}</b> open pilot communication request(s) on this mission.</div>` : ''}
         <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
           <div class="card center" style="flex:1; padding:15px; margin:0; min-width:100px;">
             <h5 style="margin:0; color:#0b5394;">${totalDuty.toFixed(1)}</h5>
@@ -637,7 +646,10 @@
           <div style="margin:8px 0 10px; padding:8px 10px; border:1px solid #ef9a9a; border-left:4px solid #c62828; background:#ffebee; border-radius:4px;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
               <div style="font-size:0.75rem; color:#b71c1c; font-weight:800; text-transform:uppercase; letter-spacing:0.03em;">Runway Internal Data Alert</div>
-              <button class="btn-small red darken-2 z-depth-0" style="font-size:0.68rem; font-weight:800;" onclick="openSupervisorRunwayBriefing_(${idx})">OPEN BRIEFING CARD</button>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <button class="btn-small amber darken-3 z-depth-0" style="font-size:0.68rem; font-weight:800;" onclick="askPilotRunwaySurvey_(${idx})">ASK PILOT TO SURVEY RUNWAY</button>
+                <button class="btn-small red darken-2 z-depth-0" style="font-size:0.68rem; font-weight:800;" onclick="openSupervisorRunwayBriefing_(${idx})">OPEN BRIEFING CARD</button>
+              </div>
             </div>
             <div style="font-size:0.78rem; color:#5d4037; margin-top:4px;">${runwayGap.summary || 'No internal cutdown / obstacle / slope data found for this destination runway.'}</div>
             ${missingItems.length ? `<div style="margin-top:5px; font-size:0.74rem; color:#6d4c41;"><b>Missing:</b> ${missingItems.join(', ')}</div>` : ''}
@@ -687,6 +699,8 @@
               </div>
               <div>${authHtml}</div>
             </div>
+
+            ${missionDescription ? `<div style="font-size:0.76rem; color:#5d4037; background:#fdf7f2; border-left:3px solid #8d6e63; padding:5px 8px; margin-bottom:8px;"><b>Description:</b> ${missionDescription}</div>` : ''}
             
             ${routingHtml}
 
@@ -871,6 +885,48 @@
         uniq.push(to);
       });
       return uniq;
+    }
+
+    function askPilotRunwaySurvey_(legIdx) {
+      if (!lastLoadedData || !lastLoadedData.mission || !Array.isArray(lastLoadedData.mission.legs)) return;
+      const mission = lastLoadedData.mission;
+      const leg = mission.legs[Number(legIdx)] || null;
+      if (!leg) return;
+
+      const question = 'Are you sure the pilot has enough info to safely land at this location without adding more info now?\n\nOK = send request to pilot now\nCancel = open briefing card to add runway information first.';
+      const shouldSendNow = window.confirm(question);
+      if (!shouldSendNow) {
+        openSupervisorRunwayBriefing_(legIdx);
+        return;
+      }
+
+      const message = 'Supervisor requested runway survey for leg ' + (Number(legIdx) + 1) + ' (' + String(leg.from || '?') + ' -> ' + String(leg.to || '?') + '). Please survey this runway before release.';
+      const payload = {
+        type: 'SURVEY_RUNWAY',
+        missionId: String(mission.id || ''),
+        flightLegId: String(leg.flightLegId || ''),
+        legIndex: Number(legIdx),
+        from: String(leg.from || '').trim().toUpperCase(),
+        to: String(leg.to || '').trim().toUpperCase(),
+        message: message,
+        createdAt: new Date().toISOString(),
+        createdBy: String((window.user && window.user.name) || 'Supervisor').trim()
+      };
+
+      google.script.run
+        .withSuccessHandler(function() {
+          if (window.M) M.toast({ html: 'Pilot survey request added to mission communications.', classes: 'green' });
+          if (supMissionId) {
+            google.script.run.withSuccessHandler(function(data) {
+              lastLoadedData = data;
+              renderDetails(data);
+            }).withFailureHandler(showSupervisorError).getMissionDetailsForSupervisor(supMissionId);
+          }
+        })
+        .withFailureHandler(function(err) {
+          if (window.M) M.toast({ html: 'Failed to save pilot request: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+        })
+        .addSupervisorMissionRequest(mission.id, payload);
     }
 
     function openSupervisorRunwayBriefing_(legIdx) {
@@ -1167,6 +1223,7 @@
             const riskDetail = survey.riskDetail || {};
             const mtowDefault = Number(runwaySnapshot.supervisorMtowKg || runwaySnapshot.maxTakeoffWeight || official.maxTakeoffWeight || 0);
             const mtowModelDefault = String(runwaySnapshot.mtowModelKey || official.mtowModelKey || '').trim();
+            const runwayClassDefault = String(runwaySnapshot.runwayClass || dbVerified.runwayClass || '').trim();
             return `
               <div data-survey-staging="${item.stagingId}" data-entry-kind="${item.entryKind || ''}" data-preview-payload="${previewPayload}" style="background:#fff; border:1px solid #d9e2ef; border-radius:8px; padding:10px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
@@ -1176,6 +1233,8 @@
                     ${isApproval ? `
                       <div style="font-size:0.8rem; color:#37474f; margin-top:4px;"><b>Request Type</b> Pilot cutdown edit</div>
                       <div style="font-size:0.8rem; color:#37474f;"><b>Cutdown change</b> ${runwaySnapshot.cutdownAreaLabel || (runwaySnapshot.cutdownAreaM != null ? (String(runwaySnapshot.cutdownAreaM) + ' m') : 'Unknown')} (new) vs ${(runwaySnapshot.cutdownBaselineM != null ? (String(runwaySnapshot.cutdownBaselineM) + ' m') : (dbVerified.cutdownAreaLabel || (dbVerified.cutdownAreaM != null ? (String(dbVerified.cutdownAreaM) + ' m') : 'Unknown')))} (current)</div>
+                      <div style="font-size:0.8rem; color:#37474f;"><b>Pilot proposed MTOW</b> ${runwaySnapshot.maxTakeoffWeight != null ? (String(Math.round(Number(runwaySnapshot.maxTakeoffWeight) || 0)) + ' kg') : 'Not set'}${runwaySnapshot.mtowModelKey ? (' · model ' + runwaySnapshot.mtowModelKey) : ''}</div>
+                      <div style="font-size:0.8rem; color:#37474f;"><b>Pilot proposed runway class</b> ${runwaySnapshot.runwayClass ? ('Class ' + String(runwaySnapshot.runwayClass)) : 'Not set'}</div>
                       <div style="font-size:0.78rem; color:#777; margin-top:2px;">Internal baseline date: ${internalDateLabel} · Source: ${runwaySnapshot.editSource || 'TAB5_RELEASE'}</div>
                     ` : `
                       <div style="font-size:0.8rem; color:#666; margin-top:4px;">Trace pts: ${traceCount} · Features: ${featCount} · Markers: ${markerCount} · 50m obstacle angles: ${obsAngles} · Slope segs: ${slopeCount}</div>
@@ -1190,20 +1249,21 @@
                       <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                         <input id="survey-mtow-model-${item.stagingId}" type="text" value="${mtowModelDefault}" placeholder="MTOW Model Key" style="flex:1 1 140px; height:32px; border:1px solid #ccc; border-radius:6px; padding:0 8px; font-size:0.78rem;">
                         <input id="survey-mtow-${item.stagingId}" type="number" inputmode="numeric" min="1" step="1" value="${mtowDefault > 0 ? mtowDefault : ''}" placeholder="MTOW kg" style="width:110px; height:32px; border:1px solid #ccc; border-radius:6px; padding:0 8px; font-size:0.78rem;">
-                        <input id="survey-cutdown-${item.stagingId}" type="number" inputmode="numeric" min="1" step="1" value="" placeholder="Cutdown m" style="width:110px; height:32px; border:1px solid #ccc; border-radius:6px; padding:0 8px; font-size:0.78rem;">
+                        <input id="survey-cutdown-${item.stagingId}" type="number" inputmode="numeric" min="1" step="1" value="${runwaySnapshot.cutdownAreaM != null ? Math.round(Number(runwaySnapshot.cutdownAreaM) || 0) : ''}" placeholder="Cutdown m" style="width:110px; height:32px; border:1px solid #ccc; border-radius:6px; padding:0 8px; font-size:0.78rem;">
                       </div>
                     ` : ''}
                     <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                       <label style="font-size:0.78rem; font-weight:700; color:#546e7a; white-space:nowrap;">Runway Class</label>
                       <select id="survey-rwyclass-${item.stagingId}" style="height:32px; border:1px solid #ccc; border-radius:6px; padding:0 8px; font-size:0.78rem; background:#fff;">
                         <option value="">-- assign --</option>
-                        <option value="1">Class 1 (≥900 m)</option>
-                        <option value="2">Class 2 (600–899 m)</option>
-                        <option value="3">Class 3 (&lt;600 m)</option>
+                        <option value="1" ${runwayClassDefault === '1' ? 'selected' : ''}>Class 1 (≥900 m)</option>
+                        <option value="2" ${runwayClassDefault === '2' ? 'selected' : ''}>Class 2 (600–899 m)</option>
+                        <option value="3" ${runwayClassDefault === '3' ? 'selected' : ''}>Class 3 (&lt;600 m)</option>
                       </select>
                     </div>
                     <div style="display:flex; gap:6px; justify-content:flex-end;">
                       <button class="btn-small teal darken-2" onclick="openSupervisorRunwayPreview('${item.stagingId}')">Preview</button>
+                      ${!isApproval ? `<button class="btn-small amber darken-3" onclick="openRunwayBriefingFromPendingSurvey('${item.stagingId}')">Briefing Card</button>` : ''}
                       ${!isApproval ? `<button class="btn-small blue darken-1" onclick="openPendingVsActiveComparison('${item.stagingId}')">Compare Active</button>` : ''}
                       <button class="btn-small red lighten-1" onclick="rejectRunwaySurveyItem('${item.stagingId}')">Reject</button>
                       <button class="btn-small green" onclick="approveRunwaySurveyItem('${item.stagingId}')">Approve</button>
@@ -1270,6 +1330,68 @@
         return;
       }
       renderSupervisorRunwayPreview(item);
+    };
+
+    window.openRunwayBriefingFromPendingSurvey = function(stagingId) {
+      const list = document.getElementById('runway-survey-review-list');
+      if (!list || !stagingId) return;
+
+      const card = list.querySelector('[data-survey-staging="' + String(stagingId) + '"]');
+      const payload = card ? decodeURIComponent(card.dataset.previewPayload || '') : '';
+      if (!payload) {
+        if (window.M) M.toast({ html: 'Briefing card data unavailable', classes: 'orange' });
+        return;
+      }
+
+      let item = null;
+      try { item = JSON.parse(payload); } catch (e) { item = null; }
+      if (!item) {
+        if (window.M) M.toast({ html: 'Failed to parse briefing card payload', classes: 'red' });
+        return;
+      }
+      if (String(item.entryKind || '').toUpperCase() !== 'GPS_SURVEY') {
+        if (window.M) M.toast({ html: 'Briefing compare opens for GPS survey requests', classes: 'orange' });
+        return;
+      }
+
+      const dbAirport = item.dbAirport && typeof item.dbAirport === 'object' ? item.dbAirport : {};
+      const dbKnownRaw = String(dbAirport.KNOWN_FEATURES || dbAirport.FEATURES || '').trim();
+      let dbKnown = {};
+      try { dbKnown = dbKnownRaw ? JSON.parse(dbKnownRaw) : {}; } catch (e) { dbKnown = {}; }
+      if (Array.isArray(dbKnown)) dbKnown = { features: dbKnown };
+      const dbVerified = (dbKnown && dbKnown.verifiedOperational && typeof dbKnown.verifiedOperational === 'object') ? dbKnown.verifiedOperational : {};
+
+      const forcedRunway = {
+        icao: String(item.icao || '').trim().toUpperCase(),
+        rwyIdent: String(item.rwyIdent || '').trim().toUpperCase(),
+        length: Number(dbAirport.runwayLength || dbAirport.length || dbVerified.lengthM || 0),
+        width: Number(dbAirport.runwayWidth || dbAirport.width || dbVerified.widthM || 0),
+        surface: String(dbAirport.surface || dbAirport.runwaySurface || dbVerified.surface || '').trim(),
+        elevation: Number(dbAirport.elevation || dbAirport.elevationFt || dbVerified.elevation || 0),
+        knownFeaturesRaw: dbKnownRaw,
+        verifiedOperational: dbVerified
+      };
+
+      if (typeof openRunwayBriefingCard !== 'function' && typeof window.__rbcOpenRef === 'function') {
+        window.openRunwayBriefingCard = window.__rbcOpenRef;
+      }
+      if (typeof openRunwayBriefingCard !== 'function') {
+        if (window.M) M.toast({ html: 'Runway briefing component is not loaded.', classes: 'red' });
+        return;
+      }
+
+      openRunwayBriefingCard(
+        forcedRunway.icao,
+        forcedRunway.rwyIdent,
+        'supervisor',
+        forcedRunway,
+        {
+          pendingSurvey: item.survey || {},
+          activeOperational: dbVerified,
+          stagingId: item.stagingId,
+          pilotName: item.pilotName || ''
+        }
+      );
     };
 
     function closePendingVsActiveComparison() {

@@ -35,6 +35,17 @@
   .tools-apbtn-map    { background:#2e7d32; color:#fff; }
   .tools-apbtn-fuel   { background:#2e7d32; color:#fff; }
   .tools-apbtn-nofuel { background:#eceff1; color:#78909c; cursor:default; }
+  .tools-airport-bulk-box { background:#f7fbff; border:1px solid #d0e3f7; border-radius:8px; padding:10px; margin:0 0 12px 0; }
+  .tools-airport-bulk-label { display:block; margin-bottom:4px; font-size:0.75rem; color:#0b5394; font-weight:800; text-transform:uppercase; }
+  #tools-airport-bulk-input { width:100%; box-sizing:border-box; min-height:110px; border:1px solid #c8d3de; border-radius:6px; padding:8px; font-size:0.86rem; font-family:inherit; resize:vertical; }
+  .tools-airport-bulk-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .tools-airport-bulk-actions button { flex:1; min-width:140px; border:none; border-radius:8px; height:34px; font-size:0.76rem; font-weight:800; cursor:pointer; }
+  .tools-airport-bulk-summary { margin-top:8px; font-size:0.78rem; color:#546e7a; font-weight:700; }
+  .tools-airport-bulk-results { margin-top:8px; max-height:160px; overflow:auto; border:1px solid #dbe4ee; border-radius:8px; background:#fff; }
+  .tools-airport-bulk-row { padding:7px 9px; border-bottom:1px solid #eef2f5; font-size:0.77rem; color:#455a64; }
+  .tools-airport-bulk-row:last-child { border-bottom:none; }
+  .tools-airport-bulk-row.ok { color:#1b5e20; background:#f1f8e9; }
+  .tools-airport-bulk-row.miss { color:#b71c1c; background:#ffebee; }
   #tools-contact-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center; }
   #tools-contact-overlay.open { display:flex; }
   #tools-contact-box  { background:#fff; border-radius:12px; padding:20px; width:min(94vw,440px); max-height:86vh; overflow-y:auto; position:relative; }
@@ -244,11 +255,14 @@
     <button class="tools-action-btn" onclick="toolsOpenPilotAuthPanel()"><i class="material-icons">verified_user</i><span>Pilot Authorizations</span></button>
     <button class="tools-action-btn" onclick="toolsOpenSavedRoutesPanel()"><i class="material-icons">route</i><span>Route Manager</span></button>
     <button class="tools-action-btn" onclick="toolsOpenTrainingModulePanel()"><i class="material-icons">school</i><span>Training Modules</span></button>
+    <button class="tools-action-btn" onclick="toolsOpenManeuverPanel()"><i class="material-icons">sports_gymnastics</i><span>Maneuver Catalog</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('syllabus')"><i class="material-icons">menu_book</i><span>Plano de Aula</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPracticalEvalPanel()"><i class="material-icons">fact_check</i><span>Avaliação Prática</span></button>
+    <button class="tools-action-btn" onclick="toolsOpenLessonHistoryPanel()"><i class="material-icons">history_edu</i><span>Lesson Records</span></button>
+      <button class="tools-action-btn" onclick="toolsOpenPdfImportPanel()"><i class="material-icons">upload_file</i><span>Import Lesson Plan</span></button>
     <button class="tools-action-btn" onclick="toolsOpenSchedulerPanel()"><i class="material-icons">event_available</i><span>Scheduler</span></button>
     <button class="tools-action-btn" onclick="toolsOpenMasterConfigPanel()"><i class="material-icons">tune</i><span>Master Config</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenDutyLogsPanel()"><i class="material-icons">schedule</i><span>Duty Time Logs</span></button>
+    <button class="tools-action-btn" onclick="toolsOpenPanel('dutylogs')"><i class="material-icons">schedule</i><span>Duty Time Logs</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPermissionsPanel()"><i class="material-icons">admin_panel_settings</i><span>Permissions</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('schedcoverage')"><i class="material-icons">rule_folder</i><span>Sched Coverage Rules</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('schedcompat')"><i class="material-icons">balance</i><span>Sched Compat Rules</span></button>
@@ -343,7 +357,7 @@
       <div class="tools-field"><label for="tools-wp-lat">Latitude</label><input id="tools-wp-lat" type="text" placeholder="e.g. S 06 05 22" oninput="toolsUpdateWaypointPreview()"></div>
       <div class="tools-field"><label for="tools-wp-lon">Longitude</label><input id="tools-wp-lon" type="text" placeholder="e.g. W 060 12 34" oninput="toolsUpdateWaypointPreview()"></div>
     </div>
-    <div class="tools-field"><label for="tools-wp-type">Type</label><select id="tools-wp-type" class="browser-default"><option value="FIX">FIX</option><option value="WATER RUNWAY">WATER RUNWAY</option></select></div>
+    <div class="tools-field"><label for="tools-wp-type">Type</label><select id="tools-wp-type" class="browser-default"><option value="FIX">FIX</option></select></div>
     <div id="tools-wp-preview-map"></div>
     <div id="tools-wp-preview-coords"></div>
     <div class="tools-btn-row">
@@ -359,6 +373,17 @@
       <button class="tools-panel-close" onclick="toolsClosePanel('airports')">&times;</button>
     </div>
     <div id="tools-airport-sync-meta" style="font-size:0.76rem;color:#607d8b;font-weight:700;margin:-2px 0 8px 0;">Last DB_Airports sync: never</div>
+    <div class="tools-airport-bulk-box">
+      <label class="tools-airport-bulk-label" for="tools-airport-bulk-input">Bulk List to KML (ICAO or Airport Name)</label>
+      <textarea id="tools-airport-bulk-input" placeholder="Paste one or many airports (ICAO and/or names). You can separate by lines, commas, semicolons, or tabs."></textarea>
+      <div class="tools-airport-bulk-actions">
+        <button type="button" class="btn-ta" onclick="toolsAirportBulkFindAndPreviewKml()">FIND AIRPORTS</button>
+        <button type="button" class="btn-tp" id="tools-airport-bulk-download-btn" onclick="toolsAirportBulkDownloadKml()" disabled>DOWNLOAD KML</button>
+        <button type="button" class="btn-ts" onclick="toolsAirportBulkClear()">CLEAR</button>
+      </div>
+      <div id="tools-airport-bulk-summary" class="tools-airport-bulk-summary">Paste airports above, then click FIND AIRPORTS.</div>
+      <div id="tools-airport-bulk-results" class="tools-airport-bulk-results" style="display:none;"></div>
+    </div>
     <input id="tools-airport-search-input" type="text" placeholder="Search by ICAO or name…" oninput="toolsFilterAirports()">
     <div id="tools-airport-list"><div style="color:#90a4ae;font-size:0.85rem;padding:8px 0;">Type to search airports.</div></div>
   </div>
@@ -879,6 +904,86 @@
     </div>
   </div>
 
+  <!-- Maneuver Catalog Panel -->
+  <div id="tools-panel-maneuvers" class="tools-panel">
+    <div class="tools-panel-header">
+      <h3 class="tools-panel-title">Maneuver Catalog</h3>
+      <button class="tools-panel-close" onclick="toolsClosePanel('maneuvers')">&times;</button>
+    </div>
+    <div class="tools-search-box">
+      <div class="tools-row" style="align-items:flex-end;">
+        <div class="tools-field" style="margin-bottom:0;">
+          <label for="tools-maneuver-select">Select Maneuver</label>
+          <select id="tools-maneuver-select" class="browser-default" onchange="toolsManeuverLoadSelected_()"></select>
+        </div>
+        <div class="tools-field" style="margin-bottom:0; flex:0 0 130px;">
+          <button class="btn-ts" type="button" onclick="toolsManeuverClearForm_()">NOVO</button>
+        </div>
+      </div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-field"><label for="tools-maneuver-id">Maneuver ID</label><input id="tools-maneuver-id" type="text" placeholder="STEEP_TURNS" style="text-transform:uppercase;"></div>
+      <div class="tools-field"><label for="tools-maneuver-name">Display Name</label><input id="tools-maneuver-name" type="text" placeholder="Steep Turns"></div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-field">
+        <label for="tools-maneuver-category">Category</label>
+        <select id="tools-maneuver-category" class="browser-default">
+          <option value="">-- Select --</option>
+          <option value="GROUND_REFERENCE">Ground Reference</option>
+          <option value="SLOW_FLIGHT">Slow Flight</option>
+          <option value="STALLS">Stalls</option>
+          <option value="TURNS">Turns</option>
+          <option value="TAKEOFF_LANDING">Takeoff &amp; Landing</option>
+          <option value="INSTRUMENT">Instrument</option>
+          <option value="NAVIGATION">Navigation</option>
+          <option value="EMERGENCY">Emergency</option>
+          <option value="NIGHT">Night Operations</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div class="tools-field">
+        <label for="tools-maneuver-active">Active</label>
+        <select id="tools-maneuver-active" class="browser-default"><option value="Y">Sim</option><option value="N">Não</option></select>
+      </div>
+    </div>
+    <div class="tools-field">
+      <label for="tools-maneuver-description">Description (optional)</label>
+      <textarea id="tools-maneuver-description" style="min-height:70px;" placeholder="Brief description of the maneuver..."></textarea>
+    </div>
+    <div class="tools-row">
+      <div class="tools-field">
+        <label for="tools-maneuver-limitations">Limitations</label>
+        <input id="tools-maneuver-limitations" type="text" placeholder="e.g. Not permitted below 400 AGL">
+      </div>
+      <div class="tools-field" style="flex:0 0 170px;">
+        <label for="tools-maneuver-reference-type">Reference Type</label>
+        <select id="tools-maneuver-reference-type" class="browser-default">
+          <option value="">— Select —</option>
+          <option value="MGO">MGO</option>
+          <option value="FAA_ACS">FAA ACS</option>
+          <option value="FAA_PTS">FAA PTS</option>
+          <option value="ANAC">ANAC</option>
+          <option value="INTERNAL">Internal Rule</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="tools-field">
+      <label for="tools-maneuver-reference">Reference</label>
+      <input id="tools-maneuver-reference" type="text" placeholder="e.g. MGO 6.8.5.4 / FAA ACS S1">
+    </div>
+    <div class="tools-btn-row">
+      <button class="btn-ts" type="button" onclick="toolsManeuverClearForm_()">LIMPAR</button>
+      <button id="tools-maneuver-delete-btn" class="btn-td" type="button" onclick="toolsManeuverDelete_()" style="display:none;">DELETAR</button>
+      <button class="btn-tp" type="button" onclick="toolsManeuverSave_()">SALVAR</button>
+    </div>
+    <div id="tools-maneuver-list-wrap" style="margin-top:14px;">
+      <div style="font-size:0.75rem; font-weight:700; color:#546e7a; letter-spacing:0.05em; margin-bottom:6px; text-transform:uppercase;">Catalog</div>
+      <div id="tools-maneuver-list" style="max-height:220px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:6px; background:#fafafa;"></div>
+    </div>
+  </div>
+
   <div id="tools-panel-practical" class="tools-panel">
     <div class="tools-panel-header">
       <h3 class="tools-panel-title">Formulário de Avaliação Prática</h3>
@@ -926,7 +1031,96 @@
     <div id="tools-readiness-body"></div>
   </div>
 
+  <!-- Lesson Eval History Panel -->
+  <div id="tools-panel-lessonhistory" class="tools-panel">
+    <div class="tools-panel-header">
+      <h3 class="tools-panel-title">Lesson Eval Records</h3>
+      <button class="tools-panel-close" onclick="toolsClosePanel('lessonhistory')">&times;</button>
+    </div>
+    <div class="tools-search-box">
+      <div class="tools-row" style="align-items:flex-end; flex-wrap:wrap; gap:8px;">
+        <div class="tools-field" style="margin-bottom:0; min-width:180px;">
+          <label for="tools-lh-pilot">Pilot</label>
+          <select id="tools-lh-pilot" class="browser-default"></select>
+        </div>
+        <div class="tools-field" style="margin-bottom:0; flex:0 0 auto;">
+          <button class="btn-ta" type="button" onclick="toolsLhLoad_()">CARREGAR</button>
+        </div>
+      </div>
+      <div id="tools-lh-summary" style="margin-top:6px; font-size:0.76rem; color:#78909c;"></div>
+    </div>
+    <div id="tools-lh-body" style="margin-top:8px; overflow-x:auto;"></div>
+  </div>
+
   <div id="tools-panel-scheduler" class="tools-panel">
+
+      <!-- PDF Lesson Plan Import Panel -->
+      <div id="tools-panel-pdfimport" class="tools-panel">
+        <div class="tools-panel-header">
+          <h3 class="tools-panel-title">Import Lesson Plan (PDF)</h3>
+          <button class="tools-panel-close" onclick="toolsClosePanel('pdfimport')">&times;</button>
+        </div>
+        <!-- Step 1: Upload -->
+        <div id="tools-pif-upload-step">
+          <p style="margin:0 0 10px 0;font-size:0.8rem;color:#546e7a;">Upload a PDF lesson plan or checkride form. Gemini AI will extract all items, maneuvers, and references automatically.</p>
+          <div class="tools-field">
+            <label for="tools-pif-file">PDF File</label>
+            <input type="file" id="tools-pif-file" accept=".pdf,application/pdf">
+          </div>
+          <div style="margin:8px 0;padding:8px 10px;background:#fff8e1;border-radius:6px;border-left:3px solid #ffb300;font-size:0.74rem;color:#5d4037;">
+            <strong>Requires Gemini API Key.</strong> Set <code>GEMINI_API_KEY</code> in GAS Project Settings &rarr; Script Properties before using this feature.
+          </div>
+          <div class="tools-btn-row" style="margin-top:8px;">
+            <button class="btn-tp" type="button" onclick="toolsPifExtract_()"><i class="material-icons" style="font-size:1rem;vertical-align:middle;">auto_awesome</i> EXTRAIR COM IA</button>
+          </div>
+          <div id="tools-pif-status" style="margin-top:8px;font-size:0.78rem;color:#546e7a;min-height:18px;"></div>
+        </div>
+        <!-- Step 2: Edit & Save -->
+        <div id="tools-pif-edit-step" style="display:none;">
+          <div id="tools-pif-status-edit" style="font-size:0.78rem;color:#388e3c;margin-bottom:10px;font-weight:700;min-height:18px;"></div>
+          <div class="tools-row">
+            <div class="tools-field">
+              <label for="tools-pif-title">Lesson Title</label>
+              <input id="tools-pif-title" type="text">
+            </div>
+            <div class="tools-field" style="flex:0 0 200px;">
+              <label for="tools-pif-code">Training Code</label>
+              <input id="tools-pif-code" type="text" placeholder="VCP-C206-2026" style="text-transform:uppercase;">
+            </div>
+          </div>
+          <div class="tools-row">
+            <div class="tools-field" style="flex:0 0 170px;">
+              <label for="tools-pif-category">Category</label>
+              <select id="tools-pif-category" class="browser-default">
+                <option value="VCP">VCP</option>
+                <option value="RUNWAY_CHECK">Cheque de Pista</option>
+                <option value="ROUTE_CHECK">Cheque de Rota</option>
+                <option value="ANAC_CHECKRIDE">Cheque ANAC</option>
+                <option value="INTERNAL_CHECKRIDE">Cheque Interno</option>
+                <option value="LESSON">Aula</option>
+              </select>
+            </div>
+            <div class="tools-field" style="flex:0 0 140px;">
+              <label for="tools-pif-aircraft">Aircraft Type</label>
+              <input id="tools-pif-aircraft" type="text" placeholder="C206">
+            </div>
+            <div class="tools-field" style="flex:0 0 auto;display:flex;align-items:flex-end;padding-bottom:4px;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;cursor:pointer;white-space:nowrap;">
+                <input type="checkbox" id="tools-pif-save-catalog" checked>
+                <span>Save maneuvers to catalog</span>
+              </label>
+            </div>
+          </div>
+          <div id="tools-pif-scoring" style="font-size:0.72rem;color:#78909c;margin-bottom:8px;padding:4px 8px;background:#f5f5f5;border-radius:4px;"></div>
+          <div id="tools-pif-sections-body" style="max-height:55vh;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;padding:8px;"></div>
+          <div class="tools-btn-row" style="margin-top:10px;">
+            <button class="btn-ts" type="button" onclick="toolsPifAddSection_()">+ SECAO</button>
+            <button class="btn-ts" type="button" onclick="toolsPifReset_()">RECOMECAR</button>
+            <button id="tools-pif-save-btn" class="btn-tp" type="button" onclick="toolsPifSave_()">SALVAR PLANO DE AULA</button>
+          </div>
+        </div>
+      </div>
+
     <div class="tools-panel-header">
       <h3 class="tools-panel-title">Scheduler</h3>
       <button class="tools-panel-close" onclick="toolsClosePanel('scheduler')">&times;</button>
@@ -1493,6 +1687,8 @@
   var _toolsRoutePreviewMarker = null;
   var _toolsAirportEditState = null;
   var _toolsPassengerEditRow = 0;
+  var _toolsSyllabusEditRow = 0;
+  var _toolsSyllabusEditCode = '';
   var _toolsDonationFilePayload = null;
   var _toolsDonationAnalysis = null;
   var _toolsDonationBatchId = '';
@@ -1500,6 +1696,8 @@
   var _toolsAircraftMode = 'scratch';
   var _toolsAirportsDbRows = [];
   var _toolsAirportsLastSyncTs = 0;
+  var _toolsAirportBulkMatches = [];
+  var _toolsAirportBulkUnmatched = [];
   var _toolsReportsData = null;
   var _toolsFlightDetailData = null;
   var _toolsReportCategory = 'finance';
@@ -1519,7 +1717,7 @@
   var _toolsSelectedModuleRow = 0;
   var _toolsAircraftDocsRows = [];
   var _toolsAircraftDocsFolderUrl = '';
-  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','pilotauth','trainingmodule','practical','readiness','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations'];
+  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','pilotauth','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations'];
 
   function toolsCurrentAdmin_() {
     var userEl = document.getElementById('userDisplay');
@@ -3264,8 +3462,469 @@
       .saveToolsTrainingModule(payload);
   }
 
-  function toolsOpenPracticalEvalPanel() {
-    toolsOpenPanel('practical');
+  /* ── Maneuver Catalog ── */
+  var _toolsManeuverCatalog  = [];
+  var _toolsSelectedManeuverRow = 0;
+
+  function toolsOpenManeuverPanel() {
+    toolsOpenPanel('maneuvers');
+  }
+
+  function toolsManeuverPanelOpen_() {
+    _toolsSelectedManeuverRow = 0;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        _toolsManeuverCatalog = (res && Array.isArray(res.maneuvers)) ? res.maneuvers : [];
+        toolsManeuverPopulateSelect_();
+        toolsManeuverRenderList_();
+        toolsManeuverClearForm_();
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Erro ao carregar manobras: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .getManeuversForTools();
+  }
+
+  function toolsManeuverPopulateSelect_() {
+    var sel = document.getElementById('tools-maneuver-select');
+    if (!sel) return;
+    var list = _toolsManeuverCatalog.slice().sort(function(a, b) {
+      return String(a.name || a.maneuverId || '').localeCompare(String(b.name || b.maneuverId || ''));
+    });
+    sel.innerHTML = '<option value="">-- Select to edit --</option>' + list.map(function(m) {
+      return '<option value="' + toolsEscapeHtml_(m.maneuverId) + '">' + toolsEscapeHtml_(m.name || m.maneuverId) + (m.category ? ' [' + m.category + ']' : '') + '</option>';
+    }).join('');
+  }
+
+  function toolsManeuverRenderList_() {
+    var wrap = document.getElementById('tools-maneuver-list');
+    if (!wrap) return;
+    var list = _toolsManeuverCatalog.slice().sort(function(a, b) {
+      var ca = String(a.category || 'ZZ'), cb = String(b.category || 'ZZ');
+      if (ca !== cb) return ca.localeCompare(cb);
+      return String(a.name || a.maneuverId || '').localeCompare(String(b.name || b.maneuverId || ''));
+    });
+    if (!list.length) {
+      wrap.innerHTML = '<div style="padding:12px; font-size:0.8rem; color:#90a4ae; text-align:center;">No maneuvers defined yet.</div>';
+      return;
+    }
+    var html = list.map(function(m) {
+      var badge = m.active ? '' : '<span style="font-size:0.65rem; background:#eceff1; color:#90a4ae; padding:1px 5px; border-radius:3px; margin-left:5px;">INACTIVE</span>';
+      var cat = m.category ? '<span style="font-size:0.7rem; color:#78909c;">' + toolsEscapeHtml_(m.category.replace(/_/g,' ')) + '</span>' : '';
+      return '<div style="padding:7px 10px; border-bottom:1px solid #eeeeee; cursor:pointer; font-size:0.82rem;" onclick="toolsManeuverSelectById_(\'' + toolsEscapeHtml_(m.maneuverId) + '\')">'
+        + '<strong>' + toolsEscapeHtml_(m.name || m.maneuverId) + '</strong>' + badge + ' ' + cat
+        + '</div>';
+    }).join('');
+    wrap.innerHTML = html;
+  }
+
+  function toolsManeuverSelectById_(maneuverId) {
+    var sel = document.getElementById('tools-maneuver-select');
+    if (sel) sel.value = maneuverId;
+    toolsManeuverLoadSelected_();
+  }
+
+  function toolsManeuverLoadSelected_() {
+    var sel = document.getElementById('tools-maneuver-select');
+    var id = String((sel && sel.value) || '').trim();
+    var m = _toolsManeuverCatalog.find(function(x) { return x.maneuverId === id; }) || null;
+    if (!m) { toolsManeuverClearForm_(); return; }
+    _toolsSelectedManeuverRow = Number(m.rowNumber || 0);
+    var delBtn = document.getElementById('tools-maneuver-delete-btn');
+    if (delBtn) delBtn.style.display = _toolsSelectedManeuverRow >= 2 ? '' : 'none';
+    document.getElementById('tools-maneuver-id').value          = String(m.maneuverId || '');
+    document.getElementById('tools-maneuver-name').value        = String(m.name || '');
+    document.getElementById('tools-maneuver-category').value    = String(m.category || '');
+    document.getElementById('tools-maneuver-description').value = String(m.description || '');
+    document.getElementById('tools-maneuver-active').value      = m.active ? 'Y' : 'N';
+    var limEl = document.getElementById('tools-maneuver-limitations');
+    var refEl = document.getElementById('tools-maneuver-reference');
+    var rtEl  = document.getElementById('tools-maneuver-reference-type');
+    if (limEl) limEl.value = String(m.limitations || '');
+    if (refEl) refEl.value = String(m.reference || '');
+    if (rtEl)  rtEl.value  = String(m.referenceType || '');
+  }
+
+  function toolsManeuverClearForm_() {
+    _toolsSelectedManeuverRow = 0;
+    var sel = document.getElementById('tools-maneuver-select');
+    if (sel) sel.value = '';
+    var delBtn = document.getElementById('tools-maneuver-delete-btn');
+    if (delBtn) delBtn.style.display = 'none';
+    ['tools-maneuver-id','tools-maneuver-name','tools-maneuver-description','tools-maneuver-limitations','tools-maneuver-reference'].forEach(function(eid) {
+      var el = document.getElementById(eid);
+      if (el) el.value = '';
+    });
+    var catEl = document.getElementById('tools-maneuver-category');
+    if (catEl) catEl.value = '';
+    var actEl = document.getElementById('tools-maneuver-active');
+    if (actEl) actEl.value = 'Y';
+    var rtEl2 = document.getElementById('tools-maneuver-reference-type');
+    if (rtEl2) rtEl2.value = '';
+  }
+
+  function toolsManeuverSave_() {
+    var idEl   = document.getElementById('tools-maneuver-id');
+    var nameEl = document.getElementById('tools-maneuver-name');
+    var catEl  = document.getElementById('tools-maneuver-category');
+    var descEl = document.getElementById('tools-maneuver-description');
+    var actEl  = document.getElementById('tools-maneuver-active');
+    var maneuverId = String((idEl && idEl.value) || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+    var name       = String((nameEl && nameEl.value) || '').trim();
+    if (!maneuverId) { toolsToast_('Maneuver ID é obrigatório.', 'orange'); return; }
+    if (!name)       { toolsToast_('Display Name é obrigatório.', 'orange'); return; }
+    var payload = {
+      rowNumber:   _toolsSelectedManeuverRow,
+      maneuverId:  maneuverId,
+      name:        name,
+      category:    String((catEl  && catEl.value)  || '').trim().toUpperCase(),
+      description: String((descEl && descEl.value) || '').trim(),
+      active:        (actEl && actEl.value) === 'Y',
+      limitations:   String((document.getElementById('tools-maneuver-limitations')     || {}).value || '').trim(),
+      reference:     String((document.getElementById('tools-maneuver-reference')       || {}).value || '').trim(),
+      referenceType: String((document.getElementById('tools-maneuver-reference-type') || {}).value || '').trim()
+    };
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          toolsToast_((res && res.error) ? res.error : 'Erro ao salvar manobra.', 'red');
+          return;
+        }
+        toolsToast_('Manobra salva.', 'green');
+        toolsManeuverPanelOpen_();
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Erro: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .saveToolsManeuver(payload);
+  }
+
+  function toolsManeuverDelete_() {
+    if (!_toolsSelectedManeuverRow || _toolsSelectedManeuverRow < 2) {
+      toolsToast_('Selecione uma manobra para deletar.', 'orange');
+      return;
+    }
+    var idEl = document.getElementById('tools-maneuver-id');
+    var mid  = String((idEl && idEl.value) || '').trim().toUpperCase();
+    if (!confirm('Deletar manobra "' + mid + '"? Esta ação não pode ser desfeita.')) return;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          toolsToast_((res && res.error) ? res.error : 'Erro ao deletar manobra.', 'red');
+          return;
+        }
+        toolsToast_('Manobra deletada.', 'green');
+        toolsManeuverPanelOpen_();
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Erro: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .deleteToolsManeuver({ rowNumber: _toolsSelectedManeuverRow });
+  }
+
+  /* ── Lesson Eval History ── */
+  function toolsOpenLessonHistoryPanel() {
+    toolsOpenPanel('lessonhistory');
+  }
+
+  function toolsLhPanelOpen_() {
+    var sel = document.getElementById('tools-lh-pilot');
+    if (!sel) return;
+    var data = toolsGetData_();
+    var pilots = (data.pilots || []).slice().sort(function(a, b) {
+      return String(a.name || a.pilotName || '').localeCompare(String(b.name || b.pilotName || ''));
+    });
+    var current = String(sel.value || '');
+    sel.innerHTML = '<option value="">-- All Pilots --</option>' + pilots.map(function(p) {
+      var name = String(p.name || p.pilotName || p.id || '').trim();
+      var val  = String(p.name || p.pilotName || p.id || '').trim();
+      return '<option value="' + toolsEscapeHtml_(val) + '">' + toolsEscapeHtml_(name) + '</option>';
+    }).join('');
+    if (current) sel.value = current;
+    var body = document.getElementById('tools-lh-body');
+    if (body) body.innerHTML = '';
+    var sumEl = document.getElementById('tools-lh-summary');
+    if (sumEl) sumEl.textContent = 'Selecione um piloto e clique em carregar.';
+  }
+
+  function toolsLhLoad_() {
+    var sel = document.getElementById('tools-lh-pilot');
+    var pilot = String((sel && sel.value) || '').trim();
+    var sumEl = document.getElementById('tools-lh-summary');
+    var body  = document.getElementById('tools-lh-body');
+    if (sumEl) sumEl.textContent = 'Carregando...';
+    if (body)  body.innerHTML = '';
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          if (sumEl) sumEl.textContent = 'Erro: ' + ((res && res.error) || 'Falha');
+          return;
+        }
+        toolsLhRender_(res.records || [], pilot, sumEl, body);
+      })
+      .withFailureHandler(function(err) {
+        if (sumEl) sumEl.textContent = 'Erro: ' + (err && err.message ? err.message : String(err));
+      })
+      .getLessonEvalHistory({ pilot: pilot });
+  }
+
+  function toolsLhRender_(records, pilotFilter, sumEl, body) {
+    if (!records.length) {
+      if (sumEl) sumEl.textContent = 'Nenhum registro encontrado.';
+      if (body) body.innerHTML = '<div style="padding:14px; font-size:0.82rem; color:#90a4ae; text-align:center;">Nenhuma avaliação registrada.</div>';
+      return;
+    }
+    if (sumEl) sumEl.textContent = records.length + ' registro(s) encontrado(s)' + (pilotFilter ? ' para ' + pilotFilter : '') + '.';
+
+    var html = '<table style="width:100%; border-collapse:collapse; font-size:0.78rem;">'
+      + '<thead><tr style="background:#eff5fb;">'
+      + '<th style="padding:7px 8px; border:1px solid #dce6f2; text-align:left;">Data</th>'
+      + '<th style="padding:7px 8px; border:1px solid #dce6f2; text-align:left;">Missão</th>'
+      + '<th style="padding:7px 8px; border:1px solid #dce6f2; text-align:left;">Código</th>'
+      + '<th style="padding:7px 8px; border:1px solid #dce6f2; text-align:left;">Piloto</th>'
+      + '<th style="padding:7px 8px; border:1px solid #dce6f2; text-align:left;">Aeronave</th>'
+      + '<th style="padding:7px 8px; border:1px solid #dce6f2; text-align:center;">Notas</th>'
+      + '<th style="padding:7px 8px; border:1px solid #dce6f2; text-align:center;">Status</th>'
+      + '</tr></thead><tbody>';
+
+    records.forEach(function(r) {
+      var scores = {};
+      try { scores = JSON.parse(r.scoresJson || '{}'); } catch (e) {}
+      var vals = Object.values(scores).map(function(v) { return Number(v) || 0; }).filter(function(v) { return v > 0; });
+      var avgStr = vals.length ? (vals.reduce(function(a,b){ return a+b; }, 0) / vals.length).toFixed(1) + ' avg (' + vals.length + ')' : '—';
+      var statusBadge = r.status === 'SUBMITTED'
+        ? '<span style="background:#e8f5e9; color:#388e3c; padding:2px 7px; border-radius:4px; font-weight:700; font-size:0.7rem;">SUBMETIDO</span>'
+        : '<span style="background:#fff3e0; color:#e65100; padding:2px 7px; border-radius:4px; font-weight:700; font-size:0.7rem;">RASCUNHO</span>';
+      html += '<tr style="border-bottom:1px solid #eeeeee;">'
+        + '<td style="padding:6px 8px; border:1px solid #eeeeee; white-space:nowrap;">' + toolsEscapeHtml_(r.missionDate || '') + '</td>'
+        + '<td style="padding:6px 8px; border:1px solid #eeeeee; font-size:0.72rem; color:#546e7a;">' + toolsEscapeHtml_(r.missionId || '') + '</td>'
+        + '<td style="padding:6px 8px; border:1px solid #eeeeee; font-weight:700; color:#0b5394;">' + toolsEscapeHtml_(r.trainingCode || '') + '</td>'
+        + '<td style="padding:6px 8px; border:1px solid #eeeeee;">' + toolsEscapeHtml_(r.pilot || '') + '</td>'
+        + '<td style="padding:6px 8px; border:1px solid #eeeeee;">' + toolsEscapeHtml_(r.aircraft || '') + '</td>'
+        + '<td style="padding:6px 8px; border:1px solid #eeeeee; text-align:center;">' + toolsEscapeHtml_(avgStr) + '</td>'
+        + '<td style="padding:6px 8px; border:1px solid #eeeeee; text-align:center;">' + statusBadge + '</td>'
+        + '</tr>';
+    });
+
+    html += '</tbody></table>';
+    if (body) body.innerHTML = html;
+  }
+
+
+  var _toolsPifState = null;
+
+  function toolsOpenPdfImportPanel() { toolsOpenPanel('pdfimport'); }
+
+  function toolsPifReset_() {
+    _toolsPifState = null;
+    var us = document.getElementById('tools-pif-upload-step');
+    var es = document.getElementById('tools-pif-edit-step');
+    if (us) us.style.display = '';
+    if (es) es.style.display = 'none';
+    var st = document.getElementById('tools-pif-status');
+    if (st) st.textContent = '';
+    var fi = document.getElementById('tools-pif-file');
+    if (fi) fi.value = '';
+  }
+
+  function toolsPifExtract_() {
+    var fileInput = document.getElementById('tools-pif-file');
+    var statusEl  = document.getElementById('tools-pif-status');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+      toolsToast_('Selecione um arquivo PDF.', 'orange'); return;
+    }
+    var file = fileInput.files[0];
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      toolsToast_('Somente arquivos PDF sao suportados.', 'orange'); return;
+    }
+    if (statusEl) statusEl.textContent = 'Lendo arquivo...';
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var dataUrl = String((ev.target && ev.target.result) || '');
+      var base64 = dataUrl.split(',')[1] || '';
+      if (!base64) { if (statusEl) statusEl.textContent = 'Erro: nao foi possivel ler o arquivo.'; return; }
+      if (statusEl) statusEl.textContent = 'Enviando para Gemini AI... Aguarde (pode demorar 30-60s)...';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.success) {
+            if (statusEl) statusEl.textContent = 'Erro: ' + ((res && res.error) || 'Falha na extracao');
+            toolsToast_((res && res.error) || 'Falha na extracao com IA.', 'red'); return;
+          }
+          _toolsPifState = res.extracted || {};
+          if (!Array.isArray(_toolsPifState.sections)) _toolsPifState.sections = [];
+          var totalItems = (_toolsPifState.sections || []).reduce(function(t, s) {
+            return t + (Array.isArray(s.groups) ? s.groups : []).reduce(function(tg, g) {
+              return tg + (Array.isArray(g.items) ? g.items.length : 0);
+            }, 0);
+          }, 0);
+          document.getElementById('tools-pif-upload-step').style.display = 'none';
+          document.getElementById('tools-pif-edit-step').style.display = '';
+          var se = document.getElementById('tools-pif-status-edit');
+          if (se) se.textContent = 'Extraido: ' + totalItems + ' itens em ' + (_toolsPifState.sections || []).length + ' secao(oes).';
+          var scoring = document.getElementById('tools-pif-scoring');
+          if (scoring) scoring.textContent = String(_toolsPifState.scoringScale || '');
+          var titleEl = document.getElementById('tools-pif-title');
+          if (titleEl) titleEl.value = String(_toolsPifState.lessonTitle || '');
+          var catEl = document.getElementById('tools-pif-category');
+          if (catEl && _toolsPifState.category) catEl.value = String(_toolsPifState.category);
+          var codeEl = document.getElementById('tools-pif-code');
+          if (codeEl && !String(codeEl.value || '').trim()) {
+            var prefix = String(_toolsPifState.category || 'VCP').replace(/[^A-Z0-9]/g, '').slice(0, 8);
+            codeEl.value = prefix + '-' + new Date().toISOString().slice(0, 10).replace(/-/g, '');
+          }
+          toolsPifRenderSections_();
+        })
+        .withFailureHandler(function(err) {
+          if (statusEl) statusEl.textContent = 'Erro: ' + (err && err.message ? err.message : String(err));
+          toolsToast_('Erro na extracao: ' + (err && err.message ? err.message : String(err)), 'red');
+        })
+        .ingestLessonPlanFromPdf({ pdfBase64: base64, mimeType: 'application/pdf' });
+    };
+    reader.onerror = function() { if (statusEl) statusEl.textContent = 'Erro ao ler arquivo.'; };
+    reader.readAsDataURL(file);
+  }
+
+  function toolsPifRenderSections_() {
+    var wrap = document.getElementById('tools-pif-sections-body');
+    if (!wrap || !_toolsPifState) return;
+    var sections = Array.isArray(_toolsPifState.sections) ? _toolsPifState.sections : [];
+    var refTypeOpts = function(cur) {
+      return ['MGO','FAA_ACS','FAA_PTS','ANAC','INTERNAL','OTHER'].map(function(v) {
+        return '<option value="' + v + '"' + (String(cur || 'OTHER') === v ? ' selected' : '') + '>' + v + '</option>';
+      }).join('');
+    };
+    var html = sections.map(function(section, sIdx) {
+      var groups = Array.isArray(section.groups) ? section.groups : [];
+      var itemCount = groups.reduce(function(t, g) { return t + (Array.isArray(g.items) ? g.items.length : 0); }, 0);
+      var groupsHtml = groups.map(function(group, gIdx) {
+        var items = Array.isArray(group.items) ? group.items : [];
+        var rowsHtml = items.map(function(item, iIdx) {
+          var esc = toolsEscapeHtml_;
+          return '<tr data-s="'+sIdx+'" data-g="'+gIdx+'" data-i="'+iIdx+'">'
+            + '<td style="color:#90a4ae;font-size:0.68rem;padding:2px 4px;text-align:center;">'+(iIdx+1)+'</td>'
+            + '<td style="padding:2px 3px;"><input class="pif-nm" style="width:100%;font-size:0.74rem;border:1px solid #e0e0e0;padding:2px 4px;border-radius:3px;" value="'+esc(String(item.name||''))+'"></td>'
+            + '<td style="padding:2px 3px;"><input class="pif-ref" style="width:100%;font-size:0.72rem;border:1px solid #e0e0e0;padding:2px 4px;border-radius:3px;" placeholder="Ref." value="'+esc(String(item.reference||''))+'"></td>'
+            + '<td style="padding:2px 3px;"><select class="pif-rt browser-default" style="height:26px;font-size:0.68rem;margin:0;padding:0 2px;">'+refTypeOpts(item.referenceType)+'</select></td>'
+            + '<td style="padding:2px 3px;"><input class="pif-lim" style="width:100%;font-size:0.72rem;border:1px solid #e0e0e0;padding:2px 4px;border-radius:3px;" placeholder="Limitacoes..." value="'+esc(String(item.suggestedLimitations||item.limitations||''))+'"></td>'
+            + '<td style="padding:2px;text-align:center;"><button type="button" style="background:none;border:none;cursor:pointer;color:#ef5350;font-size:0.8rem;line-height:1;padding:2px;" onclick="toolsPifDeleteItem_('+sIdx+','+gIdx+','+iIdx+')">&#x2715;</button></td>'
+            + '</tr>';
+        }).join('');
+        var gtVal = toolsEscapeHtml_(String(group.groupId||'') + '. ' + String(group.groupTitle||''));
+        return '<div style="margin:0 0 8px 0;">'
+          + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'
+          + '<input class="pif-gt" data-s="'+sIdx+'" data-g="'+gIdx+'" value="'+gtVal+'" style="flex:1;font-size:0.76rem;font-weight:700;border:none;border-bottom:1px solid #e0e0e0;padding:2px;background:transparent;outline:none;">'
+          + '<button type="button" style="font-size:0.68rem;padding:2px 7px;height:22px;line-height:20px;background:#e3f2fd;border:1px solid #90caf9;border-radius:3px;cursor:pointer;color:#1565c0;white-space:nowrap;" onclick="toolsPifAddItem_('+sIdx+','+gIdx+')">+ Item</button>'
+          + '</div>'
+          + '<table style="width:100%;border-collapse:collapse;font-size:0.72rem;">'
+          + '<colgroup><col style="width:22px"><col><col style="width:90px"><col style="width:72px"><col><col style="width:22px"></colgroup>'
+          + '<thead><tr style="background:#f5f5f5;"><th style="padding:2px 4px;font-size:0.65rem;font-weight:600;">#</th><th style="padding:2px 4px;font-size:0.65rem;font-weight:600;">Item</th><th style="padding:2px 4px;font-size:0.65rem;font-weight:600;">Referencia</th><th style="padding:2px 4px;font-size:0.65rem;font-weight:600;">Tipo</th><th style="padding:2px 4px;font-size:0.65rem;font-weight:600;">Limitacoes</th><th></th></tr></thead>'
+          + '<tbody>'+rowsHtml+'</tbody></table>'
+          + '</div>';
+      }).join('');
+      return '<details open style="margin-bottom:10px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">'
+        + '<summary style="padding:7px 10px;font-weight:800;font-size:0.8rem;color:#0b5394;cursor:pointer;background:#f0f6ff;list-style:none;display:flex;align-items:center;justify-content:space-between;">'
+        + '<span>' + toolsEscapeHtml_(String(section.sectionId||'')) + '. ' + toolsEscapeHtml_(String(section.sectionTitle||'')) + '</span>'
+        + '<span style="font-weight:400;color:#78909c;font-size:0.7rem;">' + itemCount + ' itens</span>'
+        + '</summary>'
+        + '<div style="padding:8px 10px;">'
+        + groupsHtml
+        + '<button type="button" style="font-size:0.68rem;padding:2px 8px;height:22px;line-height:20px;background:#f1f8e9;border:1px solid #aed581;border-radius:3px;cursor:pointer;color:#33691e;margin-top:4px;" onclick="toolsPifAddGroup_('+sIdx+')">+ Grupo</button>'
+        + '</div>'
+        + '</details>';
+    }).join('');
+    wrap.innerHTML = html || '<div style="color:#9e9e9e;font-size:0.8rem;padding:16px;text-align:center;">Nenhuma secao extraida.</div>';
+  }
+
+  function toolsPifReadFormState_() {
+    if (!_toolsPifState || !Array.isArray(_toolsPifState.sections)) return;
+    var wrap = document.getElementById('tools-pif-sections-body');
+    if (!wrap) return;
+    wrap.querySelectorAll('.pif-gt').forEach(function(el) {
+      var sIdx = Number(el.getAttribute('data-s') || 0);
+      var gIdx = Number(el.getAttribute('data-g') || 0);
+      var s = _toolsPifState.sections[sIdx]; var g = s && s.groups && s.groups[gIdx];
+      if (!g) return;
+      var val = String(el.value || '').trim();
+      var dot = val.indexOf('. '); g.groupTitle = dot >= 0 ? val.substring(dot + 2) : val;
+    });
+    wrap.querySelectorAll('tr[data-s]').forEach(function(row) {
+      var sIdx = Number(row.getAttribute('data-s') || 0);
+      var gIdx = Number(row.getAttribute('data-g') || 0);
+      var iIdx = Number(row.getAttribute('data-i') || 0);
+      var s = _toolsPifState.sections[sIdx]; var g = s && s.groups && s.groups[gIdx];
+      var item = g && g.items && g.items[iIdx]; if (!item) return;
+      var nm  = row.querySelector('.pif-nm');  if (nm)  item.name               = String(nm.value  || '').trim();
+      var ref = row.querySelector('.pif-ref'); if (ref) item.reference           = String(ref.value || '').trim();
+      var rt  = row.querySelector('.pif-rt');  if (rt)  item.referenceType       = String(rt.value  || 'OTHER');
+      var lim = row.querySelector('.pif-lim'); if (lim) item.suggestedLimitations = String(lim.value || '').trim();
+    });
+  }
+
+  function toolsPifAddSection_() {
+    toolsPifReadFormState_();
+    if (!_toolsPifState) _toolsPifState = { sections: [] };
+    if (!Array.isArray(_toolsPifState.sections)) _toolsPifState.sections = [];
+    var ids = ['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+    var newId = ids[_toolsPifState.sections.length] || String(_toolsPifState.sections.length + 1);
+    _toolsPifState.sections.push({ sectionId: newId, sectionTitle: 'Nova Secao', groups: [{ groupId: '1', groupTitle: 'Novo Grupo', items: [] }] });
+    toolsPifRenderSections_();
+  }
+
+  function toolsPifAddGroup_(sectionIdx) {
+    toolsPifReadFormState_();
+    var s = _toolsPifState && _toolsPifState.sections && _toolsPifState.sections[sectionIdx]; if (!s) return;
+    if (!Array.isArray(s.groups)) s.groups = [];
+    s.groups.push({ groupId: String(s.groups.length + 1), groupTitle: 'Novo Grupo', items: [] });
+    toolsPifRenderSections_();
+  }
+
+  function toolsPifAddItem_(sectionIdx, groupIdx) {
+    toolsPifReadFormState_();
+    var s = _toolsPifState && _toolsPifState.sections && _toolsPifState.sections[sectionIdx];
+    var g = s && s.groups && s.groups[groupIdx]; if (!g) return;
+    if (!Array.isArray(g.items)) g.items = [];
+    g.items.push({ name: '', reference: '', referenceType: 'OTHER', suggestedLimitations: '' });
+    toolsPifRenderSections_();
+  }
+
+  function toolsPifDeleteItem_(sectionIdx, groupIdx, itemIdx) {
+    toolsPifReadFormState_();
+    var s = _toolsPifState && _toolsPifState.sections && _toolsPifState.sections[sectionIdx];
+    var g = s && s.groups && s.groups[groupIdx]; if (!g || !Array.isArray(g.items)) return;
+    g.items.splice(itemIdx, 1);
+    toolsPifRenderSections_();
+  }
+
+  function toolsPifSave_() {
+    if (!_toolsPifState) { toolsToast_('Nenhum plano extraido.', 'orange'); return; }
+    toolsPifReadFormState_();
+    var trainingCode = String((document.getElementById('tools-pif-code') || {}).value || '').trim().toUpperCase();
+    var aircraftType = String((document.getElementById('tools-pif-aircraft') || {}).value || '').trim();
+    var description  = String((document.getElementById('tools-pif-title') || {}).value || '').trim();
+    var category     = String((document.getElementById('tools-pif-category') || {}).value || 'VCP').trim();
+    var saveCatalog  = !!(document.getElementById('tools-pif-save-catalog') || {}).checked;
+    if (!trainingCode) { toolsToast_('Informe o Training Code.', 'orange'); return; }
+    if (!description)  { toolsToast_('Informe o titulo do plano.', 'orange'); return; }
+    _toolsPifState.category = category;
+    var payload = { trainingCode: trainingCode, aircraftType: aircraftType, description: description,
+                    category: category, extracted: _toolsPifState, saveToCatalog: saveCatalog };
+    var btn = document.getElementById('tools-pif-save-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (btn) { btn.disabled = false; btn.textContent = 'SALVAR PLANO DE AULA'; }
+        if (!res || !res.success) { toolsToast_((res && res.error) || 'Erro ao salvar.', 'red'); return; }
+        toolsToast_('Plano "' + res.trainingCode + '" salvo! ' + res.itemCount + ' itens, ' + res.savedManeuvers + ' manobras no catalogo.', 'green');
+        toolsPifReset_();
+      })
+      .withFailureHandler(function(err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'SALVAR PLANO DE AULA'; }
+        toolsToast_('Erro: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .saveLessonPlanFromIngest(payload);
+  }
+
+  function toolsOpenPracticalEvalPanel() {    toolsOpenPanel('practical');
     toolsLoadStaffSetupData_(false);
     toolsPracticalClearForm_();
     toolsInitDatePickers_(document.getElementById('tools-panel-practical') || document);
@@ -4223,6 +4882,13 @@
     toolsOpenPanel('dutylogs');
   }
 
+  if (typeof window !== 'undefined') {
+    window.toolsOpenDutyLogsPanel = toolsOpenDutyLogsPanel;
+  }
+  if (typeof globalThis !== 'undefined') {
+    globalThis.toolsOpenDutyLogsPanel = toolsOpenDutyLogsPanel;
+  }
+
   function toolsInitDutyLogsPanel_() {
     var toEl = document.getElementById('tools-dutylogs-to');
     var fromEl = document.getElementById('tools-dutylogs-from');
@@ -4594,6 +5260,8 @@
   function toolsOpenDbAdd(kind) {
     _toolsDbAddKind = String(kind || '').toLowerCase();
     _toolsDbHeaders = [];
+    _toolsSyllabusEditRow = 0;
+    _toolsSyllabusEditCode = '';
     toolsOpenPanel('dbadd');
 
     var titleEl = document.getElementById('tools-dbadd-title');
@@ -4612,13 +5280,31 @@
         }
         _toolsDbHeaders = Array.isArray(res.headers) ? res.headers : [];
         if (subEl) subEl.textContent = 'Fill all fields required by ' + (res.sheetName || toolsKindLabel_(_toolsDbAddKind)) + '.';
-        toolsRenderDbAddForm();
+        if (String(_toolsDbAddKind || '') === 'syllabus') {
+          google.script.run
+            .withSuccessHandler(function(sylRes) {
+              if (sylRes && sylRes.success && Array.isArray(sylRes.records)) {
+                window._toolsSyllabusAllRecords = sylRes.records;
+              }
+              toolsRenderDbAddForm();
+            })
+            .getToolsSyllabusRecords();
+        } else {
+          toolsRenderDbAddForm();
+        }
       })
       .withFailureHandler(function(err) {
         toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
         if (fieldsEl) fieldsEl.innerHTML = '<div style="color:#d32f2f;font-size:0.85rem;">Header read failed.</div>';
       })
       .getToolsSheetHeaders(_toolsDbAddKind);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.toolsOpenDbAdd = toolsOpenDbAdd;
+  }
+  if (typeof globalThis !== 'undefined') {
+    globalThis.toolsOpenDbAdd = toolsOpenDbAdd;
   }
 
   function toolsDbHasKey_(key) {
@@ -4646,7 +5332,7 @@
     return key ? toolsDbInputByKey_(key) : null;
   }
 
-  function toolsSyllabusManeuverOptions_() {
+  function toolsSyllabusDefaultManeuverOptions_() {
     return [
       'STALLS',
       'TURNING STALLS',
@@ -4661,6 +5347,223 @@
       'SOFT FIELD TAKEOFF',
       'SOFT FIELD LANDING'
     ];
+  }
+
+  function toolsSyllabusPickRowField_(row, candidates) {
+    var src = (row && typeof row === 'object') ? row : {};
+    var keys = Object.keys(src);
+    var list = Array.isArray(candidates) ? candidates : [candidates];
+    for (var i = 0; i < list.length; i++) {
+      var target = String(list[i] || '').trim().toUpperCase();
+      for (var k = 0; k < keys.length; k++) {
+        if (toolsNormKey_(keys[k]) !== target) continue;
+        return src[keys[k]];
+      }
+    }
+    return '';
+  }
+
+  function toolsSyllabusManeuverOptions_() {
+    var out = {};
+    toolsSyllabusDefaultManeuverOptions_().forEach(function(item) {
+      var key = String(item || '').trim().toUpperCase();
+      if (key) out[key] = true;
+    });
+
+    // Pull from the maneuver catalog (Ref_Maneuvers) if loaded
+    (_toolsManeuverCatalog || []).forEach(function(m) {
+      if (!m || m.active === false) return;
+      var key = String(m.maneuverId || m.name || '').trim().toUpperCase();
+      if (key) out[key] = true;
+    });
+
+    var rows = (toolsGetData_().syllabus || []);
+    rows.forEach(function(row) {
+      var direct = toolsSyllabusPickRowField_(row, ['MANEUVERS']);
+      if (Array.isArray(direct)) {
+        direct.forEach(function(mv) {
+          var key = String(mv || '').trim().toUpperCase();
+          if (key) out[key] = true;
+        });
+      }
+
+      var rawMv = toolsSyllabusPickRowField_(row, ['MANEUVERS_JSON', 'PLANNED_MANEUVERS_JSON']);
+      if (!rawMv) return;
+      try {
+        var parsed = (typeof rawMv === 'string') ? JSON.parse(rawMv) : rawMv;
+        var list = Array.isArray(parsed)
+          ? parsed
+          : (Array.isArray(parsed && parsed.maneuvers) ? parsed.maneuvers : []);
+        list.forEach(function(mv) {
+          var key = String(mv || '').trim().toUpperCase();
+          if (key) out[key] = true;
+        });
+      } catch (e) {}
+    });
+
+    return Object.keys(out).sort();
+  }
+
+  function toolsSyllabusSetEditorMode_(mode, code, rowNumber) {
+    var badge = document.getElementById('tools-syl-editor-mode');
+    if (!badge) return;
+    var m = String(mode || 'create').toLowerCase();
+    if (m === 'edit') {
+      var c = String(code || '').trim().toUpperCase();
+      var r = Number(rowNumber || 0);
+      badge.textContent = 'Mode: EDIT ' + (c ? ('(' + c + ')') : '') + (r > 1 ? (' • row ' + r) : '');
+      badge.style.color = '#1565c0';
+      badge.style.borderColor = '#bbdefb';
+      badge.style.background = '#e3f2fd';
+      return;
+    }
+    badge.textContent = 'Mode: CREATE NEW LESSON';
+    badge.style.color = '#2e7d32';
+    badge.style.borderColor = '#c8e6c9';
+    badge.style.background = '#e8f5e9';
+  }
+
+  function toolsSyllabusHydrateFromRow_(row) {
+    var src = row || {};
+    var acftEl = toolsSyllabusField_(['AIRCRAFT_TYPE']);
+    var hrsEl = toolsSyllabusField_(['REQUIRED_HOURS']);
+    var ldgEl = toolsSyllabusField_(['PLANNED_LANDINGS']);
+    var fuelEl = toolsSyllabusField_(['REQUIRED_FUEL']);
+    var balEl = toolsSyllabusField_(['REQUIRED_BALLAST']);
+    var routeEl = toolsSyllabusField_(['ROUTE']);
+    var rwEl = toolsSyllabusField_(['RUNWAY_CHECKOUT']);
+    var codeEl = toolsSyllabusField_(['TRAINING_CODE']);
+    var descEl = toolsSyllabusField_(['DESCRIPTION']);
+
+    if (acftEl && src.aircraftType != null) acftEl.value = String(src.aircraftType || '');
+    if (hrsEl && src.hours != null) hrsEl.value = String(src.hours || '');
+    if (ldgEl && src.plannedLandings != null) ldgEl.value = String(src.plannedLandings || '');
+    if (fuelEl && src.fuel != null) fuelEl.value = String(src.fuel || '');
+    if (balEl && src.requiredBallast != null) balEl.value = String(src.requiredBallast || '');
+    if (routeEl) routeEl.value = String(src.route || '');
+    if (rwEl) rwEl.value = String(src.runwayCheckout || '');
+    if (codeEl && src.code != null) codeEl.value = String(src.code || '');
+    if (descEl && src.description != null) descEl.value = String(src.description || '');
+
+    var state = toolsSyllabusPlanState_();
+    var stopsFromJson = [];
+    try {
+      var rawPlan = String(src.lessonPlanJson || src.plannedStopsJson || '').trim();
+      if (rawPlan) {
+        var parsed = JSON.parse(rawPlan);
+        var planData = Array.isArray(parsed) ? { stops: parsed } : (parsed || {});
+        if (planData.category) state.category = String(planData.category || state.category || 'ROUTE_CHECK').trim().toUpperCase();
+        if (planData.routeCheckPrompt != null) state.routeCheckPrompt = String(planData.routeCheckPrompt || '');
+        if (planData.runwayCheckLocation != null) state.runwayCheckLocation = String(planData.runwayCheckLocation || '');
+        var fromStops = Array.isArray(parsed) ? parsed : (Array.isArray(parsed && parsed.stops) ? parsed.stops : []);
+        stopsFromJson = fromStops.map(function(s, i) {
+          return {
+            sequence: i + 1,
+            location: String(s && s.location || '').trim().toUpperCase(),
+            landingType: String(s && s.landingType || 'TOUCH_AND_GO'),
+            breakStop: !!(s && s.breakStop),
+            notes: String(s && s.notes || '')
+          };
+        }).filter(function(s) { return !!s.location; });
+      }
+    } catch (e) {}
+
+    if (!stopsFromJson.length) {
+      var routeTokens = toolsSyllabusRouteTokens_(src.route || '');
+      stopsFromJson = routeTokens.map(function(tok, idx) {
+        return { sequence: idx + 1, location: tok, landingType: 'TOUCH_AND_GO', breakStop: false, notes: '' };
+      });
+    }
+    state.stops = stopsFromJson.length ? stopsFromJson : [{ sequence: 1, location: '', landingType: 'TOUCH_AND_GO', breakStop: false, notes: '' }];
+
+    try {
+      var rawMv = String(src.maneuversJson || '').trim();
+      if (rawMv) {
+        var mv = JSON.parse(rawMv);
+        var main = Array.isArray(mv) ? mv : (Array.isArray(mv && mv.maneuvers) ? mv.maneuvers : []);
+        var custom = Array.isArray(mv && mv.customManeuvers) ? mv.customManeuvers : [];
+        state.maneuvers = main.map(function(v) { return String(v || '').toUpperCase(); }).filter(Boolean);
+        state.customManeuvers = custom.map(function(v) { return String(v || '').toUpperCase(); }).filter(Boolean);
+      }
+    } catch (e2) {
+      state.maneuvers = [];
+      state.customManeuvers = [];
+    }
+
+    toolsRenderSyllabusPlan_();
+    toolsSyllabusSyncFromUi_();
+  }
+
+  function toolsSyllabusLoadByCode_() {
+    var input = document.getElementById('tools-syl-load-code');
+    var code = String(input && input.value || '').trim().toUpperCase();
+    if (!code) {
+      toolsToast_('Type a training code to load.', 'orange');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          toolsToast_((res && res.error) ? res.error : 'Failed to load lesson by code.', 'red');
+          return;
+        }
+        if (!res.found || !res.payload) {
+          _toolsSyllabusEditRow = 0;
+          _toolsSyllabusEditCode = '';
+          toolsSyllabusSetEditorMode_('create');
+          toolsToast_('Code not found. Save will create a new lesson.', 'orange');
+          return;
+        }
+
+        var p = res.payload || {};
+        var rowModel = {
+          code: String(p[toolsDbFindKey_(['TRAINING_CODE'])] || code),
+          description: String(p[toolsDbFindKey_(['DESCRIPTION'])] || ''),
+          aircraftType: String(p[toolsDbFindKey_(['AIRCRAFT_TYPE', 'AIRCRAFT', 'AIRCRAFT_CLASS', 'AC_TYPE', 'TARGET_ROLE'])] || ''),
+          hours: p[toolsDbFindKey_(['REQUIRED_HOURS'])],
+          plannedLandings: p[toolsDbFindKey_(['PLANNED_LANDINGS'])],
+          fuel: p[toolsDbFindKey_(['REQUIRED_FUEL'])],
+          requiredBallast: p[toolsDbFindKey_(['REQUIRED_BALLAST'])],
+          route: String(p[toolsDbFindKey_(['ROUTE'])] || ''),
+          runwayCheckout: String(p[toolsDbFindKey_(['RUNWAY_CHECKOUT'])] || ''),
+          lessonPlanJson: String(p[toolsDbFindKey_(['LESSON_PLAN_JSON', 'TRAINING_PLAN_JSON', 'PLAN_JSON'])] || ''),
+          plannedStopsJson: String(p[toolsDbFindKey_(['PLANNED_STOPS_JSON', 'STOP_PLAN_JSON'])] || ''),
+          maneuversJson: String(p[toolsDbFindKey_(['MANEUVERS_JSON', 'PLANNED_MANEUVERS_JSON'])] || '')
+        };
+
+        _toolsSyllabusEditRow = Number(res.rowNumber || 0);
+        _toolsSyllabusEditCode = String(rowModel.code || code).trim().toUpperCase();
+        toolsSyllabusHydrateFromRow_(rowModel);
+        toolsSyllabusSetEditorMode_('edit', _toolsSyllabusEditCode, _toolsSyllabusEditRow);
+        toolsToast_('Loaded lesson ' + _toolsSyllabusEditCode + ' for editing.', 'green');
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .getToolsSheetRecordByKey(_toolsDbAddKind, 'TRAINING_CODE', code);
+  }
+
+  function toolsSyllabusSelectExisting_() {
+    var selectEl = document.getElementById('tools-syl-select-existing');
+    var code = selectEl ? String(selectEl.value || '').trim().toUpperCase() : '';
+    if (!code) {
+      toolsSyllabusResetEditorMode_();
+      return;
+    }
+    var input = document.getElementById('tools-syl-load-code');
+    if (input) input.value = code;
+    toolsSyllabusLoadByCode_();
+  }
+
+  function toolsSyllabusResetEditorMode_() {
+    _toolsSyllabusEditRow = 0;
+    _toolsSyllabusEditCode = '';
+    toolsSyllabusSetEditorMode_('create');
+    var codeInput = document.getElementById('tools-syl-load-code');
+    if (codeInput) codeInput.value = '';
+    var selectEl = document.getElementById('tools-syl-select-existing');
+    if (selectEl) selectEl.value = '';
   }
 
   function toolsSyllabusPlanState_() {
@@ -4808,65 +5711,7 @@
       return;
     }
 
-    var acftEl = toolsSyllabusField_(['AIRCRAFT_TYPE']);
-    var hrsEl = toolsSyllabusField_(['REQUIRED_HOURS']);
-    var ldgEl = toolsSyllabusField_(['PLANNED_LANDINGS']);
-    var fuelEl = toolsSyllabusField_(['REQUIRED_FUEL']);
-    var balEl = toolsSyllabusField_(['REQUIRED_BALLAST']);
-    var routeEl = toolsSyllabusField_(['ROUTE']);
-    var rwEl = toolsSyllabusField_(['RUNWAY_CHECKOUT']);
-
-    if (acftEl && row.aircraftType) acftEl.value = String(row.aircraftType || '');
-    if (hrsEl && row.hours != null) hrsEl.value = String(row.hours || '');
-    if (ldgEl && row.plannedLandings != null) ldgEl.value = String(row.plannedLandings || '');
-    if (fuelEl && row.fuel != null) fuelEl.value = String(row.fuel || '');
-    if (balEl && row.requiredBallast != null) balEl.value = String(row.requiredBallast || '');
-    if (routeEl) routeEl.value = String(row.route || '');
-    if (rwEl) rwEl.value = String(row.runwayCheckout || '');
-
-    var state = toolsSyllabusPlanState_();
-    var stopsFromJson = [];
-    try {
-      var rawPlan = String(row.lessonPlanJson || row.plannedStopsJson || '').trim();
-      if (rawPlan) {
-        var parsed = JSON.parse(rawPlan);
-        var fromStops = Array.isArray(parsed) ? parsed : (Array.isArray(parsed && parsed.stops) ? parsed.stops : []);
-        stopsFromJson = fromStops.map(function(s, i) {
-          return {
-            sequence: i + 1,
-            location: String(s && s.location || '').trim().toUpperCase(),
-            landingType: String(s && s.landingType || 'TOUCH_AND_GO'),
-            breakStop: !!(s && s.breakStop),
-            notes: String(s && s.notes || '')
-          };
-        }).filter(function(s) { return !!s.location; });
-      }
-    } catch (e) {}
-
-    if (!stopsFromJson.length) {
-      var routeTokens = toolsSyllabusRouteTokens_(row.route || '');
-      stopsFromJson = routeTokens.map(function(tok, idx) {
-        return { sequence: idx + 1, location: tok, landingType: 'TOUCH_AND_GO', breakStop: false, notes: '' };
-      });
-    }
-    state.stops = stopsFromJson.length ? stopsFromJson : [{ sequence: 1, location: '', landingType: 'TOUCH_AND_GO', breakStop: false, notes: '' }];
-
-    var maneuverList = [];
-    try {
-      var rawMv = String(row.maneuversJson || '').trim();
-      if (rawMv) {
-        var mv = JSON.parse(rawMv);
-        var main = Array.isArray(mv) ? mv : (Array.isArray(mv && mv.maneuvers) ? mv.maneuvers : []);
-        var custom = Array.isArray(mv && mv.customManeuvers) ? mv.customManeuvers : [];
-        state.maneuvers = main.map(function(v) { return String(v || '').toUpperCase(); }).filter(Boolean);
-        state.customManeuvers = custom.map(function(v) { return String(v || '').toUpperCase(); }).filter(Boolean);
-      }
-    } catch (e2) {
-      state.maneuvers = maneuverList;
-      state.customManeuvers = [];
-    }
-
-    toolsRenderSyllabusPlan_();
+    toolsSyllabusHydrateFromRow_(row);
     toolsSyllabusAutoName_(true);
     toolsToast_('Lesson template applied.', 'green');
   }
@@ -5111,11 +5956,22 @@
 
   function toolsSyllabusSyncFromUi_() {
     var state = toolsSyllabusPlanState_();
-    var routeTokens = toolsSyllabusRouteTokensFromForm_();
     var prior = state.stops || [];
     var validTokens = [];
     state.invalidRouteTokens = [];
+
+    var routeTokens = [];
+    if (String(state.category || '') === 'RUNWAY_CHECK' && String(state.runwayCheckLocation || '').trim()) {
+      routeTokens = toolsSyllabusRouteTokens_(state.runwayCheckLocation);
+    } else {
+      routeTokens = toolsSyllabusRouteTokensFromForm_();
+    }
+
     routeTokens.forEach(function(token) {
+      if (String(state.category || '') === 'RUNWAY_CHECK') {
+        validTokens.push(token);
+        return;
+      }
       if (toolsDbResolvePoint_(token)) validTokens.push(token);
       else state.invalidRouteTokens.push(token);
     });
@@ -5125,10 +5981,10 @@
       return {
         sequence: idx + 1,
         location: token,
-        landingType: 'TOUCH_AND_GO',
+        landingType: String(state.category || '') === 'RUNWAY_CHECK' ? 'FULL_STOP' : 'TOUCH_AND_GO',
         breakStop: false,
         notes: '',
-        landings: Number(prev.landings || 0),
+        landings: String(state.category || '') === 'RUNWAY_CHECK' ? Math.max(1, Number(prev.landings || 1) || 1) : Number(prev.landings || 0),
         touchAndGos: Number(prev.touchAndGos || 0)
       };
     });
@@ -5336,9 +6192,29 @@
       var landingsKey = toolsDbFindKey_(['PLANNED_LANDINGS']);
       var acTypes = toolsGetUniqueAircraftTypes_();
 
+      var selectHtml = '';
+      if (Array.isArray(window._toolsSyllabusAllRecords) && window._toolsSyllabusAllRecords.length) {
+        selectHtml = '<div class="tools-row" style="align-items:flex-end; margin-bottom:8px;">'
+          + '<div class="tools-field tools-syl-q"><label for="tools-syl-select-existing">Selecione um plano existente</label>'
+          + '<select id="tools-syl-select-existing" onchange="toolsSyllabusSelectExisting_()" class="browser-default">'
+          + '<option value="">+ Novo Plano</option>'
+          + (window._toolsSyllabusAllRecords || []).map(function(rec) {
+            return '<option value="' + String(rec.code || '').replace(/"/g, '&quot;') + '">' + String(rec.code || '') + (rec.description ? ' - ' + String(rec.description || '').substring(0, 40) : '') + '</option>';
+          }).join('')
+          + '</select></div>'
+          + '</div>';
+      }
+
       fieldsEl.innerHTML =
         '<div class="tools-syl-plan">'
         + '<h4>Perguntas do Plano de Aula</h4>'
+        + '<div id="tools-syl-editor-mode" style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;border:1px solid #c8e6c9;background:#e8f5e9;color:#2e7d32;font-size:0.72rem;font-weight:800;letter-spacing:0.03em;margin-bottom:8px;">Mode: CREATE NEW LESSON</div>'
+        + selectHtml
+        + '<div class="tools-row" style="align-items:flex-end; margin-bottom:8px;">'
+        + '<div class="tools-field tools-syl-q"><label for="tools-syl-load-code">Load lesson by code (edit existing)</label><input id="tools-syl-load-code" type="text" placeholder="Ex: VCP206"></div>'
+        + '<div class="tools-field" style="margin-bottom:0; max-width:170px;"><button class="btn-ts" type="button" onclick="toolsSyllabusLoadByCode_()">LOAD CODE</button></div>'
+        + '<div class="tools-field" style="margin-bottom:0; max-width:170px;"><button class="btn-ta" type="button" onclick="toolsSyllabusResetEditorMode_()">NEW LESSON</button></div>'
+        + '</div>'
         + '<p class="tools-syl-plan-note">Preencha as perguntas. Rota limitada a pontos existentes em DB_Airports e DB_Waypoints, com pré-visualização no mapa.</p>'
         + '<div class="tools-row">'
         + '<div class="tools-field tools-syl-q"><label for="tools-syl-category">Tipo de voo</label>'
@@ -5422,6 +6298,7 @@
       toolsSyllabusAutoName_(false);
       toolsDbRouteDatalist_();
       toolsSyllabusSyncFromUi_();
+      toolsSyllabusSetEditorMode_('create');
     } else {
       fieldsEl.innerHTML = visibleHeaders.map(function(h) {
         var rawLabel = String((h && h.label) || 'Field');
@@ -5532,7 +6409,10 @@
     var btn = document.querySelector('#tools-panel-dbadd .btn-tp');
     if (btn) btn.disabled = true;
 
-    google.script.run
+    var isSyllabusKind = (String(_toolsDbAddKind || '') === 'syllabus' || String(_toolsDbAddKind || '') === 'training');
+    var targetRowNumber = isSyllabusKind ? Number(_toolsSyllabusEditRow || 0) : 0;
+
+    var saveCall = google.script.run
       .withSuccessHandler(function(res) {
         if (!res || !res.success) {
           toolsToast_((res && res.error) ? res.error : 'Failed to save record', 'red');
@@ -5542,7 +6422,21 @@
         var msg = toolsKindLabel_(_toolsDbAddKind) + ' saved successfully';
         if (res.airportPhotoFolder && res.airportPhotoFolder.url) msg += ' • Drive folder created';
         toolsToast_(msg, 'green');
-        toolsClearDbAddForm();
+
+        if (!isSyllabusKind) {
+          toolsClearDbAddForm();
+        }
+
+        if (isSyllabusKind) {
+          var savedCodeEl = toolsSyllabusField_(['TRAINING_CODE']);
+          _toolsSyllabusEditCode = String(savedCodeEl && savedCodeEl.value || '').trim().toUpperCase();
+          _toolsSyllabusEditRow = Number(res.rowNumber || _toolsSyllabusEditRow || 0);
+          toolsSyllabusSetEditorMode_(
+            (_toolsSyllabusEditRow > 1 ? 'edit' : 'create'),
+            _toolsSyllabusEditCode,
+            _toolsSyllabusEditRow
+          );
+        }
 
         google.script.run
           .withSuccessHandler(function(dd) {
@@ -5560,8 +6454,13 @@
       .withFailureHandler(function(err) {
         toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
         if (btn) btn.disabled = false;
-      })
-      .addToolsSheetRecord(_toolsDbAddKind, payload);
+      });
+
+    if (isSyllabusKind && targetRowNumber > 1) {
+      saveCall.updateToolsSheetRecord(_toolsDbAddKind, targetRowNumber, payload);
+    } else {
+      saveCall.addToolsSheetRecord(_toolsDbAddKind, payload);
+    }
   }
 
   function toolsAircraftEscape_(value) {
@@ -6994,6 +7893,7 @@
       fuelCaches: Array.isArray(live.fuelCaches) && live.fuelCaches.length ? live.fuelCaches : (Array.isArray(cached.fuelCaches) ? cached.fuelCaches : []),
       pilots: Array.isArray(live.pilots) && live.pilots.length ? live.pilots : (Array.isArray(cached.pilots) ? cached.pilots : []),
       aircraft: Array.isArray(live.aircraft) && live.aircraft.length ? live.aircraft : (Array.isArray(cached.aircraft) ? cached.aircraft : []),
+      syllabus: Array.isArray(live.syllabus) && live.syllabus.length ? live.syllabus : (Array.isArray(cached.syllabus) ? cached.syllabus : []),
       routes: Array.isArray(live.routes) && live.routes.length ? live.routes : (Array.isArray(cached.routes) ? cached.routes : []),
       waypoints: Array.isArray(live.waypoints) && live.waypoints.length ? live.waypoints : (Array.isArray(cached.waypoints) ? cached.waypoints : []),
       passengers: Array.isArray(live.passengers) && live.passengers.length ? live.passengers : (Array.isArray(cached.passengers) ? cached.passengers : [])
@@ -7369,6 +8269,9 @@
       var i=document.getElementById('tools-airport-search-input');
       if(i)i.value='';
       _toolsAirportsDbRows=[];
+      _toolsAirportBulkMatches=[];
+      _toolsAirportBulkUnmatched=[];
+      toolsAirportBulkRenderResult_();
       toolsSetAirportSyncMeta_('appdata');
       toolsRenderAirportList('');
     }
@@ -7379,8 +8282,11 @@
     }
     if(id==='staff'){toolsLoadStaffSetupData_(false);}
     if(id==='trainingmodule'){toolsLoadStaffSetupData_(false);}
+    if(id==='maneuvers'){toolsManeuverPanelOpen_();}
     if(id==='practical'){toolsLoadStaffSetupData_(false);}
     if(id==='readiness'){toolsLoadStaffSetupData_(false);}
+    if(id==='lessonhistory'){toolsLhPanelOpen_();}
+      if(id==='pdfimport'){toolsPifReset_();}
     if(id==='scheduler'){toolsInitSchedulerPanel_();}
     if(id==='masterconfig'){toolsLoadMasterConfig_();}
     if(id==='dutylogs'){toolsInitDutyLogsPanel_();}
@@ -7564,11 +8470,10 @@
     var wpId=String(((document.getElementById('tools-wp-id')||{}).value||'')).trim().toUpperCase();
     var lat=toolsParseCoordinate_(((document.getElementById('tools-wp-lat')||{}).value||''));
     var lon=toolsParseCoordinate_(((document.getElementById('tools-wp-lon')||{}).value||''));
-    var type=String(((document.getElementById('tools-wp-type')||{}).value||'FIX')).trim().toUpperCase();
     if(!wpId){if(window.M)M.toast({html:'Waypoint ID required',classes:'orange'});return;}
     if(isNaN(lat)||lat<-90||lat>90){if(window.M)M.toast({html:'Invalid latitude',classes:'orange'});return;}
     if(isNaN(lon)||lon<-180||lon>180){if(window.M)M.toast({html:'Invalid longitude',classes:'orange'});return;}
-    var payload={wp_id:wpId,latitude:lat,longitude:lon,type:(type==='WATER RUNWAY')?'WATER RUNWAY':'FIX'};
+    var payload={wp_id:wpId,latitude:lat,longitude:lon,type:'FIX'};
     google.script.run
       .withSuccessHandler(function(res){if(res&&res.success){if(window.M)M.toast({html:'Waypoint saved: '+wpId,classes:'green'});toolsClearWaypointForm();}else{if(window.M)M.toast({html:'Failed to save waypoint',classes:'red'});}})
       .withFailureHandler(function(err){if(window.M)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});})
@@ -7630,6 +8535,187 @@
       pilotNotes:String(r.pilotNotes||''),
       fields:(r.fields&&typeof r.fields==='object')?r.fields:{}
     };
+  }
+  function toolsAirportNormalizeText_(value){
+    var s=String(value==null?'':value).trim().toUpperCase();
+    if(!s)return '';
+    try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
+    s=s.replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+    return s;
+  }
+  function toolsAirportParseBulkInput_(raw){
+    var text=String(raw||'');
+    if(!text.trim())return [];
+    var seen={};
+    var parts=text.split(/[\n\r,;\t]+/);
+    var out=[];
+    for(var i=0;i<parts.length;i++){
+      var token=String(parts[i]||'').trim();
+      if(!token)continue;
+      var key=toolsAirportNormalizeText_(token);
+      if(!key||seen[key])continue;
+      seen[key]=true;
+      out.push(token);
+    }
+    return out;
+  }
+  function toolsAirportToNumber_(value){
+    if(typeof value==='number')return isFinite(value)?value:NaN;
+    var s=String(value==null?'':value).trim();
+    if(!s)return NaN;
+    if(s.indexOf(',')>-1 && s.indexOf('.')===-1)s=s.replace(',', '.');
+    var n=Number(s);
+    return isFinite(n)?n:NaN;
+  }
+  function toolsAirportFindBestMatch_(token,airports){
+    var src=Array.isArray(airports)?airports:[];
+    var norm=toolsAirportNormalizeText_(token);
+    if(!norm)return null;
+    var exactIcao=[];
+    var exactName=[];
+    var starts=[];
+    var contains=[];
+    for(var i=0;i<src.length;i++){
+      var a=src[i]||{};
+      var icao=toolsAirportNormalizeText_(a.icao||'');
+      var name=toolsAirportNormalizeText_(a.nome||'');
+      if(!icao && !name)continue;
+      if(norm===icao){exactIcao.push(a);continue;}
+      if(norm===name){exactName.push(a);continue;}
+      if((icao&&icao.indexOf(norm)===0) || (name&&name.indexOf(norm)===0)){starts.push(a);continue;}
+      if((icao&&icao.indexOf(norm)>-1) || (name&&name.indexOf(norm)>-1)){contains.push(a);}
+    }
+    if(exactIcao.length)return exactIcao[0];
+    if(exactName.length)return exactName[0];
+    if(starts.length)return starts[0];
+    if(contains.length)return contains[0];
+    return null;
+  }
+  function toolsAirportKmlEscape_(value){
+    return String(value==null?'':value)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&apos;');
+  }
+  function toolsAirportBuildKml_(matches){
+    var rows=Array.isArray(matches)?matches:[];
+    var now=new Date();
+    var stamp=now.getUTCFullYear()+'-'+String(now.getUTCMonth()+1).padStart(2,'0')+'-'+String(now.getUTCDate()).padStart(2,'0');
+    var placemarks=[];
+    for(var i=0;i<rows.length;i++){
+      var m=rows[i]||{};
+      var a=m.airport||{};
+      var lat=toolsAirportToNumber_(a.lat);
+      var lon=toolsAirportToNumber_(a.lon);
+      if(isNaN(lat)||isNaN(lon))continue;
+      var icao=String(a.icao||'').trim().toUpperCase();
+      var name=String(a.nome||'').trim();
+      var title=(icao?icao+' - ':'')+(name||'Airport');
+      var desc='Input: '+String(m.input||'')+'\nICAO: '+icao+'\nName: '+name+'\nLat: '+lat+'\nLon: '+lon;
+      placemarks.push(
+        '    <Placemark>\n'
+        +'      <name>'+toolsAirportKmlEscape_(title)+'</name>\n'
+        +'      <description>'+toolsAirportKmlEscape_(desc)+'</description>\n'
+        +'      <Point><coordinates>'+lon+','+lat+',0</coordinates></Point>\n'
+        +'    </Placemark>'
+      );
+    }
+    return {
+      fileName:'airports_bulk_'+stamp+'.kml',
+      kml:'<?xml version="1.0" encoding="UTF-8"?>\n'
+        +'<kml xmlns="http://www.opengis.net/kml/2.2">\n'
+        +'  <Document>\n'
+        +'    <name>Flight App Bulk Airports</name>\n'
+        +'    <description>Generated from DB_Airports by Flight App Tools</description>\n'
+        +placemarks.join('\n')
+        +'\n  </Document>\n'
+        +'</kml>\n'
+    };
+  }
+  function toolsAirportBulkRenderResult_(){
+    var summary=document.getElementById('tools-airport-bulk-summary');
+    var results=document.getElementById('tools-airport-bulk-results');
+    var btn=document.getElementById('tools-airport-bulk-download-btn');
+    var matches=Array.isArray(_toolsAirportBulkMatches)?_toolsAirportBulkMatches:[];
+    var misses=Array.isArray(_toolsAirportBulkUnmatched)?_toolsAirportBulkUnmatched:[];
+    if(btn)btn.disabled=!matches.length;
+    if(!results||!summary)return;
+    if(!matches.length && !misses.length){
+      summary.textContent='Paste airports above, then click FIND AIRPORTS.';
+      results.style.display='none';
+      results.innerHTML='';
+      return;
+    }
+    summary.textContent='Matched '+matches.length+' airport(s) • Unmatched '+misses.length;
+    var html=[];
+    for(var i=0;i<matches.length;i++){
+      var m=matches[i]||{};
+      var a=m.airport||{};
+      var label=toolsEscapeHtml_(String(m.input||''))+'  →  '+toolsEscapeHtml_(String(a.icao||''))+' - '+toolsEscapeHtml_(String(a.nome||''));
+      html.push('<div class="tools-airport-bulk-row ok">'+label+'</div>');
+    }
+    for(var j=0;j<misses.length;j++){
+      html.push('<div class="tools-airport-bulk-row miss">'+toolsEscapeHtml_(String(misses[j]||''))+'  →  no match</div>');
+    }
+    results.innerHTML=html.join('');
+    results.style.display='block';
+  }
+  function toolsAirportBulkFindAndPreviewKml(){
+    var inputEl=document.getElementById('tools-airport-bulk-input');
+    var raw=(inputEl&&typeof inputEl.value==='string')?inputEl.value:'';
+    var tokens=toolsAirportParseBulkInput_(raw);
+    if(!tokens.length){
+      _toolsAirportBulkMatches=[];
+      _toolsAirportBulkUnmatched=[];
+      toolsAirportBulkRenderResult_();
+      if(window.M)M.toast({html:'Paste at least one airport name or ICAO.',classes:'orange'});
+      return;
+    }
+    var data=toolsGetData_();
+    var airports=(_toolsAirportsDbRows&&_toolsAirportsDbRows.length)?_toolsAirportsDbRows:(data.airports||[]);
+    var matches=[];
+    var misses=[];
+    for(var i=0;i<tokens.length;i++){
+      var t=tokens[i];
+      var match=toolsAirportFindBestMatch_(t,airports);
+      if(match)matches.push({input:t,airport:match});
+      else misses.push(t);
+    }
+    _toolsAirportBulkMatches=matches;
+    _toolsAirportBulkUnmatched=misses;
+    toolsAirportBulkRenderResult_();
+    if(window.M)M.toast({html:'Bulk match done: '+matches.length+' matched, '+misses.length+' unmatched.',classes:(matches.length?'green':'orange')});
+  }
+  function toolsAirportBulkDownloadKml(){
+    var matches=Array.isArray(_toolsAirportBulkMatches)?_toolsAirportBulkMatches:[];
+    if(!matches.length){
+      if(window.M)M.toast({html:'Run FIND AIRPORTS first.',classes:'orange'});
+      return;
+    }
+    var built=toolsAirportBuildKml_(matches);
+    if(!built||!String(built.kml||'').trim()){
+      if(window.M)M.toast({html:'Could not generate KML.',classes:'red'});
+      return;
+    }
+    var blob=new Blob([built.kml],{type:'application/vnd.google-earth.kml+xml;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download=built.fileName||'airports_bulk.kml';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},2000);
+    if(window.M)M.toast({html:'KML downloaded: '+a.download,classes:'green'});
+  }
+  function toolsAirportBulkClear(){
+    var inputEl=document.getElementById('tools-airport-bulk-input');
+    if(inputEl)inputEl.value='';
+    _toolsAirportBulkMatches=[];
+    _toolsAirportBulkUnmatched=[];
+    toolsAirportBulkRenderResult_();
   }
   function toolsRefreshAirportsFromDb_(query,silent){
     var container=document.getElementById('tools-airport-list');
@@ -8262,4 +9348,20 @@
   window.toolsUpdateWaypointPreview=toolsUpdateWaypointPreview;
   window.toolsClearWaypointForm=toolsClearWaypointForm;
   window.toolsSaveWaypoint=toolsSaveWaypoint;
+  // Expose all toolsOpen* functions used by onclick handlers
+  window.toolsOpenPanel = toolsOpenPanel;
+  window.toolsOpenPassengerEditor = toolsOpenPassengerEditor;
+  window.toolsOpenReportsPanel = toolsOpenReportsPanel;
+  window.toolsOpenDiscrepancyPanel = toolsOpenDiscrepancyPanel;
+  window.toolsOpenStaffPanel = toolsOpenStaffPanel;
+  window.toolsOpenPilotAuthPanel = toolsOpenPilotAuthPanel;
+  window.toolsOpenSavedRoutesPanel = toolsOpenSavedRoutesPanel;
+  window.toolsOpenTrainingModulePanel = toolsOpenTrainingModulePanel;
+  window.toolsOpenManeuverPanel = toolsOpenManeuverPanel;
+  window.toolsOpenPracticalEvalPanel = toolsOpenPracticalEvalPanel;
+  window.toolsOpenLessonHistoryPanel = toolsOpenLessonHistoryPanel;
+  window.toolsOpenPdfImportPanel = toolsOpenPdfImportPanel;
+  window.toolsOpenSchedulerPanel = toolsOpenSchedulerPanel;
+  window.toolsOpenMasterConfigPanel = toolsOpenMasterConfigPanel;
+  window.toolsOpenPermissionsPanel = toolsOpenPermissionsPanel;
 </script>

@@ -1384,6 +1384,19 @@ function wbMissionPassengers_() {
       });
     });
   });
+  const training = mission && mission.meta && mission.meta.training ? mission.meta.training : null;
+  const traineeName = wbNormName_((training && training.student) || (mission && mission.copilot) || '');
+  const pilotName = wbNormName_(mission && mission.pilot || '');
+  if (traineeName && traineeName.toUpperCase() !== pilotName.toUpperCase() && !seen[traineeName.toUpperCase()]) {
+    const traineeWeightInfo = wbResolvePilotWeight_(traineeName);
+    seen[traineeName.toUpperCase()] = true;
+    list.push({
+      name: traineeName,
+      weight: wbNum_(traineeWeightInfo && traineeWeightInfo.weight, 80),
+      fund: '',
+      chargeRate: ''
+    });
+  }
   return list;
 }
 
@@ -1865,7 +1878,25 @@ function wbBuildOfflinePayload_(flightId) {
     ];
   })();
 
-  const rawPax = Array.isArray(leg.pax) ? leg.pax : [];
+  const rawPax = Array.isArray(leg.pax) ? leg.pax.slice() : [];
+  const training = mission && mission.meta && mission.meta.training ? mission.meta.training : null;
+  const traineeName = wbNormName_((training && training.student) || mission.copilot || '');
+  if (traineeName && traineeName.toUpperCase() !== wbNormName_(pilotName).toUpperCase()) {
+    const alreadyListed = rawPax.some(function(p) {
+      return wbNormName_(p && p.name).toUpperCase() === traineeName.toUpperCase();
+    });
+    if (!alreadyListed) {
+      const traineeWeightInfo = wbResolvePilotWeight_(traineeName);
+      rawPax.unshift({
+        name: traineeName,
+        weight: wbNum_(traineeWeightInfo && traineeWeightInfo.weight, 80),
+        actualWeight: wbNum_(traineeWeightInfo && traineeWeightInfo.weight, 80),
+        plannedWeight: wbNum_(traineeWeightInfo && traineeWeightInfo.weight, 80),
+        verified: true,
+        category: 'TRAINEE'
+      });
+    }
+  }
   const paxList = rawPax
     .filter(function(p) { return String(p && p.name || '').toUpperCase() !== 'FREIGHT'; })
     .map(function(p) {
@@ -4051,6 +4082,7 @@ window.saveWBLog = function(options) {
   
   const wbPayload = {
     flightId: window.wbData.flightId,
+    pilot: (window.currentBriefingMission && window.currentBriefingMission.pilot) || '',
     grossWeight: wb.totalWeight,
     cgPosition: wb.cg,
     isSafe: window.checkEnvelope(wb.cg, wb.totalWeight),

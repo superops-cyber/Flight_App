@@ -46,7 +46,7 @@
           <span id="readiness-overall-icon" style="font-size:0.72rem; line-height:1; color:#fff; background:#8d6e63; border:2px solid #5d4037; border-radius:999px; padding:6px 10px; font-weight:900; letter-spacing:0.04em; text-transform:uppercase;">Not Ready</span>
           <span id="readiness-overall-label" style="font-size:0.78rem; font-weight:900; color:#37474f; text-transform:uppercase; letter-spacing:0.03em;">Offline Pack</span>
         </div>
-        <button id="btn-refresh-offline-cache" class="btn blue darken-2" style="height:28px; line-height:28px; padding:0 10px; font-size:0.72rem; font-weight:800; border-radius:7px; margin:0; flex-shrink:0;" onclick="downloadOfflineCacheNow()">REFRESH</button>
+        <button id="btn-refresh-offline-cache" class="btn blue darken-2" style="height:28px; line-height:28px; padding:0 10px; font-size:0.72rem; font-weight:800; border-radius:7px; margin:0; flex-shrink:0;" onclick="downloadOfflineCacheNow()">RELOAD MISSIONS</button>
       </div>
       <div style="display:flex; flex-direction:column; gap:2px;">
         <div style="display:flex; align-items:center; gap:7px; font-size:0.78rem;">
@@ -101,12 +101,18 @@
           <div id="tab1-map-pack-text" style="font-size:0.7rem; color:#1565c0; margin-top:2px;">0 tiles</div>
         </div>
       </div>
+      <div id="offline-startup-diag" style="margin-top:6px; padding:6px 8px; border:1px solid #dbe6f3; border-radius:7px; background:#f5f8fb; color:#546e7a; font-size:0.72rem; font-weight:700; line-height:1.35;">Diag: waiting for startup checks...</div>
     </div>
 
     <div id="outbox-status" style="margin: 0 10px 10px 10px; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; background:#f9f9f9; border:1px solid #ececec; color:#555;">Outbox: 0 pending, 0 failed</div>
 
     <div id="mission-list-container" style="max-height: 250px; overflow-y: auto; padding: 10px;">
       <p class="center-align grey-text">Loading upcoming missions...</p>
+    </div>
+
+    <div id="tab1-comm-box" style="margin: 0 10px 10px 10px; padding: 10px 12px; border-radius: 8px; background:#f8fbff; border:1px solid #d6e7ff; color:#1a3c5a; font-size:0.82rem;">
+      <div style="font-size:0.74rem; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; color:#0b5394;">Mission Communication</div>
+      <div id="tab1-comm-body" style="margin-top:6px; color:#607d8b;">Select a mission to view supervisor communication.</div>
     </div>
 
     <div class="action-grid" style="display: flex; gap: 10px; margin: 20px 0; justify-content: center;">
@@ -148,7 +154,7 @@
       </div>
     </div>
     <div id="incl-cache-status" style="margin: -12px 10px 8px 10px; font-size: 0.72rem; font-weight: 700; color: #7d8b97; text-transform: uppercase;">Inclinometer offline cache: checking...</div>
-    <div id="tab1-version-board" class="tab1-version-board">
+    <div id="tab1-version-board" class="tab1-version-board" style="display:none;">
       <div class="tab1-version-board-title">Pilot App Tab Versions</div>
       <div id="tab1-version-list" class="tab1-version-list"></div>
     </div>
@@ -225,7 +231,11 @@
         <div style="font-size:1.02rem; font-weight:900; color:#0b5394;">Plano de Aula e Avaliação</div>
         <div id="lesson-plan-subtitle" style="font-size:0.76rem; color:#607d8b; font-weight:700;">Sem aula ativa.</div>
       </div>
-      <button type="button" class="btn-flat" style="font-weight:900;" onclick="closeLessonPlanModal_()">FECHAR</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span id="lesson-plan-submit-status" style="font-size:0.72rem; color:#388e3c; font-weight:700; display:none;">&#10003; Submetido</span>
+        <button id="btn-lesson-submit" type="button" class="btn blue darken-2" style="height:34px; line-height:34px; padding:0 14px; font-size:0.8rem; font-weight:800;" onclick="commitLessonEvaluation_()">SUBMETER AVALIAÇÃO</button>
+        <button type="button" class="btn-flat" style="font-weight:900;" onclick="closeLessonPlanModal_()">FECHAR</button>
+      </div>
     </div>
     <div id="lesson-plan-content" style="padding:12px 14px 16px 14px;"></div>
   </div>
@@ -453,13 +463,16 @@
     let activeMission = null;
     let appData = {};
     let _activeLessonContext = null;
+    let _lessonEvalSaveTimer = null;
+    let _lessonEvalRestoreToken = 0;
+    let _lessonEvalTouchedAt = 0;
     const PILOT_TAB_VERSIONS = Object.freeze({
-      1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 105 }),
+      1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 106 }),
       2: Object.freeze({ shortLabel: 'Brief', fullLabel: 'Briefing', version: 180 }),
       3: Object.freeze({ shortLabel: 'W&B', fullLabel: 'Weight & Balance', version: 103 }),
       4: Object.freeze({ shortLabel: 'Perf', fullLabel: 'Performance', version: 104 }),
       5: Object.freeze({ shortLabel: 'Release', fullLabel: 'Release', version: 105 }),
-        6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 131 }),
+        6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 132 }),
       7: Object.freeze({ shortLabel: 'Arrv', fullLabel: 'Arrival', version: 108 }),
       8: Object.freeze({ shortLabel: 'Log', fullLabel: 'Debrief Log', version: 123 })
     });
@@ -528,6 +541,15 @@
       _renderPilotDispatchClocks_();
       if (_pilotClockTimer) clearInterval(_pilotClockTimer);
       _pilotClockTimer = setInterval(_renderPilotDispatchClocks_, 15000);
+    }
+
+    function escHtml_(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     function _pilotNormalizeScriptUrl_(raw) {
@@ -631,10 +653,22 @@
       return 'mba_lesson_eval_' + missionId + '_' + code;
     }
 
-    function lessonCollectEvaluation_() {
-      var key = lessonStorageKey_();
-      if (!key) return;
-      var payload = { scores: {}, notes: {} };
+    function lessonEvaluationPayload_() {
+      var ctx = _activeLessonContext || {};
+      var mission = ctx.mission || {};
+      var meta = mission.meta || {};
+      var training = meta.training || {};
+      var traineeName = String(training.student || meta.copilot || mission.copilot || meta.pilot || mission.pilot || '').trim();
+      var payload = {
+        missionId: String(mission.id || activeMission || '').trim(),
+        trainingCode: String(ctx.code || '').trim(),
+        pilot: traineeName,
+        aircraft: String(meta.acft || mission.acft || '').trim(),
+        missionDate: String(meta.date || mission.date || '').trim(),
+        sourceTab: 'PILOT_LESSON_MODAL',
+        scores: {},
+        notes: {}
+      };
       document.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
         var k = String(sel.getAttribute('data-lesson-score') || '');
         payload.scores[k] = String(sel.value || '');
@@ -646,19 +680,13 @@
         });
         payload.notes[String(idx)] = items;
       });
-      try { localStorage.setItem(key, JSON.stringify(payload)); } catch (e) {}
+      return payload;
     }
 
-    function lessonRestoreEvaluation_() {
-      var key = lessonStorageKey_();
-      if (!key) return;
-      var raw = '';
-      try { raw = localStorage.getItem(key) || ''; } catch (e) { raw = ''; }
-      if (!raw) return;
-      var parsed = _lessonSafeParseJson_(raw, null);
-      if (!parsed || typeof parsed !== 'object') return;
-      var scores = parsed.scores || {};
-      var notes = parsed.notes || {};
+    function _lessonApplyEvaluationPayload_(payload) {
+      if (!payload || typeof payload !== 'object') return;
+      var scores = payload.scores || {};
+      var notes = payload.notes || {};
       document.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
         var k = String(sel.getAttribute('data-lesson-score') || '');
         if (Object.prototype.hasOwnProperty.call(scores, k)) sel.value = String(scores[k] || '');
@@ -677,6 +705,51 @@
           wrap.appendChild(div);
         });
       });
+    }
+
+    function lessonCollectEvaluation_() {
+      var key = lessonStorageKey_();
+      if (!key) return;
+      var payload = lessonEvaluationPayload_();
+      _lessonEvalTouchedAt = Date.now();
+      try {
+        localStorage.setItem(key, JSON.stringify({ scores: payload.scores || {}, notes: payload.notes || {} }));
+      } catch (e) {}
+
+      if (!payload.missionId || !payload.trainingCode) return;
+      if (_lessonEvalSaveTimer) clearTimeout(_lessonEvalSaveTimer);
+      _lessonEvalSaveTimer = setTimeout(function() {
+        google.script.run
+          .withFailureHandler(function() {})
+          .savePilotLessonEvaluation(payload);
+      }, 260);
+    }
+
+    function lessonRestoreEvaluation_(restoreToken) {
+      var key = lessonStorageKey_();
+      if (!key) return;
+      var startedAt = Date.now();
+      var raw = '';
+      try { raw = localStorage.getItem(key) || ''; } catch (e) { raw = ''; }
+      if (raw) {
+        var parsed = _lessonSafeParseJson_(raw, null);
+        if (parsed && typeof parsed === 'object') _lessonApplyEvaluationPayload_(parsed);
+      }
+
+      var payload = lessonEvaluationPayload_();
+      if (!payload.missionId || !payload.trainingCode) return;
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.success || !res.found || !res.payload) return;
+          if (restoreToken !== _lessonEvalRestoreToken) return;
+          if (_lessonEvalTouchedAt > startedAt) return;
+          _lessonApplyEvaluationPayload_(res.payload);
+          try {
+            localStorage.setItem(key, JSON.stringify({ scores: res.payload.scores || {}, notes: res.payload.notes || {} }));
+          } catch (e) {}
+        })
+        .withFailureHandler(function() {})
+        .getPilotLessonEvaluation(payload.missionId, payload.trainingCode);
     }
 
     function _lessonRenderGradeRows_(items, kind) {
@@ -698,7 +771,30 @@
 
     function openLessonPlanModal_() {
       if (!_activeLessonContext) {
-        if (window.M) M.toast({ html: 'Nenhum plano de aula ativo nesta missão.', classes: 'orange' });
+        var fallbackModal = document.getElementById('lesson-plan-modal');
+        var fallbackSub = document.getElementById('lesson-plan-subtitle');
+        var fallbackContent = document.getElementById('lesson-plan-content');
+        var fallbackSubmitBtn = document.getElementById('btn-lesson-submit');
+        var fallbackSubmitStatus = document.getElementById('lesson-plan-submit-status');
+        if (fallbackSub) fallbackSub.textContent = 'Sem aula ativa.';
+        if (fallbackContent) {
+          fallbackContent.innerHTML = ''
+            + '<div style="font-size:0.82rem; line-height:1.65; color:#455a64;">'
+            + '<b>Nenhum plano de aula está vinculado a esta missão.</b><br>'
+            + 'Para abrir a avaliação, a missão precisa ter um código de treinamento no despacho.<br><br>'
+            + 'Se esta for uma aula regular, vincule um plano em <b>Supervisor/Dispatch</b> e tente novamente.'
+            + '</div>';
+        }
+        if (fallbackSubmitBtn) {
+          fallbackSubmitBtn.disabled = true;
+          fallbackSubmitBtn.textContent = 'SUBMETER AVALIAÇÃO';
+          fallbackSubmitBtn.style.background = '';
+        }
+        if (fallbackSubmitStatus) fallbackSubmitStatus.style.display = 'none';
+        if (fallbackModal) fallbackModal.style.display = 'flex';
+        if (window.M) {
+          M.toast({ html: 'Nenhum plano de aula ativo nesta missão.', classes: 'orange' });
+        }
         return;
       }
       var ctx = _activeLessonContext;
@@ -709,11 +805,12 @@
 
       var mission = ctx.mission || {};
       var meta = mission.meta || {};
+      var training = meta.training || {};
       var firstLeg = (mission.legs && mission.legs[0]) || {};
       sub.textContent = String(ctx.code || '') + ' • ' + String(ctx.title || 'Plano de Aula');
       content.innerHTML = ''
         + '<div style="font-size:0.8rem; line-height:1.6; color:#37474f; margin-bottom:10px;">'
-        + '<b>Data:</b> ' + String(meta.date || mission.date || '') + ' &nbsp; <b>Matrícula:</b> ' + String(meta.acft || mission.acft || '') + ' &nbsp; <b>Piloto:</b> ' + String(meta.pilot || mission.pilot || '') + ' &nbsp; <b>Instrutor:</b> ' + String(meta.copilot || '')
+        + '<b>Data:</b> ' + String(meta.date || mission.date || '') + ' &nbsp; <b>Matrícula:</b> ' + String(meta.acft || mission.acft || '') + ' &nbsp; <b>Aluno:</b> ' + String(training.student || meta.copilot || mission.copilot || meta.pilot || mission.pilot || '') + ' &nbsp; <b>Instrutor:</b> ' + String(training.instructor || meta.pilot || mission.pilot || '')
         + '<br><b>Rota:</b> ' + String(firstLeg.route || (ctx.stops || []).map(function(s){ return s.location; }).join(' -> '))
         + (ctx.externalLessonName ? ('<br><b>Ref. Externa:</b> ' + String(ctx.externalLessonName)) : '')
         + (ctx.routeCheckPrompt ? ('<br><b>Rota Check:</b> ' + String(ctx.routeCheckPrompt)) : '')
@@ -727,7 +824,14 @@
       content.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
         sel.addEventListener('change', lessonCollectEvaluation_);
       });
-      lessonRestoreEvaluation_();
+      _lessonEvalRestoreToken += 1;
+      lessonRestoreEvaluation_(_lessonEvalRestoreToken);
+
+      // reset submit button state
+      var submitBtn = document.getElementById('btn-lesson-submit');
+      var submitStatus = document.getElementById('lesson-plan-submit-status');
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'SUBMETER AVALIAÇÃO'; submitBtn.style.background = ''; }
+      if (submitStatus) submitStatus.style.display = 'none';
 
       modal.style.display = 'flex';
     }
@@ -735,6 +839,35 @@
     function closeLessonPlanModal_() {
       var modal = document.getElementById('lesson-plan-modal');
       if (modal) modal.style.display = 'none';
+    }
+
+    function commitLessonEvaluation_() {
+      var payload = lessonEvaluationPayload_();
+      if (!payload.missionId || !payload.trainingCode) {
+        if (window.M) M.toast({ html: 'Missão ou código de aula não identificado.', classes: 'orange' });
+        return;
+      }
+      var btn = document.getElementById('btn-lesson-submit');
+      if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+      payload.status = 'SUBMITTED';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (btn) { btn.disabled = false; btn.textContent = 'SUBMETER AVALIAÇÃO'; }
+          if (!res || !res.success) {
+            if (window.M) M.toast({ html: 'Erro ao submeter: ' + ((res && res.error) || 'Falha'), classes: 'red' });
+            return;
+          }
+          var statusEl = document.getElementById('lesson-plan-submit-status');
+          if (statusEl) statusEl.style.display = '';
+          if (btn) { btn.style.background = '#388e3c'; btn.textContent = 'SUBMETIDO'; btn.disabled = true; }
+          if (window.M) M.toast({ html: 'Avaliação submetida com sucesso.', classes: 'green' });
+          try { localStorage.removeItem(lessonStorageKey_()); } catch (e) {}
+        })
+        .withFailureHandler(function(err) {
+          if (btn) { btn.disabled = false; btn.textContent = 'SUBMETER AVALIAÇÃO'; }
+          if (window.M) M.toast({ html: 'Erro: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+        })
+        .commitPilotLessonEvaluation(payload);
     }
 
     function lessonAddInlineNote_(btn) {
@@ -2013,6 +2146,50 @@
       };
     }
 
+    function renderOfflineStartupDiag_(hint) {
+      const el = document.getElementById('offline-startup-diag');
+      if (!el) return;
+
+      const online = !!(navigator && navigator.onLine);
+      const server = isServerAvailable();
+      const missionsList = Number((cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || []).length || 0);
+      const missionDetails = Number(getCachedMissionCount() || 0);
+      const envelopes = Number(getCachedEnvelopeCount() || 0);
+      const unknown = _computeUnknownPackReadiness_();
+      const meta = cacheGet(OFFLINE_CACHE_KEYS.PREFETCH_META) || {};
+      const syncLabel = formatSyncTime(meta.syncedAt || '');
+      const diagArr = Array.isArray(window.__startupDiag) ? window.__startupDiag : [];
+      const lastDiag = diagArr.length ? diagArr[diagArr.length - 1] : null;
+      const startupStage = String(lastDiag && lastDiag.stage || 'n/a');
+
+      const blocked = [];
+      if (!online) blocked.push('device offline');
+      else if (!server) blocked.push('server unavailable');
+      if (envelopes <= 0) blocked.push('no envelopes');
+      if (!unknown.ready) blocked.push(String(unknown.label || 'core tables missing').replace(/^Missing:\s*/i, 'missing '));
+
+      let text = 'Diag: net ' + (online ? 'online' : 'offline')
+        + ' | server ' + (server ? 'ok' : 'no')
+        + ' | list ' + missionsList
+        + ' | details ' + missionDetails
+        + ' | env ' + envelopes
+        + ' | sync ' + syncLabel
+        + ' | startup ' + startupStage;
+      if (blocked.length) text += ' | blocked: ' + blocked.join('; ');
+      if (hint) text += ' | ' + String(hint);
+
+      el.textContent = text;
+      if (blocked.length) {
+        el.style.color = '#b71c1c';
+        el.style.background = '#fff5f5';
+        el.style.borderColor = '#ef9a9a';
+      } else {
+        el.style.color = '#546e7a';
+        el.style.background = '#f5f8fb';
+        el.style.borderColor = '#dbe6f3';
+      }
+    }
+
     function tab1GuardedAction_(actionName) {
       if (!_isMissionReadyForLock_()) {
         if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3500 });
@@ -2111,6 +2288,7 @@
         if (progPct) progPct.textContent = pct + '%';
         _recomputeOverallReadiness_();
         updateOfflineFlightButtonState();
+        renderOfflineStartupDiag_(stageText || 'syncing');
         return;
       }
 
@@ -2153,6 +2331,7 @@
 
       _recomputeOverallReadiness_();
       updateOfflineFlightButtonState();
+      renderOfflineStartupDiag_('readiness refreshed');
     }
 
     function clearOfflineCacheNow() {
@@ -2175,17 +2354,23 @@
     }
 
     function ensureEnvelopeCacheOnStartup() {
+      renderOfflineStartupDiag_('startup envelope check');
       if (!isServerAvailable()) {
         updateOfflineCacheStatus();
         updateOfflineFlightButtonState();
+        renderOfflineStartupDiag_('startup skipped: offline');
         return;
       }
       if (!(window.google && google.script && google.script.run)) return;
 
-      // Respect 24h freshness on cold start so reopen does not force a full sync.
-      if (isOfflineCacheFresh_()) {
+      const unknownPack = _computeUnknownPackReadiness_();
+      const hasEnvelopeCache = getCachedEnvelopeCount() > 0;
+
+      // Skip startup sync only when cache is fresh and readiness is already complete.
+      if (isOfflineCacheFresh_() && hasEnvelopeCache && unknownPack.ready) {
         updateOfflineCacheStatus();
         updateOfflineFlightButtonState();
+        renderOfflineStartupDiag_('startup skipped: cache fresh + pack ready');
         return;
       }
 
@@ -2200,17 +2385,20 @@
           }
           if (!list.length) {
             updateOfflineCacheStatus();
+            renderOfflineStartupDiag_('startup sync: no scheduled missions');
             return;
           }
           prefetchScheduledMissionDetails(list, false);
           setTimeout(function() {
             updateOfflineCacheStatus();
             updateOfflineFlightButtonState();
+            renderOfflineStartupDiag_('startup sync complete');
           }, 1800);
         })
         .withFailureHandler(function() {
           updateOfflineCacheStatus();
           updateOfflineFlightButtonState();
+          renderOfflineStartupDiag_('startup sync failed: getScheduledMissions');
         })
         .getScheduledMissions();
     }
@@ -2558,7 +2746,60 @@
     }
 
     function downloadOfflineCacheNow() {
-      refreshOfflineCacheNow();
+      refreshMissionsOnlyNow();
+    }
+
+    function refreshMissionsOnlyNow() {
+      if (!isServerAvailable()) {
+        M.toast({ html: 'Offline: unable to refresh missions right now', classes: 'orange' });
+        return;
+      }
+
+      const btn = document.getElementById('btn-refresh-offline-cache');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'DOWNLOADING...';
+      }
+
+      window._readinessState = window._readinessState || { missions: 'none', cg: 'none', unknown: 'none', mapdb: 'none' };
+      window._readinessState.missions = 'sync';
+      _setReadinessDot_('rdot-missions', 'sync');
+      const missionLabel = document.getElementById('rlabel-missions');
+      if (missionLabel) missionLabel.textContent = 'Refreshing mission list...';
+      if (typeof window._recomputeOverallReadiness_ === 'function') window._recomputeOverallReadiness_();
+
+      google.script.run
+        .withSuccessHandler(function(missions) {
+          const list = Array.isArray(missions) ? missions : [];
+          cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, list);
+
+          if (typeof renderMissionList === 'function') renderMissionList();
+          updateOfflineCacheStatus();
+
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'RELOAD MISSIONS';
+          }
+          if (window.M) {
+            M.toast({ html: 'Mission list refreshed', classes: 'green' });
+          }
+        })
+        .withFailureHandler(function(err) {
+          const msg = err && err.message ? err.message : String(err || 'unknown error');
+          window._readinessState = window._readinessState || { missions: 'none', cg: 'none', unknown: 'none', mapdb: 'none' };
+          window._readinessState.missions = 'bad';
+          _setReadinessDot_('rdot-missions', 'bad');
+          const missionLabel = document.getElementById('rlabel-missions');
+          if (missionLabel) missionLabel.textContent = 'Mission refresh failed';
+          if (typeof window._recomputeOverallReadiness_ === 'function') window._recomputeOverallReadiness_();
+
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'RELOAD MISSIONS';
+          }
+          M.toast({ html: `Mission refresh failed: ${msg}`, classes: 'red' });
+        })
+        .getScheduledMissions();
     }
 
     function refreshOfflineCacheNow() {
@@ -3880,6 +4121,9 @@
             details: details || {}
           });
           if (startupDiag.length > 40) startupDiag.splice(0, startupDiag.length - 40);
+          if (typeof renderOfflineStartupDiag_ === 'function') {
+            renderOfflineStartupDiag_('startup stage: ' + String(stage || ''));
+          }
         } catch (e) {}
       };
       const escHtml_ = function(v) {
@@ -4023,10 +4267,29 @@
 
       const cachedStartup = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA);
       const freshCache = isOfflineCacheFresh_();
+      const hasCoreStartupTables_ = function(data) {
+        const d = (data && typeof data === 'object') ? data : {};
+        const airports = Array.isArray(d.airports) ? d.airports.length : 0;
+        const waypoints = Array.isArray(d.waypoints) ? d.waypoints.length : 0;
+        const routes = Array.isArray(d.routes) ? d.routes.length : 0;
+        const aircraft = Array.isArray(d.aircraft) ? d.aircraft.length : 0;
+        const pilots = Array.isArray(d.pilots) ? d.pilots.length : 0;
+        return airports > 0 && waypoints > 0 && routes > 0 && aircraft > 0 && pilots > 0;
+      };
 
-      if (cachedStartup && freshCache) {
+      if (cachedStartup && freshCache && hasCoreStartupTables_(cachedStartup)) {
         applyDataAndStart(cachedStartup, true, { silentToast: true });
         return;
+      }
+
+      if (cachedStartup && freshCache && !hasCoreStartupTables_(cachedStartup)) {
+        pushStartupDiag_('cache-incomplete-core', {
+          airports: Array.isArray(cachedStartup.airports) ? cachedStartup.airports.length : 0,
+          waypoints: Array.isArray(cachedStartup.waypoints) ? cachedStartup.waypoints.length : 0,
+          routes: Array.isArray(cachedStartup.routes) ? cachedStartup.routes.length : 0,
+          aircraft: Array.isArray(cachedStartup.aircraft) ? cachedStartup.aircraft.length : 0,
+          pilots: Array.isArray(cachedStartup.pilots) ? cachedStartup.pilots.length : 0
+        });
       }
 
       if (isServerAvailable()) {
@@ -4331,6 +4594,13 @@
       document.getElementById('btnBack').style.visibility = (tabNum === 1) ? 'hidden' : 'visible';
       updateFooterButton(tabNum);
 
+      if (tabNum === 1) {
+        activeMission = null;
+        window.currentBriefingMission = null;
+        document.querySelectorAll('.mission-row').forEach(function(row) { row.classList.remove('selected'); });
+        renderTab1MissionCommunication_(null);
+      }
+
       // 2. TRIGGER BRIEFING RENDER: If switching to Tab 2, load the data
       if (tabNum === 2) {
         initiateBriefing(activeMission);
@@ -4520,6 +4790,43 @@
       }
     }
 
+    function renderTab1MissionCommunication_(mission) {
+      const body = document.getElementById('tab1-comm-body');
+      if (!body) return;
+      if (!mission || typeof mission !== 'object') {
+        body.innerHTML = '<span style="color:#607d8b;">Select a mission to view supervisor communication.</span>';
+        return;
+      }
+
+      const meta = mission.meta && typeof mission.meta === 'object' ? mission.meta : {};
+      const description = String(meta.flightDescription || mission.flightDescription || '').trim();
+      const requests = Array.isArray(meta.communicationRequests)
+        ? meta.communicationRequests
+        : (Array.isArray(mission.communicationRequests) ? mission.communicationRequests : []);
+      const openRequests = requests.filter(function(req) {
+        return String((req && req.status) || '').trim().toUpperCase() !== 'CLOSED';
+      });
+
+      const descHtml = description
+        ? `<div style="margin-bottom:8px; padding:8px 10px; border-left:3px solid #8d6e63; background:#fff8f2; border-radius:4px;"><div style="font-size:0.68rem; text-transform:uppercase; color:#6d4c41; font-weight:800;">Dispatch Description</div><div style="font-size:0.84rem; color:#4e342e; font-weight:700; margin-top:2px;">${escHtml_(description)}</div></div>`
+        : '';
+
+      const reqHtml = openRequests.length
+        ? openRequests.map(function(req) {
+            const created = String(req && req.createdAt || '').trim();
+            const stamp = created ? ('<div style="font-size:0.68rem; color:#607d8b; margin-top:3px;">' + escHtml_(created) + '</div>') : '';
+            const msg = String(req && req.message || '').trim() || 'Supervisor left a mission communication note.';
+            return '<div style="margin-top:6px; padding:8px 10px; border-radius:6px; background:#e8f5e9; border:1px solid #b7dfbe; color:#1b5e20;">'
+              + '<div style="font-size:0.68rem; text-transform:uppercase; font-weight:800; letter-spacing:0.03em;">Supervisor Request</div>'
+              + '<div style="font-size:0.82rem; margin-top:3px; font-weight:700;">' + escHtml_(msg) + '</div>'
+              + stamp
+              + '</div>';
+          }).join('')
+        : '<div style="font-size:0.78rem; color:#607d8b;">No open supervisor communication requests.</div>';
+
+      body.innerHTML = descHtml + reqHtml;
+    }
+
     function selectMission(id) {
       const selectedRow = document.getElementById('row-' + id);
       if (selectedRow && String(selectedRow.dataset.loadable || '') !== '1') {
@@ -4530,6 +4837,9 @@
       document.querySelectorAll('.mission-row').forEach(row => row.classList.remove('selected'));
       if (selectedRow) selectedRow.classList.add('selected');
       activeMission = id;
+      renderTab1MissionCommunication_(null);
+      const commBody = document.getElementById('tab1-comm-body');
+      if (commBody) commBody.innerHTML = '<span style="color:#607d8b;">Loading mission communication...</span>';
       loadActiveLessonContext_();
       checkMissionLegality(id);
       M.toast({ html: 'Selected: ' + id, displayLength: 1500 });
@@ -4568,9 +4878,14 @@
 
       fetchMissionDetails(missionId, mission => {
         try {
+          renderTab1MissionCommunication_(mission);
           console.log('checkMissionLegality mission:', mission);
-          const liveAppData = (window.appData && typeof window.appData === 'object') ? window.appData : appData;
-          const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+          const liveAppData = (window.appData && typeof window.appData === 'object')
+            ? window.appData
+            : ((typeof appData !== 'undefined' && appData && typeof appData === 'object') ? appData : null);
+          const cachedDropdown = (typeof cacheGet === 'function' && window.OFFLINE_CACHE_KEYS && window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA)
+            ? (cacheGet(window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {})
+            : {};
           console.log('appData.aircraft count:', liveAppData && liveAppData.aircraft ? liveAppData.aircraft.length : 0);
           const acftList = (liveAppData && Array.isArray(liveAppData.aircraft) && liveAppData.aircraft.length)
             ? liveAppData.aircraft
@@ -4593,7 +4908,7 @@
 
         // GROUNDED LOGIC
         const isGrounded = acft.techStatus === "GROUNDED";
-        btnNext.disabled = isGrounded; // Gray out the "Confirm & Proceed" button
+        if (btnNext) btnNext.disabled = isGrounded; // Gray out the "Confirm & Proceed" button
         const statusColor = isGrounded ? '#d32f2f' : '#2e7d32'; 
         const statusLabel = isGrounded ? 'GROUNDED - NO FLY' : 'SERVICEABLE';
 
@@ -4618,7 +4933,7 @@
                 const dateLabel = (s && (s.reportDate || s.date)) ? (s.reportDate || s.date) : 'NEW';
                 return `
                   <div style="border-left: 3px solid #fbc02d; padding: 5px 10px; margin-bottom: 5px; background: #fffde7; font-size: 0.85rem;">
-                    <b>${dateLabel}:</b> ${s && s.description ? s.description : ''} <i>(${statusLabel}${deferBits.length ? ' • ' + deferBits.join(' • ') : ''})</i>
+                    <b>${dateLabel}:</b> ${s && s.description ? escHtml_(s.description) : ''} <i>(${statusLabel}${deferBits.length ? ' • ' + deferBits.join(' • ') : ''})</i>
                   </div>
                 `;
               }).join('');
@@ -4668,10 +4983,13 @@
         `;
         } catch (e) {
           console.error('checkMissionLegality render failed', e);
-          acftArea.innerHTML = `<div class="card-panel orange-text">Offline data parse issue. Continue with cached mission and re-sync when online.</div>`;
+          var diagMsg = (e && (e.message || e.toString)) ? String(e.message || e.toString()) : 'unknown parse error';
+          acftArea.innerHTML = `<div class="card-panel orange-text">Offline data parse issue. Continue with cached mission and re-sync when online.<br><small style="display:block;margin-top:6px;color:#6d4c41;">Diag: ${diagMsg}</small></div>`;
+          if (window.M) M.toast({ html: 'Tab1 diag: ' + diagMsg, classes: 'orange darken-2', displayLength: 7000 });
         }
         }, err => {
           console.error('getMissionById failed', err);
+          renderTab1MissionCommunication_(null);
           acftArea.innerHTML = `<div class="card-panel orange-text">Offline mission detail unavailable. Continue with cached data if needed.</div>`;
           M.toast({ html: 'Mission details unavailable offline', classes: 'orange' });
         });
@@ -5219,8 +5537,8 @@
 
       let status = String(mission.status || '').toUpperCase();
       if (allComplete) status = 'COMPLETE';
-      else if (hasInFlightLeg) status = 'IN-FLIGHT';
-      else if (hasPartialProgress) status = 'PARTIAL';
+  else if (hasPartialProgress) status = 'PARTIAL';
+  else if (hasInFlightLeg) status = 'IN-FLIGHT';
       else if (!status) status = 'APPROVED';
 
       return {
@@ -5289,6 +5607,10 @@
           legsFlown: summary.legsFlown
         });
         cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, list);
+      }
+
+      if (window.currentBriefingMission && String(window.currentBriefingMission.id || '').trim() === id) {
+        window.currentBriefingMission.status = summary.status;
       }
     };
 
@@ -6266,7 +6588,7 @@
     <div class="rwyhc-shell" style="max-width:980px; margin:10px auto; background:#fff; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.28); overflow:hidden;">
       <div class="rwyhc-header" style="background:#1565c0; color:#fff; padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
         <div>
-          <div class="rwyhc-title" style="font-size:1rem; font-weight:900; letter-spacing:1px;">RUNWAY SURVEY TOOL</div>
+          <div class="rwyhc-title" style="font-size:1rem; font-weight:900; letter-spacing:1px;">RUNWAY SURVEY TOOL <span style="font-size:0.7rem; opacity:0.7; margin-left:6px;">v1.2</span></div>
           <div class="rwyhc-sub" style="font-size:0.78rem; opacity:0.85;">Offline-ready GPS capture for supervisor approval</div>
         </div>
         <div class="rwyhc-header-actions">
@@ -6340,6 +6662,7 @@
             <div id="rwysurvey-photo-summary">Photos: 0</div>
           </div>
           <div id="rwysurvey-feature-list"></div>
+          <div id="rwysurvey-obstacle-list"></div>
           <div id="rwysurvey-photo-list"></div>
           <div id="rwysurvey-slope-list"></div>
           <div class="rwyhc-notes-submit">
@@ -6412,23 +6735,30 @@
       <div id="rwysurvey-obstacle-title" style="background:#ef6c00; color:#fff; padding:10px 12px; font-weight:800;">Obstacle Angles @ 50m from A</div>
       <div style="padding:12px; display:grid; gap:8px;">
         <div id="rwysurvey-obstacle-context" style="font-size:0.82rem; color:#6d4c41; font-weight:700;">Checkpoint instruction appears here.</div>
-        <input id="rwysurvey-obs-type-popup" list="rwysurvey-obs-type-options" type="text" placeholder="Obstacle type (optional)" value="" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
-        <datalist id="rwysurvey-obs-type-options">
-          <option value="hill"></option>
-          <option value="tree"></option>
-          <option value="rock"></option>
-          <option value="building"></option>
-          <option value="powerline"></option>
-        </datalist>
-        <div id="rwysurvey-obs-manual-setup" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <select id="rwysurvey-obs-type-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-weight:700; color:#37474f;">
+          <option value="">Obstacle type (optional)</option>
+          <option value="tree">Tree</option>
+          <option value="rock">Rock</option>
+          <option value="hill">Hill</option>
+          <option value="building">Building</option>
+          <option value="powerline">Power Line</option>
+        </select>
+        <div id="rwysurvey-obs-manual-setup" style="display:none;">
           <div style="display:grid; gap:4px;">
             <div style="font-size:0.72rem; color:#607d8b; font-weight:700;">FROM THRESHOLD</div>
-            <select id="rwysurvey-obs-threshold-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;"></select>
+            <div id="rwysurvey-obs-threshold-readonly" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px; background:#f5f7fa; font-weight:800; color:#37474f;">--</div>
+            <select id="rwysurvey-obs-threshold-popup" style="display:none;"></select>
           </div>
           <div style="display:grid; gap:4px;">
             <div style="font-size:0.72rem; color:#607d8b; font-weight:700;">DISTANCE (M)</div>
             <input id="rwysurvey-obs-distance-popup" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 120" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
           </div>
+        </div>
+        <div id="rwysurvey-obs-operation-wrap" style="display:grid; gap:4px;">
+          <select id="rwysurvey-obs-operation-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-weight:700; color:#37474f;">
+            <option value="landing">Landing angle</option>
+            <option value="takeoff">Takeoff angle</option>
+          </select>
         </div>
         <div id="rwysurvey-obs-auto-summary" style="display:none; font-size:0.78rem; color:#1565c0; background:#e3f2fd; border:1px solid #bbdefb; border-radius:6px; padding:8px 10px; font-weight:700;"></div>
         <input id="rwysurvey-obs-a-popup" type="number" step="0.1" inputmode="decimal" placeholder="Obstacle angle (°)" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
@@ -8734,10 +9064,57 @@
     }
     const fixEl = document.getElementById('rwysurvey-feature-fix');
     if (fixEl) {
-      fixEl.textContent = 'Current fix: ±' + Math.round(Number(gps.current.acc || 0)) + 'm';
+      const ctx = _rwySurveyFeatureContextFromGps_(gps.current);
+      if (ctx) {
+        fixEl.textContent = 'Current fix: ±' + Math.round(Number(gps.current.acc || 0)) + 'm · segment ' + ctx.segmentLabel + ' · ' + ctx.distanceM + 'm from THR ' + ctx.fromThreshold;
+      } else {
+        fixEl.textContent = 'Current fix: ±' + Math.round(Number(gps.current.acc || 0)) + 'm';
+      }
     }
     const popup = document.getElementById('rwysurvey-feature-popup');
     if (popup) popup.style.display = 'block';
+  }
+
+  function _rwySurveyFeatureContextFromGps_(fix) {
+    if (!fix || !isFinite(Number(fix.lat)) || !isFinite(Number(fix.lon))) return null;
+    const state = runwaySurveyToolState;
+    const per = state.perimeter || {};
+    const marks = Array.isArray(per.cornerMarks) ? per.cornerMarks : [];
+    const origin = marks.length ? marks[0] : state.thresholdA;
+    if (!origin || !isFinite(Number(origin.lat)) || !isFinite(Number(origin.lon))) return null;
+
+    const derived = _rwySurveyDerivedDimensions_();
+    const runwayLengthM = Math.max(1, Math.round(Number(derived.lengthM || state.lengthM || 0) || 1));
+    const startThr = _rwySurveyGetActiveStartThreshold_() || state.rwyIdent || 'A';
+    let oppThr = _rwySurveyGetOppositeStartThreshold_() || _rwySurveyReciprocalIdent_(startThr);
+    if (String(oppThr || '').trim().toUpperCase() === String(startThr || '').trim().toUpperCase()) oppThr = _rwySurveyReciprocalIdent_(startThr);
+
+    let heading = Number(state.headingDeg || 0);
+    if (marks.length >= 2) {
+      const a = marks[0], b = marks[1];
+      const dy = Number(b.lat || 0) - Number(a.lat || 0);
+      const dx = Number(b.lon || 0) - Number(a.lon || 0);
+      heading = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+    }
+
+    let along = _rwySurveyProjectAlongAxisM_(Number(fix.lat), Number(fix.lon), Number(origin.lat), Number(origin.lon), heading);
+    along = Math.max(0, Math.min(runwayLengthM, Number(along || 0)));
+
+    const likelyReciprocalSide = marks.length >= 3;
+    const reciprocal = likelyReciprocalSide || along > (runwayLengthM / 2);
+    const fromThreshold = reciprocal ? String(oppThr).trim().toUpperCase() : String(startThr).trim().toUpperCase();
+    const distanceM = reciprocal
+      ? Math.max(0, Math.round(runwayLengthM - along))
+      : Math.max(0, Math.round(along));
+    const segmentLabel = reciprocal ? 'C→D' : 'A→B';
+
+    return {
+      fromThreshold: fromThreshold,
+      distanceM: distanceM,
+      segmentLabel: segmentLabel,
+      runwayLengthM: runwayLengthM,
+      alongM: along
+    };
   }
 
   function closeRunwaySurveyFeaturePopup(cancelled) {
@@ -8810,10 +9187,12 @@
     const startThr = _rwySurveyGetActiveStartThreshold_() || state.rwyIdent || 'A';
     let oppThr = _rwySurveyGetOppositeStartThreshold_() || _rwySurveyReciprocalIdent_(startThr);
     if (String(oppThr || '').trim().toUpperCase() === String(startThr || '').trim().toUpperCase()) oppThr = _rwySurveyReciprocalIdent_(startThr);
-    const thresholdRaw = String((document.getElementById('rwysurvey-obs-threshold-popup') || {}).value || active.fromThreshold || startThr).trim().toUpperCase();
+    const thresholdRaw = String(active.fromThreshold || startThr).trim().toUpperCase();
     const distanceRaw = Number((document.getElementById('rwysurvey-obs-distance-popup') || {}).value);
     const distanceM = isFinite(distanceRaw) ? Math.max(1, Math.round(distanceRaw)) : Math.max(1, Math.round(Number(active.distanceM || 50)));
-    const operation = distanceM >= 250 ? 'takeoff' : 'landing';
+    const operationSel = document.getElementById('rwysurvey-obs-operation-popup');
+    const operationRaw = String((operationSel && operationSel.value) || active.operation || '').trim().toLowerCase();
+    const operation = operationRaw === 'takeoff' ? 'takeoff' : 'landing';
     const checkpointCorner = thresholdRaw === oppThr ? 'C' : 'A';
     const thresholdRef = thresholdRaw === oppThr ? oppThr : startThr;
     return {
@@ -8902,7 +9281,8 @@
       if (fix && origin) {
         along = Math.max(0, Math.min(runwayLengthM, _rwySurveyProjectAlongAxisM_(fix.lat, fix.lon, origin.lat, origin.lon, heading)));
       }
-      if (along > (runwayLengthM / 2)) {
+      const likelyReciprocalSide = marks.length >= 3; // C was already marked, so walker is likely on C->D segment
+      if (likelyReciprocalSide || along > (runwayLengthM / 2)) {
         corner = 'C';
         thresholdRef = oppThr;
         dist = Math.round(runwayLengthM - along);
@@ -8916,13 +9296,15 @@
     thresholdRef = String(thresholdRef || startThr).trim().toUpperCase();
     const autoMode = !!autoTriggered;
     const mode = dist >= 250 ? 'takeoff' : 'landing';
+    const segmentLabel = corner === 'C' ? 'C→D' : 'A→B';
     runwaySurveyToolState.ui.activeObstaclePrompt = {
       corner: corner,
       distanceM: dist,
       fromThreshold: thresholdRef,
       operation: mode,
       manual: manual,
-      autoTriggered: autoMode
+      autoTriggered: autoMode,
+      segmentLabel: segmentLabel
     };
     runwaySurveyToolState.ui.obstaclePhoto = null;
     runwaySurveyToolState.ui.pendingObstacleSaveAfterPhoto = false;
@@ -8937,48 +9319,47 @@
           ? 'LOOK AHEAD. Tap OPEN INCLINOMETER and save the 300m takeoff angle.'
           : 'TURN AROUND. Tap OPEN INCLINOMETER and save the 50m landing angle.';
       } else {
-        context.textContent = 'Manual capture: choose threshold, enter distance in meters, then save angle.';
+        context.textContent = 'Walking segment ' + segmentLabel + ' · runway ' + thresholdRef + '. Choose takeoff or landing, then save angle.';
       }
     }
     const inclBtn = document.getElementById('rwysurvey-open-inclinometer-btn');
     if (inclBtn) inclBtn.textContent = 'OPEN INCLINOMETER';
     const thresholdSel = document.getElementById('rwysurvey-obs-threshold-popup');
+    const thresholdReadonly = document.getElementById('rwysurvey-obs-threshold-readonly');
     if (thresholdSel) {
       const opts = '<option value="' + startThr + '">' + startThr + '</option><option value="' + oppThr + '">' + oppThr + '</option>';
       thresholdSel.innerHTML = opts;
       thresholdSel.value = thresholdRef === oppThr ? oppThr : startThr;
-      thresholdSel.disabled = autoMode;
+      thresholdSel.disabled = true;
     }
+    if (thresholdReadonly) thresholdReadonly.textContent = 'RWY ' + String(state.rwyIdent || '--') + ' ' + thresholdRef;
     const distInput = document.getElementById('rwysurvey-obs-distance-popup');
     if (distInput) {
       distInput.value = String(Math.max(1, Math.round(dist)));
-      distInput.readOnly = autoMode;
+      distInput.readOnly = true;
     }
     const opSel = document.getElementById('rwysurvey-obs-operation-popup');
+    const opWrap = document.getElementById('rwysurvey-obs-operation-wrap');
     const manualSetup = document.getElementById('rwysurvey-obs-manual-setup');
-    if (manualSetup) manualSetup.style.display = autoMode ? 'none' : 'grid';
-    if (opSel) opSel.style.display = 'none';
+    if (manualSetup) manualSetup.style.display = 'none';
+    if (opWrap) opWrap.style.display = 'block';
+    if (opSel) opSel.value = mode;
     const typeInput = document.getElementById('rwysurvey-obs-type-popup');
-    if (typeInput) typeInput.style.display = autoMode ? 'none' : 'block';
-    const typeQuick = document.getElementById('rwysurvey-obs-type-quick-picks');
-    if (typeQuick) typeQuick.style.display = autoMode ? 'none' : 'flex';
+    if (typeInput) typeInput.value = '';
     const autoSummary = document.getElementById('rwysurvey-obs-auto-summary');
     if (autoSummary) {
-      autoSummary.style.display = 'none';
-      autoSummary.textContent = '';
+      autoSummary.style.display = 'block';
+      autoSummary.textContent = 'Threshold RWY ' + String(state.rwyIdent || '--') + ' ' + thresholdRef + ' · distance ' + Math.max(1, Math.round(dist)) + 'm · segment ' + segmentLabel;
     }
     const angleInput = document.getElementById('rwysurvey-obs-a-popup');
-    if (angleInput) angleInput.style.display = autoMode ? 'none' : 'block';
-    const photoRow = document.getElementById('rwysurvey-obs-photo-row');
-    if (photoRow) photoRow.style.display = 'none';
+    if (angleInput) angleInput.style.display = 'block';
     const notesInput = document.getElementById('rwysurvey-obs-notes-popup');
-    if (notesInput) notesInput.style.display = autoMode ? 'none' : 'block';
+    if (notesInput) notesInput.style.display = 'block';
     const saveBtn = document.getElementById('rwysurvey-obs-save-btn');
     if (saveBtn) {
-      saveBtn.style.display = autoMode ? 'none' : 'inline-block';
+      saveBtn.style.display = 'block';
       saveBtn.textContent = 'SAVE ENTRY';
     }
-    if (document.getElementById('rwysurvey-obs-type-popup')) document.getElementById('rwysurvey-obs-type-popup').value = '';
     _rwySurveyObstaclePhotoStatusText_();
     const popup = document.getElementById('rwysurvey-obstacle-popup');
     if (popup) popup.style.display = 'block';
@@ -10722,33 +11103,32 @@
       return;
     }
 
-    let heading = runwaySurveyToolState.headingDeg || 0;
-    if (marks.length >= 2) {
-      const a = marks[0], b = marks[1];
-      const dy = Number(b.lat || 0) - Number(a.lat || 0);
-      const dx = Number(b.lon || 0) - Number(a.lon || 0);
-      heading = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+    const featureCtx = _rwySurveyFeatureContextFromGps_(fix);
+    if (!featureCtx) {
+      if (window.M) M.toast({ html: 'Unable to resolve runway segment context', classes: 'orange' });
+      return;
     }
 
-    let along = _rwySurveyProjectAlongAxisM_(fix.lat, fix.lon, origin.lat, origin.lon, heading);
-    along = Math.max(0, Math.round(along));
-
-    const reverseLeg = marks.length >= 3 && !per.closed;
-    const storedSide = reverseLeg ? (sideInput === 'left' ? 'right' : 'left') : sideInput;
+    const storedSide = sideInput;
 
     runwaySurveyToolState.features.push({
       name: type.replace(/_/g, ' '),
       type: type,
-      distance: along,
-      fromThreshold: _rwySurveyGetActiveStartThreshold_() || 'A',
+      distance: Number(featureCtx.distanceM || 0),
+      fromThreshold: String(featureCtx.fromThreshold || _rwySurveyGetActiveStartThreshold_() || 'A'),
+      segment: String(featureCtx.segmentLabel || ''),
       side: storedSide,
       gps: { lat: fix.lat, lon: fix.lon, accuracyM: fix.acc, at: new Date(fix.ts).toISOString() }
     });
-    _rwySurveyLogEvent_('mark', 'Feature added: ' + type + ' @ ' + along + 'm', { side: storedSide, sideInput: sideInput, reverseLeg: reverseLeg, acc: Number(fix.acc || 0) });
+    _rwySurveyLogEvent_('mark', 'Feature added: ' + type + ' @ ' + Number(featureCtx.distanceM || 0) + 'm from ' + featureCtx.fromThreshold, {
+      side: storedSide,
+      segment: featureCtx.segmentLabel,
+      acc: Number(fix.acc || 0)
+    });
     closeRunwaySurveyFeaturePopup(false);
     renderRunwaySurveyFeatureList();
     renderRunwaySurveyTrace();
-    if (window.M) M.toast({ html: 'Feature added at ~' + along + 'm from ' + (_rwySurveyGetActiveStartThreshold_() || 'start threshold'), classes: 'green' });
+    if (window.M) M.toast({ html: 'Feature added at ~' + Number(featureCtx.distanceM || 0) + 'm from THR ' + featureCtx.fromThreshold, classes: 'green' });
   }
 
   function renderRunwaySurveyFeatureList() {
@@ -10763,8 +11143,10 @@
     }
     el.innerHTML = items.map(function(f, i) {
       const fromThr = String(f && f.fromThreshold || _rwySurveyGetActiveStartThreshold_() || 'A');
+      const seg = String(f && f.segment || '').trim();
+      const segText = seg ? (' · seg ' + seg) : '';
       return '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px; padding:5px 8px; border:1px solid #e0e0e0; border-radius:6px; font-size:0.82rem;">'
-        + '<span><b>' + f.name + '</b> · ' + f.distance + 'm from ' + fromThr + ' · ' + f.side + ' · acc ' + Math.round(Number(f.gps && f.gps.accuracyM || 0)) + 'm</span>'
+        + '<span><b>' + f.name + '</b> · ' + f.distance + 'm from THR ' + fromThr + segText + ' · ' + f.side + ' · acc ' + Math.round(Number(f.gps && f.gps.accuracyM || 0)) + 'm</span>'
         + '<button onclick="removeRunwaySurveyFeature(' + i + ')" style="border:none; background:none; color:#d32f2f; cursor:pointer;">✕</button></div>';
     }).join('');
   }
@@ -10823,8 +11205,28 @@
 
   function renderRunwaySurveyObstacleList() {
     const summary = document.getElementById('rwysurvey-obstacle-summary');
+    const el = document.getElementById('rwysurvey-obstacle-list');
     const items = runwaySurveyToolState.obstacleAngles50m;
     if (summary) summary.textContent = 'Obstacles: ' + items.length;
+    if (!el) return;
+    if (!items.length) {
+      el.innerHTML = '<div style="font-size:0.8rem; color:#999; margin-top:4px;">No obstacle angles yet.</div>';
+      return;
+    }
+
+    el.innerHTML = items.map(function(o, i) {
+      const fromThr = String(o && o.fromThreshold || _rwySurveyGetActiveStartThreshold_() || 'THR').trim().toUpperCase();
+      const distM = Math.max(0, Math.round(Number(o && o.checkpointDistanceM || 0)));
+      const op = String(o && o.operation || '').trim().toLowerCase() === 'takeoff' ? 'takeoff' : 'landing';
+      const angle = Number(o && o.angleDeg);
+      const angleText = isFinite(angle) ? angle.toFixed(1) + '°' : '--';
+      const typeText = String(o && o.type || 'obstacle').replace(/_/g, ' ');
+      const noteText = String(o && o.notes || '').trim();
+      const opColor = op === 'takeoff' ? '#1565c0' : '#ef6c00';
+      return '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px; padding:6px 8px; border:1px solid #ffe0b2; border-radius:6px; background:#fff8f0; font-size:0.82rem;">'
+        + '<span><b>' + typeText + '</b> · ' + distM + 'm from THR ' + fromThr + ' · <span style="color:' + opColor + '; font-weight:800;">' + op + '</span> · <b>' + angleText + '</b>' + (noteText ? (' · ' + noteText) : '') + '</span>'
+        + '<button onclick="removeRunwaySurveyObstacle(' + i + ')" style="border:none; background:none; color:#d32f2f; cursor:pointer;">✕</button></div>';
+    }).join('');
   }
 
   function removeRunwaySurveyObstacle(i) {
@@ -11207,7 +11609,7 @@
 
     const header = document.createElement('div');
     header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#0b5394; color:#fff;';
-    header.innerHTML = '<div><div style="font-size:1rem; font-weight:900;">RUNWAY PREVIEW</div><div style="font-size:0.78rem; opacity:0.9;">' + state.icao + ' · RWY ' + state.rwyIdent + '</div></div><button onclick="closeRunwayDiagramPreview()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>';
+    header.innerHTML = '<div><div style="font-size:1rem; font-weight:900;">RUNWAY PREVIEW <span style="font-size:0.7rem; opacity:0.7; margin-left:6px;">v1.2</span></div><div style="font-size:0.78rem; opacity:0.9;">' + state.icao + ' · RWY ' + state.rwyIdent + '</div></div><button onclick="closeRunwayDiagramPreview()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>';
 
     const body = document.createElement('div');
     body.style.cssText = 'padding:14px; display:grid; gap:10px;';
@@ -11256,8 +11658,8 @@
     if (isPaved) {
       svg.appendChild(makeEl('line', { x1: topX, y1: topY + (topH / 2), x2: topX + runwayPx, y2: topY + (topH / 2), stroke: '#f3f3f3', 'stroke-width': 3, 'stroke-dasharray': '18,10' }));
     }
-    svg.appendChild(makeEl('text', { x: topX + 10, y: topY + topH - 12, 'font-size': 18, fill: '#fff', 'font-weight': '800' }, String(state.rwyIdent || 'RWY')));
-    svg.appendChild(makeEl('text', { x: topX + runwayPx - 10, y: topY + topH - 12, 'font-size': 18, fill: '#fff', 'font-weight': '800', 'text-anchor': 'end' }, String(_rwySurveyReciprocalIdent_(state.rwyIdent) || '')));
+    svg.appendChild(makeEl('text', { x: topX + 10, y: topY + topH - 12, 'font-size': 18, fill: '#fff', 'font-weight': '800', 'transform': 'rotate(-90 ' + (topX + 10) + ' ' + (topY + topH - 12) + ')' }, String(state.rwyIdent || 'RWY')));
+    svg.appendChild(makeEl('text', { x: topX + runwayPx - 10, y: topY + topH - 12, 'font-size': 18, fill: '#fff', 'font-weight': '800', 'text-anchor': 'end', 'transform': 'rotate(-90 ' + (topX + runwayPx - 10) + ' ' + (topY + topH - 12) + ')' }, String(_rwySurveyReciprocalIdent_(state.rwyIdent) || '')));
     svg.appendChild(makeEl('text', { x: topX + (runwayPx / 2), y: topY + topH + 22, 'font-size': 12, fill: '#0b5394', 'font-weight': '700', 'text-anchor': 'middle' }, runwayLengthM + 'm × ' + runwayWidthM + 'm' + (surfaceValue ? ' • ' + surfaceValue : '')));
 
     const iconForFeature = function(name) {
@@ -11268,7 +11670,7 @@
       if (s.indexOf('WINDSOCK') >= 0) return '🎏';
       if (s.indexOf('TOWER') >= 0) return '🗼';
       if (s.indexOf('POWER') >= 0) return '⚡';
-      return '📍';
+      return '🏷️';
     };
 
     const iconForObstacle = function(type) {
@@ -11287,8 +11689,10 @@
       const side = String(feat && feat.side || 'right').toLowerCase() === 'left' ? 'left' : 'right';
       const iconY = side === 'left' ? topY - 14 : topY + topH + 26;
       const connectorY = side === 'left' ? topY : topY + topH;
+      const featName = String(feat && (feat.name || feat.type) || 'Feature').trim();
       svg.appendChild(makeEl('line', { x1: x, y1: connectorY, x2: x, y2: side === 'left' ? iconY + 6 : iconY - 10, stroke: '#fb8c00', 'stroke-width': 1.5 }));
-      svg.appendChild(makeEl('text', { x: x, y: iconY, 'font-size': 15, 'text-anchor': 'middle' }, iconForFeature(feat && (feat.name || feat.type))));
+      svg.appendChild(makeEl('text', { x: x, y: iconY, 'font-size': 15, 'text-anchor': 'middle' }, iconForFeature(featName)));
+      svg.appendChild(makeEl('text', { x: x, y: side === 'left' ? iconY - 20 : iconY + 20, 'font-size': 11, fill: '#fb8c00', 'text-anchor': 'middle', 'font-weight': '700' }, featName));
       svg.appendChild(makeEl('text', { x: x, y: side === 'left' ? iconY - 8 : iconY + 12, 'font-size': 9, fill: '#455a64', 'text-anchor': 'middle' }, Math.round(distM) + 'm'));
     });
 
@@ -11421,17 +11825,28 @@
       obsGroup.appendChild(makeEl('line', { x1: baseX, y1: baseY, x2: anchorX, y2: tipY, stroke: '#ef6c00', 'stroke-width': 2.2 }));
       obsGroup.appendChild(makeEl('circle', { cx: anchorX, cy: tipY, r: 1.7, fill: '#ef6c00' }));
       drawObstacleShape_(obs && obs.type, anchorX, anchorY, dir, obsGroup);
+      const obsTypeLabel = String(obs && obs.type || 'obstacle').replace(/_/g, ' ');
+      const angleLineMidX = (baseX + anchorX) / 2;
+      const angleLineMidY = (baseY + tipY) / 2;
       obsGroup.appendChild(makeEl('text', {
-        x: anchorX,
-        y: anchorY + 18,
+        x: angleLineMidX,
+        y: angleLineMidY - 6,
+        'font-size': 9,
+        fill: '#ef6c00',
+        'text-anchor': 'middle',
+        'font-weight': '700'
+      }, rawAngle.toFixed(1) + '°'));
+      obsGroup.appendChild(makeEl('text', {
+        x: baseX,
+        y: sideY + sideH + 14,
         'font-size': 8,
         fill: '#37474f',
         'text-anchor': 'middle',
         'font-weight': '700'
-      }, Math.round(distM) + 'm • ' + rawAngle.toFixed(1) + '°'));
+      }, Math.round(distM) + 'm • ' + obsTypeLabel));
       obsGroup.appendChild(makeEl('text', {
-        x: anchorX,
-        y: anchorY + 28,
+        x: baseX,
+        y: sideY + sideH + 24,
         'font-size': 7.5,
         fill: '#546e7a',
         'text-anchor': 'middle'
@@ -11441,8 +11856,8 @@
 
     normalizedProfile.forEach(function(seg) {
       const midX = sideX + (((seg.startDistanceM + seg.endDistanceM) / 2) * scale);
-      svg.appendChild(makeEl('text', { x: midX, y: sideY + sideH + 14, 'font-size': 9, fill: '#4b4b4b', 'text-anchor': 'middle' }, (seg.slope >= 0 ? '+' : '') + seg.slope.toFixed(1) + '% / ' + Math.round(seg.distance) + 'm'));
-      svg.appendChild(makeEl('text', { x: midX, y: sideY + sideH + 25, 'font-size': 8, fill: '#6b6b6b', 'text-anchor': 'middle' }, 'start ' + Math.round(seg.startDistanceM) + 'm'));
+      svg.appendChild(makeEl('text', { x: midX, y: sideY + sideH + 40, 'font-size': 9, fill: '#4b4b4b', 'text-anchor': 'middle' }, (seg.slope >= 0 ? '+' : '') + seg.slope.toFixed(1) + '% / ' + Math.round(seg.distance) + 'm'));
+      svg.appendChild(makeEl('text', { x: midX, y: sideY + sideH + 50, 'font-size': 8, fill: '#6b6b6b', 'text-anchor': 'middle' }, 'start ' + Math.round(seg.startDistanceM) + 'm'));
     });
 
     body.appendChild(summary);

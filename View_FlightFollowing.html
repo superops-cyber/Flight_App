@@ -51,6 +51,23 @@
 
   .ff-btn-primary:hover { background: #1976d2; }
 
+  .ff-btn-muted {
+    background: #455a64;
+    color: #fff;
+    border: 1px solid #607d8b;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .ff-btn-muted:hover {
+    background: #546e7a;
+  }
+
   .ff-body {
     flex: 1;
     overflow: hidden;
@@ -142,6 +159,47 @@
     box-shadow: 0 2px 4px rgba(12, 43, 58, 0.08);
     padding: 12px;
     min-height: 50vh;
+    position: relative;
+  }
+
+  #ff-container.ff-two-up .ff-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #ff-container.ff-two-up .ff-list-pane {
+    display: none;
+  }
+
+  #ff-container.ff-two-up .ff-detail-pane {
+    grid-column: 1 / -1;
+  }
+
+  .ff-detail-split-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: start;
+  }
+
+  .ff-flight-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid #90a4ae;
+    background: #eceff1;
+    color: #263238;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  .ff-flight-close-btn:hover {
+    background: #cfd8dc;
   }
 
   #ff-container.ff-standalone {
@@ -161,6 +219,67 @@
 
   #ff-container.ff-standalone .ff-detail-pane {
     height: 100%;
+  }
+
+  #ff-container.ff-immersive {
+    position: fixed;
+    inset: 0;
+    z-index: 4200;
+    background: #0f1720;
+  }
+
+  #ff-container.ff-immersive .ff-toolbar {
+    display: none;
+  }
+
+  #ff-container.ff-immersive .ff-body {
+    height: 100vh;
+    padding: 6px;
+  }
+
+  #ff-container.ff-immersive .ff-layout {
+    grid-template-columns: minmax(340px, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  #ff-container.ff-immersive.ff-two-up .ff-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #ff-container.ff-immersive .ff-pane-head {
+    display: none;
+  }
+
+  #ff-container.ff-immersive .ff-detail-scroll {
+    padding: 8px;
+  }
+
+  #ff-container.ff-immersive .ff-focus-card {
+    min-height: calc(100vh - 28px);
+  }
+
+  .ff-exit-immersive {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 4300;
+    display: none;
+    background: rgba(12, 30, 46, 0.92);
+    color: #fff;
+    border: 1px solid rgba(144, 202, 249, 0.55);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+
+  #ff-container.ff-immersive .ff-exit-immersive {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .ff-focus-title {
@@ -550,22 +669,6 @@
     height: 220px;
     background: #0c1118;
   }
-  .ff-sat-label {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    z-index: 500;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background: rgba(7, 14, 24, 0.8);
-    color: #d9e7f5;
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    pointer-events: auto;
-    cursor: pointer;
-  }
   .ff-sat-empty {
     height: 220px;
     display: flex;
@@ -944,6 +1047,10 @@
     .ff-focus-grid-mid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
     .ff-map-content-grid { grid-template-columns: 1fr; }
     .ff-map-primary-col { border-right: none; border-bottom: 1px solid #b3c5d4; }
+
+    #ff-container.ff-immersive .ff-layout { grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.15fr); }
+    #ff-container.ff-immersive .ff-list-pane { max-height: none; }
+    .ff-detail-split-grid { grid-template-columns: 1fr; }
   }
 
   /* ── NOAA GOES-16 WX Overlay controls ─────────────────────────────────── */
@@ -1013,10 +1120,13 @@
 </style>
 
 <div id="ff-container">
+  <button class="ff-exit-immersive" type="button" onclick="ffExitImmersiveMode()">Exit split</button>
   <div class="ff-toolbar">
     <label class="ff-toolbar-label">FLIGHT FOLLOW</label>
     <button class="ff-btn-primary" onclick="ffLoadFlights()">ATUALIZAR LISTA</button>
     <button class="ff-btn-primary" onclick="ffToggleAllFlights()">LIMPAR SELECAO</button>
+    <button class="ff-btn-primary" onclick="ffStartImmersiveSplitMode()">SPLIT FULL</button>
+    <button class="ff-btn-muted" onclick="ffShowVersion()">VERSION</button>
   </div>
 
   <div class="ff-body">
@@ -1047,6 +1157,9 @@
 
 <script>
 (function() {
+  var FF_UI_VERSION = 'FF-UI 2026-05-14.01';
+  var FF_UI_LOADED_AT_ISO = new Date().toISOString();
+
   var state = {
     aircraft: [],
     airports: [],
@@ -1055,6 +1168,7 @@
     missionsByReg: {},
     activeFlights: new Set(),
     selectedFlightKey: '',
+    watchFlightKeys: [],
     pendingOpenKey: '',
     standaloneMode: false,
     messagesByReg: {},
@@ -1072,6 +1186,7 @@
     breadcrumbLastTsByKey: {}, // key -> last recorded sample timestamp (ms)
     mapFollowByKey: {},     // key -> true/false (default true)
     satMapsByKey: {},       // key -> L.map instance (satellite-only pane)
+    satRouteLayersByKey: {}, // key -> L.layerGroup instance (sat route overlay)
     routeEditsByKey: {}     // key -> [{ fix, eta, ata, fl }]
   };
   var _ffPollTimer = null;
@@ -1165,6 +1280,90 @@
     return yyyy + '-' + mm + '-' + dd + ' ' + _ffFormatZuluTime_(timestamp);
   }
 
+  window.ffShowVersion = function() {
+    var lines = [
+      'Flight Following UI',
+      'Version: ' + FF_UI_VERSION,
+      'Loaded (browser): ' + _ffFormatZuluStamp_(FF_UI_LOADED_AT_ISO),
+      'URL: ' + String(window.location.href || '')
+    ];
+    var message = lines.join('\n');
+    if (window.M && typeof M.toast === 'function') {
+      M.toast({ html: 'FF version: ' + FF_UI_VERSION + ' | Loaded: ' + _ffFormatZuluStamp_(FF_UI_LOADED_AT_ISO), classes: 'blue darken-2', displayLength: 7000 });
+    }
+    window.alert(message);
+  };
+
+  function _ffGetContainer_() {
+    return document.getElementById('ff-container');
+  }
+
+  function _ffSyncTwoUpClass_() {
+    var host = _ffGetContainer_();
+    if (!host) return;
+    if ((state.watchFlightKeys || []).length >= 2) host.classList.add('ff-two-up');
+    else host.classList.remove('ff-two-up');
+  }
+
+  function _ffSetImmersiveClass_(enabled) {
+    var host = _ffGetContainer_();
+    if (!host) return;
+    if (enabled) host.classList.add('ff-immersive');
+    else host.classList.remove('ff-immersive');
+  }
+
+  function _ffIsFullscreen_() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  }
+
+  function _ffRequestFullscreen_(el) {
+    var target = el || document.documentElement;
+    if (target.requestFullscreen) return target.requestFullscreen();
+    if (target.webkitRequestFullscreen) return target.webkitRequestFullscreen();
+    if (target.msRequestFullscreen) return target.msRequestFullscreen();
+    return null;
+  }
+
+  function _ffExitFullscreen_() {
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    if (document.msExitFullscreen) return document.msExitFullscreen();
+    return null;
+  }
+
+  function _ffEnterImmersiveSplitMode_(opts) {
+    var options = opts || {};
+    _ffSetImmersiveClass_(true);
+    if (options.tryFullscreen === false) return;
+
+    var host = _ffGetContainer_();
+    var req = null;
+    try {
+      req = _ffRequestFullscreen_(host || document.documentElement);
+    } catch (e) {
+      req = null;
+    }
+
+    if (req && typeof req.catch === 'function') {
+      req.catch(function() {
+        // Keep immersive app layout even if browser blocks fullscreen.
+      });
+    }
+  }
+
+  window.ffExitImmersiveMode = function() {
+    _ffSetImmersiveClass_(false);
+    _ffExitFullscreen_();
+  };
+
+  window.ffStartImmersiveSplitMode = function() {
+    if (!state.selectedFlightKey) {
+      if (window.M) M.toast({ html: 'Selecione um voo primeiro.', classes: 'orange', displayLength: 2400 });
+      return;
+    }
+    _ffEnterImmersiveSplitMode_({ tryFullscreen: true });
+  };
+
   function _ffPreviewText_(msg) {
     var raw = String(msg && (msg.previewText || msg.text) || '');
     var cleaned = _ffOperationalMessageText_(raw);
@@ -1204,8 +1403,17 @@
     state.standaloneMode = params.get('ffStandalone') === '1';
     state.pendingOpenKey = String(params.get('ffKey') || '').trim();
     var host = document.getElementById('ff-container');
-    if (host && state.standaloneMode) host.classList.add('ff-standalone');
+    if (host && state.standaloneMode) {
+      host.classList.add('ff-standalone');
+      host.classList.add('ff-immersive');
+    }
   }
+
+  document.addEventListener('fullscreenchange', function() {
+    if (_ffIsFullscreen_()) return;
+    if (state.standaloneMode) return;
+    _ffSetImmersiveClass_(false);
+  });
 
   _ffApplyStandaloneMode_();
   loadAircraftAndMissions();
@@ -1659,11 +1867,49 @@
     var mapEl = document.getElementById('ff-sat-map-' + sreg);
     if (!mapEl) return null;
     var satMap = L.map('ff-sat-map-' + sreg, { zoomControl: true, attributionControl: false });
+    if (satMap.zoomControl && typeof satMap.zoomControl.setPosition === 'function') {
+      satMap.zoomControl.setPosition('topright');
+    }
     state.satMapsByKey[key] = satMap;
-    if (!_ffPlotMissionTrace(satMap, mission, { color: '#8ad4ff', weight: 2, opacity: 0.95, dashArray: '7 6', addEndpoints: true })) {
+    if (!_ffRenderSatRouteLayer(key, satMap, mission)) {
       satMap.setView([-3.5, -60.0], 5);
     }
     return satMap;
+  }
+
+  function _ffRenderSatRouteLayer(key, map, mission) {
+    if (!map || !window.L) return false;
+    _ffClearLayerGroup_(state.satRouteLayersByKey, key);
+
+    var routePoints = _ffBuildRoutePoints_(mission || {});
+    var latlngs = routePoints.map(function(p) { return [Number(p.lat), Number(p.lon)]; })
+      .filter(function(ll) { return isFinite(ll[0]) && isFinite(ll[1]); });
+
+    if (!latlngs.length) {
+      return _ffPlotMissionTrace(map, mission, {
+        color: '#ffeb3b',
+        weight: 3,
+        opacity: 0.98,
+        dashArray: '8 5',
+        addEndpoints: true
+      });
+    }
+
+    var layer = L.layerGroup();
+    if (latlngs.length >= 2) {
+      L.polyline(latlngs, { color: '#ffffff', weight: 7, opacity: 0.82, dashArray: '8 5' }).addTo(layer);
+      L.polyline(latlngs, { color: '#ffeb3b', weight: 3, opacity: 0.98, dashArray: '8 5' }).addTo(layer);
+    }
+
+    var first = latlngs[0];
+    var last = latlngs[latlngs.length - 1];
+    L.circleMarker(first, { radius: 4, color: '#ffffff', weight: 2, fillColor: '#00e676', fillOpacity: 0.98 }).addTo(layer);
+    L.circleMarker(last, { radius: 4, color: '#ffffff', weight: 2, fillColor: '#ff5252', fillOpacity: 0.98 }).addTo(layer);
+
+    layer.addTo(map);
+    state.satRouteLayersByKey[key] = layer;
+    map.fitBounds(L.latLngBounds(latlngs), { padding: [20, 20] });
+    return true;
   }
 
   function _ffPushBreadcrumbPoint(key, map, pos) {
@@ -1942,8 +2188,8 @@
 
     host.innerHTML = '<table class="ff-list-table"><thead><tr><th>Aeronave</th><th>Data</th><th>Rota</th><th>Flight ID</th><th>Piloto</th></tr></thead><tbody>' +
       rows.map(function(r) {
-        var isActive = r.key === state.selectedFlightKey;
-        return '<tr class="ff-list-row' + (isActive ? ' active' : '') + '" onclick="ffOpenFlight(\'' + esc(r.key) + '\')">' +
+        var isActive = (state.watchFlightKeys || []).indexOf(r.key) >= 0;
+        return '<tr class="ff-list-row' + (isActive ? ' active' : '') + '" onclick="ffOpenFlight(\'' + esc(r.key) + '\', true)">' +
           '<td>' + esc(r.reg) + '</td>' +
           '<td>' + esc(r.dateLabel || '--') + '</td>' +
           '<td>' + esc(r.route) + '</td>' +
@@ -1963,14 +2209,28 @@
     }
   }
 
-  window.ffOpenFlight = function(key) {
-    state.selectedFlightKey = String(key || '');
-    state.activeFlights = new Set();
-    if (state.selectedFlightKey) state.activeFlights.add(state.selectedFlightKey);
+  window.ffOpenFlight = function(key, fromUserGesture) {
+    var normalizedKey = String(key || '').trim();
+    if (!normalizedKey) return;
+    state.selectedFlightKey = normalizedKey;
+
+    var watched = Array.isArray(state.watchFlightKeys) ? state.watchFlightKeys.slice() : [];
+    if (watched.indexOf(normalizedKey) < 0) watched.push(normalizedKey);
+    while (watched.length > 2) watched.shift();
+    state.watchFlightKeys = watched;
+    state.activeFlights = new Set(watched);
+
+    if (fromUserGesture) {
+      _ffEnterImmersiveSplitMode_({ tryFullscreen: true });
+    }
+
+    _ffSyncTwoUpClass_();
     renderFlightList();
     renderSelectedFlight();
-    var reg = state.selectedFlightKey.split('|')[0] || '';
-    if (reg) loadMessages(reg);
+    watched.forEach(function(k) {
+      var reg = String(k || '').split('|')[0] || '';
+      if (reg) loadMessages(reg);
+    });
     loadSyncMetadata();
     _ffPollLivePositions();
   };
@@ -1997,33 +2257,71 @@
   window.ffToggleAllFlights = function() {
     state.activeFlights = new Set();
     state.selectedFlightKey = '';
+    state.watchFlightKeys = [];
+    _ffSyncTwoUpClass_();
     renderFlightList();
     renderSelectedFlight();
+  };
+
+  window.ffCloseFlightFromWatch = function(key) {
+    var k = String(key || '').trim();
+    if (!k) return;
+    var watched = (state.watchFlightKeys || []).filter(function(item) { return String(item || '') !== k; });
+    state.watchFlightKeys = watched;
+    state.activeFlights = new Set(watched);
+    if (state.selectedFlightKey === k) {
+      state.selectedFlightKey = watched.length ? watched[watched.length - 1] : '';
+    }
+    _ffSyncTwoUpClass_();
+    renderFlightList();
+    renderSelectedFlight();
+    loadSyncMetadata();
+    _ffPollLivePositions();
   };
 
   function renderSelectedFlight() {
     var host = document.getElementById('ff-detail-host');
     if (!host) return;
-    if (!state.selectedFlightKey) {
+    var watched = Array.isArray(state.watchFlightKeys) ? state.watchFlightKeys.slice() : [];
+    if (!watched.length && state.selectedFlightKey) watched = [state.selectedFlightKey];
+
+    if (!watched.length) {
       host.innerHTML = '<div class="ff-empty-state">Selecione um voo na lista para abrir o painel de acompanhamento.</div>';
       return;
     }
 
-    var parts = state.selectedFlightKey.split('|');
-    var reg = parts[0] || '';
-    var flightLegId = parts[1] || '';
-    var acft = state.aircraft.find(function(a) { return a.reg === reg; }) || { reg: reg, type: '' };
-    var mission = (state.missionsByReg[reg] || []).find(function(m) {
-      return String(m && (m.flightLegId || m.missionId) || '') === String(flightLegId || '');
-    }) || null;
-    if (!mission) {
+    var cards = [];
+    var mapInitTargets = [];
+    watched.forEach(function(flightKeyValue) {
+      var parts = String(flightKeyValue || '').split('|');
+      var reg = parts[0] || '';
+      var flightLegId = parts[1] || '';
+      var acft = state.aircraft.find(function(a) { return a.reg === reg; }) || { reg: reg, type: '' };
+      var mission = (state.missionsByReg[reg] || []).find(function(m) {
+        return String(m && (m.flightLegId || m.missionId) || '') === String(flightLegId || '');
+      }) || null;
+      if (!mission) return;
+      cards.push(buildFocusCard(acft, mission, {
+        watchKey: flightKeyValue,
+        showClose: watched.length >= 2
+      }));
+      mapInitTargets.push({ key: flightKeyValue, reg: reg, mission: mission });
+    });
+
+    if (!cards.length) {
       host.innerHTML = '<div class="ff-empty-state">Dados do voo ainda carregando. Tente novamente em alguns segundos.</div>';
       return;
     }
-    host.innerHTML = buildFocusCard(acft, mission);
+
+    host.innerHTML = watched.length >= 2
+      ? '<div class="ff-detail-split-grid">' + cards.join('') + '</div>'
+      : cards[0];
+
     setTimeout(function() {
-      _ffInitMap(state.selectedFlightKey, reg, mission);
-      renderMessages(reg);
+      mapInitTargets.forEach(function(target) {
+        _ffInitMap(target.key, target.reg, target.mission);
+        renderMessages(target.reg);
+      });
     }, 80);
   }
 
@@ -2036,10 +2334,11 @@
     return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
   }
 
-  function buildFocusCard(acft, mission) {
+  function buildFocusCard(acft, mission, options) {
+    var opts = options || {};
     var reg = String(acft && acft.reg || '').trim();
     var sreg = safeId(reg);
-    var key = flightKey(reg, mission && (mission.flightLegId || mission.missionId) || '');
+    var key = String(opts.watchKey || flightKey(reg, mission && (mission.flightLegId || mission.missionId) || '')).trim();
     var burnLph = Number(acft && (acft.burnLph || acft.burn) || 0);
     var fuelL = Number(mission && mission.fuelL || 0);
     var range = (burnLph > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burnLph) : '--:--';
@@ -2048,7 +2347,11 @@
     var planCode = mission && mission.noPlan ? 'NO PLAN' : String(mission && mission.planId || '--').trim();
     var roleText = String(mission && mission.copilot || '').trim() || 'Sem co-piloto/aluno';
     var pob = 1 + (Array.isArray(mission && mission.pax) ? mission.pax.length : 0);
+    var closeBtn = opts.showClose
+      ? '<button class="ff-flight-close-btn" type="button" onclick="ffCloseFlightFromWatch(\'' + esc(key) + '\')" title="Close this flight">&times;</button>'
+      : '';
     return '<div class="ff-focus-card">' +
+      closeBtn +
       '<h3 class="ff-focus-title">' + esc(reg) + ' | Missao ' + esc(String(mission.missionId || '--')) + ' | ' + esc((mission.from || '--') + ' - ' + (mission.to || '--')) + '</h3>' +
       '<div class="ff-focus-grid-top">' +
         ffFieldReadonly_('Piloto', mission.pilot || '--') +
@@ -2105,7 +2408,6 @@
             '</div>' +
           '</div>' +
           '<div class="ff-sat-wrap" id="ff-sat-wrap-' + sreg + '">' +
-            '<div class="ff-sat-label" id="ff-sat-label-' + sreg + '" onclick="ffWxCycleLayer(\'' + key + '\')" title="Click to switch Visible / Infrared">Visible</div>' +
             '<div class="ff-sat-map" id="ff-sat-map-' + sreg + '"></div>' +
             '<div class="ff-sat-empty" id="ff-sat-empty-' + sreg + '">Satellite weather frames load here.<br>Use Visible / Infrared and Play when needed.</div>' +
           '</div>' +
@@ -2288,7 +2590,6 @@
               '</div>' +
             '</div>' +
             '<div class="ff-sat-wrap" id="ff-sat-wrap-' + sreg + '">' +
-              '<div class="ff-sat-label" id="ff-sat-label-' + sreg + '" onclick="ffWxCycleLayer(\'' + key + '\')" title="Click to switch Visible / Infrared">Visible</div>' +
               '<div class="ff-sat-map" id="ff-sat-map-' + sreg + '"></div>' +
               '<div class="ff-sat-empty" id="ff-sat-empty-' + sreg + '">Satellite weather frames load here.<br>Use Visible / Infrared and Play when needed.</div>' +
             '</div>' +
@@ -2559,6 +2860,19 @@
     return String(reg || '') + '|' + String(missionId || '');
   }
 
+  function _ffMissionFromKey_(key) {
+    var parts = String(key || '').split('|');
+    var reg = String(parts[0] || '');
+    var legOrMissionId = String(parts[1] || '');
+    if (!reg || !legOrMissionId) return null;
+    var missions = state.missionsByReg[reg] || [];
+    return missions.find(function(m) {
+      var compositeId = String((m && (m.flightLegId || m.missionId)) || '');
+      var missionId = String((m && m.missionId) || '');
+      return compositeId === legOrMissionId || missionId === legOrMissionId;
+    }) || null;
+  }
+
   function safeId(value) {
     return String(value || '').replace(/[^A-Za-z0-9]/g, '_');
   }
@@ -2620,8 +2934,11 @@
     }
     var playBtn = document.getElementById('ff-wx-play-' + sreg);
     if (playBtn) playBtn.textContent = ws.playing ? '⏸' : '▶';
-    var satLabel = document.getElementById('ff-sat-label-' + sreg);
-    if (satLabel) satLabel.textContent = ws.layerKey === 'ir' ? 'Infrared' : 'Visible';
+    var satLayerBtn = document.getElementById('ff-wx-layer-toggle-' + sreg);
+    if (satLayerBtn) {
+      satLayerBtn.textContent = ws.layerKey === 'ir' ? 'Infrared' : 'Visible';
+      satLayerBtn.title = 'Switch Visible / Infrared';
+    }
     var modeSel = document.querySelector('#ff-wx-controls-' + sreg + ' .ff-wx-select');
     if (modeSel) modeSel.value = ws.layerKey;
     var dotsEl = document.getElementById('ff-wx-dots-' + sreg);
@@ -2699,6 +3016,7 @@
     return '<div class="ff-wx-bar">' +
       '<button class="ff-wx-toggle" id="ff-wx-toggle-' + sreg + '" onclick="ffToggleWx(\'' + k + '\')">SAT &#9729;</button>' +
       '<span class="ff-wx-controls" id="ff-wx-controls-' + sreg + '" style="display:none;">' +
+        '<button class="ff-wx-btn" id="ff-wx-layer-toggle-' + sreg + '" onclick="ffWxCycleLayer(\'' + k + '\')">Visible</button>' +
         '<button class="ff-wx-btn" id="ff-wx-play-' + sreg + '" onclick="ffWxPlayPause(\'' + k + '\')">&#9654;</button>' +
         '<button class="ff-wx-btn" onclick="ffWxStep(\'' + k + '\',-1)">&#9664;</button>' +
         '<button class="ff-wx-btn" onclick="ffWxStep(\'' + k + '\',1)">&#9654;&#9654;</button>' +
@@ -2727,7 +3045,7 @@
     if (ws.enabled) {
       ws.frames   = _ffWxBuildTimes(8, 10);
       ws.frameIdx = ws.frames.length - 1;
-      ws.mission  = (state.missionsByReg[key.split('|')[0]] || []).find(function(m) { return m.missionId === key.split('|')[1]; }) || null;
+      ws.mission  = _ffMissionFromKey_(key);
       if (btn)      { btn.classList.add('active'); btn.innerHTML = 'SAT &#9729; ON'; }
       if (controls) controls.style.display = '';
       if (satWrap) satWrap.classList.add('active');

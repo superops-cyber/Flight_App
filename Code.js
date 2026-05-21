@@ -828,6 +828,70 @@ FIXED: CALENDAR EVENTS (Uses Column G for Route)
 
 
 
+function _safeParseJsonObject_(raw) {
+  if (raw === null || raw === undefined || raw === '') return {};
+  if (typeof raw === 'object') return raw;
+  try {
+    var parsed = JSON.parse(String(raw));
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function _extractMissionDescriptionFromRaw_(raw) {
+  var parsed = _safeParseJsonObject_(raw);
+  var direct = String((parsed && parsed.flightDescription) || '').trim();
+  if (direct) return direct;
+  var topMeta = parsed && parsed.missionMeta && typeof parsed.missionMeta === 'object' ? parsed.missionMeta : {};
+  var metaDesc = String(topMeta.flightDescription || '').trim();
+  if (metaDesc) return metaDesc;
+  var legs = (parsed && Array.isArray(parsed.legs)) ? parsed.legs : [];
+  if (legs.length) {
+    var firstLeg = legs[0] || {};
+    var legDesc = String(firstLeg.flightDescription || '').trim();
+    if (legDesc) return legDesc;
+    var legMeta = (firstLeg.meta && typeof firstLeg.meta === 'object') ? firstLeg.meta : {};
+    var legMetaDesc = String(legMeta.flightDescription || '').trim();
+    if (legMetaDesc) return legMetaDesc;
+  }
+  return '';
+}
+
+function _extractMissionCommunicationsFromRaw_(raw) {
+  var parsed = _safeParseJsonObject_(raw);
+  var collected = [];
+  var pushUnique = function(item) {
+    if (!item || typeof item !== 'object') return;
+    var id = String(item.requestId || item.id || '').trim();
+    if (!id) id = String(item.createdAt || '') + '|' + String(item.type || '') + '|' + String(item.legIndex || '');
+    if (!id) return;
+    if (collected.some(function(existing) { return String(existing.requestId || existing.id || '') === id; })) return;
+    var normalized = Object.assign({}, item);
+    normalized.requestId = id;
+    normalized.type = String(normalized.type || 'SUPERVISOR_NOTE').trim().toUpperCase();
+    normalized.status = String(normalized.status || 'OPEN').trim().toUpperCase();
+    normalized.message = String(normalized.message || '').trim();
+    normalized.createdAt = String(normalized.createdAt || new Date().toISOString());
+    var idx = Number(normalized.legIndex);
+    normalized.legIndex = isFinite(idx) ? idx : -1;
+    normalized.to = String(normalized.to || '').trim().toUpperCase();
+    normalized.from = String(normalized.from || '').trim().toUpperCase();
+    collected.push(normalized);
+  };
+
+  if (parsed && Array.isArray(parsed.communicationRequests)) parsed.communicationRequests.forEach(pushUnique);
+  if (parsed && parsed.missionMeta && Array.isArray(parsed.missionMeta.communicationRequests)) parsed.missionMeta.communicationRequests.forEach(pushUnique);
+  if (parsed && Array.isArray(parsed.legs)) {
+    parsed.legs.forEach(function(leg) {
+      if (!leg || typeof leg !== 'object') return;
+      if (Array.isArray(leg.communicationRequests)) leg.communicationRequests.forEach(pushUnique);
+      if (leg.meta && Array.isArray(leg.meta.communicationRequests)) leg.meta.communicationRequests.forEach(pushUnique);
+    });
+  }
+  return collected;
+}
+
 function getCalendarEvents() {
 const ss = SpreadsheetApp.getActiveSpreadsheet();
 const dispSheet = getRequiredSheet_(ss, APP_SHEETS.DISPATCH, "getCalendarEvents");
@@ -862,12 +926,16 @@ for (let i = 1; i < data.length; i++) {
  const mId = row[DISPATCH_COL.MISSION_ID];
  if (!mId) continue;
   if (!missions[mId]) {
+     const flightDescription = _extractMissionDescriptionFromRaw_(row[DISPATCH_COL.RAW_DATA]);
+     const communicationRequests = _extractMissionCommunicationsFromRaw_(row[DISPATCH_COL.RAW_DATA]);
    missions[mId] = {
      id: mId,
      date: row[DISPATCH_COL.DATE],
      acft: row[DISPATCH_COL.AIRCRAFT],
      pilot: row[DISPATCH_COL.PILOT],
      status: row[DISPATCH_COL.STATUS],
+       flightDescription: flightDescription,
+       communicationRequests: communicationRequests,
      legs: []
    };
  }
@@ -1050,6 +1118,8 @@ Object.values(missions).forEach(m => {
      pilot: String(m.pilot || '').trim() ? String(m.pilot).trim().split(' ')[0] : 'PILOT TBD',
      fullPilot: String(m.pilot || '').trim() || 'PILOT TBD',
      route: routeDisplay, // Correct String now (e.g. "SDRM - SBBV")
+     flightDescription: String(m.flightDescription || '').trim(),
+     communicationRequests: Array.isArray(m.communicationRequests) ? m.communicationRequests : [],
      takeoff: "08:00",
      fltTime: totalFlt.toFixed(1),
      dutyTime: (totalFlt + 1.5).toFixed(1)
@@ -1238,6 +1308,8 @@ function saveMission(data) {
    copilot: data.copilot,
    type: data.type,
    notes: data.notes,
+   flightDescription: String(data.flightDescription || '').trim(),
+   communicationRequests: Array.isArray(data.communicationRequests) ? data.communicationRequests : [],
    training: (data && data.training && typeof data.training === 'object') ? data.training : null
  };
 
@@ -1324,13 +1396,33 @@ function saveMission(data) {
      to: toIcao || (routeTokens.length ? routeTokens[routeTokens.length - 1] : ''),
      route: routeCol,
      waypoints: routeTokens.length ? routeTokens : (leg && leg.waypoints),
+     flightDescription: header.flightDescription,
+     communicationRequests: Array.isArray(leg && leg.communicationRequests)
+       ? leg.communicationRequests
+       : (Array.isArray(header.communicationRequests) ? header.communicationRequests : []),
      training: header.training ? { ...header.training } : null
    };
 
    const singleLegWrapper = JSON.stringify({
-     legs: [{ ...normalizedLeg, missionTime: header.time, meta: { time: header.time, type: header.type, training: header.training || null } }],
+     legs: [{
+       ...normalizedLeg,
+       missionTime: header.time,
+       meta: {
+         time: header.time,
+         type: header.type,
+         training: header.training || null,
+         flightDescription: header.flightDescription,
+         communicationRequests: Array.isArray(normalizedLeg.communicationRequests) ? normalizedLeg.communicationRequests : []
+       }
+     }],
      time: header.time,
      type: header.type,
+     flightDescription: header.flightDescription,
+     communicationRequests: Array.isArray(header.communicationRequests) ? header.communicationRequests : [],
+     missionMeta: {
+       flightDescription: header.flightDescription,
+       communicationRequests: Array.isArray(header.communicationRequests) ? header.communicationRequests : []
+     },
      training: header.training || null
    });
 
@@ -2022,6 +2114,8 @@ if (missionRows.length === 0) throw new Error("Mission not found: " + missionId)
 
 
 const mainRow = missionRows[0];
+const missionFlightDescription = _extractMissionDescriptionFromRaw_(mainRow[DISPATCH_COL.RAW_DATA]);
+const missionCommunicationRequests = _extractMissionCommunicationsFromRaw_(mainRow[DISPATCH_COL.RAW_DATA]);
 // 2. Safe Date handling
 let rawDate = mainRow[DISPATCH_COL.DATE];
 let dateStr = (rawDate instanceof Date) ? rawDate.toISOString().split('T')[0] : String(rawDate);
@@ -2068,7 +2162,9 @@ meta: {
  acft: String(mainRow[DISPATCH_COL.AIRCRAFT]),
  pilot: String(mainRow[DISPATCH_COL.PILOT]),
  copilot: String(mainRow[DISPATCH_COL.COPILOT]),
- notes: String(mainRow[DISPATCH_COL.NOTES] || "")
+ notes: String(mainRow[DISPATCH_COL.NOTES] || ""),
+ flightDescription: missionFlightDescription,
+ communicationRequests: missionCommunicationRequests
 },
 // 3. PARSING LEGS WITH WAYPOINTS
 legs: missionRows.map((r) => {
@@ -2206,6 +2302,12 @@ legs: missionRows.map((r) => {
    limitType: legPayload.limitType || "",
    isOver: legPayload.isOver || false,
      missionTime: legPayload.missionTime || "08:00",
+     flightDescription: String(legPayload.flightDescription || (legPayload.meta && legPayload.meta.flightDescription) || missionFlightDescription || '').trim(),
+     communicationRequests: Array.isArray(legPayload.communicationRequests)
+       ? legPayload.communicationRequests
+       : (Array.isArray(legPayload.meta && legPayload.meta.communicationRequests)
+         ? legPayload.meta.communicationRequests
+         : missionCommunicationRequests),
      runwayGap: runwayGap
  };
 })
@@ -2253,6 +2355,67 @@ mission: missionData,
 timeline: timeline,
 authorizedAirports: authString
 };
+}
+
+function addSupervisorMissionRequest(missionId, payload) {
+  const missionKey = String(missionId || '').trim();
+  if (!missionKey) throw new Error('missionId is required');
+  if (!payload || typeof payload !== 'object') throw new Error('payload is required');
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dispatchSheet = getRequiredSheet_(ss, APP_SHEETS.DISPATCH, 'addSupervisorMissionRequest');
+  const data = dispatchSheet.getDataRange().getValues();
+  if (!data || data.length < 2) throw new Error('Dispatch sheet is empty');
+
+  const request = {
+    requestId: String(payload.requestId || ('REQ-' + missionKey + '-' + Date.now())).trim(),
+    type: String(payload.type || 'SURVEY_RUNWAY').trim().toUpperCase(),
+    status: String(payload.status || 'OPEN').trim().toUpperCase(),
+    createdAt: String(payload.createdAt || new Date().toISOString()),
+    createdBy: String(payload.createdBy || Session.getActiveUser().getEmail() || 'supervisor').trim(),
+    message: String(payload.message || '').trim(),
+    from: String(payload.from || '').trim().toUpperCase(),
+    to: String(payload.to || '').trim().toUpperCase(),
+    missionId: missionKey,
+    flightLegId: String(payload.flightLegId || '').trim(),
+    legIndex: Number.isFinite(Number(payload.legIndex)) ? Number(payload.legIndex) : -1
+  };
+
+  let updatedRows = 0;
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (String(row[DISPATCH_COL.MISSION_ID] || '').trim() !== missionKey) continue;
+
+    const parsed = _safeParseJsonObject_(row[DISPATCH_COL.RAW_DATA] || '{}');
+    const existing = _extractMissionCommunicationsFromRaw_(parsed);
+    const exists = existing.some(function(entry) {
+      return String(entry.requestId || '').trim() === request.requestId;
+    });
+    if (!exists) existing.push(request);
+
+    if (!Array.isArray(parsed.legs) || !parsed.legs.length) parsed.legs = [{}];
+    const targetIdx = (request.legIndex >= 0 && request.legIndex < parsed.legs.length) ? request.legIndex : 0;
+    const legPayload = parsed.legs[targetIdx] && typeof parsed.legs[targetIdx] === 'object' ? parsed.legs[targetIdx] : {};
+    const legExisting = Array.isArray(legPayload.communicationRequests) ? legPayload.communicationRequests.slice() : [];
+    if (!legExisting.some(function(entry) { return String(entry.requestId || '').trim() === request.requestId; })) {
+      legExisting.push(request);
+    }
+    legPayload.communicationRequests = legExisting;
+    if (!legPayload.meta || typeof legPayload.meta !== 'object') legPayload.meta = {};
+    legPayload.meta.communicationRequests = legExisting;
+    parsed.legs[targetIdx] = legPayload;
+
+    parsed.communicationRequests = existing;
+    if (!parsed.missionMeta || typeof parsed.missionMeta !== 'object') parsed.missionMeta = {};
+    parsed.missionMeta.communicationRequests = existing;
+
+    dispatchSheet.getRange(i + 1, DISPATCH_COL.RAW_DATA + 1).setValue(JSON.stringify(parsed));
+    updatedRows++;
+  }
+
+  if (!updatedRows) throw new Error('Mission not found: ' + missionKey);
+  invalidateScheduledMissionsCache_();
+  return { success: true, missionId: missionKey, requestId: request.requestId, rowsUpdated: updatedRows };
 }
 
 function _supervisorBuildAirportLookup_() {
@@ -3185,16 +3348,15 @@ function scheduleRunwayCheckFromSupervisor(payload, approvalPassword) {
   var description = lessonName || ('Cheque de Pista: ' + runwayTargets.join('; ') + ' | ' + routeTokens[0] + ' -> ' + routeTokens[routeTokens.length - 1]);
   var requiredHours = isNaN(flightTime) || flightTime <= 0 ? 1 : Math.max(0.7, flightTime);
 
-  var stops = routeTokens.map(function(loc, idx) {
+  var stops = runwayTargets.map(function(loc, idx) {
     var upperLoc = String(loc || '').trim().toUpperCase();
-    var isLanding = runwayTargets.indexOf(upperLoc) >= 0;
     return {
       sequence: idx + 1,
       location: upperLoc,
-      landingType: isLanding ? 'FULL_STOP' : 'NONE',
+      landingType: 'FULL_STOP',
       breakStop: false,
       notes: '',
-      landings: isLanding ? 1 : 0,
+      landings: 1,
       touchAndGos: 0
     };
   });
@@ -3239,7 +3401,9 @@ function scheduleRunwayCheckFromSupervisor(payload, approvalPassword) {
     requiredBallast: 0,
     route: syllabusPayload.ROUTE,
     plannedLandings: Math.max(1, runwayTargets.length),
-    runwayCheckout: runwayTargets.join(';')
+    runwayCheckout: runwayTargets.join(';'),
+    student: studentName,
+    instructor: instructorName
   };
 
   missionRowIndexes.forEach(function(idx) {
@@ -3517,6 +3681,68 @@ function _dutyNormalizePilotName_(pilotName) {
   return String(pilotName || '').trim();
 }
 
+function _dutyPilotNorm_(value) {
+  var text = String(value || '').trim().toUpperCase();
+  if (!text) return '';
+  try {
+    text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  } catch (e) {}
+  // Normalize separators so email local parts (e.g. SUPER.OPS) can match names (SUPER OPS).
+  return text
+    .replace(/[@._-]+/g, ' ')
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function _dutyPilotKeys_(value) {
+  var keys = {};
+  var raw = String(value || '').trim().toUpperCase();
+  if (raw) {
+    try {
+      raw = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    } catch (e) {}
+  }
+
+  var norm = _dutyPilotNorm_(raw);
+  if (norm) {
+    keys[norm] = true;
+    keys[norm.replace(/\s+/g, '')] = true;
+  }
+
+  var emailMatch = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/);
+  var email = emailMatch ? String(emailMatch[0] || '').trim() : '';
+  if (email) {
+    keys[email] = true;
+    var local = String(email.split('@')[0] || '').trim();
+    if (local) {
+      keys[local] = true;
+      var localNorm = _dutyPilotNorm_(local);
+      if (localNorm) {
+        keys[localNorm] = true;
+        keys[localNorm.replace(/\s+/g, '')] = true;
+      }
+    }
+  }
+  return Object.keys(keys);
+}
+
+function _dutyPilotLikelySame_(a, b) {
+  var aa = _dutyPilotKeys_(a);
+  var bb = _dutyPilotKeys_(b);
+  if (!aa.length || !bb.length) return false;
+  for (var i = 0; i < aa.length; i++) {
+    if (bb.indexOf(aa[i]) >= 0) return true;
+  }
+  var aNorm = _dutyPilotNorm_(a);
+  var bNorm = _dutyPilotNorm_(b);
+  if (aNorm && bNorm) {
+    if (aNorm.length >= 6 && bNorm.indexOf(aNorm) >= 0) return true;
+    if (bNorm.length >= 6 && aNorm.indexOf(bNorm) >= 0) return true;
+  }
+  return false;
+}
+
 function _dutyYmd_(value) {
   const d = (value instanceof Date) ? value : new Date(value || '');
   if (isNaN(d.getTime())) return '';
@@ -3561,7 +3787,7 @@ function _dutyDailyFlightSummary_(ss, pilotName, ymd) {
     funds: [],
     summaryLine: ''
   };
-  const pilotTarget = _dutyNormalizePilotName_(pilotName).toUpperCase();
+  const pilotTarget = _dutyNormalizePilotName_(pilotName);
   if (!pilotTarget || !ymd) return summary;
 
   const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
@@ -3570,10 +3796,40 @@ function _dutyDailyFlightSummary_(ss, pilotName, ymd) {
     if (logData && logData.length > 1) {
       for (let i = 1; i < logData.length; i++) {
         const row = logData[i];
-        const rowPilot = String(row[LOG_FLIGHT_COL.PILOT] || '').trim().toUpperCase();
-        if (!rowPilot || rowPilot !== pilotTarget) continue;
+        const rowPilot = String(row[LOG_FLIGHT_COL.PILOT] || '').trim();
         const rowDateYmd = _dutyYmd_(row[LOG_FLIGHT_COL.DATE]);
         if (rowDateYmd !== ymd) continue;
+
+        let isMatchingFlight = false;
+        
+        // Check if pilot name matches
+        if (rowPilot && _dutyPilotLikelySame_(rowPilot, pilotTarget)) {
+          isMatchingFlight = true;
+        }
+        
+        // Also check co-pilot/student names in Actual_Load_JSON
+        if (!isMatchingFlight) {
+          try {
+            const loadJsonRaw = String(row[LOG_FLIGHT_COL.ACTUAL_LOAD_JSON] || '').trim();
+            if (loadJsonRaw) {
+              const loadJson = JSON.parse(loadJsonRaw);
+              if (loadJson && loadJson.seats && typeof loadJson.seats === 'object') {
+                for (const seatKey in loadJson.seats) {
+                  const seat = loadJson.seats[seatKey];
+                  if (seat && seat.passenger && seat.passenger.name) {
+                    const passengerName = String(seat.passenger.name || '').trim();
+                    if (passengerName && _dutyPilotLikelySame_(passengerName, pilotTarget)) {
+                      isMatchingFlight = true;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+        }
+        
+        if (!isMatchingFlight) continue;
 
         const flightId = String(row[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
         const acft = String(row[LOG_FLIGHT_COL.ACFT] || '').trim().toUpperCase();
@@ -3833,12 +4089,15 @@ function _toolsDutyContext_() {
 
 function _toolsDutyCanAccessPilot_(ctx, pilotNameRaw) {
   if (ctx && ctx.canManageAll) return true;
-  var pilotName = String(pilotNameRaw || '').trim().toUpperCase();
+  if (ctx && ctx.canManageConfig) return true;
+  var pilotName = String(pilotNameRaw || '').trim();
   if (!pilotName) return false;
   var me = (ctx && ctx.me) || null;
-  var myName = String((me && me.staffName) || '').trim().toUpperCase();
-  var myEmail = String((me && me.email) || (ctx && ctx.userEmail) || '').trim().toUpperCase();
-  return !!pilotName && (pilotName === myName || pilotName === myEmail);
+  var myName = String((me && me.staffName) || '').trim();
+  var myEmail = String((me && me.email) || (ctx && ctx.userEmail) || '').trim();
+  if (_dutyPilotLikelySame_(pilotName, myName)) return true;
+  if (_dutyPilotLikelySame_(pilotName, myEmail)) return true;
+  return false;
 }
 
 function _toolsDutyConfigDefaults_() {
@@ -4089,17 +4348,30 @@ function getToolsDutyLogs(payload) {
     }
 
     var out = [];
+    var dutyDayByPilotDate = {};
+    var pilotNamesByUpper = {};
     var dailyFlightCache = {};
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       var pilot = String(row[DUTY_LOG_COL.PILOT] || '').trim();
       if (!_toolsDutyCanAccessPilot_(ctx, pilot)) continue;
+      // If pilot was stored as an email, resolve to canonical staff name so flight matching works.
+      if (pilot.indexOf('@') >= 0) {
+        var resolvedForFlight = _toolsFindStaffByEmailOrId_(ctx.staffRows, pilot, '');
+        if (resolvedForFlight && resolvedForFlight.staffName) pilot = resolvedForFlight.staffName;
+      }
 
       var dateYmd = _dutyYmd_(row[DUTY_LOG_COL.DATE]);
       if (!dateYmd) continue;
       if (fromYmd && dateYmd < fromYmd) continue;
       if (toYmd && dateYmd > toYmd) continue;
       if (pilotFilter && String(pilot || '').trim().toUpperCase().indexOf(pilotFilter) < 0) continue;
+
+      var pilotUpper = _dutyPilotNorm_(pilot);
+      if (!pilotUpper) continue;
+      var dayKey = pilotUpper + '|' + dateYmd;
+      dutyDayByPilotDate[dayKey] = true;
+      if (!pilotNamesByUpper[pilotUpper]) pilotNamesByUpper[pilotUpper] = pilot;
 
       var status = String(row[DUTY_LOG_COL.TITLE] || '').trim();
       var summaryText = String(row[DUTY_LOG_COL.DESC_FALLBACK] || '').trim();
@@ -4135,6 +4407,87 @@ function getToolsDutyLogs(payload) {
         flightSummary: String(dailyFlight.summaryLine || '').trim(),
         flights: Array.isArray(dailyFlight.flights) ? dailyFlight.flights : []
       });
+    }
+
+    // Add synthetic rows for days with flights but no duty log entry yet.
+    var flightSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+    if (flightSheet) {
+      var flightData = flightSheet.getDataRange().getValues();
+      if (flightData && flightData.length > 1) {
+        for (var j = 1; j < flightData.length; j++) {
+          var flightRow = flightData[j];
+          var flightPilot = String(flightRow[LOG_FLIGHT_COL.PILOT] || '').trim();
+          var flightDateYmd = _dutyYmd_(flightRow[LOG_FLIGHT_COL.DATE]);
+          if (!flightDateYmd) continue;
+          if (fromYmd && flightDateYmd < fromYmd) continue;
+          if (toYmd && flightDateYmd > toYmd) continue;
+
+          var matchingCrewName = '';
+          var matchingCrewUpper = '';
+          
+          // Check if pilot matches
+          if (flightPilot && _toolsDutyCanAccessPilot_(ctx, flightPilot)) {
+            matchingCrewName = flightPilot;
+            matchingCrewUpper = _dutyPilotNorm_(flightPilot);
+          }
+          
+          // Also check co-pilot/student names in Actual_Load_JSON
+          if (!matchingCrewName) {
+            try {
+              var loadJsonRaw = String(flightRow[LOG_FLIGHT_COL.ACTUAL_LOAD_JSON] || '').trim();
+              if (loadJsonRaw) {
+                var loadJson = JSON.parse(loadJsonRaw);
+                if (loadJson && loadJson.seats && typeof loadJson.seats === 'object') {
+                  for (var seatKey in loadJson.seats) {
+                    var seat = loadJson.seats[seatKey];
+                    if (seat && seat.passenger && seat.passenger.name) {
+                      var passengerName = String(seat.passenger.name || '').trim();
+                      if (passengerName && _toolsDutyCanAccessPilot_(ctx, passengerName)) {
+                        matchingCrewName = passengerName;
+                        matchingCrewUpper = _dutyPilotNorm_(passengerName);
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (e) {}
+          }
+          
+          if (!matchingCrewName || !matchingCrewUpper) continue;
+          if (pilotFilter && matchingCrewUpper.indexOf(pilotFilter.toUpperCase()) < 0) continue;
+
+          var flightDayKey = matchingCrewUpper + '|' + flightDateYmd;
+          if (dutyDayByPilotDate[flightDayKey]) continue;
+
+          if (!pilotNamesByUpper[matchingCrewUpper]) pilotNamesByUpper[matchingCrewUpper] = matchingCrewName;
+          if (!dailyFlightCache[flightDayKey]) {
+            dailyFlightCache[flightDayKey] = _dutyDailyFlightSummary_(ss, pilotNamesByUpper[matchingCrewUpper], flightDateYmd);
+          }
+          var dailyFlightSynthetic = dailyFlightCache[flightDayKey] || {};
+          var syntheticFlights = Array.isArray(dailyFlightSynthetic.flights) ? dailyFlightSynthetic.flights : [];
+          var derivedSyntheticHrs = Number(dailyFlightSynthetic.totalFlightHours || 0);
+          if (!syntheticFlights.length) continue;
+
+          dutyDayByPilotDate[flightDayKey] = true;
+          out.push({
+            rowNumber: 0,
+            dateYmd: flightDateYmd,
+            pilotName: pilotNamesByUpper[matchingCrewUpper] || matchingCrewName,
+            status: 'FLIGHT_ONLY',
+            startTime: '',
+            endTime: '',
+            flightHours: (isFinite(derivedSyntheticHrs) && derivedSyntheticHrs > 0) ? String(Number(derivedSyntheticHrs.toFixed(2))) : '',
+            storedFlightHours: '',
+            derivedFlightHours: (isFinite(derivedSyntheticHrs) && derivedSyntheticHrs > 0) ? Number(derivedSyntheticHrs.toFixed(2)) : 0,
+            description: 'Sem jornada registrada. Voo(s) encontrado(s) no dia.',
+            summaryText: String(dailyFlightSynthetic.summaryLine || '').trim(),
+            updatedAt: '',
+            flightSummary: String(dailyFlightSynthetic.summaryLine || '').trim(),
+            flights: syntheticFlights
+          });
+        }
+      }
     }
 
     out.sort(function(a, b) {
@@ -4229,13 +4582,62 @@ function _dutyAppTodayBsb_() {
   return Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
 }
 
+function _dutyLooksLikeEmail_(value) {
+  return /@/.test(String(value || '').trim());
+}
+
+function _dutyLookupPilotNameByEmail_(emailRaw) {
+  var email = String(emailRaw || '').trim().toLowerCase();
+  if (!email) return '';
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(APP_SHEETS.PILOTS);
+    if (!sh) return '';
+    var data = sh.getDataRange().getValues();
+    if (!data || data.length < 2) return '';
+    var headers = data[0] || [];
+    var nameIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_NAME', 'PILOT', 'NAME', 'STAFF_NAME', 'NOME']);
+    var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_EMAIL', 'EMAIL', 'E_MAIL']);
+    if (nameIdx < 0 || emailIdx < 0) return '';
+    for (var i = 1; i < data.length; i++) {
+      var rowEmail = String(data[i][emailIdx] || '').trim().toLowerCase();
+      if (!rowEmail || rowEmail !== email) continue;
+      var rowName = String(data[i][nameIdx] || '').trim();
+      if (rowName && !_dutyLooksLikeEmail_(rowName)) return rowName;
+    }
+  } catch (e) {}
+  return '';
+}
+
+function _dutyResolvePilotDisplayName_(ctx, requestedRaw) {
+  var requested = _dutyNormalizePilotName_(requestedRaw);
+  if (requested && !_dutyLooksLikeEmail_(requested)) return requested;
+
+  var me = (ctx && ctx.me) || null;
+  var meName = _dutyNormalizePilotName_(me && me.staffName);
+  if (meName && !_dutyLooksLikeEmail_(meName)) return meName;
+
+  var requestedEmail = _dutyLooksLikeEmail_(requested) ? requested : '';
+  var userEmail = _dutyNormalizePilotName_((ctx && ctx.userEmail) || '');
+  var emailToLookup = requestedEmail || userEmail;
+
+  var fromPilots = _dutyLookupPilotNameByEmail_(emailToLookup);
+  if (fromPilots) return fromPilots;
+
+  var fromStaffByUser = _toolsFindStaffByEmailOrId_((ctx && ctx.staffRows) || [], userEmail, '');
+  var fromStaffName = _dutyNormalizePilotName_(fromStaffByUser && fromStaffByUser.staffName);
+  if (fromStaffName && !_dutyLooksLikeEmail_(fromStaffName)) return fromStaffName;
+
+  var fromStaffByReq = _toolsFindStaffByEmailOrId_((ctx && ctx.staffRows) || [], requestedEmail, '');
+  var fromReqName = _dutyNormalizePilotName_(fromStaffByReq && fromStaffByReq.staffName);
+  if (fromReqName && !_dutyLooksLikeEmail_(fromReqName)) return fromReqName;
+
+  return requested || userEmail;
+}
+
 function _dutyAppResolvePilotAccess_(pilotNameRaw) {
   var ctx = _toolsDutyContext_();
-  var resolvedPilot = _dutyNormalizePilotName_(pilotNameRaw);
-
-  if (!resolvedPilot) {
-    resolvedPilot = _dutyNormalizePilotName_((ctx.me && ctx.me.staffName) || ctx.userEmail || '');
-  }
+  var resolvedPilot = _dutyResolvePilotDisplayName_(ctx, pilotNameRaw);
 
   if (!resolvedPilot) {
     return {
@@ -4298,7 +4700,7 @@ function getDutyAppBootstrap(payload) {
       success: true,
       currentUser: {
         email: String(access.ctx.userEmail || '').trim().toLowerCase(),
-        staffName: String((access.ctx.me && access.ctx.me.staffName) || '').trim(),
+        staffName: String((access.ctx.me && access.ctx.me.staffName) || access.pilotName || '').trim(),
         staffId: String((access.ctx.me && access.ctx.me.staffId) || '').trim()
       },
       canManageAll: !!access.ctx.canManageAll,
@@ -4463,11 +4865,14 @@ const DISPATCH_RANGE_COL = {
  AIRCRAFT: DISPATCH_COL.AIRCRAFT - 1,
  PILOT: DISPATCH_COL.PILOT - 1,
  ROUTE: DISPATCH_COL.ROUTE - 1,
+ RAW_DATA: DISPATCH_COL.RAW_DATA - 1,
  STATUS: DISPATCH_COL.STATUS - 1
 };
 
 const flownStatuses_ = { FLOWN: true, COMPLETE: true, COMPLETED: true };
 const completedLegMap_ = {};
+const departedLegMap_ = {};
+const dispatchLegStateMap_ = {};
 try {
   const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
   if (logSheet) {
@@ -4476,9 +4881,11 @@ try {
       const lr = logRows[li];
       const legId = String(lr[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
       if (!legId) continue;
+      const released = lr[LOG_FLIGHT_COL.BRAKES_RELEASE];
       const landed = lr[LOG_FLIGHT_COL.LANDED];
       const onBlocks = lr[LOG_FLIGHT_COL.ON_BLOCKS];
       const brakesApplied = lr[LOG_FLIGHT_COL.BRAKES_APPLIED];
+      if (released) departedLegMap_[legId] = true;
       if (landed || onBlocks || brakesApplied) completedLegMap_[legId] = true;
     }
   }
@@ -4514,6 +4921,8 @@ for (let i = 0; i < data.length; i++) {
      acft: row[DISPATCH_RANGE_COL.AIRCRAFT],
      pilot: row[DISPATCH_RANGE_COL.PILOT],
      status: row[DISPATCH_RANGE_COL.STATUS],
+     flightDescription: _extractMissionDescriptionFromRaw_(row[DISPATCH_RANGE_COL.RAW_DATA]),
+     communicationRequests: _extractMissionCommunicationsFromRaw_(row[DISPATCH_RANGE_COL.RAW_DATA]),
      routeStops: [],
      flightLegIds: []
    };
@@ -4594,6 +5003,8 @@ const result = Object.values(missions).map(m => {
     acft: m.acft,
     pilot: m.pilot,
     status: effectiveStatus,
+    flightDescription: String(m.flightDescription || '').trim(),
+    communicationRequests: Array.isArray(m.communicationRequests) ? m.communicationRequests : [],
     legsFlown: legsFlown,
     legCount: legCount,
     from: fromIcao,
@@ -5774,6 +6185,7 @@ function _toolsSheetNameFromKind_(kind) {
   if (k === 'fuelcaches' || k === 'fuel-cache' || k === 'fuel_caches') return APP_SHEETS.FUEL_CACHES;
   if (k === 'contacts' || k === 'fuelcontacts' || k === 'fuel-contacts' || k === 'fuel_contacts') return APP_SHEETS.CONTACTS || 'DB_Contacts';
   if (k === 'syllabus' || k === 'training' || k === 'ref_syllabus') return APP_SHEETS.SYLLABUS;
+  if (k === 'maneuvers' || k === 'ref_maneuvers') return APP_SHEETS.MANEUVERS || 'Ref_Maneuvers';
   if (k === 'schedcoverage' || k === 'sched_coverage' || k === 'scheduler_coverage') return APP_SHEETS.SCHED_COVERAGE_RULES || 'SCHED_Coverage_Requirements';
   if (k === 'schedcompat' || k === 'sched_compat' || k === 'scheduler_compat') return APP_SHEETS.SCHED_ROLE_COMPAT || 'SCHED_Role_Compatibility';
   if (k === 'schedconfig' || k === 'sched_config' || k === 'scheduler_config') return APP_SHEETS.SCHED_CONFIG || 'SCHED_Config';
@@ -5810,6 +6222,101 @@ function getToolsSheetHeaders(kind) {
     return { success: true, kind: String(kind || ''), sheetName: sheetName, headers: headers };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getToolsSyllabusRecords() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = APP_SHEETS.SYLLABUS || 'Plano de Aula';
+    var sh = getRequiredSheet_(ss, sheetName, 'getToolsSyllabusRecords');
+    var headerRow = _toolsSheetHeaderRow_(sh);
+    var lastRow = sh.getLastRow();
+    if (lastRow < 2) {
+      return { success: true, records: [] };
+    }
+    var width = Math.max(1, sh.getLastColumn());
+    var data = sh.getRange(2, 1, lastRow - 1, width).getValues();
+    var records = data.map(function(row, idx) {
+      var payload = _toolsRowPayloadFromHeaders_(headerRow, row);
+      return {
+        code: String(payload[_toolsNormHeader_('TRAINING_CODE')] || '').trim(),
+        description: String(payload[_toolsNormHeader_('DESCRIPTION')] || '').trim(),
+        rowNumber: idx + 2
+      };
+    }).filter(function(r) { return !!r.code; });
+    return { success: true, records: records };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e), records: [] };
+  }
+}
+
+function getToolsSheetRecordByKey(kind, keyHeader, keyValue) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = _toolsSheetNameFromKind_(kind);
+    var sh = getRequiredSheet_(ss, sheetName, 'getToolsSheetRecordByKey');
+    var headerRow = _toolsSheetHeaderRow_(sh);
+    var keyNorm = _toolsNormHeader_(keyHeader);
+    var keyIdx = -1;
+    for (var i = 0; i < headerRow.length; i++) {
+      if (_toolsNormHeader_(headerRow[i]) === keyNorm) {
+        keyIdx = i;
+        break;
+      }
+    }
+    if (keyIdx < 0) {
+      return {
+        success: false,
+        found: false,
+        error: 'Header not found: ' + String(keyHeader || ''),
+        sheetName: sheetName
+      };
+    }
+
+    var target = _toolsNormalizeKeyValue_(keyValue);
+    if (!target) {
+      return {
+        success: true,
+        found: false,
+        sheetName: sheetName
+      };
+    }
+
+    var lastRow = sh.getLastRow();
+    if (lastRow < 2) {
+      return {
+        success: true,
+        found: false,
+        sheetName: sheetName
+      };
+    }
+
+    var width = Math.max(1, sh.getLastColumn());
+    var data = sh.getRange(2, 1, lastRow - 1, width).getValues();
+    for (var r = 0; r < data.length; r++) {
+      var candidate = _toolsNormalizeKeyValue_(data[r][keyIdx]);
+      if (candidate !== target) continue;
+      return {
+        success: true,
+        found: true,
+        sheetName: sheetName,
+        rowNumber: r + 2,
+        payload: _toolsRowPayloadFromHeaders_(headerRow, data[r])
+      };
+    }
+
+    return {
+      success: true,
+      found: false,
+      sheetName: sheetName
+    };
+  } catch (e) {
+    return {
+      success: false,
+      found: false,
+      error: e && e.message ? e.message : String(e)
+    };
   }
 }
 
@@ -6671,9 +7178,18 @@ if (missionRows.length === 0) return null;
 
 
 const mainRow = missionRows[0];
+const staffRows = _toolsLoadStaffRows_();
+const resolveCrewName_ = function(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return '';
+  const match = _toolsFindStaffByEmailOrId_(staffRows, text, '');
+  return String((match && match.staffName) || text).trim();
+};
+const resolvedPilot = resolveCrewName_(mainRow[DISPATCH_COL.PILOT]);
+const resolvedCopilot = resolveCrewName_(mainRow[DISPATCH_COL.COPILOT] || '');
 
-
-
+const missionFlightDescription = _extractMissionDescriptionFromRaw_(mainRow[DISPATCH_COL.RAW_DATA]);
+const missionCommunicationRequests = _extractMissionCommunicationsFromRaw_(mainRow[DISPATCH_COL.RAW_DATA]);
 
 // 2. Safe Date handling
 let rawDate = mainRow[DISPATCH_COL.DATE];
@@ -6688,15 +7204,17 @@ const missionData = {
   id: mainRow[DISPATCH_COL.MISSION_ID],
   date: dateStr,
   acft: String(mainRow[DISPATCH_COL.AIRCRAFT]),
-  pilot: String(mainRow[DISPATCH_COL.PILOT]),
+  pilot: resolvedPilot,
   status: mainRow[DISPATCH_COL.STATUS] ? mainRow[DISPATCH_COL.STATUS].toString().toUpperCase() : "PENDING",
   meta: {
     date: dateStr,
     acft: String(mainRow[DISPATCH_COL.AIRCRAFT]),
-    pilot: String(mainRow[DISPATCH_COL.PILOT]),
-    copilot: String(mainRow[DISPATCH_COL.COPILOT] || ""),
+    pilot: resolvedPilot,
+    copilot: resolvedCopilot,
     type: String(mainRow[DISPATCH_COL.TYPE] || ""),
     notes: String(mainRow[DISPATCH_COL.NOTES] || ""),
+    flightDescription: missionFlightDescription,
+    communicationRequests: missionCommunicationRequests,
     training: null
   },
   // 4. Parse legs
@@ -6707,6 +7225,27 @@ const missionData = {
       if (json.legs && Array.isArray(json.legs)) legPayload = json.legs[0];
       else legPayload = json;
     } catch (e) { legPayload = {}; }
+
+    const resolvedTraining = (legPayload.training && typeof legPayload.training === 'object')
+      ? Object.assign({}, legPayload.training, {
+          student: resolveCrewName_(legPayload.training.student || ''),
+          instructor: resolveCrewName_(legPayload.training.instructor || '')
+        })
+      : ((legPayload.meta && legPayload.meta.training && typeof legPayload.meta.training === 'object')
+        ? Object.assign({}, legPayload.meta.training, {
+            student: resolveCrewName_(legPayload.meta.training.student || ''),
+            instructor: resolveCrewName_(legPayload.meta.training.instructor || '')
+          })
+        : null);
+
+    const resolvedPax = Array.isArray(legPayload.pax)
+      ? legPayload.pax.map(function(p) {
+          if (!p || typeof p !== 'object') return p;
+          var out = Object.assign({}, p);
+          if (out.name) out.name = resolveCrewName_(out.name);
+          return out;
+        })
+      : (legPayload.pax || []);
 
 
 
@@ -6732,11 +7271,17 @@ const missionData = {
       payload: safeNum(legPayload.payload, 0),
       availPayload: safeNum(legPayload.availPayload, 0),
       limit: safeNum(legPayload.limit, 0),
-      pax: legPayload.pax || [],
+      pax: resolvedPax,
       limitType: legPayload.limitType || "",
       isOver: legPayload.isOver || false,
       missionTime: legPayload.missionTime || "08:00",
-      training: legPayload.training || (legPayload.meta && legPayload.meta.training) || null,
+      flightDescription: String(legPayload.flightDescription || (legPayload.meta && legPayload.meta.flightDescription) || missionFlightDescription || "").trim(),
+      communicationRequests: Array.isArray(legPayload.communicationRequests)
+        ? legPayload.communicationRequests
+        : (Array.isArray(legPayload.meta && legPayload.meta.communicationRequests)
+          ? legPayload.meta.communicationRequests
+          : missionCommunicationRequests),
+      training: resolvedTraining,
       logStatus: 'PENDING',  // enriched below
       bracesRelease: null,
       onBlocks: null
@@ -6803,6 +7348,241 @@ function getFuelLogsForMission(missionId) {
     flightLegId: String(row[FUEL_LOG_COL.FLIGHT_ID])
   }));
 }
+
+function _lessonEvalHeaders_() {
+  return [
+    'EVAL_ID',
+    'MISSION_ID',
+    'TRAINING_CODE',
+    'PILOT',
+    'AIRCRAFT',
+    'MISSION_DATE',
+    'STATUS',
+    'RESULT',
+    'RESULT_AT',
+    'SUBMITTED_AT',
+    'SOURCE_TAB',
+    'SCORES_JSON',
+    'NOTES_JSON',
+    'UPDATED_AT',
+    'UPDATED_BY',
+    'CREATED_AT',
+    'CREATED_BY'
+  ];
+}
+
+function _lessonEvalSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = APP_SHEETS.FLIGHT_LESSON_EVALS || 'DB_Flight_Lesson_Evals';
+  return _schemaEnsureSheetHeaders_(ss, sheetName, _lessonEvalHeaders_()).sheet;
+}
+
+function _lessonEvalHeaderMap_(headers) {
+  var out = {};
+  (headers || []).forEach(function(h, i) {
+    out[String(h || '').trim().toUpperCase()] = i;
+  });
+  return out;
+}
+
+function _lessonEvalJsonSafe_(raw, fallback) {
+  if (raw == null || raw === '') return fallback;
+  try {
+    var parsed = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    return parsed == null ? fallback : parsed;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function _lessonEvalActor_() {
+  try {
+    var email = String(Session.getActiveUser().getEmail() || '').trim();
+    if (email) return email;
+  } catch (e0) {}
+  try {
+    var fallback = String(Session.getEffectiveUser().getEmail() || '').trim();
+    if (fallback) return fallback;
+  } catch (e1) {}
+  return 'system';
+}
+
+function savePilotLessonEvaluation(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var missionId = String(body.missionId || '').trim();
+    var trainingCode = String(body.trainingCode || '').trim();
+    if (!missionId || !trainingCode) {
+      throw new Error('savePilotLessonEvaluation: missionId and trainingCode are required');
+    }
+
+    var sheet = _lessonEvalSheet_();
+    var data = sheet.getDataRange().getValues();
+    var headers = (data && data.length ? data[0] : _lessonEvalHeaders_()).map(function(h) { return String(h || '').trim(); });
+    var map = _lessonEvalHeaderMap_(headers);
+
+    var now = new Date();
+    var actor = _lessonEvalActor_();
+    var hasScores = Object.prototype.hasOwnProperty.call(body, 'scores');
+    var hasNotes = Object.prototype.hasOwnProperty.call(body, 'notes');
+    var scores = (body.scores && typeof body.scores === 'object') ? body.scores : {};
+    var notes = (body.notes && typeof body.notes === 'object') ? body.notes : {};
+
+    var targetRow = 0;
+    var missionIdx = map.MISSION_ID;
+    var codeIdx = map.TRAINING_CODE;
+    if (missionIdx >= 0 && codeIdx >= 0) {
+      for (var r = data.length - 1; r >= 1; r--) {
+        var rowMission = String(data[r][missionIdx] || '').trim();
+        var rowCode = String(data[r][codeIdx] || '').trim();
+        if (rowMission === missionId && rowCode === trainingCode) {
+          targetRow = r + 1;
+          break;
+        }
+      }
+    }
+
+    var row = new Array(headers.length).fill('');
+    if (targetRow > 0) {
+      row = sheet.getRange(targetRow, 1, 1, headers.length).getValues()[0];
+    }
+
+    if (map.EVAL_ID >= 0 && !String(row[map.EVAL_ID] || '').trim()) row[map.EVAL_ID] = Utilities.getUuid();
+    if (map.MISSION_ID >= 0) row[map.MISSION_ID] = missionId;
+    if (map.TRAINING_CODE >= 0) row[map.TRAINING_CODE] = trainingCode;
+    if (map.PILOT >= 0) row[map.PILOT] = String(body.pilot || '').trim();
+    if (map.AIRCRAFT >= 0) row[map.AIRCRAFT] = String(body.aircraft || '').trim();
+    if (map.MISSION_DATE >= 0) row[map.MISSION_DATE] = String(body.missionDate || '').trim();
+    if (map.SOURCE_TAB >= 0) row[map.SOURCE_TAB] = String(body.sourceTab || 'PILOT_LESSON_MODAL').trim();
+    if (hasScores && map.SCORES_JSON >= 0) row[map.SCORES_JSON] = JSON.stringify(scores || {});
+    if (hasNotes && map.NOTES_JSON >= 0) row[map.NOTES_JSON] = JSON.stringify(notes || {});
+    var newStatus = String(body.status || '').trim().toUpperCase();
+    if (newStatus && map.STATUS >= 0) row[map.STATUS] = newStatus;
+    var newResult = String(body.result || '').trim().toUpperCase();
+    if (newResult && map.RESULT >= 0) row[map.RESULT] = newResult;
+    if (newResult && map.RESULT_AT >= 0) row[map.RESULT_AT] = body.resultAt || now;
+    if (newStatus === 'SUBMITTED' && map.SUBMITTED_AT >= 0 && !row[map.SUBMITTED_AT]) row[map.SUBMITTED_AT] = now;
+    if (map.UPDATED_AT >= 0) row[map.UPDATED_AT] = now;
+    if (map.UPDATED_BY >= 0) row[map.UPDATED_BY] = actor;
+    if (map.CREATED_AT >= 0 && !row[map.CREATED_AT]) row[map.CREATED_AT] = now;
+    if (map.CREATED_BY >= 0 && !String(row[map.CREATED_BY] || '').trim()) row[map.CREATED_BY] = actor;
+
+    if (targetRow > 0) {
+      sheet.getRange(targetRow, 1, 1, headers.length).setValues([row]);
+    } else {
+      sheet.appendRow(row);
+      targetRow = sheet.getLastRow();
+    }
+
+    return {
+      success: true,
+      missionId: missionId,
+      trainingCode: trainingCode,
+      rowNumber: targetRow,
+      updatedAt: now.toISOString()
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getPilotLessonEvaluation(missionId, trainingCode) {
+  try {
+    var targetMission = String(missionId || '').trim();
+    var targetCode = String(trainingCode || '').trim();
+    if (!targetMission || !targetCode) return { success: true, found: false, payload: null };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = APP_SHEETS.FLIGHT_LESSON_EVALS || 'DB_Flight_Lesson_Evals';
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return { success: true, found: false, payload: null };
+
+    var data = sheet.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: true, found: false, payload: null };
+    var headers = data[0].map(function(h) { return String(h || '').trim(); });
+    var map = _lessonEvalHeaderMap_(headers);
+    if (map.MISSION_ID < 0 || map.TRAINING_CODE < 0) return { success: true, found: false, payload: null };
+
+    var hit = null;
+    for (var r = data.length - 1; r >= 1; r--) {
+      var row = data[r];
+      if (String(row[map.MISSION_ID] || '').trim() !== targetMission) continue;
+      if (String(row[map.TRAINING_CODE] || '').trim() !== targetCode) continue;
+      hit = row;
+      break;
+    }
+    if (!hit) return { success: true, found: false, payload: null };
+
+    return {
+      success: true,
+      found: true,
+      payload: {
+        missionId: targetMission,
+        trainingCode: targetCode,
+        scores: _lessonEvalJsonSafe_(map.SCORES_JSON >= 0 ? hit[map.SCORES_JSON] : '', {}),
+        notes: _lessonEvalJsonSafe_(map.NOTES_JSON >= 0 ? hit[map.NOTES_JSON] : '', {}),
+        pilot: map.PILOT >= 0 ? String(hit[map.PILOT] || '') : '',
+        aircraft: map.AIRCRAFT >= 0 ? String(hit[map.AIRCRAFT] || '') : '',
+        missionDate: map.MISSION_DATE >= 0 ? String(hit[map.MISSION_DATE] || '') : '',
+        result: map.RESULT >= 0 ? String(hit[map.RESULT] || '') : '',
+        resultAt: map.RESULT_AT >= 0 ? hit[map.RESULT_AT] : '',
+        sourceTab: map.SOURCE_TAB >= 0 ? String(hit[map.SOURCE_TAB] || '') : '',
+        updatedAt: map.UPDATED_AT >= 0 ? hit[map.UPDATED_AT] : ''
+      }
+    };
+  } catch (e) {
+    return { success: false, found: false, error: e && e.message ? e.message : String(e), payload: null };
+  }
+}
+
+function commitPilotLessonEvaluation(payload) {
+  var body = Object.assign({}, (payload && typeof payload === 'object') ? payload : {});
+  body.status = 'SUBMITTED';
+  return savePilotLessonEvaluation(body);
+}
+
+function getLessonEvalHistory(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var pilotFilter = String(body.pilot || '').trim().toLowerCase();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(APP_SHEETS.FLIGHT_LESSON_EVALS || 'DB_Flight_Lesson_Evals');
+    if (!sh) return { success: true, records: [] };
+    var data = sh.getDataRange().getValues();
+    if (data.length < 2) return { success: true, records: [] };
+    var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
+    var map = _lessonEvalHeaderMap_(headers);
+    var out = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var pilotVal = map.PILOT >= 0 ? String(row[map.PILOT] || '').trim() : '';
+      if (pilotFilter && pilotVal.toLowerCase() !== pilotFilter && pilotVal.toLowerCase().indexOf(pilotFilter) < 0) continue;
+      out.push({
+        rowNumber:    i + 1,
+        evalId:       map.EVAL_ID       >= 0 ? String(row[map.EVAL_ID]       || '') : '',
+        missionId:    map.MISSION_ID    >= 0 ? String(row[map.MISSION_ID]    || '') : '',
+        trainingCode: map.TRAINING_CODE >= 0 ? String(row[map.TRAINING_CODE] || '') : '',
+        pilot:        pilotVal,
+        aircraft:     map.AIRCRAFT      >= 0 ? String(row[map.AIRCRAFT]      || '') : '',
+        missionDate:  map.MISSION_DATE  >= 0 ? String(row[map.MISSION_DATE]  || '') : '',
+        status:       map.STATUS        >= 0 ? String(row[map.STATUS]        || '') : '',
+        submittedAt:  map.SUBMITTED_AT  >= 0 ? String(row[map.SUBMITTED_AT]  || '') : '',
+        scoresJson:   map.SCORES_JSON   >= 0 ? String(row[map.SCORES_JSON]   || '{}') : '{}',
+        notesJson:    map.NOTES_JSON    >= 0 ? String(row[map.NOTES_JSON]    || '{}') : '{}',
+        updatedAt:    map.UPDATED_AT    >= 0 ? String(row[map.UPDATED_AT]    || '') : ''
+      });
+    }
+    out.sort(function(a, b) {
+      var da = a.missionDate || a.updatedAt || '';
+      var db = b.missionDate || b.updatedAt || '';
+      return da > db ? -1 : da < db ? 1 : 0;
+    });
+    return { success: true, records: out };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e), records: [] };
+  }
+}
+
 function submitBriefingToLog(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
@@ -9398,11 +10178,13 @@ function _debr8AppendTrainingCheckouts_(ss, flightLegId, pilotName, trainingDebr
   const checksSheet = _pilotRunwayChecksSheet_();
   const headers = _toolsSheetHeaderRow_(checksSheet);
   const rows = checksSheet.getDataRange().getValues();
-  const normalizedPilot = String(pilotName || '').trim().toUpperCase();
+  const traineeName = String(trainingDebrief && trainingDebrief.traineeName || pilotName || '').trim();
+  const instructorName = String(trainingDebrief && trainingDebrief.instructorName || '').trim();
+  const normalizedPilot = traineeName.toUpperCase();
   const trainingCode = String(trainingDebrief && trainingDebrief.trainingCode || '').trim().toUpperCase();
   const sourceTag = 'TRAINING_CHECKOUT_DEBRIEF';
   const today = safeDateStr(new Date());
-  const staff = _debr8TrainingStaffRecord_(ss, pilotName);
+  const staff = _debr8TrainingStaffRecord_(ss, traineeName);
 
   const candidateChecks = Array.isArray(trainingDebrief && trainingDebrief.runwayChecks)
     ? trainingDebrief.runwayChecks
@@ -9433,7 +10215,7 @@ function _debr8AppendTrainingCheckouts_(ss, flightLegId, pilotName, trainingDebr
 
     const dataMap = {
       CHECK_ID: 'CHK_' + new Date().getTime() + '_' + icao,
-      PILOT_NAME: String(pilotName || '').trim(),
+      PILOT_NAME: traineeName,
       PILOT_EMAIL: staff ? String(staff.email || '').trim().toLowerCase() : '',
       STAFF_ID: staff ? String(staff.staffId || '').trim() : '',
       ICAO: icao,
@@ -9442,7 +10224,7 @@ function _debr8AppendTrainingCheckouts_(ss, flightLegId, pilotName, trainingDebr
       STATUS: 'ACTIVE',
       DATE_CHECKED: today,
       EXPIRY_DATE: '',
-      APPROVED_BY: String(pilotName || '').trim(),
+      APPROVED_BY: instructorName || traineeName,
       SOURCE: sourceTag,
       NOTES: note,
       CREATED_AT: today,
@@ -9646,8 +10428,19 @@ function recordDebriefLog(payload) {
 
   let trainingChecksAdded = 0;
   if (trainingDebrief && String(trainingDebrief.flightResult || '').trim()) {
-    const pilotName = String(payload && payload.pilotName || data[rowIdx - 1][LOG_FLIGHT_COL.PILOT] || '').trim();
-    trainingChecksAdded = _debr8AppendTrainingCheckouts_(ss, flightLegId, pilotName, trainingDebrief);
+    const logRow = data[rowIdx - 1] || [];
+    const traineeName = String(trainingDebrief.traineeName || payload && payload.pilotName || logRow[LOG_FLIGHT_COL.PILOT] || '').trim();
+    trainingChecksAdded = _debr8AppendTrainingCheckouts_(ss, flightLegId, traineeName, trainingDebrief);
+    savePilotLessonEvaluation({
+      missionId: String(payload && payload.missionId || '').trim(),
+      trainingCode: String(trainingDebrief.trainingCode || '').trim(),
+      pilot: traineeName,
+      aircraft: String(logRow[LOG_FLIGHT_COL.ACFT] || '').trim(),
+      missionDate: String(logRow[LOG_FLIGHT_COL.DATE] || '').trim(),
+      sourceTab: 'TAB8_DEBRIEF',
+      result: String(trainingDebrief.flightResult || '').trim().toUpperCase(),
+      resultAt: new Date().toISOString()
+    });
   }
 
   invalidateScheduledMissionsCache_();
@@ -10250,6 +11043,10 @@ function saveWBToLog(flightId, wbPayload) {
     wbSavedAt: new Date().toISOString()
   };
 
+  const pilotName = String(wbPayload && wbPayload.pilot || '').trim();
+  if (pilotName) {
+    logSheet.getRange(targetRow, LOG_FLIGHT_COL.PILOT + 1).setValue(pilotName);
+  }
   logSheet.getRange(targetRow, LOG_FLIGHT_COL.ACTUAL_LOAD_JSON + 1).setValue(JSON.stringify(merged));
   return true;
 }
@@ -16034,12 +16831,273 @@ function deleteToolsTrainingModule(payload) {
   }
 }
 
+function getManeuversForTools() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = APP_SHEETS.MANEUVERS || 'Ref_Maneuvers';
+    var sh = ss.getSheetByName(sheetName);
+    if (!sh) return { success: true, maneuvers: [] };
+    var data = sh.getDataRange().getValues();
+    if (data.length < 2) return { success: true, maneuvers: [] };
+    var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, ''); });
+    var idIdx   = headers.indexOf('MANEUVER_ID');
+    var nameIdx = headers.indexOf('NAME');
+    var catIdx  = headers.indexOf('CATEGORY');
+    var descIdx = headers.indexOf('DESCRIPTION');
+    var limIdx  = headers.indexOf('LIMITATIONS');
+    var refIdx  = headers.indexOf('REFERENCE');
+    var rtIdx   = headers.indexOf('REFERENCE_TYPE');
+    var actIdx  = headers.indexOf('ACTIVE');
+    var out = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var maneuverIdVal = idIdx >= 0 ? String(row[idIdx] || '').trim() : '';
+      if (!maneuverIdVal) continue;
+      out.push({
+        rowNumber:   i + 1,
+        maneuverId:  maneuverIdVal,
+        name:        nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '',
+        category:    catIdx  >= 0 ? String(row[catIdx]  || '').trim() : '',
+        description: descIdx >= 0 ? String(row[descIdx] || '').trim() : '',
+        active:      actIdx  >= 0 ? String(row[actIdx]  || '').trim().toUpperCase() !== 'N' : true
+      });
+    }
+    return { success: true, maneuvers: out };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e), maneuvers: [] };
+  }
+}
+
+function saveToolsManeuver(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var maneuverId = String(body.maneuverId || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+    var name = String(body.name || '').trim();
+    if (!maneuverId) return { success: false, error: 'Maneuver ID is required' };
+    if (!name)       return { success: false, error: 'Name is required' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetName = APP_SHEETS.MANEUVERS || 'Ref_Maneuvers';
+    var sh = ss.getSheetByName(sheetName);
+    if (!sh) {
+      sh = ss.insertSheet(sheetName);
+      sh.appendRow(['MANEUVER_ID', 'NAME', 'CATEGORY', 'DESCRIPTION', 'LIMITATIONS', 'REFERENCE', 'REFERENCE_TYPE', 'ACTIVE']);
+    }
+    var headers = _toolsSheetHeaderRow_(sh);
+    var data = sh.getDataRange().getValues();
+    var idIdx = _toolsHeaderIndexFromCandidates_(headers, ['MANEUVER_ID']);
+    var rowNumber = Number(body.rowNumber || 0);
+
+    if (rowNumber < 2 && idIdx >= 0) {
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][idIdx] || '').trim().toUpperCase() === maneuverId) {
+          rowNumber = i + 1;
+          break;
+        }
+      }
+    }
+
+    var dataMap = {
+      MANEUVER_ID:    maneuverId,
+      NAME:           name,
+      CATEGORY:       String(body.category    || '').trim().toUpperCase(),
+      DESCRIPTION:    String(body.description || '').trim(),
+      LIMITATIONS:    String(body.limitations || '').trim(),
+      REFERENCE:      String(body.reference   || '').trim(),
+      REFERENCE_TYPE: String(body.referenceType || '').trim().toUpperCase(),
+      ACTIVE:         _toolsTruthyFlag_(body.active) ? 'Y' : 'N'
+    };
+
+    if (rowNumber >= 2) {
+      var current = sh.getRange(rowNumber, 1, 1, headers.length).getValues()[0];
+      var merged = headers.map(function(header, idx) {
+        var key = _toolsNormHeader_(header);
+        return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : current[idx];
+      });
+      sh.getRange(rowNumber, 1, 1, merged.length).setValues([merged]);
+      return { success: true, action: 'updated', rowNumber: rowNumber, maneuverId: maneuverId };
+    }
+
+    var row = headers.map(function(header) {
+      var key = _toolsNormHeader_(header);
+      return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : '';
+    });
+    sh.appendRow(row);
+    return { success: true, action: 'created', rowNumber: sh.getLastRow(), maneuverId: maneuverId };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function deleteToolsManeuver(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var rowNumber = Number(body.rowNumber || 0);
+    if (rowNumber < 2) return { success: false, error: 'Invalid row number.' };
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(APP_SHEETS.MANEUVERS || 'Ref_Maneuvers');
+    if (!sh) return { success: false, error: 'Ref_Maneuvers sheet not found.' };
+    if (rowNumber > sh.getLastRow()) return { success: false, error: 'Row ' + rowNumber + ' does not exist.' };
+    sh.deleteRow(rowNumber);
+    return { success: true, action: 'deleted', rowNumber: rowNumber };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+
+function ingestLessonPlanFromPdf(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var pdfBase64 = String(body.pdfBase64 || '').trim();
+    var mimeType  = String(body.mimeType  || 'application/pdf').trim();
+    if (!pdfBase64) return { success: false, error: 'No PDF data provided.' };
+    var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+    if (!apiKey) return { success: false, error: 'GEMINI_API_KEY not configured. Add it in GAS Project Settings > Script Properties.' };
+    var prompt = [
+      'You are an aviation training expert. Extract EVERY evaluation item from this flight training form.',
+      'Return ONLY valid JSON (no markdown code blocks) with this exact structure:',
+      '{',
+      '  "lessonTitle": "full title",',
+      '  "category": "VCP or RUNWAY_CHECK or LESSON or ANAC_CHECKRIDE or INTERNAL_CHECKRIDE or ROUTE_CHECK",',
+      '  "language": "pt or en",',
+      '  "scoringScale": "description of scoring scale",',
+      '  "sections": [',
+      '    { "sectionId": "I", "sectionTitle": "name",',
+      '      "groups": [',
+      '        { "groupId": "1", "groupTitle": "name",',
+      '          "items": [',
+      '            { "name": "exact item text from the form",',
+      '              "reference": "regulatory ref e.g. MGO 5.3.4.1",',
+      '              "referenceType": "MGO or FAA_ACS or FAA_PTS or ANAC or INTERNAL or OTHER",',
+      '              "suggestedLimitations": "operational limits or empty string" }',
+      '          ] } ] } ],',
+      '  "summaryFields": ["APROVADO", "total hours"],',
+      '  "notes": ""',
+      '}',
+      'Extract EVERY single item without skipping any.'
+    ].join('\n');
+    var reqBody = {
+      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: pdfBase64 } }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+    };
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey;
+    var resp = UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json',
+                                        payload: JSON.stringify(reqBody), muteHttpExceptions: true });
+    var httpCode = resp.getResponseCode();
+    var respText = resp.getContentText();
+    if (httpCode !== 200) {
+      var errObj = {}; try { errObj = JSON.parse(respText); } catch (e2) {}
+      var msg = (errObj && errObj.error && errObj.error.message) ? errObj.error.message : respText.substring(0, 300);
+      return { success: false, error: 'Gemini API error (' + httpCode + '): ' + msg };
+    }
+    var rj = JSON.parse(respText);
+    var pts = rj && rj.candidates && rj.candidates[0] && rj.candidates[0].content && rj.candidates[0].content.parts;
+    if (!pts || !pts.length) return { success: false, error: 'No response content from Gemini.' };
+    var rawJson = String(pts[0].text || '').trim()
+      .replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
+    var extracted = JSON.parse(rawJson);
+    return { success: true, extracted: extracted };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function saveLessonPlanFromIngest(payload) {
+  try {
+    var body         = (payload && typeof payload === 'object') ? payload : {};
+    var extracted    = (body.extracted && typeof body.extracted === 'object') ? body.extracted : {};
+    var trainingCode = String(body.trainingCode || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    var aircraftType = String(body.aircraftType || '').trim().toUpperCase();
+    var description  = String(body.description  || extracted.lessonTitle || '').trim();
+    var category     = String(body.category     || extracted.category    || 'VCP').trim();
+    var saveToCatalog = body.saveToCatalog !== false;
+    if (!trainingCode) return { success: false, error: 'Training code is required.' };
+    var sections = Array.isArray(extracted.sections) ? extracted.sections : [];
+    var allItems = [];
+    sections.forEach(function(sec) {
+      (Array.isArray(sec.groups) ? sec.groups : []).forEach(function(grp) {
+        (Array.isArray(grp.items) ? grp.items : []).forEach(function(item) {
+          var nm = String(item.name || '').trim();
+          if (!nm) return;
+          allItems.push({
+            name: nm,
+            maneuverId: nm.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40),
+            category:      String(sec.sectionTitle || '').slice(0, 20),
+            groupTitle:    String(grp.groupTitle || ''),
+            reference:     String(item.reference || ''),
+            referenceType: String(item.referenceType || 'OTHER'),
+            limitations:   String(item.suggestedLimitations || item.limitations || '')
+          });
+        });
+      });
+    });
+    var savedManeuvers = 0;
+    if (saveToCatalog && allItems.length > 0) {
+      var ss2 = SpreadsheetApp.getActiveSpreadsheet();
+      var manSh = ss2.getSheetByName(APP_SHEETS.MANEUVERS || 'Ref_Maneuvers');
+      if (!manSh) {
+        manSh = ss2.insertSheet(APP_SHEETS.MANEUVERS || 'Ref_Maneuvers');
+        manSh.appendRow(['MANEUVER_ID','NAME','CATEGORY','DESCRIPTION','LIMITATIONS','REFERENCE','REFERENCE_TYPE','ACTIVE']);
+      }
+      var mHdrs = _toolsSheetHeaderRow_(manSh);
+      var mData = manSh.getDataRange().getValues();
+      var mIdIdx = _toolsHeaderIndexFromCandidates_(mHdrs, ['MANEUVER_ID']);
+      var existIds = {};
+      for (var ri = 1; ri < mData.length; ri++) {
+        var eid = mIdIdx >= 0 ? String(mData[ri][mIdIdx] || '').trim().toUpperCase() : '';
+        if (eid) existIds[eid] = true;
+      }
+      var newRows = [];
+      allItems.forEach(function(item) {
+        if (!item.maneuverId || existIds[item.maneuverId]) return;
+        existIds[item.maneuverId] = true;
+        var dm = { MANEUVER_ID: item.maneuverId, NAME: item.name, CATEGORY: item.category,
+                   DESCRIPTION: item.groupTitle, LIMITATIONS: item.limitations,
+                   REFERENCE: item.reference, REFERENCE_TYPE: item.referenceType, ACTIVE: 'Y' };
+        newRows.push(mHdrs.map(function(h) {
+          var k = _toolsNormHeader_(h);
+          return Object.prototype.hasOwnProperty.call(dm, k) ? dm[k] : '';
+        }));
+        savedManeuvers++;
+      });
+      if (newRows.length > 0) {
+        manSh.getRange(manSh.getLastRow() + 1, 1, newRows.length, mHdrs.length).setValues(newRows);
+      }
+    }
+    var maneuverIds = []; var seen = {};
+    allItems.forEach(function(i) {
+      if (i.maneuverId && !seen[i.maneuverId]) { seen[i.maneuverId] = true; maneuverIds.push(i.maneuverId); }
+    });
+    var planEnvelope = {
+      version: 4, category: category, advisoryOnly: false,
+      scoringScale: String(extracted.scoringScale || '0-4'),
+      structured: true, sections: sections,
+      stops: [], maneuvers: maneuverIds.slice(0, 60), customManeuvers: []
+    };
+    var syllabusPayload = {
+      TRAINING_CODE: trainingCode, AIRCRAFT_TYPE: aircraftType, DESCRIPTION: description,
+      LESSON_PLAN_JSON: JSON.stringify(planEnvelope),
+      MANEUVERS_JSON: JSON.stringify({ maneuvers: maneuverIds, customManeuvers: [] })
+    };
+    var syllabusRes = addToolsSheetRecord('syllabus', syllabusPayload);
+    if (!syllabusRes || !syllabusRes.success) {
+      return { success: false, error: (syllabusRes && syllabusRes.error) || 'Failed to save to Ref_Syllabus.' };
+    }
+    return { success: true, trainingCode: trainingCode, itemCount: allItems.length,
+             savedManeuvers: savedManeuvers, syllabusRowNumber: Number(syllabusRes.rowNumber || 0) };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 function _toolsFindStaffByEmailOrId_(staffRows, staffEmail, staffId) {
   var email = String(staffEmail || '').trim().toLowerCase();
   var sid = String(staffId || '').trim();
   for (var i = 0; i < staffRows.length; i++) {
     var row = staffRows[i] || {};
-    if (email && String(row.email || '').trim().toLowerCase() === email) return row;
+    var rowEmail = String(row.email || '').trim().toLowerCase();
+    if (email && rowEmail && (rowEmail === email || _dutyPilotLikelySame_(rowEmail, email))) return row;
     if (sid && String(row.staffId || '').trim() === sid) return row;
   }
   return null;
@@ -18131,7 +19189,7 @@ function saveRunwayBriefingCard(icao, rwyIdent, cardData) {
                              'mapLabel1','mapLabel2',
                'runwayClass','elevation','surface','cutdownAreaM',
                'internalLengthM','internalWidthM','slopeSegments',
-               'knownFeatures','departureArrow'];
+               'knownFeatures','obstacleAngles50m','obstacleAngles','departureArrow'];
     var safeCard = {};
     allowedKeys.forEach(function(k) {
       if (cardData && cardData[k] !== undefined) safeCard[k] = cardData[k];
@@ -18418,7 +19476,6 @@ function getAircraftDocsForTools(tail) {
         docType: String(row[idx.DOC_TYPE] || '').trim(),
         docName: String(row[idx.DOC_NAME] || '').trim(),
         driveUrl: String(row[idx.DRIVE_URL] || '').trim(),
-        driveFileId: String(row[idx.DRIVE_FILE_ID] || '').trim(),
         required: _aircraftDocsFlag_(row[idx.REQUIRED]) === 'Y',
         critical: _aircraftDocsFlag_(row[idx.CRITICAL]) === 'Y',
         revision: String(row[idx.REVISION] || '').trim(),
@@ -19303,6 +20360,129 @@ function getLivePositions() {
       });
     }
     return { success: true, positions: positions };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getDutyFlightVisibilityDiagnostics(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var access = _dutyAppResolvePilotAccess_(body.pilotName);
+    if (!access.success) return access;
+
+    var ymd = String(body.dateYmd || _dutyAppTodayBsb_()).trim();
+    var fromYmd = String(body.fromYmd || '').trim();
+    var toYmd = String(body.toYmd || ymd).trim();
+    if (!fromYmd) {
+      var fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 30);
+      fromYmd = _dutyYmd_(fromDate);
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var pilot = access.pilotName;
+    var pilotKeys = _dutyPilotKeys_(pilot);
+    var report = {
+      success: true,
+      pilotName: pilot,
+      pilotKeys: pilotKeys,
+      targetDateYmd: ymd,
+      range: { fromYmd: fromYmd, toYmd: toYmd },
+      flightSummary: _dutyDailyFlightSummary_(ss, pilot, ymd),
+      dutyRowsForDay: [],
+      flightRowsForDayMatched: [],
+      flightRowsRejectedSample: [],
+      toolsDutyRowsForDay: []
+    };
+
+    var dutySheet = ss.getSheetByName(APP_SHEETS.DUTY_LOG);
+    if (dutySheet) {
+      var dutyData = dutySheet.getDataRange().getValues();
+      for (var i = 1; i < dutyData.length; i++) {
+        var drow = dutyData[i];
+        var dPilot = String(drow[DUTY_LOG_COL.PILOT] || '').trim();
+        var dYmd = _dutyYmd_(drow[DUTY_LOG_COL.DATE]);
+        if (dYmd !== ymd) continue;
+        if (!_dutyPilotLikelySame_(dPilot, pilot)) continue;
+        report.dutyRowsForDay.push({
+          rowNumber: i + 1,
+          pilot: dPilot,
+          dateYmd: dYmd,
+          title: String(drow[DUTY_LOG_COL.TITLE] || '').trim()
+        });
+      }
+    }
+
+    var flightSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
+    if (flightSheet) {
+      var flightData = flightSheet.getDataRange().getValues();
+      for (var j = 1; j < flightData.length; j++) {
+        var frow = flightData[j];
+        var fPilot = String(frow[LOG_FLIGHT_COL.PILOT] || '').trim();
+        var fYmd = _dutyYmd_(frow[LOG_FLIGHT_COL.DATE]);
+        var samePilot = _dutyPilotLikelySame_(fPilot, pilot);
+        var sameDate = (fYmd === ymd);
+        var inRange = (!fromYmd || fYmd >= fromYmd) && (!toYmd || fYmd <= toYmd);
+        var totalTimeRaw = String(frow[LOG_FLIGHT_COL.TOTAL_TIME] || '').trim();
+        var hours = _dutyParseHhmmToHours_(totalTimeRaw);
+        var base = {
+          rowNumber: j + 1,
+          flightId: String(frow[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim(),
+          pilot: fPilot,
+          dateRaw: String(frow[LOG_FLIGHT_COL.DATE] || ''),
+          dateYmd: fYmd,
+          totalTime: totalTimeRaw,
+          hours: Number((hours || 0).toFixed(2))
+        };
+
+        if (samePilot && sameDate) {
+          report.flightRowsForDayMatched.push(base);
+        } else if (report.flightRowsRejectedSample.length < 25 && (sameDate || inRange)) {
+          var reason = [];
+          if (!samePilot) reason.push('pilot_mismatch');
+          if (!sameDate) reason.push('date_mismatch');
+          if (!inRange) reason.push('outside_range');
+          report.flightRowsRejectedSample.push({
+            rowNumber: base.rowNumber,
+            flightId: base.flightId,
+            pilot: base.pilot,
+            dateRaw: base.dateRaw,
+            dateYmd: base.dateYmd,
+            reason: reason.join('|')
+          });
+        }
+      }
+    }
+
+    var toolsRows = getToolsDutyLogs({
+      fromYmd: fromYmd,
+      toYmd: toYmd,
+      pilotFilter: access.ctx.canManageAll ? pilot : ''
+    });
+    if (toolsRows && toolsRows.success && Array.isArray(toolsRows.rows)) {
+      report.toolsDutyRowsForDay = toolsRows.rows
+        .filter(function(r) {
+          return String(r.dateYmd || '') === ymd && _dutyPilotLikelySame_(String(r.pilotName || ''), pilot);
+        })
+        .map(function(r) {
+          return {
+            rowNumber: Number(r.rowNumber || 0),
+            status: String(r.status || ''),
+            flightHours: String(r.flightHours || ''),
+            derivedFlightHours: Number(r.derivedFlightHours || 0),
+            hasFlights: Array.isArray(r.flights) && r.flights.length > 0
+          };
+        });
+    }
+
+    report.counts = {
+      dutyRowsForDay: report.dutyRowsForDay.length,
+      flightRowsMatched: report.flightRowsForDayMatched.length,
+      toolsDutyRowsForDay: report.toolsDutyRowsForDay.length
+    };
+
+    return report;
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }

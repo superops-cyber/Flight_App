@@ -421,6 +421,23 @@
     return raw.slice(0, 19).replace('T', ' ');
   }
 
+  function _releasePadlockToggle_(inputId, btnEl) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.disabled = !input.disabled;
+    if (btnEl) btnEl.textContent = input.disabled ? '🔒' : '🔓';
+    if (!input.disabled) {
+      input.focus();
+      if (typeof input.select === 'function') input.select();
+    }
+  }
+
+  function _releaseGetRbcFallbackCutdown_() {
+    const rbc = window._rbcState && window._rbcState.card ? window._rbcState.card : null;
+    const v = Number(rbc && rbc.cutdownAreaM != null ? rbc.cutdownAreaM : NaN);
+    return isFinite(v) && v >= 0 ? Math.round(v) : null;
+  }
+
   function _releaseGetRunwayContext(mission, leg) {
     const perf = window.performanceTab4 || {};
     const activeLeg = leg || _releaseGetActiveLeg_(mission);
@@ -447,11 +464,12 @@
     const heading = String(Math.round(Number(selected && selected.headingDeg || 0))).padStart(3, '0');
     const cutdownFromDataRaw = Number(selected && (selected.cutdownAreaM || selected.cutdownArea || selected.clearway || selected.cutdown || 0) || 0);
     const cutdownFromData = cutdownFromDataRaw > 0 ? Math.round(cutdownFromDataRaw) : null;
+    const cutdownFromRbc = _releaseGetRbcFallbackCutdown_();
     const cutdownInputRaw = String(document.getElementById('release5-cutdown')?.value || '').trim();
     const cutdownInputNum = cutdownInputRaw === '' ? NaN : Number(cutdownInputRaw);
     const cutdownAreaM = isFinite(cutdownInputNum) && cutdownInputNum >= 0
       ? Math.round(cutdownInputNum)
-      : cutdownFromData;
+      : (cutdownFromData != null ? cutdownFromData : cutdownFromRbc);
     const cutdownAreaLabel = (cutdownAreaM == null || !isFinite(cutdownAreaM)) ? 'Unknown' : (String(cutdownAreaM) + ' m');
 
     const takeoffRollM = Math.round(Number(result.takeoffRollM || 0));
@@ -506,6 +524,20 @@
       if (mtowVals.length) maxTakeoffWeight = Math.max.apply(null, mtowVals);
     }
 
+    const mtowInputRaw = String(document.getElementById('release5-mtow')?.value || '').trim();
+    const mtowInputNum = mtowInputRaw === '' ? NaN : Number(mtowInputRaw);
+    if (isFinite(mtowInputNum) && mtowInputNum > 0) {
+      maxTakeoffWeight = Math.round(mtowInputNum);
+    }
+    const mtowModelInputRaw = String(document.getElementById('release5-mtow-model')?.value || '').trim().toUpperCase();
+    if (mtowModelInputRaw) mtowModelKey = mtowModelInputRaw;
+    if (isFinite(maxTakeoffWeight) && maxTakeoffWeight > 0 && mtowModelKey) {
+      mtowByModel[mtowModelKey] = Math.round(maxTakeoffWeight);
+    }
+
+    const runwayClassInput = String(document.getElementById('release5-runway-class')?.value || '').trim();
+    const runwayClass = runwayClassInput || String((selected && selected.runwayClass) || '').trim();
+
     const pilotNotes = String((selected && selected.pilotNotes) || (aptObj && aptObj.pilotNotes) || '').trim();
     const airstripPhoto = String((selected && selected.airstripPhoto) || (aptObj && aptObj.airstripPhoto) || '').trim();
 
@@ -544,6 +576,9 @@
       maxTakeoffWeight: maxTakeoffWeight,
       mtowModelKey: mtowModelKey,
       mtowByModel: mtowByModel,
+      runwayClass: runwayClass,
+      cutdownBaselineM: cutdownFromData != null ? cutdownFromData : cutdownFromRbc,
+      editSource: 'TAB5_RELEASE',
       pilotNotes: pilotNotes,
       airstripPhoto: airstripPhoto,
       fromIcao: fromIcaoResolved
@@ -732,7 +767,9 @@
         </div>
         <div class="release5-grid">
           <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • <span title="Internal measured runway dimensions">Internal ${brief.runwayLengthM || 0}m × ${brief.runwayWidthM || 0}m</span> • <span title="Official DB_Airports runway dimensions">Official ${brief.officialRunwayLengthM || 0}m × ${brief.officialRunwayWidthM || 0}m</span><br><small style="color:#546e7a; font-weight:600;">Internal date: ${brief.internalUpdatedLabel || 'N/A'}</small></div>
-          <div class="release5-chip"><b>Cutdown Area:</b> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" style="height:30px; width:110px; margin-left:6px;"> <small style="color:#666; font-weight:500;" title="This data is critical because runway widths can change rapidly in jungle areas. Data entered here is pushed to DB_Airports internal runway data after supervisor approval.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>
+          <div class="release5-chip"><b>Cutdown Area:</b> <button type="button" onclick="_releasePadlockToggle_('release5-cutdown', this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" disabled style="height:30px; width:110px; margin-left:6px;"> <small style="color:#666; font-weight:500;" title="Pilot edits are sent for supervisor review before any DB_Airports update.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>
+          <div class="release5-chip"><b>MTOW (kg):</b> <button type="button" onclick="(function(btn){ _releasePadlockToggle_('release5-mtow', btn); var m=document.getElementById('release5-mtow-model'); if(m){ m.disabled=!m.disabled; } })(this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-mtow" type="number" inputmode="numeric" min="1" step="1" value="${brief.maxTakeoffWeight || ''}" disabled style="height:30px; width:110px; margin-left:6px;"> <input id="release5-mtow-model" type="text" value="${brief.mtowModelKey || ''}" disabled style="height:30px; width:100px; margin-left:6px;" placeholder="Model"></div>
+          <div class="release5-chip"><b>Runway Class:</b> <button type="button" onclick="_releasePadlockToggle_('release5-runway-class', this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-runway-class" type="text" value="${brief.runwayClass || ''}" disabled style="height:30px; width:90px; margin-left:6px;" placeholder="1/2/3"></div>
           <div class="release5-chip"><b>Surface:</b> ${brief.surface || 'N/A'} • ${String(brief.surfaceCondition || 'DRY').toUpperCase()}</div>
           <div class="release5-chip"><b>Wind:</b> ${brief.windDir || 0}° / ${brief.windSpd || 0}kt • H/T ${brief.headTailKts || 0}kt • XW ${brief.crosswindKts || 0}kt</div>
           <div class="release5-chip"><b>Abort:</b> ${brief.abortPointM || 0}m • TO ${brief.takeoffRollM || 0}m • TO+Stop Roll ${brief.rollStopM || 0}m</div>
@@ -901,6 +938,8 @@
         lengthM: Number(runwayCtx.runwayLengthM || 0),
         widthM: Number(runwayCtx.runwayWidthM || 0),
         surface: String(runwayCtx.surface || '').trim(),
+        runwayClass: String(runwayCtx.runwayClass || '').trim(),
+        cutdownAreaM: Number(runwayCtx.cutdownAreaM || 0),
         headingDeg: Number(runwayCtx.heading || 0),
         maxTakeoffWeight: Number(runwayCtx.maxTakeoffWeight || 0),
         mtowModelKey: String(runwayCtx.mtowModelKey || ''),

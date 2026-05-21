@@ -396,6 +396,110 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
+
+  /* ── supervisor survey diff side panel ── */
+  #rbc-supervisor-diff-wrap {
+    display: none;
+    position: fixed;
+    top: 86px;
+    right: 10px;
+    z-index: 13020;
+    width: 320px;
+    max-height: calc(100vh - 108px);
+    overflow: auto;
+    background: #fffdf7;
+    border: 1px solid #ffcc80;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  }
+  #rbc-supervisor-diff-wrap.rbc-open {
+    display: block;
+  }
+  #rbc-supervisor-diff-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff3e0;
+    border-bottom: 1px solid #ffcc80;
+    padding: 8px 10px;
+  }
+  #rbc-supervisor-diff-body {
+    padding: 8px 10px;
+    display: grid;
+    gap: 6px;
+  }
+  .rbc-diff-item {
+    border: 1px solid #ffe0b2;
+    border-radius: 6px;
+    background: #fff;
+    padding: 6px 8px;
+    font-size: 0.76rem;
+    color: #4e342e;
+    font-weight: 700;
+  }
+  .rbc-diff-item.approved {
+    border-color: #a5d6a7;
+    background: #f1f8e9;
+  }
+  .rbc-diff-item.declined {
+    border-color: #e0e0e0;
+    background: #fafafa;
+    color: #9e9e9e;
+    text-decoration: line-through;
+  }
+  .rbc-diff-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .rbc-diff-btn {
+    border: 1px solid #cfd8dc;
+    background: #fff;
+    color: #455a64;
+    border-radius: 5px;
+    font-size: 0.68rem;
+    font-weight: 900;
+    padding: 3px 7px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .rbc-diff-btn.approve {
+    border-color: #66bb6a;
+    color: #1b5e20;
+  }
+  .rbc-diff-btn.decline {
+    border-color: #ef9a9a;
+    color: #b71c1c;
+  }
+  .rbc-diff-status {
+    margin-top: 4px;
+    font-size: 0.66rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .rbc-diff-status.approved { color: #2e7d32; }
+  .rbc-diff-status.declined { color: #9e9e9e; }
+  #rbc-supervisor-diff-details {
+    display: none;
+    margin-top: 6px;
+    border-top: 1px dashed #ffcc80;
+    padding-top: 6px;
+    font-size: 0.72rem;
+    color: #5d4037;
+    white-space: pre-wrap;
+    line-height: 1.35;
+  }
+  @media (max-width: 1100px) {
+    #rbc-supervisor-diff-wrap {
+      position: static;
+      width: auto;
+      max-height: none;
+      margin: 8px 10px 0 10px;
+      box-shadow: none;
+    }
+  }
 </style>
 
 <!-- ════════════════════════════════════════════
@@ -416,6 +520,18 @@
       <button class="rbc-page-tab"        id="rbc-tab-btn-2" onclick="rbcSwitchPage(2)">PAGE 2 – PERFORMANCE HISTORY</button>
     </div>
 
+    <div id="rbc-supervisor-diff-wrap" aria-live="polite">
+      <div id="rbc-supervisor-diff-head">
+        <div style="font-size:0.72rem; font-weight:900; color:#e65100; text-transform:uppercase; letter-spacing:0.05em;">New Survey Changes</div>
+        <div id="rbc-supervisor-diff-sub" style="font-size:0.72rem; color:#6d4c41; margin-top:2px;">Only differences from current approved data.</div>
+      </div>
+      <div id="rbc-supervisor-diff-body"></div>
+      <div style="padding:0 10px 10px 10px;">
+        <button id="rbc-supervisor-diff-toggle" type="button" style="border:1px solid #ffb74d; background:#fff; color:#e65100; border-radius:6px; font-size:0.72rem; font-weight:900; padding:4px 8px; cursor:pointer;" onclick="rbcToggleSupervisorDiffDetails()">SEE DETAILS</button>
+        <div id="rbc-supervisor-diff-details"></div>
+      </div>
+    </div>
+
     <!-- ══════════════════════════════════════════
          PAGE 1
          ══════════════════════════════════════════ -->
@@ -427,7 +543,7 @@
         <div class="rbc-section-body rbc-grid-4" id="rbc-ident-grid">
           <div class="rbc-cell">
             <span class="lbl">Class</span>
-            <span class="val big" id="rbc-class">–</span>
+            <span class="val big" id="rbc-class" style="cursor:pointer; padding:4px; border-radius:4px;" onclick="_rbcMakeClassEditable()" title="Click to edit">–</span>\n            <input id="rbc-class-input" type="text" class="rbc-input-sm" style="display:none; width:100%; margin-top:4px;" placeholder="1, 2, or 3" onblur="_rbcSaveClassEdit()" onkeypress="if(event.key==='Enter') _rbcSaveClassEdit()">
           </div>
           <div class="rbc-cell">
             <span class="lbl">Runway</span>
@@ -578,6 +694,54 @@
         </div>
       </div>
 
+      <!-- OBSTACLE ANGLES -->
+      <div class="rbc-section">
+        <div class="rbc-section-title">Obstacle Angle References</div>
+        <div class="rbc-section-body" style="padding:6px;">
+          <div id="rbc-obstacles-view"></div>
+          <div id="rbc-obstacles-editor" style="display:none; margin-top:6px; padding:8px; background:#fff3e0; border:1px solid #ffcc80; border-radius:6px;">
+            <div style="font-size:0.7rem; font-weight:900; color:#e65100; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Add Obstacle Angle</div>
+            <div id="rbc-obstacles-list" style="margin-bottom:6px; min-height:16px;"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; align-items:end; margin-bottom:6px;">
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Obstacle Type</label>
+                <select id="rbc-obs-type" class="browser-default rbc-input-sm">
+                  <option value="TREE">TREE</option>
+                  <option value="BUILDING">BUILDING</option>
+                  <option value="POWER_LINE">POWER LINE</option>
+                  <option value="HILL">HILL</option>
+                  <option value="ANTENNA">ANTENNA</option>
+                  <option value="TOWER">TOWER</option>
+                  <option value="OTHER">OTHER</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">From Threshold</label>
+                <select id="rbc-obs-thr" class="browser-default rbc-input-sm"></select>
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Distance From Threshold (m)</label>
+                <input id="rbc-obs-dist" type="number" inputmode="numeric" min="0" step="1" class="rbc-input-sm" placeholder="e.g. 300">
+              </div>
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Angle (degrees)</label>
+                <input id="rbc-obs-angle" type="number" inputmode="decimal" min="0" max="90" step="0.1" class="rbc-input-sm" placeholder="e.g. 4.2">
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr auto; gap:6px; align-items:end;">
+              <div>
+                <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Operation</label>
+                <select id="rbc-obs-op" class="browser-default rbc-input-sm">
+                  <option value="takeoff">Takeoff Angle</option>
+                  <option value="landing">Landing Angle</option>
+                </select>
+              </div>
+              <button class="rbc-btn rbc-btn-edit" style="height:30px; font-size:0.72rem; white-space:nowrap;" onclick="rbcAddObstacleAngle()">+ ADD ANGLE</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- TAKEOFF RESTRICTIONS -->
       <div class="rbc-section">
         <div class="rbc-section-title">Takeoff Restrictions by Aircraft</div>
@@ -615,7 +779,7 @@
               </div>
               <div>
                 <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Max TO Wt (kg)</label>
-                <input id="rbc-r-mtow" type="number" inputmode="numeric" placeholder="1814" class="rbc-input-sm">
+                <input id="rbc-r-mtow" type="text" inputmode="numeric" placeholder="1814" class="rbc-input-sm" style="font-family:monospace;" onkeypress="if(!/[0-9]/.test(event.key))event.preventDefault();" onpaste="event.target.value=event.target.value.replace(/[^0-9]/g,'');">
               </div>
             </div>
             <input type="hidden" id="rbc-r-notes" value="">
@@ -866,7 +1030,10 @@ window._rbcState = {
   diagramTopY: 0,
   diagramTopH: 0,
   diagramRunwayPx: 0,
-  callerContext: 'tab5'  // 'tab5' | 'tab7'
+  callerContext: 'tab5',  // 'tab5' | 'tab7'
+  comparePayload: null,
+  pendingSurveyChanges: null,
+  pendingSurveyDetails: ''
 };
 
 function _rbcGetPortalActiveView_() {
@@ -896,7 +1063,7 @@ function _rbcCanOpenInCurrentView_(ctx) {
 
 // ── open / close ─────────────────────────────────────────────────
 
-window.openRunwayBriefingCard = function(icao, rwyIdent, callerContext, forcedRunway) {
+window.openRunwayBriefingCard = function(icao, rwyIdent, callerContext, forcedRunway, comparePayload) {
   const s = window._rbcState;
   const forced = (forcedRunway && typeof forcedRunway === 'object') ? forcedRunway : null;
   const forcedIcao = String(forced && forced.icao || '').trim().toUpperCase();
@@ -917,6 +1084,9 @@ window.openRunwayBriefingCard = function(icao, rwyIdent, callerContext, forcedRu
   s.depTraceMode = false;
   s.depTraces = null;
   s.depTraceActive = null;
+  s.comparePayload = (comparePayload && typeof comparePayload === 'object') ? comparePayload : null;
+  s.pendingSurveyChanges = null;
+  s.pendingSurveyDetails = '';
   s.acft = String((window.currentBriefingMission && window.currentBriefingMission.acft) || '').trim().toUpperCase();
 
   // Resolve runway object
@@ -946,6 +1116,7 @@ window.openRunwayBriefingCard = function(icao, rwyIdent, callerContext, forcedRu
   _rbcRenderPage1();
   _rbcLoadAndRenderPage2();
   _rbcSetEditUI(false);
+  _rbcRenderSupervisorDiffPanel_();
 
   const existingClass = String((s.card && s.card.runwayClass) || '').trim();
   if (!existingClass && _rbcCanEdit()) {
@@ -967,8 +1138,320 @@ window.rbcClose = function() {
     overlay.hidden = true;
     overlay.setAttribute('aria-hidden', 'true');
   }
+  const diffWrap = document.getElementById('rbc-supervisor-diff-wrap');
+  if (diffWrap) diffWrap.classList.remove('rbc-open');
   document.body.style.overflow = '';
 };
+
+window.rbcToggleSupervisorDiffDetails = function() {
+  const details = document.getElementById('rbc-supervisor-diff-details');
+  const btn = document.getElementById('rbc-supervisor-diff-toggle');
+  if (!details || !btn) return;
+  const show = details.style.display === 'none' || !details.style.display;
+  details.style.display = show ? 'block' : 'none';
+  btn.textContent = show ? 'HIDE DETAILS' : 'SEE DETAILS';
+};
+
+function _rbcRenderSupervisorDiffPanel_() {
+  const s = window._rbcState || {};
+  const wrap = document.getElementById('rbc-supervisor-diff-wrap');
+  const body = document.getElementById('rbc-supervisor-diff-body');
+  const sub = document.getElementById('rbc-supervisor-diff-sub');
+  const details = document.getElementById('rbc-supervisor-diff-details');
+  const btn = document.getElementById('rbc-supervisor-diff-toggle');
+  if (!wrap || !body || !sub || !details || !btn) return;
+
+  const isSupervisor = String(s.callerContext || '').toLowerCase() === 'supervisor';
+  const cp = (s.comparePayload && typeof s.comparePayload === 'object') ? s.comparePayload : null;
+  const pendingSurvey = cp && cp.pendingSurvey && typeof cp.pendingSurvey === 'object' ? cp.pendingSurvey : null;
+  const activeOperational = cp && cp.activeOperational && typeof cp.activeOperational === 'object' ? cp.activeOperational : {};
+  if (!isSupervisor || !pendingSurvey) {
+    wrap.classList.remove('rbc-open');
+    return;
+  }
+
+  if (!Array.isArray(s.pendingSurveyChanges)) {
+    const diff = _rbcBuildSurveyChangeList_(pendingSurvey, activeOperational);
+    s.pendingSurveyChanges = Array.isArray(diff.changes) ? diff.changes : [];
+    s.pendingSurveyDetails = String(diff.details || '').trim();
+  }
+
+  const changes = Array.isArray(s.pendingSurveyChanges) ? s.pendingSurveyChanges : [];
+  const allDetails = String(s.pendingSurveyDetails || '').trim();
+
+  if (!changes.length) {
+    body.innerHTML = '<div class="rbc-diff-item">No measurement changes detected vs current approved data.</div>';
+    sub.textContent = 'Pending survey has no differences from active values.';
+  } else {
+    const approvedCount = changes.filter(function(c) { return c && c.status === 'approved'; }).length;
+    const declinedCount = changes.filter(function(c) { return c && c.status === 'declined'; }).length;
+    const pendingCount = Math.max(0, changes.length - approvedCount - declinedCount);
+    body.innerHTML = changes.map(function(ch) {
+      const id = String(ch && ch.id || '');
+      const label = String(ch && ch.label || '');
+      const st = String(ch && ch.status || 'pending');
+      const cls = st === 'approved' ? 'approved' : (st === 'declined' ? 'declined' : '');
+      const statusHtml = st === 'pending'
+        ? ''
+        : '<div class="rbc-diff-status ' + cls + '">' + (st === 'approved' ? 'Approved' : 'Declined') + '</div>';
+      const actionHtml = st === 'pending'
+        ? '<div class="rbc-diff-actions">'
+          + '<button type="button" class="rbc-diff-btn approve" onclick="rbcApproveSupervisorDiffChange(\'' + _rbcEsc(id) + '\')">Approve</button>'
+          + '<button type="button" class="rbc-diff-btn decline" onclick="rbcDeclineSupervisorDiffChange(\'' + _rbcEsc(id) + '\')">Decline</button>'
+          + '</div>'
+        : '';
+      return '<div class="rbc-diff-item ' + cls + '" data-diff-id="' + _rbcEsc(id) + '">'
+        + _rbcEsc(label)
+        + actionHtml
+        + statusHtml
+        + '</div>';
+    }).join('');
+    sub.textContent = changes.length + ' changed measurement' + (changes.length === 1 ? '' : 's')
+      + ' · pending ' + pendingCount + ' · approved ' + approvedCount + ' · declined ' + declinedCount + '.';
+  }
+
+  details.textContent = allDetails || 'No pending survey details available.';
+  details.style.display = 'none';
+  btn.textContent = 'SEE DETAILS';
+  wrap.classList.add('rbc-open');
+}
+
+window.rbcApproveSupervisorDiffChange = function(changeId) {
+  const s = window._rbcState || {};
+  const id = String(changeId || '').trim();
+  if (!id || !Array.isArray(s.pendingSurveyChanges)) return;
+  const change = s.pendingSurveyChanges.find(function(c) { return String(c && c.id || '') === id; });
+  if (!change || String(change.status || 'pending') !== 'pending') return;
+  if (!window.confirm('For sure you want to approve this change?')) return;
+
+  _rbcApplySupervisorDiffChange_(change);
+  change.status = 'approved';
+  s.dirty = true;
+  _rbcSetStatus('Change approved. Save to publish new briefing card version.');
+  _rbcRenderSupervisorDiffPanel_();
+};
+
+window.rbcDeclineSupervisorDiffChange = function(changeId) {
+  const s = window._rbcState || {};
+  const id = String(changeId || '').trim();
+  if (!id || !Array.isArray(s.pendingSurveyChanges)) return;
+  const change = s.pendingSurveyChanges.find(function(c) { return String(c && c.id || '') === id; });
+  if (!change || String(change.status || 'pending') !== 'pending') return;
+  if (!window.confirm('For sure you want to decline this change?')) return;
+  change.status = 'declined';
+  _rbcSetStatus('Change declined.');
+  _rbcRenderSupervisorDiffPanel_();
+};
+
+function _rbcApplySupervisorDiffChange_(change) {
+  const s = window._rbcState || {};
+  const kind = String(change && change.kind || '');
+  const payload = (change && typeof change.payload === 'object') ? change.payload : {};
+
+  const ensureFeatures = function() {
+    if (!Array.isArray(s.card.knownFeatures)) {
+      s.card.knownFeatures = _rbcGetEffectiveFeaturesForRunway(s.runway).map(function(f) {
+        return {
+          name: String(f.name || ''),
+          distance: Number(f.distance || f.distanceM || 0),
+          side: String(f.side || 'right'),
+          runway: String(f.runway || f.runwayIdent || s.rwyIdent || '')
+        };
+      });
+    }
+  };
+  const ensureObstacles = function() {
+    if (!Array.isArray(s.card.obstacleAngles50m)) s.card.obstacleAngles50m = [];
+    if (!Array.isArray(s.runway.obstacleAngles)) s.runway.obstacleAngles = [];
+  };
+  const ensureSlopes = function() {
+    if (!Array.isArray(s.card.slopeSegments)) {
+      s.card.slopeSegments = _rbcGetEffectiveSlopeSegsForRunway(s.runway).map(function(seg) {
+        return { distanceM: Math.round(Number(seg.distanceM != null ? seg.distanceM : (seg.distance || 0))), slope: Number(seg.slope || 0) };
+      });
+    }
+  };
+
+  if (kind === 'dim-length') {
+    s.card.internalLengthM = Number(payload.value || 0);
+  } else if (kind === 'dim-width') {
+    s.card.internalWidthM = Number(payload.value || 0);
+  } else if (kind === 'surface') {
+    s.card.surface = String(payload.value || '').trim().toUpperCase();
+  } else if (kind === 'cutdown') {
+    s.card.cutdownAreaM = Number(payload.value || 0);
+  } else if (kind === 'feature-add') {
+    ensureFeatures();
+    const feat = payload.feature || {};
+    const sig = function(f) {
+      return [
+        String((f.name || f.type || '')).trim().toLowerCase(),
+        String((f.side || '')).trim().toLowerCase(),
+        String((f.runway || f.fromThreshold || '')).trim().toUpperCase(),
+        Math.round(Number((f.distance || f.distanceM || 0)))
+      ].join('|');
+    };
+    const fObj = {
+      name: String((feat.name || feat.type || 'feature')).trim(),
+      distance: Math.round(Number((feat.distance != null ? feat.distance : feat.distanceM) || 0)),
+      side: String(feat.side || 'right').trim().toLowerCase(),
+      runway: String((feat.fromThreshold || feat.runway || s.rwyIdent || '')).trim().toUpperCase()
+    };
+    if (!s.card.knownFeatures.some(function(x) { return sig(x) === sig(fObj); })) s.card.knownFeatures.push(fObj);
+  } else if (kind === 'obstacle-add') {
+    ensureObstacles();
+    const obs = payload.obstacle || {};
+    const obsObj = {
+      type: String(obs.type || '').trim(),
+      operation: String(obs.operation || '').trim().toLowerCase(),
+      fromThreshold: String(obs.fromThreshold || '').trim().toUpperCase(),
+      checkpointDistanceM: Math.round(Number(obs.checkpointDistanceM || 0)),
+      angleDeg: Number(obs.angleDeg || 0)
+    };
+    const sig = function(o) {
+      return [String(o.type||'').toLowerCase(), String(o.operation||'').toLowerCase(), String(o.fromThreshold||'').toUpperCase(), Math.round(Number(o.checkpointDistanceM||0)), Math.round(Number(o.angleDeg||0)*10)/10].join('|');
+    };
+    if (!s.card.obstacleAngles50m.some(function(x) { return sig(x) === sig(obsObj); })) s.card.obstacleAngles50m.push(obsObj);
+    if (!s.runway.obstacleAngles.some(function(x) { return sig(x) === sig(obsObj); })) s.runway.obstacleAngles.push(obsObj);
+  } else if (kind === 'slope-add') {
+    ensureSlopes();
+    const sg = payload.slope || {};
+    const segObj = {
+      startDistanceM: Math.round(Number(sg.startDistanceM || 0)),
+      distanceM: Math.round(Number((sg.distanceM != null ? sg.distanceM : sg.distance) || 0)),
+      slope: Number(sg.slope || 0)
+    };
+    const sig = function(x) { return [Math.round(Number(x.startDistanceM||0)), Math.round(Number((x.distanceM!=null?x.distanceM:x.distance)||0)), Math.round(Number(x.slope||0)*10)/10].join('|'); };
+    if (!s.card.slopeSegments.some(function(x) { return sig(x) === sig(segObj); })) s.card.slopeSegments.push(segObj);
+  }
+
+  if (s.editMode) _rbcPopulateDimsEdit();
+  _rbcRenderFeaturesView();
+  _rbcRenderFeaturesList();
+  _rbcRenderSlopeList();
+  _rbcUpdateSlopeDetailLabel();
+  _rbcDrawDiagram();
+}
+
+function _rbcBuildSurveyChangeList_(pendingSurvey, activeOperational) {
+  const p = pendingSurvey || {};
+  const a = activeOperational || {};
+  const changes = [];
+  const details = [];
+
+  const normText = function(v) { return String(v || '').trim().toLowerCase(); };
+  const normRunway = function(v) { return String(v || '').trim().toUpperCase().replace(/^RWY\s+/, ''); };
+  const n0 = function(v) { const n = Number(v); return isFinite(n) ? Math.round(n) : 0; };
+  const n1 = function(v) { const n = Number(v); return isFinite(n) ? (Math.round(n * 10) / 10) : 0; };
+
+  const pLen = n0(p.lengthM);
+  const aLen = n0(a.lengthM);
+  if (pLen && pLen !== aLen) changes.push({ id: 'dim_len', kind: 'dim-length', label: 'length ' + pLen + 'm (was ' + aLen + 'm)', status: 'pending', payload: { value: pLen } });
+
+  const pWid = n0(p.widthM);
+  const aWid = n0(a.widthM);
+  if (pWid && pWid !== aWid) changes.push({ id: 'dim_wid', kind: 'dim-width', label: 'width ' + pWid + 'm (was ' + aWid + 'm)', status: 'pending', payload: { value: pWid } });
+
+  const pSurf = normText(p.surface);
+  const aSurf = normText(a.surface);
+  if (pSurf && pSurf !== aSurf) changes.push({ id: 'surface', kind: 'surface', label: 'surface ' + pSurf.toUpperCase() + ' (was ' + (aSurf ? aSurf.toUpperCase() : 'UNKNOWN') + ')', status: 'pending', payload: { value: pSurf } });
+
+  const pCut = n0(p.cutdownAreaM);
+  const aCut = n0(a.cutdownAreaM);
+  if (pCut && pCut !== aCut) changes.push({ id: 'cutdown', kind: 'cutdown', label: 'cutdown area ' + pCut + 'm (was ' + aCut + 'm)', status: 'pending', payload: { value: pCut } });
+
+  const pFeatures = Array.isArray(p.features) ? p.features : [];
+  const aFeatures = Array.isArray(a.features) ? a.features : [];
+  const featSig = function(f) {
+    return [
+      normText((f && (f.type || f.name)) || ''),
+      normText((f && f.side) || ''),
+      normRunway((f && f.fromThreshold) || ''),
+      n0((f && (f.distanceM != null ? f.distanceM : f.distance)) || 0)
+    ].join('|');
+  };
+  const activeFeatSet = new Set(aFeatures.map(featSig));
+  pFeatures.forEach(function(f, idx) {
+    if (activeFeatSet.has(featSig(f))) return;
+    const name = normText((f && (f.type || f.name)) || 'feature');
+    const side = normText((f && f.side) || '');
+    const thr = normRunway((f && f.fromThreshold) || '');
+    const dist = n0((f && (f.distanceM != null ? f.distanceM : f.distance)) || 0);
+    changes.push({
+      id: 'feature_' + idx,
+      kind: 'feature-add',
+      label: name + (side ? (' ' + side + ' side') : '') + (thr ? (' runway ' + thr) : '') + (dist ? (' ' + dist + 'm') : ''),
+      status: 'pending',
+      payload: { feature: f }
+    });
+  });
+
+  const pObs = Array.isArray(p.obstacleAngles50m) ? p.obstacleAngles50m : (Array.isArray(p.obstacleAngles) ? p.obstacleAngles : []);
+  const aObs = Array.isArray(a.obstacleAngles50m) ? a.obstacleAngles50m : (Array.isArray(a.obstacleAngles) ? a.obstacleAngles : []);
+  const obsSig = function(o) {
+    return [
+      normText((o && o.type) || ''),
+      normText((o && o.operation) || ''),
+      normRunway((o && o.fromThreshold) || ''),
+      n0((o && o.checkpointDistanceM) || 0),
+      n1((o && o.angleDeg) || 0)
+    ].join('|');
+  };
+  const activeObsSet = new Set(aObs.map(obsSig));
+  pObs.forEach(function(o, idx) {
+    if (activeObsSet.has(obsSig(o))) return;
+    const thr = normRunway((o && o.fromThreshold) || '');
+    const dist = n0((o && o.checkpointDistanceM) || 0);
+    const ang = n1((o && o.angleDeg) || 0);
+    changes.push({
+      id: 'obstacle_' + idx,
+      kind: 'obstacle-add',
+      label: 'angle ' + dist + 'm runway ' + (thr || '--') + ' ' + ang + ' degrees',
+      status: 'pending',
+      payload: { obstacle: o }
+    });
+  });
+
+  const pSlopes = Array.isArray(p.slopeSegments) ? p.slopeSegments : [];
+  const aSlopes = Array.isArray(a.slopeSegments) ? a.slopeSegments : [];
+  const slopeSig = function(sg) {
+    return [n0((sg && sg.startDistanceM) || 0), n0((sg && (sg.distanceM != null ? sg.distanceM : sg.distance)) || 0), n1((sg && sg.slope) || 0)].join('|');
+  };
+  const activeSlopeSet = new Set(aSlopes.map(slopeSig));
+  pSlopes.forEach(function(sg, idx) {
+    if (activeSlopeSet.has(slopeSig(sg))) return;
+    const st = n0((sg && sg.startDistanceM) || 0);
+    const ds = n0((sg && (sg.distanceM != null ? sg.distanceM : sg.distance)) || 0);
+    const sl = n1((sg && sg.slope) || 0);
+    changes.push({
+      id: 'slope_' + idx,
+      kind: 'slope-add',
+      label: 'slope ' + (sl >= 0 ? '+' : '') + sl + '% from ' + st + 'm for ' + ds + 'm',
+      status: 'pending',
+      payload: { slope: sg }
+    });
+  });
+
+  details.push('NEW SURVEY DETAILS');
+  details.push('Length: ' + pLen + 'm');
+  details.push('Width: ' + pWid + 'm');
+  details.push('Surface: ' + (p.surface || '')); 
+  details.push('Cutdown: ' + pCut + 'm');
+  details.push('Features: ' + pFeatures.length);
+  pFeatures.forEach(function(f, i) {
+    details.push('  ' + (i + 1) + '. ' + normText((f && (f.type || f.name)) || 'feature') + ' · ' + n0((f && (f.distanceM != null ? f.distanceM : f.distance)) || 0) + 'm · ' + normText((f && f.side) || '') + ' · RWY ' + normRunway((f && f.fromThreshold) || ''));
+  });
+  details.push('Obstacle angles: ' + pObs.length);
+  pObs.forEach(function(o, i) {
+    details.push('  ' + (i + 1) + '. ' + normText((o && o.type) || 'obstacle') + ' · ' + n0((o && o.checkpointDistanceM) || 0) + 'm · ' + n1((o && o.angleDeg) || 0) + '° · ' + normText((o && o.operation) || '') + ' · RWY ' + normRunway((o && o.fromThreshold) || ''));
+  });
+  details.push('Slope segments: ' + pSlopes.length);
+  pSlopes.forEach(function(sg, i) {
+    details.push('  ' + (i + 1) + '. start ' + n0((sg && sg.startDistanceM) || 0) + 'm · dist ' + n0((sg && (sg.distanceM != null ? sg.distanceM : sg.distance)) || 0) + 'm · slope ' + (n1((sg && sg.slope) || 0) >= 0 ? '+' : '') + n1((sg && sg.slope) || 0) + '%');
+  });
+
+  return { changes: changes, details: details.join('\n') };
+}
 
 // Safety net: always start hidden, and close on SPA navigation/page transitions.
 (function() {
@@ -1221,8 +1704,47 @@ function _rbcLoadCard() {
   }
 
   if (!blob || typeof blob !== 'object') blob = {};
+
+  // Fallback to local cache when DB payload is missing/unavailable.
+  if (!Object.keys(blob).length) {
+    var cachedCard = _rbcReadLocalBriefingCard_();
+    if (cachedCard && typeof cachedCard === 'object') blob = cachedCard;
+  }
+
   if (!blob.verifyFlags || typeof blob.verifyFlags !== 'object') blob.verifyFlags = {};
   return blob;
+}
+
+function _rbcLocalBriefingCardKey_() {
+  var s = window._rbcState || {};
+  var icao = String(s.icao || '').trim().toUpperCase();
+  var rwy = String(s.rwyIdent || '').trim().toUpperCase();
+  if (!icao || !rwy) return '';
+  return 'rbc_cache_' + icao + '_' + rwy;
+}
+
+function _rbcReadLocalBriefingCard_() {
+  try {
+    var key = _rbcLocalBriefingCardKey_();
+    if (!key) return null;
+    var raw = localStorage.getItem(key);
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    return (parsed && parsed.card && typeof parsed.card === 'object') ? parsed.card : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function _rbcWriteLocalBriefingCard_(card) {
+  try {
+    var key = _rbcLocalBriefingCardKey_();
+    if (!key || !card || typeof card !== 'object') return;
+    localStorage.setItem(key, JSON.stringify({
+      savedAt: new Date().toISOString(),
+      card: card
+    }));
+  } catch (e) {}
 }
 
 function _rbcRunwayClass(rwy) {
@@ -1401,6 +1923,8 @@ function _rbcRenderPage1() {
       });
   }
 
+  _rbcRenderObstacleAnglesView();
+
   // Restrictions
   _rbcRenderRestrictions();
 
@@ -1523,6 +2047,20 @@ function _rbcGetEffectiveFeaturesForRunway(runway) {
     return s.card.knownFeatures.slice();
   }
   return (runway && Array.isArray(runway.knownFeatures)) ? runway.knownFeatures.slice() : [];
+}
+
+function _rbcGetEffectiveObstacleAnglesForRunway(runway) {
+  const s = window._rbcState || {};
+  if (s.card && Array.isArray(s.card.obstacleAngles50m)) {
+    return s.card.obstacleAngles50m.slice();
+  }
+  if (s.card && Array.isArray(s.card.obstacleAngles)) {
+    return s.card.obstacleAngles.slice();
+  }
+  if (runway && Array.isArray(runway.obstacleAngles)) {
+    return runway.obstacleAngles.slice();
+  }
+  return [];
 }
 
 // ── DIAGRAM (reuses window.drawRunwayDiagram logic, self-contained) ──
@@ -1862,7 +2400,7 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
 
   const thisThr = normalizeThrRef(runway.rwyIdent || thisRwy || '');
   const oppThr = reciprocalThrRef(thisThr);
-  const obstacleAngles = Array.isArray(runway.obstacleAngles) ? runway.obstacleAngles : [];
+  const obstacleAngles = _rbcGetEffectiveObstacleAnglesForRunway(runway);
 
   const pickSideObstacle = function(useOpposite) {
     const candidates = obstacleAngles.filter(function(obs) {
@@ -1914,10 +2452,54 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
     }, Math.round(dist) + 'm'));
   };
 
-  const rightAnchorX = sideX + runwayPx + 30;
-  const leftAnchorX = sideX - 30;
-  drawObstacleCallout(pickSideObstacle(false), rightAnchorX, sideY + 20, 'start');
-  drawObstacleCallout(pickSideObstacle(true), leftAnchorX, sideY + 20, 'end');
+  // Draw all obstacles on side view, stacked on left/right
+  const leftStack = [];
+  const rightStack = [];
+  const takeoffObstacles = obstacleAngles.filter(function(obs) {
+    const dist = Math.max(0, Math.min(lengthM, Number((obs && (obs.checkpointDistanceM != null ? obs.checkpointDistanceM : (obs.distanceM != null ? obs.distanceM : obs.distance))) || 0)));
+    if (dist < 50) return false; // Only show obstacles beyond 50m
+    const thr = normalizeThrRef(obs && obs.fromThreshold || '');
+    const corner = String(obs && obs.checkpointCorner || '').trim().toUpperCase();
+    const fromThis = (thr && thr === thisThr) || (!thr && corner !== 'C');
+    const fromOpp = (thr && thr === oppThr) || (!thr && corner === 'C');
+    const operation = String(obs && obs.operation || '').trim().toLowerCase() || (dist >= 300 ? 'takeoff' : 'landing');
+    // Add obstacle to appropriate stack
+    if (operation === 'takeoff') {
+      if (fromThis) rightStack.push({ obs: obs, dist: dist, dir: -1 });
+      else if (fromOpp) leftStack.push({ obs: obs, dist: dist, dir: 1 });
+    }
+    return false; // we already added them to stacks
+  });
+  
+  // Draw left stack
+  const leftBaseX = sideX - 20;
+  leftStack.slice(0, 3).forEach(function(item, idx) {
+    const obs = item.obs;
+    const baseX = sideX + (item.dist * scale);
+    const baseY = yForDist(item.dist);
+    const icon = iconForObstacle(obs && obs.type);
+    const angleDeg = Number((obs && (obs.angleDeg != null ? obs.angleDeg : (obs.fromThrA50mDeg != null ? obs.fromThrA50mDeg : obs.fromThrB50mDeg))) || 0);
+    const anchorX = leftBaseX - (idx * 8);
+    const anchorY = sideY + 8 + (idx * 14);
+    sideGroup.appendChild(makeEl('line', { x1: baseX, y1: baseY, x2: anchorX, y2: anchorY, stroke: '#ef6c00', 'stroke-width': 2.4 }));
+    sideGroup.appendChild(makeEl('circle', { cx: baseX, cy: baseY, r: 4, fill: '#37474f' }));
+    sideGroup.appendChild(makeEl('text', { x: anchorX - 2, y: anchorY + 6, 'font-size': 16, fill: '#2e7d32', 'text-anchor': 'end' }, icon + ' ' + angleDeg.toFixed(0) + '°'));
+  });
+  
+  // Draw right stack
+  const rightBaseX = sideX + runwayPx + 20;
+  rightStack.slice(0, 3).forEach(function(item, idx) {
+    const obs = item.obs;
+    const baseX = sideX + (item.dist * scale);
+    const baseY = yForDist(item.dist);
+    const icon = iconForObstacle(obs && obs.type);
+    const angleDeg = Number((obs && (obs.angleDeg != null ? obs.angleDeg : (obs.fromThrA50mDeg != null ? obs.fromThrA50mDeg : obs.fromThrB50mDeg))) || 0);
+    const anchorX = rightBaseX + (idx * 8);
+    const anchorY = sideY + 8 + (idx * 14);
+    sideGroup.appendChild(makeEl('line', { x1: baseX, y1: baseY, x2: anchorX, y2: anchorY, stroke: '#ef6c00', 'stroke-width': 2.4 }));
+    sideGroup.appendChild(makeEl('circle', { cx: baseX, cy: baseY, r: 4, fill: '#37474f' }));
+    sideGroup.appendChild(makeEl('text', { x: anchorX + 2, y: anchorY + 6, 'font-size': 16, fill: '#2e7d32', 'text-anchor': 'start' }, icon + ' ' + angleDeg.toFixed(0) + '°'));
+  });
 
   // Slope labels
   let segPos = 0;
@@ -1933,6 +2515,37 @@ function _rbcDrawRunwayDiagramInto(svg, runway, result, mapDistM) {
 
   svg.appendChild(sideGroup);
   svg.setAttribute('viewBox', '0 0 ' + canvasW + ' ' + canvasH);
+}
+
+function _rbcMakeClassEditable() {
+  const span = document.getElementById('rbc-class');
+  const input = document.getElementById('rbc-class-input');
+  const s = window._rbcState;
+  if (!input) return;
+  input.value = (s && s.card && s.card.runwayClass) || '';
+  span.style.display = 'none';
+  input.style.display = 'block';
+  input.focus();
+  input.select();
+}
+
+function _rbcSaveClassEdit() {
+  const span = document.getElementById('rbc-class');
+  const input = document.getElementById('rbc-class-input');
+  const s = window._rbcState;
+  if (!input || !s) return;
+  const val = input.value.trim();
+  if (val && ['1','2','3'].indexOf(val) >= 0) {
+    s.card.runwayClass = val;
+    s.dirty = true;
+    span.textContent = 'Class ' + val;
+  } else if (val) {
+    span.textContent = 'Class ' + val; // allow any value, save as-is
+    s.card.runwayClass = val;
+    s.dirty = true;
+  }
+  input.style.display = 'none';
+  span.style.display = 'block';
 }
 
 function _rbcShowMapInfo() {
@@ -2056,14 +2669,18 @@ function _rbcSetEditUI(editing) {
   const saveBtn   = document.getElementById('rbc-save-btn');
   const cancelBtn = document.getElementById('rbc-cancel-btn');
   const reEditor  = document.getElementById('rbc-restrictions-editor');
+  const obsEditor = document.getElementById('rbc-obstacles-editor');
 
   if (editBtn)   editBtn.style.display   = canEdit ? (editing ? 'none' : 'inline-block') : 'none';
   if (saveBtn)   saveBtn.style.display   = canEdit && editing ? 'inline-block' : 'none';
   if (cancelBtn) cancelBtn.style.display = canEdit && editing ? 'inline-block' : 'none';
   if (reEditor)  reEditor.style.display  = canEdit && editing ? 'block' : 'none';
+  if (obsEditor) obsEditor.style.display = canEdit && editing ? 'block' : 'none';
   if (canEdit && editing) {
     _rbcPopulateRestrictionDropdowns();
     _rbcPopulateFeatureDropdowns();
+    _rbcPopulateObstacleDropdowns();
+    _rbcRenderObstacleAnglesList();
   }
 
   // Show/hide editable hints
@@ -2179,7 +2796,8 @@ window.rbcSave = function() {
   _rbcSetStatus('Saving...');
 
   if (!(window.google && google.script && google.script.run)) {
-    // Offline — persist to AIRCRAFT_DOCS cache as best-effort
+    // Offline — persist to local briefing card cache as best-effort
+    _rbcWriteLocalBriefingCard_(s.card);
     _rbcSetStatus('Offline: changes saved locally only. Sync when online.');
     _rbcSetEditUI(false);
     if (saveBtn) saveBtn.disabled = false;
@@ -2190,6 +2808,7 @@ window.rbcSave = function() {
     .withSuccessHandler(function(result) {
       if (saveBtn) saveBtn.disabled = false;
       if (result && result.success) {
+        _rbcWriteLocalBriefingCard_(s.card);
         _rbcSetStatus('Saved ✓ — ' + (s.card.revisedAt||''));
         _rbcSetEditUI(false);
         s.dirty = false;
@@ -2439,6 +3058,50 @@ function _rbcRenderFeaturesView() {
   }).join('');
 }
 
+function _rbcRenderObstacleAnglesView() {
+  const view = document.getElementById('rbc-obstacles-view');
+  if (!view) return;
+  const obstacles = _rbcGetEffectiveObstacleAnglesForRunway(window._rbcState && window._rbcState.runway);
+  if (!obstacles.length) {
+    view.innerHTML = '<div style="color:#90a4ae; font-size:0.75rem; padding:4px 0;">No obstacle angles recorded.</div>';
+    return;
+  }
+  view.innerHTML = obstacles.map(function(o) {
+    const type = String((o && o.type) || 'OBSTACLE').trim().toUpperCase();
+    const thr = String((o && o.fromThreshold) || (window._rbcState && window._rbcState.rwyIdent) || '').trim().toUpperCase();
+    const dist = Math.round(Number((o && (o.checkpointDistanceM != null ? o.checkpointDistanceM : (o.distanceM != null ? o.distanceM : o.distance))) || 0));
+    const ang = Number((o && (o.angleDeg != null ? o.angleDeg : (o.fromThrA50mDeg != null ? o.fromThrA50mDeg : o.fromThrB50mDeg))) || 0);
+    const opRaw = String((o && o.operation) || '').trim().toLowerCase();
+    const op = opRaw === 'landing' ? 'LANDING' : 'TAKEOFF';
+    return '<div class="rbc-seg-row"><span class="seg-label">' + _rbcEsc(type + ' · RWY ' + thr + ' · ' + dist + 'm · ' + ang.toFixed(1) + '° · ' + op) + '</span></div>';
+  }).join('');
+}
+
+function _rbcRenderObstacleAnglesList() {
+  const list = document.getElementById('rbc-obstacles-list');
+  if (!list) return;
+  const s = window._rbcState || {};
+  const obstacles = (s.card && Array.isArray(s.card.obstacleAngles50m))
+    ? s.card.obstacleAngles50m
+    : _rbcGetEffectiveObstacleAnglesForRunway(s.runway);
+  if (!obstacles.length) {
+    list.innerHTML = '<div style="color:#90a4ae; font-size:0.75rem; padding:2px 0;">No obstacle angles added yet.</div>';
+    return;
+  }
+  list.innerHTML = obstacles.map(function(o, i) {
+    const type = String((o && o.type) || 'OBSTACLE').trim().toUpperCase();
+    const thr = String((o && o.fromThreshold) || (window._rbcState && window._rbcState.rwyIdent) || '').trim().toUpperCase();
+    const dist = Math.round(Number((o && (o.checkpointDistanceM != null ? o.checkpointDistanceM : (o.distanceM != null ? o.distanceM : o.distance))) || 0));
+    const ang = Number((o && (o.angleDeg != null ? o.angleDeg : (o.fromThrA50mDeg != null ? o.fromThrA50mDeg : o.fromThrB50mDeg))) || 0);
+    const opRaw = String((o && o.operation) || '').trim().toLowerCase();
+    const op = opRaw === 'landing' ? 'LANDING' : 'TAKEOFF';
+    return '<div class="rbc-seg-row">'
+      + '<span class="seg-label">' + _rbcEsc(type + ' · RWY ' + thr + ' · ' + dist + 'm · ' + ang.toFixed(1) + '° · ' + op) + '</span>'
+      + '<button class="seg-del" onclick="rbcRemoveObstacleAngle(' + i + ')">×</button>'
+      + '</div>';
+  }).join('');
+}
+
 function _rbcRenderFeaturesList() {
   const list = document.getElementById('rbc-features-list');
   if (!list) return;
@@ -2485,6 +3148,86 @@ window.rbcAddFeature = function() {
   if (distEl) distEl.value = '';
   _rbcRenderFeaturesList();
   _rbcRenderFeaturesView();
+  _rbcDrawDiagram();
+};
+
+window.rbcAddObstacleAngle = function() {
+  const s = window._rbcState || {};
+  const typeEl = document.getElementById('rbc-obs-type');
+  const thrEl = document.getElementById('rbc-obs-thr');
+  const distEl = document.getElementById('rbc-obs-dist');
+  const angleEl = document.getElementById('rbc-obs-angle');
+  const opEl = document.getElementById('rbc-obs-op');
+
+  const type = String(typeEl && typeEl.value || '').trim().toUpperCase();
+  const fromThreshold = String(thrEl && thrEl.value || s.rwyIdent || '').trim().toUpperCase();
+  const checkpointDistanceM = Math.round(Number(distEl && distEl.value || 0));
+  const angleDeg = Number(angleEl && angleEl.value || 0);
+  const operation = String(opEl && opEl.value || 'takeoff').trim().toLowerCase() === 'landing' ? 'landing' : 'takeoff';
+
+  if (!type) {
+    if (window.M) M.toast({ html: 'Select obstacle type', classes: 'orange darken-2' });
+    return;
+  }
+  if (!fromThreshold) {
+    if (window.M) M.toast({ html: 'Select threshold runway', classes: 'orange darken-2' });
+    return;
+  }
+  if (!isFinite(checkpointDistanceM) || checkpointDistanceM < 0) {
+    if (window.M) M.toast({ html: 'Enter valid distance from threshold', classes: 'orange darken-2' });
+    return;
+  }
+  if (!isFinite(angleDeg) || angleDeg < 0 || angleDeg > 90) {
+    if (window.M) M.toast({ html: 'Enter angle between 0 and 90', classes: 'orange darken-2' });
+    return;
+  }
+
+  if (!Array.isArray(s.card.obstacleAngles50m)) {
+    s.card.obstacleAngles50m = _rbcGetEffectiveObstacleAnglesForRunway(s.runway).map(function(o) {
+      return {
+        type: String((o && o.type) || '').trim(),
+        operation: String((o && o.operation) || '').trim().toLowerCase(),
+        fromThreshold: String((o && o.fromThreshold) || '').trim().toUpperCase(),
+        checkpointDistanceM: Math.round(Number((o && (o.checkpointDistanceM != null ? o.checkpointDistanceM : (o.distanceM != null ? o.distanceM : o.distance))) || 0)),
+        angleDeg: Number((o && (o.angleDeg != null ? o.angleDeg : (o.fromThrA50mDeg != null ? o.fromThrA50mDeg : o.fromThrB50mDeg))) || 0)
+      };
+    });
+  }
+
+  s.card.obstacleAngles50m.push({
+    type: type,
+    operation: operation,
+    fromThreshold: fromThreshold,
+    checkpointDistanceM: checkpointDistanceM,
+    angleDeg: Math.round(angleDeg * 10) / 10
+  });
+  s.dirty = true;
+
+  if (distEl) distEl.value = '';
+  if (angleEl) angleEl.value = '';
+
+  _rbcRenderObstacleAnglesList();
+  _rbcRenderObstacleAnglesView();
+  _rbcDrawDiagram();
+};
+
+window.rbcRemoveObstacleAngle = function(idx) {
+  const s = window._rbcState || {};
+  if (!Array.isArray(s.card.obstacleAngles50m)) {
+    s.card.obstacleAngles50m = _rbcGetEffectiveObstacleAnglesForRunway(s.runway).map(function(o) {
+      return {
+        type: String((o && o.type) || '').trim(),
+        operation: String((o && o.operation) || '').trim().toLowerCase(),
+        fromThreshold: String((o && o.fromThreshold) || '').trim().toUpperCase(),
+        checkpointDistanceM: Math.round(Number((o && (o.checkpointDistanceM != null ? o.checkpointDistanceM : (o.distanceM != null ? o.distanceM : o.distance))) || 0)),
+        angleDeg: Number((o && (o.angleDeg != null ? o.angleDeg : (o.fromThrA50mDeg != null ? o.fromThrA50mDeg : o.fromThrB50mDeg))) || 0)
+      };
+    });
+  }
+  s.card.obstacleAngles50m.splice(idx, 1);
+  s.dirty = true;
+  _rbcRenderObstacleAnglesList();
+  _rbcRenderObstacleAnglesView();
   _rbcDrawDiagram();
 };
 
@@ -2590,6 +3333,18 @@ function _rbcPopulateFeatureDropdowns() {
   });
   var hi = document.getElementById('rbc-feat-side');
   if (hi) hi.value = 'left';
+}
+
+function _rbcPopulateObstacleDropdowns() {
+  const thrSel = document.getElementById('rbc-obs-thr');
+  if (!thrSel) return;
+  const runways = _rbcRunwayIdentsForCurrentAirport_();
+  const activeRwy = String((window._rbcState && window._rbcState.rwyIdent) || '').trim().toUpperCase();
+  const opts = runways.length ? runways : (activeRwy ? [activeRwy] : []);
+  thrSel.innerHTML = opts.map(function(rw) {
+    const selected = rw === activeRwy ? ' selected' : '';
+    return '<option value="' + _rbcEsc(rw) + '"' + selected + '>' + _rbcEsc(rw) + '</option>';
+  }).join('');
 }
 
 window.rbcSelectFeatRwy = function(btn) {

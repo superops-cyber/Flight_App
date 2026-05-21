@@ -1209,7 +1209,7 @@ function renderLegs(mission) {
   const savedFlightId = window.activeLegFlightId || null;
   if (savedFlightId) {
     const savedIdx = legs.findIndex(l => l.flightLegId === savedFlightId);
-    if (savedIdx >= 0) activeIdx = savedIdx;
+    if (savedIdx >= 0 && String(legs[savedIdx] && legs[savedIdx].logStatus || 'PENDING').toUpperCase() !== 'COMPLETE') activeIdx = savedIdx;
   }
 
   // Persist selection globally so downstream tabs can read it
@@ -1534,15 +1534,17 @@ window.submitBriefingLog = async function(missionId, opts) {
       ? window.currentBriefingMission.legs.reduce((s, leg) => s + (leg.distance || leg.dist || 0), 0)
       : 0;
 
-    // Use the pilot-selected active leg (set via "Select This Leg" in Tab 2); fall back to leg[0]
+    // Use the pilot-selected active leg only if it is not complete; otherwise auto-advance to the next unfinished leg.
     const activeLeg_ = (function() {
       const legs_ = window.currentBriefingMission && window.currentBriefingMission.legs;
       if (!legs_ || !legs_.length) return null;
       if (window.activeLegFlightId) {
         const found = legs_.find(l => l.flightLegId === window.activeLegFlightId);
-        if (found) return found;
+        if (found && String(found.logStatus || 'PENDING').toUpperCase() !== 'COMPLETE') return found;
       }
-      return legs_[0];
+      return legs_.find(function(l) {
+        return String(l && l.logStatus || 'PENDING').toUpperCase() !== 'COMPLETE';
+      }) || legs_[0];
     })();
 
     const firstLegFlightId = activeLeg_ ? activeLeg_.flightLegId : (missionId || '');
@@ -1648,10 +1650,47 @@ window.validateFuelAtLeastOneTank = function() {
   return hasAnyFuel;
 };
 
+window.validateTab2FlightPlanGate_ = function() {
+  const mission = window.currentBriefingMission;
+  const legs = Array.isArray(mission && mission.legs) ? mission.legs : [];
+  const activeIdx = Math.max(0, Number(window.activeLegIndex || 0));
+  const activeLeg = legs[activeIdx] || legs[0] || null;
+  const activeLegId = String(activeLeg && activeLeg.flightLegId || '').trim();
+
+  const card = activeLegId
+    ? document.querySelector('#briefing-content .leg-card[data-flight-leg-id="' + activeLegId + '"]')
+    : document.querySelector('#briefing-content .leg-card');
+  if (!card) return true;
+
+  const noPlanInput = card.querySelector('.no-plan-checkbox');
+  const noPlan = Boolean(noPlanInput && noPlanInput.checked);
+  if (noPlan) return true;
+
+  const planInput = card.querySelector('.plan-id-input');
+  const zuluInput = card.querySelector('.zulu-input');
+  const planId = String(planInput && planInput.value || '').trim().toUpperCase();
+  const takeoffUTC = String(zuluInput && zuluInput.value || '').trim().replace(/[^0-9]/g, '').slice(0, 4);
+
+  const validZulu = /^\d{4}$/.test(takeoffUTC);
+  if (!planId || !validZulu) {
+    if (window.M) {
+      M.toast({ html: 'For this leg, set No Flight Plan or enter Plan ID + T/O UTC (HHMM).', classes: 'orange', displayLength: 4200 });
+    }
+    if (!planId && planInput) planInput.focus();
+    else if (zuluInput) zuluInput.focus();
+    return false;
+  }
+
+  return true;
+};
+
 window.tab2LoadAircraftThenAdvance = function() {
   const missionId = (window.currentBriefingMission && window.currentBriefingMission.id) || '';
   if (!missionId) {
     if (window.M) M.toast({ html: 'No mission loaded in briefing', classes: 'orange' });
+    return;
+  }
+  if (typeof window.validateTab2FlightPlanGate_ === 'function' && !window.validateTab2FlightPlanGate_()) {
     return;
   }
   // Safeguard: require at least some fuel in tanks before advancing
