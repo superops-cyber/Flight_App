@@ -3290,6 +3290,13 @@ function _rbcPopulateRestrictionDropdowns() {
     const aircraft = Array.isArray(window.appData && window.appData.aircraft) ? window.appData.aircraft : [];
     const typeSet = {};
     const types = [];
+    const preferredModels = [
+      'CESSNA_206_F_G_550',
+      'CESSNA_206_F_G_520'
+    ];
+    preferredModels.forEach(function(model) {
+      if (!typeSet[model]) { typeSet[model] = true; types.push(model); }
+    });
     aircraft.forEach(function(a) {
       const t = String((a && (a.aircraftType || a.type || a.model)) || '').trim().toUpperCase();
       if (t && !typeSet[t]) { typeSet[t] = true; types.push(t); }

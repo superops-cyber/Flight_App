@@ -585,6 +585,12 @@
         stops = plan.stops;
       } else if (row && row.plannedStopsJson) {
         stops = _lessonSafeParseJson_(row.plannedStopsJson, []);
+      } else if (training && training.runwayCheckout) {
+        // For runway check flights: use only the checkout runway(s), not the full route
+        stops = String(training.runwayCheckout || '').split(/[;,]/).map(function(s) {
+          var loc = String(s || '').trim().toUpperCase();
+          return loc ? { location: loc, landings: 1, touchAndGos: 0 } : null;
+        }).filter(Boolean);
       } else {
         stops = String(training && training.route || '').split(',').map(function(s) {
           var loc = String(s || '').trim().toUpperCase();

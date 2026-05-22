@@ -743,6 +743,23 @@
     }
     const preview = _releaseBuildMessage(mission, 0, {}, activeLeg);
     const brief = _releaseGetRunwayContext(mission, activeLeg);
+    const displayLengthM = Number(brief.officialRunwayLengthM || brief.runwayLengthM || 0);
+    const displayWidthM = Number(brief.officialRunwayWidthM || brief.runwayWidthM || 0);
+    const internalLengthM = Number(brief.runwayLengthM || 0);
+    const internalWidthM = Number(brief.runwayWidthM || 0);
+    const hasInternalDiff = (
+      (displayLengthM > 0 && internalLengthM > 0 && Math.round(displayLengthM) !== Math.round(internalLengthM))
+      || (displayWidthM > 0 && internalWidthM > 0 && Math.round(displayWidthM) !== Math.round(internalWidthM))
+    );
+    const runwayDimsLine = (displayLengthM > 0 || displayWidthM > 0)
+      ? (Math.round(displayLengthM) + 'm × ' + Math.round(displayWidthM) + 'm')
+      : 'N/A';
+    const internalDimsLine = hasInternalDiff
+      ? (' • Internal ' + Math.round(internalLengthM) + 'm × ' + Math.round(internalWidthM) + 'm')
+      : '';
+    const internalDateLine = (hasInternalDiff && brief.internalUpdatedLabel)
+      ? ('<br><small style="color:#546e7a; font-weight:600;">Internal date: ' + brief.internalUpdatedLabel + '</small>')
+      : '';
 
     window.releaseTab5State = {
       missionId: mission.id || '',
@@ -766,10 +783,8 @@
           </button>
         </div>
         <div class="release5-grid">
-          <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • <span title="Internal measured runway dimensions">Internal ${brief.runwayLengthM || 0}m × ${brief.runwayWidthM || 0}m</span> • <span title="Official DB_Airports runway dimensions">Official ${brief.officialRunwayLengthM || 0}m × ${brief.officialRunwayWidthM || 0}m</span><br><small style="color:#546e7a; font-weight:600;">Internal date: ${brief.internalUpdatedLabel || 'N/A'}</small></div>
+          <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • ${runwayDimsLine}${internalDimsLine}${internalDateLine}</div>
           <div class="release5-chip"><b>Cutdown Area:</b> <button type="button" onclick="_releasePadlockToggle_('release5-cutdown', this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" disabled style="height:30px; width:110px; margin-left:6px;"> <small style="color:#666; font-weight:500;" title="Pilot edits are sent for supervisor review before any DB_Airports update.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>
-          <div class="release5-chip"><b>MTOW (kg):</b> <button type="button" onclick="(function(btn){ _releasePadlockToggle_('release5-mtow', btn); var m=document.getElementById('release5-mtow-model'); if(m){ m.disabled=!m.disabled; } })(this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-mtow" type="number" inputmode="numeric" min="1" step="1" value="${brief.maxTakeoffWeight || ''}" disabled style="height:30px; width:110px; margin-left:6px;"> <input id="release5-mtow-model" type="text" value="${brief.mtowModelKey || ''}" disabled style="height:30px; width:100px; margin-left:6px;" placeholder="Model"></div>
-          <div class="release5-chip"><b>Runway Class:</b> <button type="button" onclick="_releasePadlockToggle_('release5-runway-class', this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-runway-class" type="text" value="${brief.runwayClass || ''}" disabled style="height:30px; width:90px; margin-left:6px;" placeholder="1/2/3"></div>
           <div class="release5-chip"><b>Surface:</b> ${brief.surface || 'N/A'} • ${String(brief.surfaceCondition || 'DRY').toUpperCase()}</div>
           <div class="release5-chip"><b>Wind:</b> ${brief.windDir || 0}° / ${brief.windSpd || 0}kt • H/T ${brief.headTailKts || 0}kt • XW ${brief.crosswindKts || 0}kt</div>
           <div class="release5-chip"><b>Abort:</b> ${brief.abortPointM || 0}m • TO ${brief.takeoffRollM || 0}m • TO+Stop Roll ${brief.rollStopM || 0}m</div>

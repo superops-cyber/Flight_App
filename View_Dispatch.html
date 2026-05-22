@@ -1395,6 +1395,32 @@ function calculateTotals() {
    const acftRef = String(
      (aircraft && (aircraft.typeForPerformance || aircraft.aircraftType || aircraft.reg)) || ''
    ).toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+
+   const candidateKeys = [];
+   const pushCandidate = function(v) {
+     const k = String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+     if (!k) return;
+     if (candidateKeys.indexOf(k) < 0) candidateKeys.push(k);
+   };
+
+   if (acftRef) {
+     pushCandidate(acftRef);
+     if (acftRef.indexOf('CESSNA_206') >= 0 || acftRef.indexOf('C206') >= 0) {
+       if (acftRef.indexOf('550') >= 0) {
+         ['CESSNA_206_F_G_550', 'C206_F_G_550', 'C206_550'].forEach(pushCandidate);
+       }
+       if (acftRef.indexOf('520') >= 0) {
+         ['CESSNA_206_F_G_520', 'C206_F_G_520', 'C206_520'].forEach(pushCandidate);
+       }
+     }
+   }
+
+   for (let ci = 0; ci < candidateKeys.length; ci++) {
+     if (Object.prototype.hasOwnProperty.call(map, candidateKeys[ci])) {
+       return Number(map[candidateKeys[ci]] || 0) || 9999;
+     }
+   }
+
    if (acftRef) {
      const sorted = keys.slice().sort(function(a, b) { return String(b || '').length - String(a || '').length; });
      const matched = sorted.find(function(k) { return acftRef.indexOf(String(k || '').toUpperCase()) >= 0; });

@@ -260,6 +260,7 @@
 
     .field-lock {
       position: relative;
+      overflow: visible;
     }
 
     .field-lock .lock-icon {
@@ -275,10 +276,14 @@
       color: #455a64;
       cursor: pointer;
       user-select: none;
+      -webkit-user-select: none;
       border: 1px solid #b0bec5;
       border-radius: 999px;
       background: #eceff1;
       font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      z-index: 10;
+      touch-action: auto;
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
     }
 
     .field-lock input {
@@ -857,10 +862,16 @@
 
     function dutyStatusTone(statusText) {
       const status = String(statusText || '').toUpperCase();
-      if (status.indexOf('CLOSE') >= 0) return 'ok';
+      if (status.indexOf('CLOSE') >= 0 || status.indexOf('CLOSED') >= 0) return 'ok';
       if (status.indexOf('OPEN') >= 0) return 'warn';
-      if (status.indexOf('IGNORE') >= 0) return 'bad';
       return 'warn';
+    }
+
+    function dutyStatusLabel(statusText, hasCompletedShift) {
+      if (hasCompletedShift === true) return 'CLOSED';
+      const status = String(statusText || '').toUpperCase();
+      if (status.indexOf('CLOSE') >= 0 || status.indexOf('CLOSED') >= 0) return 'CLOSED';
+      return 'OPEN';
     }
 
     function dutyApplyHeader() {
@@ -929,9 +940,29 @@
       return ''
         + '<div class="field ' + lockClass + '" id="' + scope + '-field-' + index + '-' + kind + '">'
         + '  <label>' + (kind === 'start' ? 'Inicio' : 'Fim') + ' <span style="font-size:0.68rem;font-weight:400;opacity:0.65;">(BSB)</span></label>'
-        + '  <input id="' + inputId + '" type="text" inputmode="numeric" placeholder="08:00, 8, 1pm" onblur="dutyHandleTimeBlur(\'' + scope + '\',' + index + ',\'' + kind + '\')" value="' + dutyEscape(value || '') + '" ' + (isLockedNow ? 'readonly' : '') + '>'
-        + '  <span class="lock-icon" id="' + lockId + '" title="Toque para bloquear/desbloquear." onclick="dutyToggleLock(\'' + scope + '\',' + index + ',\'' + kind + '\')">' + (isLockedNow ? '🔒' : '🔓') + '</span>'
+        + '  <input id="' + inputId + '" type="text" inputmode="numeric" placeholder="08:00, 8, 1pm" oninput="dutyFormatTimeOnInput(this)" onblur="dutyHandleTimeBlur(\'' + scope + '\',' + index + ',\'' + kind + '\')" value="' + dutyEscape(value || '') + '" ' + (isLockedNow ? 'readonly' : '') + '>'
+        + '  <span class="lock-icon" id="' + lockId + '" title="Toque para bloquear/desbloquear." onclick="dutyToggleLock(\'' + scope + '\',' + index + ',\'' + kind + '\')" style="pointer-events:auto;">' + (isLockedNow ? '🔒' : '🔓') + '</span>'
         + '</div>';
+    }
+
+    function dutyFormatTimeOnInput(inputEl) {
+      if (!inputEl) return;
+      let val = String(inputEl.value || '').trim();
+      if (!val) return;
+
+      // Auto-format only after enough digits to avoid blocking normal typing.
+      // Examples: "900" -> "09:00", "1000" -> "10:00".
+      const digitMatch = val.match(/^(\d{3,4})$/);
+      if (digitMatch) {
+        const digits = String(digitMatch[1]);
+        const h = digits.length === 3 ? digits.substring(0, 1) : digits.substring(0, 2);
+        const m = digits.length === 3 ? digits.substring(1, 3) : digits.substring(2, 4);
+        const hNum = Number(h);
+        const mNum = Number(m);
+        if (hNum >= 0 && hNum <= 23 && mNum >= 0 && mNum <= 59) {
+          inputEl.value = String(hNum).padStart(2, '0') + ':' + m;
+        }
+      }
     }
 
     function dutyNormalizeTimeInput(raw) {
@@ -1173,10 +1204,13 @@
         });
         const topRow = dayRows[dayRows.length - 1];
         const isExpanded = String(dutyState.expandedRegistryDateYmd || '') === String(dateKey);
-        const topStatus = String(topRow.status || '').trim();
-        const tone = dutyStatusTone(topStatus);
         const start = String(dayRows[0].startTime || '--');
         const end = String(topRow.endTime || '--');
+        const hasCompletedShift = dayRows.some(function(r) {
+          return !!String(r.startTime || '').trim() && !!String(r.endTime || '').trim();
+        });
+        const topStatus = dutyStatusLabel(topRow.status, hasCompletedShift);
+        const tone = dutyStatusTone(topStatus);
 
         // Compute duty duration
         let dutyHrsStr = '';
@@ -1237,7 +1271,8 @@
         const shiftsHtml = dayRows.map(function(r, idx) {
           const s = dutyEscape(String(r.startTime || '--'));
           const e = dutyEscape(String(r.endTime || '--'));
-          const st = dutyEscape(String(r.status || '--'));
+          const rowCompleted = !!String(r.startTime || '').trim() && !!String(r.endTime || '').trim();
+          const st = dutyEscape(dutyStatusLabel(r.status, rowCompleted));
           return '<div class="registry-detail-row">Shift ' + (idx + 1) + ': ' + s + ' → ' + e + ' (' + st + ')</div>';
         }).join('');
         const detailsHtml = isExpanded

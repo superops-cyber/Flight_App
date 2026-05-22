@@ -1385,7 +1385,7 @@ function wbMissionPassengers_() {
     });
   });
   const training = mission && mission.meta && mission.meta.training ? mission.meta.training : null;
-  const traineeName = wbNormName_((training && training.student) || (mission && mission.copilot) || '');
+  const traineeName = wbNormName_((training && training.student) || (mission && (mission.copilot || (mission.meta && mission.meta.copilot))) || '');
   const pilotName = wbNormName_(mission && mission.pilot || '');
   if (traineeName && traineeName.toUpperCase() !== pilotName.toUpperCase() && !seen[traineeName.toUpperCase()]) {
     const traineeWeightInfo = wbResolvePilotWeight_(traineeName);
@@ -1880,7 +1880,7 @@ function wbBuildOfflinePayload_(flightId) {
 
   const rawPax = Array.isArray(leg.pax) ? leg.pax.slice() : [];
   const training = mission && mission.meta && mission.meta.training ? mission.meta.training : null;
-  const traineeName = wbNormName_((training && training.student) || mission.copilot || '');
+  const traineeName = wbNormName_((training && training.student) || (mission && (mission.copilot || (mission.meta && mission.meta.copilot))) || '');
   if (traineeName && traineeName.toUpperCase() !== wbNormName_(pilotName).toUpperCase()) {
     const alreadyListed = rawPax.some(function(p) {
       return wbNormName_(p && p.name).toUpperCase() === traineeName.toUpperCase();
@@ -2350,7 +2350,8 @@ window.calculateWB = function() {
     if (!(seatWeight > 0)) return;
 
     if (seat.status === 'cargo') {
-      totalMoment += window.calculateMoment(seatWeight, (seatStowArm - seatArm));
+      const cargoArm = wbNum_(seat && seat.cargoArm, seatStowArm);
+      totalMoment += window.calculateMoment(seatWeight, (cargoArm - seatArm));
     }
   });
 
@@ -2834,6 +2835,101 @@ function wbStatusButtonMeta_(status) {
   return { text: 'BASE', css: 'base' };
 }
 
+function wbCargoSortOrder_() {
+  return ['POD A', 'POD B', 'CARGO A', 'CARGO B', 'CARGO C', 'CARGO D'];
+}
+
+function wbSortCargoAreas_(areas) {
+  const order = wbCargoSortOrder_();
+  return (Array.isArray(areas) ? areas.slice() : []).sort(function(a, b) {
+    const aName = String(a && a.name || '').toUpperCase();
+    const bName = String(b && b.name || '').toUpperCase();
+    const aIdx = order.findIndex(function(k) { return aName.indexOf(k) >= 0; });
+    const bIdx = order.findIndex(function(k) { return bName.indexOf(k) >= 0; });
+    const safeA = aIdx >= 0 ? aIdx : 999;
+    const safeB = bIdx >= 0 ? bIdx : 999;
+    if (safeA !== safeB) return safeA - safeB;
+    return aName.localeCompare(bName);
+  });
+}
+
+function wbCargoAreaById_(areaId) {
+  const areas = Array.isArray(window.wbData && window.wbData.cargoAreas) ? window.wbData.cargoAreas : [];
+  const target = String(areaId || '').trim();
+  if (!target) return null;
+  return areas.find(function(area) {
+    return String(area && area.id || '').trim() === target;
+  }) || null;
+}
+
+function wbCargoAreaLabelById_(areaId) {
+  const hit = wbCargoAreaById_(areaId);
+  return hit && String(hit.name || '').trim() ? String(hit.name || '').trim() : '';
+}
+
+function wbPickCargoAreaForSeat_(seatName) {
+  const available = (typeof window.getAvailableCargoAreas === 'function') ? window.getAvailableCargoAreas() : [];
+  const fallback = Array.isArray(window.wbData && window.wbData.cargoAreas) ? window.wbData.cargoAreas : [];
+  const areas = wbSortCargoAreas_(available.length ? available : fallback);
+  if (!areas.length) return Promise.resolve(null);
+
+  return new Promise(function(resolve) {
+    const existing = document.getElementById('wb-cargo-zone-picker');
+    if (existing && existing.parentElement) existing.parentElement.removeChild(existing);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'wb-cargo-zone-picker';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:12000;padding:14px;';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'width:min(420px,96vw);background:#fff;border-radius:12px;padding:12px;box-shadow:0 12px 30px rgba(0,0,0,0.28);';
+
+    const title = document.createElement('div');
+    title.textContent = 'Move ' + String(seatName || 'seat') + ' to which cargo zone?';
+    title.style.cssText = 'font-weight:900;color:#0b5394;font-size:1.02rem;margin-bottom:10px;';
+    card.appendChild(title);
+
+    const list = document.createElement('div');
+    list.style.cssText = 'display:grid;gap:8px;';
+    areas.forEach(function(area) {
+      const arm = wbNum_(area && area.arm, 0);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = String(area && area.name || 'Cargo') + ' (Arm ' + arm.toFixed(1) + ')';
+      btn.style.cssText = 'height:44px;border-radius:9px;border:2px solid #d6e4f5;background:#fff;color:#1565c0;font-weight:800;font-size:0.95rem;cursor:pointer;';
+      btn.onclick = function() {
+        if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+        resolve(area || null);
+      };
+      list.appendChild(btn);
+    });
+    card.appendChild(list);
+
+    const footer = document.createElement('div');
+    footer.style.cssText = 'display:flex;justify-content:flex-end;margin-top:10px;';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = 'Cancel';
+    cancel.style.cssText = 'height:38px;padding:0 14px;border-radius:8px;border:1px solid #b0bec5;background:#fff;color:#455a64;font-weight:700;cursor:pointer;';
+    cancel.onclick = function() {
+      if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+      resolve(null);
+    };
+    footer.appendChild(cancel);
+    card.appendChild(footer);
+
+    overlay.addEventListener('click', function(ev) {
+      if (ev.target === overlay) {
+        if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
+        resolve(null);
+      }
+    });
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  });
+}
+
 function wbStatusCycleButtonHtml_(seatId, status) {
   const meta = wbStatusButtonMeta_(status);
   const next = wbNextSeatStatus_(status);
@@ -3055,17 +3151,7 @@ window.renderManifest = function() {
   }
   
   // 4. Conditional cargo areas (Pod A, Pod B, Cargo A, B, C)
-  const cargoSortOrder = ['POD A', 'POD B', 'CARGO A', 'CARGO B', 'CARGO C', 'CARGO D'];
-  const availableCargoAreas = window.getAvailableCargoAreas().slice().sort(function(a, b) {
-    const aName = String(a && a.name || '').toUpperCase();
-    const bName = String(b && b.name || '').toUpperCase();
-    const aIdx = cargoSortOrder.findIndex(function(k) { return aName.indexOf(k) >= 0; });
-    const bIdx = cargoSortOrder.findIndex(function(k) { return bName.indexOf(k) >= 0; });
-    const safeA = aIdx >= 0 ? aIdx : 999;
-    const safeB = bIdx >= 0 ? bIdx : 999;
-    if (safeA !== safeB) return safeA - safeB;
-    return aName.localeCompare(bName);
-  });
+  const availableCargoAreas = wbSortCargoAreas_(window.getAvailableCargoAreas());
   availableCargoAreas.forEach(area => {
     // Initialize cargo areas in wbData if not present
     if (!window.wbData.cargoAreaWeights) {
@@ -3127,7 +3213,12 @@ window.renderManifest = function() {
   
   if (storedSeats.length > 0) {
     const storedWeight = storedSeats.reduce((sum, seat) => sum + (seat.weight || 0), 0);
-    const storedArm = storedSeats.reduce((s, seat) => s + (seat.arm || 0), 0) / storedSeats.length;
+    const storedMoment = storedSeats.reduce((sum, seat) => {
+      const weight = wbNum_(seat && seat.weight, 0);
+      const arm = wbNum_(seat && seat.cargoArm, wbNum_(seat && seat.arm, 0));
+      return sum + (weight * arm);
+    }, 0);
+    const storedArm = storedWeight > 0 ? (storedMoment / storedWeight) : 0;
     
     rows.push(`
       <div class="manifest-row" style="background:#fff8e1;">
@@ -3143,11 +3234,14 @@ window.renderManifest = function() {
   cargoSeats.forEach(({ seatId, seat }) => {
     const seatWeight = seat.weight || 0;
     const occupantWeight = seat.occupiedWeight || 0;
+    const cargoArm = wbNum_(seat && seat.cargoArm, wbNum_(seat && seat.arm, 0));
+    const zoneLabel = wbCargoAreaLabelById_(seat && seat.cargoAreaId) || 'cargo zone';
 
     let nameHTML = `<b>${seatId} <span style="color:#666; font-weight:700;">(${seatWeight}kg)</span></b>`;
     if (seat.passenger && seat.passenger.name) {
       nameHTML += ` <span style="color:#455a64;">${wbFirstName_(seat.passenger.name)}</span>`;
     }
+    nameHTML += ` <span style="color:#607d8b; font-size:1.17rem;">[${zoneLabel}]</span>`;
     
     const controlsHTML = seat.locked
       ? ''
@@ -3157,7 +3251,7 @@ window.renderManifest = function() {
       <div class="manifest-row">
         <div>${nameHTML}</div>
         <div>-</div>
-        <div>${(parseFloat(seat.arm) || 0).toFixed(1)}</div>
+        <div>${cargoArm.toFixed(1)}</div>
         <div>${controlsHTML}</div>
       </div>
     `);
@@ -3520,12 +3614,24 @@ window.renderSeatToggles = function() {
 /**
  * Change seat status and recalculate W&B
  */
-window.changeSeatStatus = function(seatName, newStatus) {
+window.changeSeatStatus = async function(seatName, newStatus) {
   const seat = window.wbData.seats[seatName];
   if (!seat) return;
   
   const oldStatus = seat.status;
   if (oldStatus === newStatus) return;
+
+  if (newStatus === 'cargo' && oldStatus !== 'cargo') {
+    const chosenArea = await wbPickCargoAreaForSeat_(seatName);
+    if (!chosenArea) return;
+    seat.cargoAreaId = String(chosenArea.id || '').trim();
+    seat.cargoArm = wbNum_(chosenArea.arm, wbNum_(seat.arm, 0));
+  }
+
+  if (newStatus !== 'cargo') {
+    seat.cargoAreaId = '';
+    seat.cargoArm = 0;
+  }
   
   // If moving away from installed and there's a passenger, move them to waiting
   if (oldStatus === 'installed' && newStatus !== 'installed' && seat.passenger) {
@@ -3602,7 +3708,12 @@ window.changeSeatStatus = function(seatName, newStatus) {
   window.updateWBUI();
   if (typeof window.persistWBState_ === 'function') window.persistWBState_();
   
-  M.toast({html: `${seatName}: moved to ${newStatus}`, displayLength: 2000});
+  let toastMsg = `${seatName}: moved to ${newStatus}`;
+  if (newStatus === 'cargo') {
+    const zoneLabel = wbCargoAreaLabelById_(seat.cargoAreaId) || 'selected zone';
+    toastMsg = `${seatName}: moved to cargo (${zoneLabel})`;
+  }
+  M.toast({html: toastMsg, displayLength: 2200});
 };
 
 /**

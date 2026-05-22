@@ -1,11 +1,11 @@
 <style>
   #tools-container { min-height:100%; background:#edf1f4; padding:16px; font-family:"Segoe UI",sans-serif; }
-  .tools-action-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+  .tools-action-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:8px; }
   .tools-action-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; background:#fff; border:1px solid #d1dce6; border-radius:12px; padding:14px 18px; min-width:110px; cursor:pointer; transition:background 0.12s,box-shadow 0.12s; box-shadow:0 2px 6px rgba(0,0,0,0.07); font-family:inherit; }
   .tools-action-btn:hover { background:#e8f0fe; box-shadow:0 4px 12px rgba(0,0,0,0.12); }
   .tools-action-btn i   { font-size:2rem; color:#0b5394; }
   .tools-action-btn span { font-size:0.76rem; font-weight:800; color:#1a3a5c; text-transform:uppercase; text-align:center; }
-  .tools-panel { background:#fff; border-radius:10px; border:1px solid #d8e0e8; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:16px; margin-bottom:16px; display:none; }
+  .tools-panel { background:#fff; border-radius:10px; border:1px solid #d8e0e8; box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:16px; margin:0 0 10px 0; display:none; }
   .tools-panel.open { display:block; }
   .tools-panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
   .tools-panel-title  { margin:0; color:#0b5394; font-weight:800; font-size:1rem; text-transform:uppercase; letter-spacing:0.03em; }
@@ -480,72 +480,6 @@
       <div class="tools-report-intro">
         <div class="tools-report-intro-title">Report Families</div>
         <p class="tools-report-intro-copy">Use one shared date range, then switch between Finance, Flight Ops, Maintenance, Training, and Compliance. Finance and Flight Ops are live now; the other families are organized so the next reports can drop into the same panel without changing the workflow.</p>
-      </div>
-      <div class="tools-report-category-bar">
-        <button class="tools-report-category-btn active" type="button" data-tools-report-category="finance" onclick="toolsSetReportCategory('finance')"><span class="tools-report-category-label">Finance</span><span class="tools-report-category-sub">Funds, donations, allocations</span></button>
-        <button class="tools-report-category-btn" type="button" data-tools-report-category="flight" onclick="toolsSetReportCategory('flight')"><span class="tools-report-category-label">Flight Ops</span><span class="tools-report-category-sub">Flights, pilots, utilization</span></button>
-        <button class="tools-report-category-btn" type="button" data-tools-report-category="maintenance" onclick="toolsSetReportCategory('maintenance')"><span class="tools-report-category-label">Maintenance</span><span class="tools-report-category-sub">Discrepancies and due items</span></button>
-        <button class="tools-report-category-btn" type="button" data-tools-report-category="training" onclick="toolsSetReportCategory('training')"><span class="tools-report-category-label">Training</span><span class="tools-report-category-sub">Authorizations and readiness</span></button>
-        <button class="tools-report-category-btn" type="button" data-tools-report-category="compliance" onclick="toolsSetReportCategory('compliance')"><span class="tools-report-category-label">Compliance</span><span class="tools-report-category-sub">Docs, scheduler, audit</span></button>
-      </div>
-      <div id="tools-report-category-meta" class="tools-report-category-meta">Finance focuses on current fund usage and the next funding reports already supported by the data model.</div>
-      <div class="tools-report-export-groups">
-        <div id="tools-report-exports-finance" class="tools-report-export-group active">
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('fund-usage')">EXPORT FUND CSV</button>
-        </div>
-        <div id="tools-report-exports-flight" class="tools-report-export-group">
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('flights')">EXPORT FLIGHTS CSV</button>
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('pilot-logbook')">EXPORT PILOT LOGBOOK CSV</button>
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('monthly-totals')">EXPORT MONTHLY CSV</button>
-          <button class="btn-ts" type="button" onclick="toolsExportReportCsv_('flight-detail')">EXPORT FLIGHT DETAIL CSV</button>
-        </div>
-        <div id="tools-report-exports-maintenance" class="tools-report-export-group"></div>
-        <div id="tools-report-exports-training" class="tools-report-export-group"></div>
-        <div id="tools-report-exports-compliance" class="tools-report-export-group"></div>
-      </div>
-    </div>
-    <div id="tools-report-group-finance" class="tools-report-group active">
-      <div id="tools-report-summary" class="tools-report-cards"></div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Fund Usage</h4>
-          <div id="tools-report-fund-meta" class="tools-report-meta"></div>
-        </div>
-        <div id="tools-report-fund-body"></div>
-      </div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Finance Queue</h4>
-          <div class="tools-report-meta">Organized next so exports and filters stay consistent</div>
-        </div>
-        <div class="tools-report-roadmap-grid">
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Donation Inflow</div>
-            <p class="tools-report-roadmap-copy">Monthly donation totals by fund, campaign, importer batch, and duplicate-review status.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Donations_Ledger, DB_Fund_Ledger, donation staging batches</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status next">Ready Next</div>
-            <div class="tools-report-roadmap-title">Mission Funding Allocation</div>
-            <p class="tools-report-roadmap-copy">Allocated versus finalized spend by mission, aircraft, pilot, and fund source.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Mission_Funding_Allocations, Dispatch, Log_Flights</div>
-          </div>
-          <div class="tools-report-roadmap-card">
-            <div class="tools-report-roadmap-status later">Later</div>
-            <div class="tools-report-roadmap-title">Account Reconciliation</div>
-            <p class="tools-report-roadmap-copy">Fund balance movement across donations in, mission use, reversals, and adjustments.</p>
-            <div class="tools-report-roadmap-meta">Data: DB_Fund_Ledger with transaction normalization</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="tools-report-group-flight" class="tools-report-group">
-      <div id="tools-report-flight-summary" class="tools-report-cards"></div>
-      <div class="tools-report-section">
-        <div class="tools-report-section-head">
-          <h4>Flight Detail (By Flight ID)</h4>
           <div id="tools-report-flightdetail-meta" class="tools-report-meta">Load one flight to view all saved fields, W&B, debrief, fuel/times, and passengers.</div>
         </div>
         <div class="tools-flight-detail-search" style="margin-bottom:8px;">
@@ -1052,74 +986,71 @@
     <div id="tools-lh-body" style="margin-top:8px; overflow-x:auto;"></div>
   </div>
 
-  <div id="tools-panel-scheduler" class="tools-panel">
-
-      <!-- PDF Lesson Plan Import Panel -->
-      <div id="tools-panel-pdfimport" class="tools-panel">
-        <div class="tools-panel-header">
-          <h3 class="tools-panel-title">Import Lesson Plan (PDF)</h3>
-          <button class="tools-panel-close" onclick="toolsClosePanel('pdfimport')">&times;</button>
+  <div id="tools-panel-pdfimport" class="tools-panel">
+    <div class="tools-panel-header">
+      <h3 class="tools-panel-title">Import Lesson Plan (PDF)</h3>
+      <button class="tools-panel-close" onclick="toolsClosePanel('pdfimport')">&times;</button>
+    </div>
+    <div id="tools-pif-upload-step">
+      <p style="margin:0 0 10px 0;font-size:0.8rem;color:#546e7a;">Upload a PDF lesson plan or checkride form. Gemini AI will extract all items, maneuvers, and references automatically.</p>
+      <div class="tools-field">
+        <label for="tools-pif-file">PDF File</label>
+        <input type="file" id="tools-pif-file" accept=".pdf,application/pdf">
+      </div>
+      <div style="margin:8px 0;padding:8px 10px;background:#fff8e1;border-radius:6px;border-left:3px solid #ffb300;font-size:0.74rem;color:#5d4037;">
+        <strong>Requires Gemini API Key.</strong> Set <code>GEMINI_API_KEY</code> in GAS Project Settings &rarr; Script Properties before using this feature.
+      </div>
+      <div class="tools-btn-row" style="margin-top:8px;">
+        <button class="btn-tp" type="button" onclick="toolsPifExtract_()"><i class="material-icons" style="font-size:1rem;vertical-align:middle;">auto_awesome</i> EXTRAIR COM IA</button>
+      </div>
+      <div id="tools-pif-status" style="margin-top:8px;font-size:0.78rem;color:#546e7a;min-height:18px;"></div>
+    </div>
+    <div id="tools-pif-edit-step" style="display:none;">
+      <div id="tools-pif-status-edit" style="font-size:0.78rem;color:#388e3c;margin-bottom:10px;font-weight:700;min-height:18px;"></div>
+      <div class="tools-row">
+        <div class="tools-field">
+          <label for="tools-pif-title">Lesson Title</label>
+          <input id="tools-pif-title" type="text">
         </div>
-        <!-- Step 1: Upload -->
-        <div id="tools-pif-upload-step">
-          <p style="margin:0 0 10px 0;font-size:0.8rem;color:#546e7a;">Upload a PDF lesson plan or checkride form. Gemini AI will extract all items, maneuvers, and references automatically.</p>
-          <div class="tools-field">
-            <label for="tools-pif-file">PDF File</label>
-            <input type="file" id="tools-pif-file" accept=".pdf,application/pdf">
-          </div>
-          <div style="margin:8px 0;padding:8px 10px;background:#fff8e1;border-radius:6px;border-left:3px solid #ffb300;font-size:0.74rem;color:#5d4037;">
-            <strong>Requires Gemini API Key.</strong> Set <code>GEMINI_API_KEY</code> in GAS Project Settings &rarr; Script Properties before using this feature.
-          </div>
-          <div class="tools-btn-row" style="margin-top:8px;">
-            <button class="btn-tp" type="button" onclick="toolsPifExtract_()"><i class="material-icons" style="font-size:1rem;vertical-align:middle;">auto_awesome</i> EXTRAIR COM IA</button>
-          </div>
-          <div id="tools-pif-status" style="margin-top:8px;font-size:0.78rem;color:#546e7a;min-height:18px;"></div>
-        </div>
-        <!-- Step 2: Edit & Save -->
-        <div id="tools-pif-edit-step" style="display:none;">
-          <div id="tools-pif-status-edit" style="font-size:0.78rem;color:#388e3c;margin-bottom:10px;font-weight:700;min-height:18px;"></div>
-          <div class="tools-row">
-            <div class="tools-field">
-              <label for="tools-pif-title">Lesson Title</label>
-              <input id="tools-pif-title" type="text">
-            </div>
-            <div class="tools-field" style="flex:0 0 200px;">
-              <label for="tools-pif-code">Training Code</label>
-              <input id="tools-pif-code" type="text" placeholder="VCP-C206-2026" style="text-transform:uppercase;">
-            </div>
-          </div>
-          <div class="tools-row">
-            <div class="tools-field" style="flex:0 0 170px;">
-              <label for="tools-pif-category">Category</label>
-              <select id="tools-pif-category" class="browser-default">
-                <option value="VCP">VCP</option>
-                <option value="RUNWAY_CHECK">Cheque de Pista</option>
-                <option value="ROUTE_CHECK">Cheque de Rota</option>
-                <option value="ANAC_CHECKRIDE">Cheque ANAC</option>
-                <option value="INTERNAL_CHECKRIDE">Cheque Interno</option>
-                <option value="LESSON">Aula</option>
-              </select>
-            </div>
-            <div class="tools-field" style="flex:0 0 140px;">
-              <label for="tools-pif-aircraft">Aircraft Type</label>
-              <input id="tools-pif-aircraft" type="text" placeholder="C206">
-            </div>
-            <div class="tools-field" style="flex:0 0 auto;display:flex;align-items:flex-end;padding-bottom:4px;">
-              <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;cursor:pointer;white-space:nowrap;">
-                <input type="checkbox" id="tools-pif-save-catalog" checked>
-                <span>Save maneuvers to catalog</span>
-              </label>
-            </div>
-          </div>
-          <div id="tools-pif-scoring" style="font-size:0.72rem;color:#78909c;margin-bottom:8px;padding:4px 8px;background:#f5f5f5;border-radius:4px;"></div>
-          <div id="tools-pif-sections-body" style="max-height:55vh;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;padding:8px;"></div>
-          <div class="tools-btn-row" style="margin-top:10px;">
-            <button class="btn-ts" type="button" onclick="toolsPifAddSection_()">+ SECAO</button>
-            <button class="btn-ts" type="button" onclick="toolsPifReset_()">RECOMECAR</button>
-            <button id="tools-pif-save-btn" class="btn-tp" type="button" onclick="toolsPifSave_()">SALVAR PLANO DE AULA</button>
-          </div>
+        <div class="tools-field" style="flex:0 0 200px;">
+          <label for="tools-pif-code">Training Code</label>
+          <input id="tools-pif-code" type="text" placeholder="VCP-C206-2026" style="text-transform:uppercase;">
         </div>
       </div>
+      <div class="tools-row">
+        <div class="tools-field" style="flex:0 0 170px;">
+          <label for="tools-pif-category">Category</label>
+          <select id="tools-pif-category" class="browser-default">
+            <option value="VCP">VCP</option>
+            <option value="RUNWAY_CHECK">Cheque de Pista</option>
+            <option value="ROUTE_CHECK">Cheque de Rota</option>
+            <option value="ANAC_CHECKRIDE">Cheque ANAC</option>
+            <option value="INTERNAL_CHECKRIDE">Cheque Interno</option>
+            <option value="LESSON">Aula</option>
+          </select>
+        </div>
+        <div class="tools-field" style="flex:0 0 140px;">
+          <label for="tools-pif-aircraft">Aircraft Type</label>
+          <input id="tools-pif-aircraft" type="text" placeholder="C206">
+        </div>
+        <div class="tools-field" style="flex:0 0 auto;display:flex;align-items:flex-end;padding-bottom:4px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;cursor:pointer;white-space:nowrap;">
+            <input type="checkbox" id="tools-pif-save-catalog" checked>
+            <span>Save maneuvers to catalog</span>
+          </label>
+        </div>
+      </div>
+      <div id="tools-pif-scoring" style="font-size:0.72rem;color:#78909c;margin-bottom:8px;padding:4px 8px;background:#f5f5f5;border-radius:4px;"></div>
+      <div id="tools-pif-sections-body" style="max-height:55vh;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;padding:8px;"></div>
+      <div class="tools-btn-row" style="margin-top:10px;">
+        <button class="btn-ts" type="button" onclick="toolsPifAddSection_()">+ SECAO</button>
+        <button class="btn-ts" type="button" onclick="toolsPifReset_()">RECOMECAR</button>
+        <button id="tools-pif-save-btn" class="btn-tp" type="button" onclick="toolsPifSave_()">SALVAR PLANO DE AULA</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tools-panel-scheduler" class="tools-panel">
 
     <div class="tools-panel-header">
       <h3 class="tools-panel-title">Scheduler</h3>
@@ -4913,12 +4844,20 @@
         var sel = document.getElementById('tools-dutylogs-pilot');
         if (sel) {
           var staff = Array.isArray(res.staff) ? res.staff : [];
-          var baseOptions = '<option value="">' + (_toolsDutyCanManageAll ? 'Todos os pilotos' : 'Meus logs') + '</option>';
-          var staffOptions = staff.map(function(s) {
-            var label = String(s.staffName || s.email || '').trim();
-            return '<option value="' + toolsAircraftEscape_(label) + '">' + toolsAircraftEscape_(label) + '</option>';
-          }).join('');
-          sel.innerHTML = baseOptions + staffOptions;
+          var myName = String(((res.currentUser || {}).staffName) || '').trim();
+          if (_toolsDutyCanManageAll) {
+            var baseOptions = '<option value="">Todos os pilotos</option>';
+            var staffOptions = staff.map(function(s) {
+              var label = String(s.staffName || s.email || '').trim();
+              return '<option value="' + toolsAircraftEscape_(label) + '">' + toolsAircraftEscape_(label) + '</option>';
+            }).join('');
+            sel.innerHTML = baseOptions + staffOptions;
+            sel.disabled = false;
+          } else {
+            var ownLabel = myName || 'Meus logs';
+            sel.innerHTML = '<option value="">' + toolsAircraftEscape_(ownLabel) + '</option>';
+            sel.disabled = true;
+          }
         }
         toolsLoadDutyLogs_();
       })
@@ -4976,24 +4915,49 @@
       toolsDutyLogClearEditor_();
       return;
     }
-    tbody.innerHTML = _toolsDutyLogsRows.map(function(row) {
+    tbody.innerHTML = _toolsDutyLogsRows.map(function(row, idx) {
       var rn = Number(row.rowNumber || 0);
-      var resolvedFlight = String(row.flightHours == null ? '' : row.flightHours).trim();
+      var resolvedFlight = toolsFmtDurationAny_(row.flightHours != null && row.flightHours !== '' ? row.flightHours : row.derivedFlightHours);
       return '<tr>'
-        + '<td><button type="button" class="tools-dutylogs-linkbtn" onclick="toolsDutyLogEditRow_(' + rn + ')">' + toolsAircraftEscape_(String(row.dateYmd || '')) + '</button></td>'
+        + '<td><button type="button" class="tools-dutylogs-linkbtn" onclick="toolsDutyLogEditRow_(' + rn + ', ' + idx + ')">' + toolsAircraftEscape_(String(row.dateYmd || '')) + '</button></td>'
         + '<td>' + toolsAircraftEscape_(String(row.pilotName || '')) + '</td>'
         + '<td>' + toolsAircraftEscape_(String(row.status || '')) + '</td>'
         + '<td>' + toolsAircraftEscape_(String(row.startTime || '')) + '</td>'
         + '<td>' + toolsAircraftEscape_(String(row.endTime || '')) + '</td>'
         + '<td>' + toolsAircraftEscape_(resolvedFlight || '0') + '</td>'
-        + '<td><button class="tools-mini-btn commit" type="button" onclick="toolsDutyLogEditRow_(' + rn + ')">VIEW</button></td>'
+        + '<td><button class="tools-mini-btn commit" type="button" onclick="toolsDutyLogEditRow_(' + rn + ', ' + idx + ')">VIEW</button></td>'
         + '</tr>';
     }).join('');
   }
 
-  function toolsDutyLogEditRow_(rowNumber) {
-    var row = (_toolsDutyLogsRows || []).find(function(r) { return Number(r.rowNumber || 0) === Number(rowNumber || 0); }) || null;
+  function toolsDutyLogEditRow_(rowNumber, rowIndex) {
+    var row = null;
+    if (rowIndex !== undefined && rowIndex !== null && String(rowIndex).trim() !== '') {
+      row = (_toolsDutyLogsRows || [])[Number(rowIndex)] || null;
+    }
+    if (!row) row = (_toolsDutyLogsRows || []).find(function(r) { return Number(r.rowNumber || 0) === Number(rowNumber || 0); }) || null;
     if (!row) return;
+    var sameDayRows = (_toolsDutyLogsRows || []).filter(function(r) {
+      var sameDate = String(r && r.dateYmd || '') === String(row && row.dateYmd || '');
+      var samePilot = String(r && r.pilotName || '').trim().toUpperCase() === String(row && row.pilotName || '').trim().toUpperCase();
+      return sameDate && samePilot;
+    });
+    var mergedFlights = [];
+    var seenFlightKeys = {};
+    var mergedDerivedHours = 0;
+    sameDayRows.forEach(function(r) {
+      var d = Number(r && r.derivedFlightHours || 0);
+      if (isFinite(d) && d > mergedDerivedHours) mergedDerivedHours = d;
+      (Array.isArray(r && r.flights) ? r.flights : []).forEach(function(f) {
+        var fid = String(f && (f.flightId || f.flight_id) || '').trim();
+        var fallbackKey = [String(f && f.acft || '').trim(), String(f && f.from || '').trim(), String(f && f.to || '').trim(), String(f && (f.totalTime || f.flightHours || '') || '').trim()].join('|');
+        var key = fid || fallbackKey;
+        if (!key || seenFlightKeys[key]) return;
+        seenFlightKeys[key] = true;
+        mergedFlights.push(f);
+      });
+    });
+
     _toolsDutyEditRow = row;
     var box = document.getElementById('tools-dutylogs-editor');
     if (box) box.style.display = 'block';
@@ -5001,14 +4965,17 @@
     document.getElementById('tools-dutylogs-edit-status').value = String(row.status || '');
     document.getElementById('tools-dutylogs-edit-start').value = String(row.startTime || '');
     document.getElementById('tools-dutylogs-edit-end').value = String(row.endTime || '');
-    document.getElementById('tools-dutylogs-edit-flight-hours').value = String(row.flightHours == null ? '' : row.flightHours);
+    var storedHoursNum = Number(row && row.flightHours || 0);
+    var useDerivedHours = mergedDerivedHours > 0 && !(isFinite(storedHoursNum) && storedHoursNum > 0);
+    var editorFlightHours = useDerivedHours ? String(Number(mergedDerivedHours.toFixed(2))) : String(row.flightHours == null ? '' : row.flightHours);
+    document.getElementById('tools-dutylogs-edit-flight-hours').value = editorFlightHours;
     document.getElementById('tools-dutylogs-edit-summary').value = String(row.summaryText || '');
     document.getElementById('tools-dutylogs-edit-description').value = String(row.description || '');
 
     var flightMeta = document.getElementById('tools-dutylogs-edit-flight-meta');
     if (flightMeta) {
-      var sourceText = String(row.storedFlightHours || '').trim() ? 'Saved on duty log' : 'Derived from LOG_Flights';
-      flightMeta.textContent = 'Flight hours: ' + String(row.flightHours == null || row.flightHours === '' ? '0' : row.flightHours) + ' | Source: ' + sourceText;
+      var sourceText = useDerivedHours ? 'Derived from LOG_Flights' : (String(row.storedFlightHours || '').trim() ? 'Saved on duty log' : 'Derived from LOG_Flights');
+      flightMeta.textContent = 'Flight hours: ' + String(editorFlightHours || '0') + ' | Source: ' + sourceText;
     }
 
     var summaryBox = document.getElementById('tools-dutylogs-edit-summary-box');
@@ -5030,7 +4997,7 @@
     var flightsBox = document.getElementById('tools-dutylogs-edit-flights-box');
     var flightsView = document.getElementById('tools-dutylogs-edit-flights-view');
     if (flightsBox && flightsView) {
-      var flights = Array.isArray(row.flights) ? row.flights : [];
+      var flights = mergedFlights.length ? mergedFlights : (Array.isArray(row.flights) ? row.flights : []);
       if (flights.length) {
         flightsBox.style.display = 'block';
         flightsView.innerHTML = flights.map(function(f) {
@@ -5038,7 +5005,7 @@
           var line = [String(f.flightId || '').trim(), String(f.acft || '').trim(), route].filter(Boolean).join(' | ');
           return '<div class="tools-dutylogs-flightline">'
             + toolsAircraftEscape_(line || 'Flight')
-            + ' <b style="color:#0b5394;">' + toolsAircraftEscape_(String(f.totalTime || f.flightHours || '')) + '</b>'
+            + ' <b style="color:#0b5394;">' + toolsAircraftEscape_(toolsFmtDurationAny_(f.totalTime != null && f.totalTime !== '' ? f.totalTime : f.flightHours)) + '</b>'
             + '</div>';
         }).join('');
       } else {
@@ -5074,11 +5041,15 @@
 
   function toolsDutyLogSaveEditor_() {
     if (!_toolsDutyEditRow || !(Number(_toolsDutyEditRow.rowNumber || 0) >= 2)) {
-      toolsToast_('Selecione um log para editar.', 'orange');
-      return;
+      if (!_toolsDutyEditRow || !String(_toolsDutyEditRow.pilotName || '').trim() || !String(_toolsDutyEditRow.dateYmd || '').trim()) {
+        toolsToast_('Selecione um log para editar.', 'orange');
+        return;
+      }
     }
     var payload = {
       rowNumber: Number(_toolsDutyEditRow.rowNumber),
+      pilotName: String(_toolsDutyEditRow.pilotName || '').trim(),
+      dateYmd: String(_toolsDutyEditRow.dateYmd || '').trim(),
       status: String((document.getElementById('tools-dutylogs-edit-status') || {}).value || '').trim(),
       startTime: String((document.getElementById('tools-dutylogs-edit-start') || {}).value || '').trim(),
       endTime: String((document.getElementById('tools-dutylogs-edit-end') || {}).value || '').trim(),
@@ -8263,6 +8234,13 @@
   function toolsOpenPanel(id) {
     _toolsPanelIds.forEach(function(p){var e=document.getElementById('tools-panel-'+p);if(e)e.classList.remove('open');});
     var t=document.getElementById('tools-panel-'+id); if(!t)return; t.classList.add('open');
+    setTimeout(function() {
+      try {
+        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (e) {
+        try { t.scrollIntoView(); } catch (e2) {}
+      }
+    }, 0);
     if(id==='fuel')toolsRenderFuelList();
     if(id==='waypoint'&&_toolsWpPreviewMap)setTimeout(function(){_toolsWpPreviewMap.invalidateSize();},50);
     if(id==='airports'){

@@ -3744,12 +3744,48 @@ function _dutyPilotLikelySame_(a, b) {
 }
 
 function _dutyYmd_(value) {
-  const d = (value instanceof Date) ? value : new Date(value || '');
+  if (value == null || value === '') return '';
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return '';
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+
+  if (typeof value === 'number' && isFinite(value)) {
+    // Google Sheets serial date values use 1899-12-30 as day 0.
+    var serialDate = new Date(Math.round((value - 25569) * 86400000));
+    if (!isNaN(serialDate.getTime())) {
+      return Utilities.formatDate(serialDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    }
+  }
+
+  var text = String(value || '').trim();
+  if (!text) return '';
+  var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return text;
+  var br = text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (br) {
+    var day = Number(br[1] || 0);
+    var month = Number(br[2] || 0) - 1;
+    var year = Number(br[3] || 0);
+    var parsed = new Date(year, month, day);
+    if (!isNaN(parsed.getTime())) {
+      return Utilities.formatDate(parsed, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    }
+  }
+
+  var d = new Date(text);
   if (isNaN(d.getTime())) return '';
   return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
 function _dutyParseHhmmToHours_(raw) {
+  if (raw instanceof Date) {
+    if (isNaN(raw.getTime())) return 0;
+    return Math.max(0, raw.getHours() + (raw.getMinutes() / 60) + (raw.getSeconds() / 3600));
+  }
+  if (typeof raw === 'number' && isFinite(raw)) {
+    return raw > 0 && raw < 1 ? raw * 24 : raw;
+  }
   const text = String(raw || '').trim();
   if (!text) return 0;
   const mm = text.match(/^(\d{1,2}):(\d{2})$/);
@@ -3768,6 +3804,39 @@ function _dutyFmtHoursPt_(hours) {
   return n.toFixed(1).replace('.', ',');
 }
 
+function _dutyFmtDurationAny_(value) {
+  if (value == null || value === '') return '';
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return '';
+    const year = value.getFullYear();
+    if (year <= 1900) {
+      return Utilities.formatDate(value, Session.getScriptTimeZone(), 'HH:mm');
+    }
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+  }
+
+  if (typeof value === 'number' && isFinite(value)) {
+    var serialDate = new Date(Math.round((value - 25569) * 86400000));
+    if (!isNaN(serialDate.getTime())) {
+      if (serialDate.getFullYear() <= 1900) {
+        return Utilities.formatDate(serialDate, Session.getScriptTimeZone(), 'HH:mm');
+      }
+      return Utilities.formatDate(serialDate, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+    }
+    return String(value);
+  }
+
+  var text = String(value || '').trim();
+  if (!text) return '';
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(text)) return text.slice(0, 5);
+  var parsed = new Date(text);
+  if (isNaN(parsed.getTime())) return text;
+  if (parsed.getFullYear() <= 1900) {
+    return Utilities.formatDate(parsed, Session.getScriptTimeZone(), 'HH:mm');
+  }
+  return Utilities.formatDate(parsed, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+}
+
 function _dutyGetHeaderIndexByAliases_(headers, aliases, fallbackIdx) {
   const norm = function(v) {
     return String(v || '').toUpperCase().trim().replace(/\s+/g, '_');
@@ -3778,6 +3847,18 @@ function _dutyGetHeaderIndexByAliases_(headers, aliases, fallbackIdx) {
     if (idx >= 0) return idx;
   }
   return Number(fallbackIdx || -1);
+}
+
+function _dutyFlightRowCompleted_(row) {
+  if (!row || !Array.isArray(row)) return false;
+  const landed = row[LOG_FLIGHT_COL.LANDED];
+  const onBlocks = row[LOG_FLIGHT_COL.ON_BLOCKS];
+  const brakesApplied = row[LOG_FLIGHT_COL.BRAKES_APPLIED];
+  const asText = function(v) {
+    if (v instanceof Date) return isNaN(v.getTime()) ? '' : v.toISOString();
+    return String(v || '').trim();
+  };
+  return !!(asText(landed) || asText(onBlocks) || asText(brakesApplied));
 }
 
 function _dutyDailyFlightSummary_(ss, pilotName, ymd) {
@@ -3799,6 +3880,7 @@ function _dutyDailyFlightSummary_(ss, pilotName, ymd) {
         const rowPilot = String(row[LOG_FLIGHT_COL.PILOT] || '').trim();
         const rowDateYmd = _dutyYmd_(row[LOG_FLIGHT_COL.DATE]);
         if (rowDateYmd !== ymd) continue;
+        if (!_dutyFlightRowCompleted_(row)) continue;
 
         let isMatchingFlight = false;
         
@@ -3837,6 +3919,7 @@ function _dutyDailyFlightSummary_(ss, pilotName, ymd) {
         const to = String(row[LOG_FLIGHT_COL.TO] || '').trim().toUpperCase();
         const totalTimeRaw = row[LOG_FLIGHT_COL.TOTAL_TIME];
         const flightHours = _dutyParseHhmmToHours_(totalTimeRaw);
+        const totalTimeLabel = _dutyFmtDurationAny_(totalTimeRaw);
 
         summary.totalFlightHours += flightHours;
         summary.flights.push({
@@ -3844,7 +3927,7 @@ function _dutyDailyFlightSummary_(ss, pilotName, ymd) {
           acft: acft,
           from: from,
           to: to,
-          totalTime: String(totalTimeRaw || '').trim(),
+          totalTime: totalTimeLabel,
           flightHours: Number(flightHours.toFixed(2))
         });
       }
@@ -4089,7 +4172,6 @@ function _toolsDutyContext_() {
 
 function _toolsDutyCanAccessPilot_(ctx, pilotNameRaw) {
   if (ctx && ctx.canManageAll) return true;
-  if (ctx && ctx.canManageConfig) return true;
   var pilotName = String(pilotNameRaw || '').trim();
   if (!pilotName) return false;
   var me = (ctx && ctx.me) || null;
@@ -4365,7 +4447,7 @@ function getToolsDutyLogs(payload) {
       if (!dateYmd) continue;
       if (fromYmd && dateYmd < fromYmd) continue;
       if (toYmd && dateYmd > toYmd) continue;
-      if (pilotFilter && String(pilot || '').trim().toUpperCase().indexOf(pilotFilter) < 0) continue;
+      if (pilotFilter && !_dutyPilotLikelySame_(pilot, pilotFilter)) continue;
 
       var pilotUpper = _dutyPilotNorm_(pilot);
       if (!pilotUpper) continue;
@@ -4455,7 +4537,7 @@ function getToolsDutyLogs(payload) {
           }
           
           if (!matchingCrewName || !matchingCrewUpper) continue;
-          if (pilotFilter && matchingCrewUpper.indexOf(pilotFilter.toUpperCase()) < 0) continue;
+          if (pilotFilter && !_dutyPilotLikelySame_(matchingCrewName, pilotFilter)) continue;
 
           var flightDayKey = matchingCrewUpper + '|' + flightDateYmd;
           if (dutyDayByPilotDate[flightDayKey]) continue;
@@ -4511,7 +4593,22 @@ function updateToolsDutyLogEntry(payload) {
   try {
     var body = (payload && typeof payload === 'object') ? payload : {};
     var rowNumber = Number(body.rowNumber || 0);
-    if (!(rowNumber >= 2)) return { success: false, error: 'rowNumber inválido' };
+    var pilotName = String(body.pilotName || '').trim();
+    var dateYmd = String(body.dateYmd || '').trim();
+    if (!(rowNumber >= 2)) {
+      if (!pilotName) return { success: false, error: 'pilotName é obrigatório para criar um log.' };
+      if (!dateYmd) return { success: false, error: 'dateYmd é obrigatório para criar um log.' };
+      return savePilotDutyReport({
+        pilotName: pilotName,
+        dateYmd: _dutyYmd_(body.dateYmd) || dateYmd,
+        status: String(body.status || '').trim(),
+        startTime: String(body.startTime || '').trim(),
+        endTime: String(body.endTime || '').trim(),
+        flightHours: body.flightHours,
+        description: String(body.description || '').trim(),
+        summaryText: String(body.summaryText || '').trim()
+      });
+    }
 
     var ctx = _toolsDutyContext_();
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -7220,23 +7317,26 @@ const missionData = {
   // 4. Parse legs
   legs: missionRows.map(r => {
     let legPayload = {};
+    let rawJson = {};
     try {
-      const json = JSON.parse(r[DISPATCH_COL.RAW_DATA] || "{}");
-      if (json.legs && Array.isArray(json.legs)) legPayload = json.legs[0];
-      else legPayload = json;
-    } catch (e) { legPayload = {}; }
+      rawJson = JSON.parse(r[DISPATCH_COL.RAW_DATA] || "{}");
+      if (rawJson.legs && Array.isArray(rawJson.legs)) legPayload = rawJson.legs[0] || rawJson;
+      else legPayload = rawJson;
+    } catch (e) { rawJson = {}; legPayload = {}; }
 
-    const resolvedTraining = (legPayload.training && typeof legPayload.training === 'object')
-      ? Object.assign({}, legPayload.training, {
-          student: resolveCrewName_(legPayload.training.student || ''),
-          instructor: resolveCrewName_(legPayload.training.instructor || '')
+    const legTraining = (legPayload && legPayload.training && typeof legPayload.training === 'object')
+      ? legPayload.training
+      : ((legPayload && legPayload.meta && legPayload.meta.training && typeof legPayload.meta.training === 'object')
+        ? legPayload.meta.training
+        : ((rawJson && rawJson.training && typeof rawJson.training === 'object')
+          ? rawJson.training
+          : null));
+    const resolvedTraining = legTraining
+      ? Object.assign({}, legTraining, {
+          student: resolveCrewName_(legTraining.student || ''),
+          instructor: resolveCrewName_(legTraining.instructor || '')
         })
-      : ((legPayload.meta && legPayload.meta.training && typeof legPayload.meta.training === 'object')
-        ? Object.assign({}, legPayload.meta.training, {
-            student: resolveCrewName_(legPayload.meta.training.student || ''),
-            instructor: resolveCrewName_(legPayload.meta.training.instructor || '')
-          })
-        : null);
+      : null;
 
     const resolvedPax = Array.isArray(legPayload.pax)
       ? legPayload.pax.map(function(p) {
@@ -10647,7 +10747,32 @@ function initializeWB(flightId) {
   const legPayload = (rawData && rawData.legs && Array.isArray(rawData.legs) && rawData.legs.length > 0)
     ? rawData.legs[0]
     : (rawData || {});
-  const pax = Array.isArray(legPayload.pax) ? legPayload.pax : [];
+  let pax = Array.isArray(legPayload.pax) ? legPayload.pax.slice() : [];
+  
+  // For training missions: if there's a copilot or trainee, add them to pax if not already present
+  const copilotName = String(dispatch.COPILOT || '').trim();
+  const training = (legPayload && legPayload.training && typeof legPayload.training === 'object')
+    ? legPayload.training
+    : ((rawData && rawData.training && typeof rawData.training === 'object') ? rawData.training : null);
+  const studentName = training && String(training.student || '').trim();
+  
+  // Add trainee/student to pax if they're not the pilot and not already in pax
+  const traineeToAdd = studentName || copilotName;
+  if (traineeToAdd && String(traineeToAdd).toUpperCase() !== String(pilotName).toUpperCase()) {
+    const alreadyInPax = pax.some(p => String(p.name || '').trim().toUpperCase() === String(traineeToAdd).toUpperCase());
+    if (!alreadyInPax) {
+      // Try to look up trainee weight from pilots sheet
+      const traineeRow = findByAny(pilotsTable.rows, pilotsTable.headers, ['PILOT_NAME', 'NAME'], traineeToAdd);
+      const traineeWeight = traineeRow ? toNum(rowToObj(pilotsTable.headers, traineeRow).WEIGHT_KGS, 80) : 80;
+      pax.push({
+        name: traineeToAdd,
+        weight: traineeWeight,
+        actualWeight: traineeWeight,
+        plannedWeight: traineeWeight,
+        verified: true
+      });
+    }
+  }
   
   // Build cargo manifest: list each passenger's cargo and freight separately
   const cargoManifest = [];
@@ -11465,6 +11590,7 @@ function getPerformanceSetup(icao) {
       let knownObj = {};
       let verifiedOperational = {};
       let officialReference = {};
+      let briefingCard = {};
       const featuresStr = String(_perfValue(r, ['KNOWN_FEATURES', 'FEATURES'], '')).trim();
       if (featuresStr) {
         try {
@@ -11472,6 +11598,7 @@ function getPerformanceSetup(icao) {
           knownObj = Array.isArray(parsed) ? { features: parsed } : (parsed || {});
           verifiedOperational = (knownObj && knownObj.verifiedOperational && typeof knownObj.verifiedOperational === 'object') ? knownObj.verifiedOperational : {};
           officialReference = (knownObj && knownObj.officialReference && typeof knownObj.officialReference === 'object') ? knownObj.officialReference : {};
+          briefingCard = (knownObj && knownObj.briefingCard && typeof knownObj.briefingCard === 'object') ? knownObj.briefingCard : {};
           // Support both: array (old) or object with 'features' array (new)
           let featuresList = Array.isArray(parsed)
             ? parsed
@@ -11539,6 +11666,10 @@ function getPerformanceSetup(icao) {
       if (Array.isArray(verifiedOperational.slopeSegments) && verifiedOperational.slopeSegments.length) {
         defaultSlope = _runwayAverageSlopeFromSegments_(verifiedOperational.slopeSegments, defaultSlope);
       }
+      const briefingCardCutdownM = _perfNum(
+        briefingCard.cutdownAreaM != null ? briefingCard.cutdownAreaM : (briefingCard.clearway != null ? briefingCard.clearway : 0),
+        0
+      ) || 0;
       
       return {
         icao: String(_perfValue(r, ['ICAO'], airportCode)).trim().toUpperCase(),
@@ -11546,7 +11677,14 @@ function getPerformanceSetup(icao) {
         headingDeg: explicitHeading > 0 ? explicitHeading : _runwayHeadingFromIdent(rwyIdent),
         length: lengthM,
         width: widthM,
-        cutdownAreaM: _perfNum(verifiedOperational.cutdownAreaM != null ? verifiedOperational.cutdownAreaM : (knownObj.cutdownAreaM != null ? knownObj.cutdownAreaM : (knownObj.clearway != null ? knownObj.clearway : 0)), 0) || 0,
+        cutdownAreaM: _perfNum(
+          verifiedOperational.cutdownAreaM != null
+            ? verifiedOperational.cutdownAreaM
+            : (briefingCardCutdownM > 0
+                ? briefingCardCutdownM
+                : (knownObj.cutdownAreaM != null ? knownObj.cutdownAreaM : (knownObj.clearway != null ? knownObj.clearway : 0))),
+          0
+        ) || 0,
         internalUpdatedAt: String((knownObj.currentSurveyVersion && knownObj.currentSurveyVersion.publishedAt) || (knownObj.verifiedSurvey && knownObj.verifiedSurvey.capturedAt) || knownObj.updatedAt || '').trim(),
         slope: defaultSlope,
         elevation: _perfNum(_perfValue(r, ['ELEVATION', 'ALT_FEET', 'ELEVATION_FT'], 0), 0),
@@ -11565,6 +11703,7 @@ function getPerformanceSetup(icao) {
           surface: String(officialReference.surface || _perfValue(r, ['SURFACE_ACTUAL', 'SURFACE_OFFICIAL', 'SURFACE'], '')).trim(),
           headingDeg: _perfNum(officialReference.headingDeg, explicitHeading > 0 ? explicitHeading : _runwayHeadingFromIdent(rwyIdent))
         },
+        briefingCard: briefingCard,
         verifiedOperational: verifiedOperational,
         surveyPilot: String((knownObj.verifiedSurvey && knownObj.verifiedSurvey.pilotName) || '').trim()
       };
@@ -12184,6 +12323,7 @@ function _runwayDbFindCols_(headers) {
     icao: find('ICAO'),
     runway: find('RWY_IDENT', 'RWY', 'RUNWAY', 'RUNWAY_DESIGNATOR'),
     knownFeatures: find('KNOWN_FEATURES', 'FEATURES'),
+    mtowByModel: find('MTOW_BY_MODEL', 'MTOW_MODEL_LIMITS', 'MTOW_LIMITS_BY_MODEL'),
     heading: find('RUNWAY_HEADING', 'HEADING'),
     length: find('LENGTH_OFFICIAL', 'LENGTH_METERS', 'LENGTH_M'),
     width: find('WIDTH_OFFICIAL', 'WIDTH_METERS', 'WIDTH_M'),
@@ -16956,6 +17096,8 @@ function ingestLessonPlanFromPdf(payload) {
     if (!apiKey) return { success: false, error: 'GEMINI_API_KEY not configured. Add it in GAS Project Settings > Script Properties.' };
     var prompt = [
       'You are an aviation training expert. Extract EVERY evaluation item from this flight training form.',
+      'Do NOT summarize. Do NOT merge multiple checklist lines into one.',
+      'Include every maneuver, task, question, criterion, and observation line from all pages.',
       'Return ONLY valid JSON (no markdown code blocks) with this exact structure:',
       '{',
       '  "lessonTitle": "full title",',
@@ -16975,28 +17117,242 @@ function ingestLessonPlanFromPdf(payload) {
       '  "summaryFields": ["APROVADO", "total hours"],',
       '  "notes": ""',
       '}',
-      'Extract EVERY single item without skipping any.'
+      'Extract EVERY single item without skipping any. If unsure, include the line as an item anyway.'
     ].join('\n');
     var reqBody = {
-      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: pdfBase64 } }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+      contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: mimeType, data: pdfBase64 } }] }],
+      generationConfig: { temperature: 0.1, responseMimeType: 'application/json', maxOutputTokens: 16384 }
     };
-    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey;
-    var resp = UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json',
-                                        payload: JSON.stringify(reqBody), muteHttpExceptions: true });
+    var scriptProps = PropertiesService.getScriptProperties();
+    var configuredModel = String(scriptProps.getProperty('GEMINI_MODEL') || '').trim();
+    var primaryModel = configuredModel || 'gemini-2.0-flash';
+
+    function _geminiGenerateWithModel_(modelId, bodyToSend) {
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelId) + ':generateContent?key=' + apiKey;
+      return UrlFetchApp.fetch(url, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(bodyToSend || reqBody),
+        muteHttpExceptions: true
+      });
+    }
+
+    var usedModel = primaryModel;
+    var resp = _geminiGenerateWithModel_(usedModel);
     var httpCode = resp.getResponseCode();
     var respText = resp.getContentText();
+
+    // If the configured/default model is unavailable, retry with known supported flash models.
+    if (httpCode === 404) {
+      var fallbackModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      for (var fm = 0; fm < fallbackModels.length; fm++) {
+        var candidate = fallbackModels[fm];
+        if (candidate === usedModel) continue;
+        var retryResp = _geminiGenerateWithModel_(candidate, reqBody);
+        var retryCode = retryResp.getResponseCode();
+        var retryText = retryResp.getContentText();
+        if (retryCode === 200) {
+          usedModel = candidate;
+          resp = retryResp;
+          httpCode = retryCode;
+          respText = retryText;
+          break;
+        }
+      }
+    }
+
     if (httpCode !== 200) {
       var errObj = {}; try { errObj = JSON.parse(respText); } catch (e2) {}
       var msg = (errObj && errObj.error && errObj.error.message) ? errObj.error.message : respText.substring(0, 300);
-      return { success: false, error: 'Gemini API error (' + httpCode + '): ' + msg };
+      return { success: false, error: 'Gemini API error (' + httpCode + ', model ' + usedModel + '): ' + msg };
     }
     var rj = JSON.parse(respText);
     var pts = rj && rj.candidates && rj.candidates[0] && rj.candidates[0].content && rj.candidates[0].content.parts;
     if (!pts || !pts.length) return { success: false, error: 'No response content from Gemini.' };
-    var rawJson = String(pts[0].text || '').trim()
-      .replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
-    var extracted = JSON.parse(rawJson);
+
+    function _stripCodeFence_(txt) {
+      return String(txt || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+    }
+
+    function _extractJsonEnvelope_(txt) {
+      var s = String(txt || '');
+      var start = s.indexOf('{');
+      var end = s.lastIndexOf('}');
+      if (start >= 0 && end > start) return s.slice(start, end + 1).trim();
+      return s.trim();
+    }
+
+    function _parseJsonFromModelText_(txt) {
+      var attempts = [];
+      var t0 = String(txt || '').trim();
+      var t1 = _stripCodeFence_(t0);
+      var t2 = _extractJsonEnvelope_(t1);
+      if (t0) attempts.push(t0);
+      if (t1 && t1 !== t0) attempts.push(t1);
+      if (t2 && t2 !== t1) attempts.push(t2);
+      var lastErr = null;
+      for (var ai = 0; ai < attempts.length; ai++) {
+        try {
+          return { ok: true, value: JSON.parse(attempts[ai]) };
+        } catch (pe) {
+          lastErr = pe;
+        }
+      }
+      return { ok: false, error: lastErr, text: t2 || t1 || t0 };
+    }
+
+    function _repairJsonWithGemini_(brokenText, modelId) {
+      var repairPrompt = [
+        'Repair this malformed JSON and return only valid JSON.',
+        'Do not remove fields. Do not add markdown. Preserve meaning exactly.',
+        '',
+        String(brokenText || '')
+      ].join('\n');
+      var repairBody = {
+        contents: [{ parts: [{ text: repairPrompt }] }],
+        generationConfig: { temperature: 0, responseMimeType: 'application/json', maxOutputTokens: 16384 }
+      };
+      var repairResp = _geminiGenerateWithModel_(modelId, repairBody);
+      if (repairResp.getResponseCode() !== 200) return null;
+      var repairObj = JSON.parse(repairResp.getContentText());
+      var repairPts = repairObj && repairObj.candidates && repairObj.candidates[0] && repairObj.candidates[0].content && repairObj.candidates[0].content.parts;
+      if (!repairPts || !repairPts.length) return null;
+      return String(repairPts.map(function(p) { return String((p && p.text) || ''); }).join('\n') || '').trim();
+    }
+
+    var rawJson = String(pts.map(function(p) { return String((p && p.text) || ''); }).join('\n') || '').trim();
+    var parsed = _parseJsonFromModelText_(rawJson);
+    if (!parsed.ok) {
+      var repairedText = null;
+      try { repairedText = _repairJsonWithGemini_(parsed.text || rawJson, usedModel); } catch (repairErr) {}
+      if (repairedText) parsed = _parseJsonFromModelText_(repairedText);
+    }
+    if (!parsed.ok) {
+      var parseMsg = parsed.error && parsed.error.message ? parsed.error.message : 'Unable to parse model JSON output.';
+      return { success: false, error: 'Gemini returned malformed JSON: ' + parseMsg };
+    }
+    var extracted = parsed.value;
+
+    function _countStructuredItems_(obj) {
+      var total = 0;
+      var sections = (obj && Array.isArray(obj.sections)) ? obj.sections : [];
+      sections.forEach(function(sec) {
+        (Array.isArray(sec.groups) ? sec.groups : []).forEach(function(grp) {
+          total += (Array.isArray(grp.items) ? grp.items.length : 0);
+        });
+      });
+      return total;
+    }
+
+    function _normalizeItemKey_(txt) {
+      return String(txt || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    }
+
+    function _extractFallbackFlatItems_(modelId) {
+      var fallbackPrompt = [
+        'Read this full PDF and extract ALL checklist lines exactly as they appear.',
+        'Do NOT summarize. Keep one entry per original line/task/question.',
+        'Return ONLY valid JSON with this exact shape:',
+        '{',
+        '  "items": [',
+        '    {',
+        '      "name": "exact line text",',
+        '      "reference": "regulatory reference or empty string",',
+        '      "referenceType": "MGO or FAA_ACS or FAA_PTS or ANAC or INTERNAL or OTHER",',
+        '      "suggestedLimitations": "limits or empty string"',
+        '    }',
+        '  ]',
+        '}'
+      ].join('\n');
+
+      var fbBody = {
+        contents: [{ parts: [{ text: fallbackPrompt }, { inlineData: { mimeType: mimeType, data: pdfBase64 } }] }],
+        generationConfig: { temperature: 0, responseMimeType: 'application/json', maxOutputTokens: 16384 }
+      };
+      var fbResp = _geminiGenerateWithModel_(modelId, fbBody);
+      if (fbResp.getResponseCode() !== 200) return null;
+
+      var fbObj = JSON.parse(fbResp.getContentText());
+      var fbPts = fbObj && fbObj.candidates && fbObj.candidates[0] && fbObj.candidates[0].content && fbObj.candidates[0].content.parts;
+      if (!fbPts || !fbPts.length) return null;
+      var fbRaw = String(fbPts.map(function(p) { return String((p && p.text) || ''); }).join('\n') || '').trim();
+      var fbParsed = _parseJsonFromModelText_(fbRaw);
+      return fbParsed.ok ? fbParsed.value : null;
+    }
+
+    var extractedItemCount = _countStructuredItems_(extracted);
+    var minExpectedRaw = String(scriptProps.getProperty('GEMINI_IMPORT_MIN_ITEMS') || '').trim();
+    var minExpectedItems = parseInt(minExpectedRaw, 10);
+    if (!isFinite(minExpectedItems) || minExpectedItems < 1) minExpectedItems = 12;
+
+    function _selectBestFallbackFlatItems_(currentModel) {
+      var candidates = [currentModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      var uniq = {};
+      var best = null;
+      var bestCount = 0;
+      for (var ci = 0; ci < candidates.length; ci++) {
+        var m = String(candidates[ci] || '').trim();
+        if (!m || uniq[m]) continue;
+        uniq[m] = true;
+        try {
+          var fb = _extractFallbackFlatItems_(m);
+          var fbItems = (fb && Array.isArray(fb.items)) ? fb.items : [];
+          if (fbItems.length > bestCount) {
+            bestCount = fbItems.length;
+            best = fb;
+          }
+        } catch (e3) {}
+      }
+      return best;
+    }
+
+    if (extractedItemCount < minExpectedItems || extractedItemCount <= 3) {
+      var fallback = _selectBestFallbackFlatItems_(usedModel);
+      var fallbackItems = (fallback && Array.isArray(fallback.items)) ? fallback.items : [];
+      if (fallbackItems.length > 0) {
+        if (!Array.isArray(extracted.sections)) extracted.sections = [];
+        if (!extracted.sections.length) {
+          extracted.sections.push({
+            sectionId: 'I',
+            sectionTitle: 'Imported Items',
+            groups: [{ groupId: '1', groupTitle: 'Checklist', items: [] }]
+          });
+        }
+        if (!Array.isArray(extracted.sections[0].groups)) extracted.sections[0].groups = [];
+        if (!extracted.sections[0].groups.length) extracted.sections[0].groups.push({ groupId: '1', groupTitle: 'Checklist', items: [] });
+        var targetItems = extracted.sections[0].groups[0].items;
+        if (!Array.isArray(targetItems)) {
+          extracted.sections[0].groups[0].items = [];
+          targetItems = extracted.sections[0].groups[0].items;
+        }
+
+        var seenKeys = {};
+        extracted.sections.forEach(function(sec) {
+          (Array.isArray(sec.groups) ? sec.groups : []).forEach(function(grp) {
+            (Array.isArray(grp.items) ? grp.items : []).forEach(function(it) {
+              var k = _normalizeItemKey_(it && it.name);
+              if (k) seenKeys[k] = true;
+            });
+          });
+        });
+
+        fallbackItems.forEach(function(it) {
+          var nm = String((it && it.name) || '').trim();
+          var k = _normalizeItemKey_(nm);
+          if (!k || seenKeys[k]) return;
+          seenKeys[k] = true;
+          targetItems.push({
+            name: nm,
+            reference: String((it && it.reference) || '').trim(),
+            referenceType: String((it && it.referenceType) || 'OTHER').trim() || 'OTHER',
+            suggestedLimitations: String((it && it.suggestedLimitations) || '').trim()
+          });
+        });
+
+        extractedItemCount = _countStructuredItems_(extracted);
+      }
+    }
+
     return { success: true, extracted: extracted };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
@@ -19196,6 +19552,17 @@ function saveRunwayBriefingCard(icao, rwyIdent, cardData) {
     });
     safeCard.savedAt = nowIso;
 
+    var restrictions = (safeCard && Array.isArray(safeCard.restrictions)) ? safeCard.restrictions : [];
+    var mtowMapFromRestrictions = {};
+    restrictions.forEach(function(rec) {
+      if (!rec || typeof rec !== 'object') return;
+      var mtow = Number(rec.mtow || 0);
+      if (!isFinite(mtow) || mtow <= 0) return;
+      var key = _airportNormalizeMtowKey_(rec.acft || '');
+      if (!key) return;
+      mtowMapFromRestrictions[key] = Math.round(mtow);
+    });
+
     for (var i = 1; i < dbData.length; i++) {
       var rowIcao = String(dbData[i][cols.icao] || '').trim().toUpperCase();
       var rowRwy  = String(dbData[i][cols.runway] || '').trim().toUpperCase();
@@ -19210,6 +19577,17 @@ function saveRunwayBriefingCard(icao, rwyIdent, cardData) {
       normalised.briefingCard = safeCard;
 
       dbSheet.getRange(i + 1, cols.knownFeatures + 1).setValue(JSON.stringify(normalised));
+
+      if (cols.mtowByModel >= 0 && Object.keys(mtowMapFromRestrictions).length) {
+        var existingMtowRaw = String(dbData[i][cols.mtowByModel] || '').trim();
+        var existingMtowObj = _parseJsonLoose_(existingMtowRaw, {});
+        var mtowOut = (existingMtowObj && typeof existingMtowObj === 'object' && !Array.isArray(existingMtowObj)) ? existingMtowObj : {};
+        Object.keys(mtowMapFromRestrictions).forEach(function(k) {
+          mtowOut[k] = mtowMapFromRestrictions[k];
+        });
+        dbSheet.getRange(i + 1, cols.mtowByModel + 1).setValue(JSON.stringify(mtowOut));
+      }
+
       updated++;
     }
 

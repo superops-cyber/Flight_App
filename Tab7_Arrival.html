@@ -174,6 +174,7 @@
 
   .arrival7-buttons { margin-top:8px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
   .arrival7-buttons button { height:40px; border:none; border-radius:7px; font-size:.82rem; font-weight:900; color:#fff; cursor:pointer; }
+  .arrival7-buttons button:disabled { opacity:.55; filter:grayscale(0.3); cursor:not-allowed; }
   .btn-photo { background:#1565c0; }
   .btn-chart { background:#6a1b9a; }
 
@@ -340,7 +341,7 @@
     <div class="arrival7-buttons">
       <button id="arr7-photo-btn" class="btn-photo" onclick="window.openArrivalAirstripPhoto()">AIRSTRIP PHOTO</button>
       <button id="arr7-briefcard-btn" class="btn-chart" style="background:#6a1b9a;"
-        onclick="(function(){ var rwy = window.arrival7 && window.arrival7.selectedRunway; openRunwayBriefingCard(String(window.arrival7 && window.arrival7.toIcao||''), String(rwy && rwy.rwyIdent||''), 'tab7', rwy || null); })()">BRIEFING CARD</button>
+        onclick="window.openArr7BriefingCard()">BRIEFING CARD</button>
     </div>
 
     <div class="arrival7-briefstrip">
@@ -1101,6 +1102,21 @@
     });
   }
 
+  function _arr7RefreshPhotoButtonState_() {
+    const btn = document.getElementById('arr7-photo-btn');
+    if (!btn) return;
+    const isOnline = navigator.onLine !== false;
+    btn.disabled = !isOnline;
+    btn.title = isOnline ? 'Open airstrip photo' : 'Offline: photo link unavailable';
+  }
+
+  function _arr7BindConnectivityHandlers_() {
+    if (window._arr7ConnectivityBound) return;
+    window._arr7ConnectivityBound = true;
+    window.addEventListener('online', _arr7RefreshPhotoButtonState_);
+    window.addEventListener('offline', _arr7RefreshPhotoButtonState_);
+  }
+
   function _arr7BindWindControls() {
     const windDirInput = document.getElementById('arr7-wind-dir-input');
     const windSpdInput = document.getElementById('arr7-wind-spd-input');
@@ -1342,6 +1358,35 @@
     return window.arrival7.runways[Number(val)] || null;
   }
 
+  window.openArr7BriefingCard = function() {
+    const state = window.arrival7 || {};
+    const runways = Array.isArray(state.runways) ? state.runways : [];
+
+    let runway = state.selectedRunway || _arr7CurrentRunway();
+    if (!runway && runways.length === 1) runway = runways[0];
+    if (!runway && runways.length > 1) {
+      const firstIdx = runways.findIndex(function(r) {
+        return !!String(r && r.rwyIdent || '').trim();
+      });
+      if (firstIdx >= 0) {
+        runway = runways[firstIdx];
+        const sel = document.getElementById('arr7-runway');
+        if (sel) sel.value = String(firstIdx);
+        _arr7ApplySelectedRunwayData_();
+      }
+    }
+
+    const icao = String((runway && runway.icao) || state.toIcao || '').trim().toUpperCase();
+    const ident = String((runway && (runway.rwyIdent || runway.runwayIdent || runway.ident || runway.runway)) || '').trim().toUpperCase();
+
+    if (!icao || !ident) {
+      if (window.M) M.toast({ html: 'Select runway first to open Briefing Card.', classes: 'orange' });
+      return;
+    }
+
+    openRunwayBriefingCard(icao, ident, 'tab7', runway || null);
+  };
+
   function _arr7ApplySelectedRunwayData_() {
     const runway = _arr7CurrentRunway();
     window.arrival7.selectedRunway = runway || null;
@@ -1414,6 +1459,7 @@
 
     window.arrival7.photoUrl = String(runway.airstripPhoto || '').trim();
     window.arrival7.chartUrl = String(runway.chartUrl || '').trim();
+    _arr7RefreshPhotoButtonState_();
     window.arrival7.windConfirmed = false;
     window.drawArrivalRunwayDiagram(runway, null);
   }
@@ -2103,6 +2149,10 @@
   };
 
   window.openArrivalAirstripPhoto = function() {
+    if (navigator.onLine === false) {
+      if (window.M) M.toast({html:'Offline: airstrip photo unavailable', classes:'orange'});
+      return;
+    }
     const url = String(window.arrival7.photoUrl || '').trim();
     if (!url) {
       if (window.M) M.toast({html:'No airstrip photo URL found', classes:'orange'});
@@ -2404,6 +2454,8 @@
 
     _arr7RenderRiskMatrix();
     _arr7BindLive();
+    _arr7BindConnectivityHandlers_();
+    _arr7RefreshPhotoButtonState_();
 
     if (!window.arrival7.toIcao) {
       if (window.M) M.toast({html:'Arrival airport ICAO missing in mission leg data', classes:'orange'});
