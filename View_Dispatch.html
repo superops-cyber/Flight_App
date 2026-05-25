@@ -15,8 +15,9 @@
 .tag-m { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
 .tag-f { background: #fce4ec; color: #c2185b; border: 1px solid #f8bbd0; }
 .tag-age { background: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
-.fuel-pump { font-size: 1rem; cursor: pointer; margin-left: 8px; transition: 0.2s; display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; font-weight: bold; vertical-align: middle; }
+.fuel-pump { font-size: 1rem; cursor: pointer; margin-left: 8px; transition: 0.2s; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; font-weight: bold; vertical-align: middle; }
 .fuel-used-up { color: #9e9e9e !important; background: #eeeeee !important; border-color: #bdbdbd !important; text-decoration: line-through; opacity: 0.6; }
+.fuel-airport-active { background: #e8f5e9 !important; border-color: #66bb6a !important; color: #1b5e20 !important; box-shadow: 0 0 0 1px rgba(102,187,106,0.25); }
 .fuel-qty-label { font-size: 0.7rem; margin-left: 4px; }
 .fuel-warn-box { background: #fff3e0; border: 1px solid #ff9800; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 0.8rem; }
 .limit-tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; }
@@ -84,6 +85,10 @@ font-weight: bold;
   border-color: #cfd8dc !important;
   color: #607d8b !important;
 }
+.fuel-pump-disabled {
+  cursor: default !important;
+  opacity: 0.8;
+}
 .dispatch-inline-input {
   width: 56px !important;
   height: 22px !important;
@@ -119,6 +124,93 @@ font-weight: bold;
   border-radius: 8px;
   border: 1px solid #d6dee6;
   display: none;
+}
+.dispatch-route-map-card {
+  margin-top: 10px;
+  background: #ffffff;
+  border: 1px solid #d6dee6;
+  border-radius: 8px;
+  padding: 8px;
+}
+.dispatch-route-map-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.dispatch-route-map-controls {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dispatch-route-map-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: #37474f;
+  background: #f4f8ff;
+  border: 1px solid #d6e2f1;
+  border-radius: 999px;
+  padding: 3px 8px;
+  user-select: none;
+}
+.dispatch-route-map-toggle input {
+  margin: 0;
+}
+.dispatch-route-map-title {
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #0b5394;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dispatch-route-map-legend {
+  font-size: 0.68rem;
+  color: #455a64;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dispatch-route-map-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+.dispatch-route-map-dot.asphalt { background: #212121; }
+.dispatch-route-map-dot.grass { background: #388e3c; }
+.dispatch-route-map-dot.water { background: #1565c0; }
+.dispatch-route-map-dot.avgas {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 8px;
+  text-align: center;
+}
+.dispatch-route-map-tri {
+  color: #6a1b9a;
+  font-weight: 900;
+  margin-right: 4px;
+}
+.dispatch-route-map {
+  height: 290px;
+  border: 1px solid #d6dee6;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f4f8ff;
+}
+.dispatch-route-map-empty {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: #607d8b;
+  font-weight: 700;
 }
 .dispatch-modal-summary {
   margin-top: 8px;
@@ -247,6 +339,27 @@ font-weight: bold;
 </div>
 </div>
 <div id="timeline"></div>
+<div id="dispatchRouteMapCard" class="dispatch-route-map-card" style="display:none;">
+  <div class="dispatch-route-map-head">
+    <div class="dispatch-route-map-title">Mission Route Map</div>
+    <div class="dispatch-route-map-controls">
+      <label class="dispatch-route-map-toggle" title="Show nearby airports from DB">
+        <input type="checkbox" id="dispatchMapNearbyToggle" onchange="dispatchToggleNearbyAirports_()">
+        Nearby DB airports
+      </label>
+      <button class="dispatch-mini-btn" onclick="dispatchRenderMissionMap_(true)" title="Recenter map">CENTER</button>
+    </div>
+  </div>
+  <div class="dispatch-route-map-legend">
+    <span><span class="dispatch-route-map-dot asphalt"></span>Asphalt</span>
+    <span><span class="dispatch-route-map-dot grass"></span>Grass</span>
+    <span><span class="dispatch-route-map-dot water"></span>Water</span>
+    <span><span class="dispatch-route-map-dot avgas">A</span>Avgas</span>
+    <span><span class="dispatch-route-map-tri">&#9650;</span>Waypoint</span>
+  </div>
+  <div id="dispatchRouteMap" class="dispatch-route-map"></div>
+  <div id="dispatchRouteMapEmpty" class="dispatch-route-map-empty" style="display:none;">Add at least one leg with valid route points to display the map.</div>
+</div>
 <button id="btnFinalize" class="btn-large green darken-3" style="width:100%; margin-top:20px;" onclick="finalizeMission()" disabled>FINALIZE & LOG MISSION</button>
 <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">
   <span>Scheduled Missions</span>
@@ -558,7 +671,7 @@ function parseSyllabusRouteTokens(routeStr) {
   if (!raw) return [];
 
   // Waypoints are comma-delimited by policy to preserve hyphenated waypoint IDs.
-  const normalized = raw.replace(/[→>]/g, ',');
+  const normalized = raw.replace(/(\u2192|>)/g, ',');
   return normalized.split(',').map(s => s.trim()).filter(Boolean);
 }
 
@@ -575,7 +688,7 @@ function parseRouteWaypointTokens(routeStr) {
   if (!raw) return [];
 
   // Route waypoint lists are comma-delimited by policy.
-  const normalized = raw.replace(/[→>]/g, ',').replace(/\n|\r/g, ',');
+  const normalized = raw.replace(/(\u2192|>)/g, ',').replace(/\n|\r/g, ',');
 
   const tokens = normalized
     .split(',')
@@ -815,10 +928,10 @@ function dispatchBuildRoutePlan_(fromIcao, toIcao) {
 
 function _parseCoordinate(str) {
   if (str === null || str === undefined || str === '') return NaN;
-  // Normalize Brazilian comma decimal separator (-2,123456 → -2.123456)
+  // Normalize Brazilian comma decimal separator (-2,123456 -> -2.123456)
   const s = String(str).trim().replace(/(\d),(\d)/g, '$1.$2');
   if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s);
-  const norm = s.replace(/[°'"]/g, ' ').replace(/\s+/g, ' ').trim();
+  const norm = s.replace(/[\u00B0'"]/g, ' ').replace(/\s+/g, ' ').trim();
   const dmsRe = /^([NSEWnsew])?\s*(\d+)\s+(\d+)\s+(\d+(?:\.\d+)?)\s*([NSEWnsew])?$/;
   let m = norm.match(dmsRe);
   if (m) {
@@ -839,6 +952,13 @@ function _parseCoordinate(str) {
 
 let _dispWpPreviewMap = null;
 let _dispWpPreviewMarker = null;
+let _dispatchRouteMapState = {
+  map: null,
+  routeLayer: null,
+  markersLayer: null,
+  nearbyAirportsLayer: null,
+  showNearbyAirports: false
+};
 
 function _dispWpEnsureLeaflet(cb) {
   if (window.L && typeof window.L.map === 'function') { cb(); return; }
@@ -893,6 +1013,219 @@ function _dispWpUpdatePreview() {
   });
 }
 
+function _dispatchResolvePointMeta_(tokenRaw) {
+  const token = String(tokenRaw || '').trim().toUpperCase();
+  if (!token) return null;
+  const airport = dispatchResolveAirportInput_(token, true);
+  if (airport) {
+    const icao = dispatchAirportIcao_(airport);
+    const lat = Number(_parseCoordinate(airport.lat || airport.LAT || airport.latitude || airport.LATITUDE || ''));
+    const lon = Number(_parseCoordinate(airport.lon || airport.LON || airport.lng || airport.LNG || airport.longitude || airport.LONGITUDE || ''));
+    if (!isFinite(lat) || !isFinite(lon)) return null;
+    const fuelCtx = _dispatchAirportFuelContext_(icao, airport);
+    return {
+      kind: 'airport',
+      token: token,
+      name: icao,
+      lat: lat,
+      lon: lon,
+      surface: String(airport.runwaySurfaceActual || airport.surface || '').trim(),
+      fuelLabel: fuelCtx.fuelLabel,
+      avgasQty: fuelCtx.avgasQty,
+      hasAvgas: fuelCtx.hasAvgas
+    };
+  }
+
+  const hit = resolveLocation(token);
+  if (!hit || !isFinite(Number(hit.lat)) || !isFinite(Number(hit.lon))) return null;
+  return {
+    kind: 'waypoint',
+    token: token,
+    name: String(hit.name || token).toUpperCase(),
+    lat: Number(hit.lat),
+    lon: Number(hit.lon),
+    avgasQty: 0,
+    hasAvgas: false
+  };
+}
+
+function _dispatchMapWaypointDivIcon_(label) {
+  const txt = String(label || '').trim().toUpperCase();
+  return L.divIcon({
+    className: 'dispatch-route-waypoint-icon',
+    html: '<div style="display:flex; flex-direction:column; align-items:center; transform:translateY(-5px);">'
+      + '<div style="font-size:13px; line-height:13px; color:#6a1b9a; text-shadow:0 1px 2px #fff;">&#9650;</div>'
+      + '<div style="font-size:9px; font-weight:900; color:#4a148c; background:rgba(255,255,255,0.9); border:1px solid #ce93d8; border-radius:4px; padding:0 3px; margin-top:1px;">' + txt + '</div>'
+      + '</div>',
+    iconSize: [30, 26],
+    iconAnchor: [15, 20]
+  });
+}
+
+function _dispatchSurfaceColor_(surfaceActual) {
+  const s = String(surfaceActual || '').toUpperCase();
+  if (/GRASS|GRAMA|SOD|TURF|CAMPO|TERRA/.test(s)) return '#388e3c';
+  if (/WATER|\u00C1GUA|AGUA|LAKE|LAGO|HIDRO|FLOAT|SEA/.test(s)) return '#1565c0';
+  return '#212121';
+}
+
+function _dispatchHasLocalAvgasProvider_(airport) {
+  const fuelText = String((airport && airport.fuelAvailable) || '').trim().toUpperCase();
+  if (!fuelText || fuelText === 'NONE') return false;
+  if (/AVGAS|100LL/.test(fuelText)) return true;
+  if (/AVAILABLE|YES|SIM|FORNECEDOR|PROVIDER/.test(fuelText)) return true;
+  return fuelText !== 'NO' && fuelText !== 'N/A' && fuelText !== 'NA';
+}
+
+function _dispatchAirportFuelContext_(icao, airportHint) {
+  const apt = airportHint || dispatchResolveAirportInput_(icao, true) || null;
+  const cacheRows = Array.isArray(appData && appData.fuelCaches)
+    ? appData.fuelCaches.filter(function(fc) {
+        return String(fc && fc.icao || '').trim().toUpperCase() === String(icao || '').trim().toUpperCase();
+      })
+    : [];
+  const avgasRow = cacheRows.find(function(fc) {
+    const t = String(fc && fc.type || '').toUpperCase();
+    return t.indexOf('AVGAS') >= 0 || t.indexOf('100LL') >= 0;
+  }) || null;
+  const avgasQty = avgasRow ? Number(avgasRow.qty || 0) : 0;
+  const hasCacheAvgas = !!(isFinite(avgasQty) && avgasQty > 0);
+  const hasLocalAvgas = _dispatchHasLocalAvgasProvider_(apt);
+  const hasAvgas = hasLocalAvgas || hasCacheAvgas;
+  const fuelLabel = hasLocalAvgas
+    ? ('Local provider: ' + String((apt && apt.fuelAvailable) || 'AVGAS').trim())
+    : (hasCacheAvgas ? ('Cache AVGAS: ' + Math.round(avgasQty) + ' L') : 'AVGAS: none');
+  return {
+    hasAvgas: hasAvgas,
+    hasLocalAvgas: hasLocalAvgas,
+    hasCacheAvgas: hasCacheAvgas,
+    avgasQty: isFinite(avgasQty) ? Math.round(avgasQty) : 0,
+    fuelLabel: fuelLabel
+  };
+}
+
+function _dispatchAirportDivIcon_(surfaceActual, hasAvgas) {
+  const color = _dispatchSurfaceColor_(surfaceActual);
+  const badge = hasAvgas
+    ? '<circle cx="15.8" cy="4.2" r="5" fill="white" stroke="#111" stroke-width="1.3"/><text x="15.8" y="5.9" text-anchor="middle" font-size="6.5" fill="#111" font-family="sans-serif" font-weight="900">A</text>'
+    : '';
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">'
+    + '<circle cx="10" cy="10" r="9" fill="' + color + '" stroke="white" stroke-width="1.5" opacity="0.92"/>'
+    + '<text x="10" y="14" text-anchor="middle" font-size="11" fill="white" font-family="sans-serif" font-weight="bold">✈</text>'
+    + badge
+    + '</svg>';
+  return L.divIcon({ html: svg, className: '', iconSize: [20, 20], iconAnchor: [10, 10] });
+}
+
+function dispatchToggleNearbyAirports_() {
+  const cb = document.getElementById('dispatchMapNearbyToggle');
+  _dispatchRouteMapState.showNearbyAirports = !!(cb && cb.checked);
+  dispatchRenderMissionMap_(false);
+}
+
+function dispatchRenderMissionMap_(forceFit) {
+  const card = document.getElementById('dispatchRouteMapCard');
+  const mapDiv = document.getElementById('dispatchRouteMap');
+  const empty = document.getElementById('dispatchRouteMapEmpty');
+  if (!card || !mapDiv || !empty) return;
+
+  if (!Array.isArray(missionLegs) || !missionLegs.length) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const seq = [];
+  missionLegs.forEach(function(leg) {
+    const tokens = parseRouteWaypointTokens((leg && (leg.routeStr || leg.waypoints)) || '');
+    tokens.forEach(function(tok) {
+      if (!tok) return;
+      if (!seq.length || seq[seq.length - 1] !== tok) seq.push(tok);
+    });
+  });
+
+  const points = seq.map(_dispatchResolvePointMeta_).filter(Boolean);
+  card.style.display = '';
+
+  _dispWpEnsureLeaflet(function() {
+    if (!_dispatchRouteMapState.map) {
+      _dispatchRouteMapState.map = L.map('dispatchRouteMap', { zoomControl: true, attributionControl: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16, minZoom: 2 }).addTo(_dispatchRouteMapState.map);
+      _dispatchRouteMapState.routeLayer = L.layerGroup().addTo(_dispatchRouteMapState.map);
+      _dispatchRouteMapState.markersLayer = L.layerGroup().addTo(_dispatchRouteMapState.map);
+      _dispatchRouteMapState.nearbyAirportsLayer = L.layerGroup().addTo(_dispatchRouteMapState.map);
+    }
+
+    _dispatchRouteMapState.routeLayer.clearLayers();
+    _dispatchRouteMapState.markersLayer.clearLayers();
+    if (_dispatchRouteMapState.nearbyAirportsLayer) _dispatchRouteMapState.nearbyAirportsLayer.clearLayers();
+
+    const nearbyToggle = document.getElementById('dispatchMapNearbyToggle');
+    _dispatchRouteMapState.showNearbyAirports = !!(nearbyToggle && nearbyToggle.checked);
+
+    if (!points.length) {
+      empty.style.display = '';
+      _dispatchRouteMapState.map.setView([-15.8, -47.9], 4);
+      setTimeout(function() { if (_dispatchRouteMapState.map) _dispatchRouteMapState.map.invalidateSize(); }, 40);
+      return;
+    }
+
+    empty.style.display = 'none';
+    const latLngs = points.map(function(p) { return [p.lat, p.lon]; });
+
+    if (latLngs.length > 1) {
+      L.polyline(latLngs, { color: '#0b5394', weight: 3, opacity: 0.9, dashArray: '8,5' }).addTo(_dispatchRouteMapState.routeLayer);
+    }
+
+    const routeAirportSet = new Set(
+      points
+        .filter(function(p) { return p && p.kind === 'airport'; })
+        .map(function(p) { return String(p.name || '').trim().toUpperCase(); })
+    );
+
+    points.forEach(function(p, idx) {
+      if (p.kind === 'airport') {
+        const m = L.marker([p.lat, p.lon], {
+          icon: _dispatchAirportDivIcon_(p.surface, p.hasAvgas)
+        }).addTo(_dispatchRouteMapState.markersLayer);
+        const surfaceTxt = String(p.surface || 'Unknown');
+        m.bindTooltip('<b>' + p.name + '</b><br>Surface: ' + surfaceTxt + '<br>' + p.fuelLabel + '<br>#' + (idx + 1), { sticky: true });
+      } else {
+        const m = L.marker([p.lat, p.lon], { icon: _dispatchMapWaypointDivIcon_(p.name) }).addTo(_dispatchRouteMapState.markersLayer);
+        m.bindTooltip('<b>' + p.name + '</b><br>Waypoint #' + (idx + 1), { sticky: true });
+      }
+    });
+
+    if (_dispatchRouteMapState.showNearbyAirports && Array.isArray(appData && appData.airports)) {
+      const bounds = L.latLngBounds(latLngs).pad(0.9);
+      appData.airports.forEach(function(apt) {
+        const icao = dispatchAirportIcao_(apt);
+        if (!icao || routeAirportSet.has(icao)) return;
+        const lat = Number(_parseCoordinate(apt.lat || apt.LAT || apt.latitude || apt.LATITUDE || ''));
+        const lon = Number(_parseCoordinate(apt.lon || apt.LON || apt.lng || apt.LNG || apt.longitude || apt.LONGITUDE || ''));
+        if (!isFinite(lat) || !isFinite(lon)) return;
+        if (!bounds.contains([lat, lon])) return;
+
+        const fuelCtx = _dispatchAirportFuelContext_(icao, apt);
+        const surface = String(apt.runwaySurfaceActual || apt.surface || '').trim();
+        const m = L.marker([lat, lon], {
+          icon: _dispatchAirportDivIcon_(surface, fuelCtx.hasAvgas),
+          zIndexOffset: -150
+        }).addTo(_dispatchRouteMapState.nearbyAirportsLayer);
+        m.bindTooltip('<b>' + icao + '</b><br>Nearby DB airport<br>Surface: ' + (surface || 'Unknown') + '<br>' + fuelCtx.fuelLabel, { sticky: true });
+      });
+    }
+
+    const bounds = L.latLngBounds(latLngs);
+    if (bounds.isValid()) {
+      if (forceFit || !_dispatchRouteMapState._hasCentered) {
+        _dispatchRouteMapState.map.fitBounds(bounds, { padding: [28, 28] });
+        _dispatchRouteMapState._hasCentered = true;
+      }
+    }
+    setTimeout(function() { if (_dispatchRouteMapState.map) _dispatchRouteMapState.map.invalidateSize(); }, 40);
+  });
+}
+
 function toggleWaypointPanel() {
   const panel = document.getElementById('waypointAdminPanel');
   if (!panel) return;
@@ -935,11 +1268,11 @@ function saveWaypointFromDispatch() {
     return;
   }
   if (isNaN(lat) || lat < -90 || lat > 90) {
-    M.toast({ html: 'Latitude: unrecognized format or out of range (±90).' });
+    M.toast({ html: 'Latitude: unrecognized format or out of range (+/-90).' });
     return;
   }
   if (isNaN(lon) || lon < -180 || lon > 180) {
-    M.toast({ html: 'Longitude: unrecognized format or out of range (±180).' });
+    M.toast({ html: 'Longitude: unrecognized format or out of range (+/-180).' });
     return;
   }
   if (['FIX', 'WATER RUNWAY'].indexOf(type) === -1) {
@@ -1307,7 +1640,7 @@ function calculateTotals() {
        const openRows = Array.isArray(rows) ? rows.filter(r => openStatuses.includes(String((r && r.status) || '').trim().toUpperCase())) : [];
        if (openRows.length) {
          const preview = openRows.slice(0, 2).map(r => String((r && r.id) || '').trim() || String((r && r.description) || '').trim()).filter(Boolean).join(', ');
-         warn = `⚠ ${openRows.length} open discrepancy${openRows.length > 1 ? 'ies' : ''}: ${preview}`;
+         warn = `WARNING: ${openRows.length} open discrepancy${openRows.length > 1 ? 'ies' : ''}: ${preview}`;
        }
      } catch (e) {}
    }
@@ -1330,7 +1663,7 @@ function calculateTotals() {
    if (pilot.Medical_Expiry) {
      const medicalDate = new Date(pilot.Medical_Expiry);
      if (medicalDate < flightDate) {
-       messages.push(`⛔ MEDICAL EXPIRED: ${dispatchFormatDateMonDayYear_(medicalDate, 'Unknown date')}`);
+      messages.push(`MEDICAL EXPIRED: ${dispatchFormatDateMonDayYear_(medicalDate, 'Unknown date')}`);
        pilotEl.classList.add('medical-invalid');
        medicalExpired = true;
      }
@@ -1346,17 +1679,17 @@ function calculateTotals() {
 
 
        if (diffDays < 0) {
-         messages.push(`🚩 <b>${reqType} EXPIRED</b> (${Math.abs(diffDays)} days ago)`);
+         messages.push(`ALERT: <b>${reqType} EXPIRED</b> (${Math.abs(diffDays)} days ago)`);
          if (!medicalExpired) pilotEl.classList.add('license-expired');
        } else if (diffDays <= 30) {
-         messages.push(`⚠️ ${reqType} Expires in ${diffDays} days`);
+         messages.push(`WARNING: ${reqType} Expires in ${diffDays} days`);
          if (!medicalExpired) pilotEl.classList.add('license-critical');
        } else if (diffDays <= 60) {
-         messages.push(`⚠️ ${reqType} Renewal Due (<60 days)`);
+         messages.push(`WARNING: ${reqType} Renewal Due (<60 days)`);
          if (!medicalExpired) pilotEl.classList.add('license-warn');
        }
      } else {
-       messages.push(`❓ No ${reqType} date found for pilot`);
+       messages.push(`No ${reqType} date found for pilot`);
      }
    }
  }
@@ -1664,7 +1997,12 @@ function addLeg() {
 
 function renderTimeline() {
   const container = document.getElementById('timeline');
-  if (missionLegs.length === 0) { container.innerHTML = '<p>No legs drafted.</p>'; return; }
+  if (missionLegs.length === 0) {
+    container.innerHTML = '<p>No legs drafted.</p>';
+    const card = document.getElementById('dispatchRouteMapCard');
+    if (card) card.style.display = 'none';
+    return;
+  }
   
   container.innerHTML = missionLegs.map((l, i) => {
     const isLast = (i === missionLegs.length - 1);
@@ -1680,7 +2018,7 @@ function renderTimeline() {
     <div class="leg-card ${l.isOver ? 'overweight' : ''}">
       <div class="row" style="margin-bottom:5px">
         <div class="col s10">
-          <b>LEG ${i+1}: ${l.from} ➔ ${l.to} ${getFuelIcons(l.to, i)}<button class="dispatch-mini-btn" onclick="openDispatchFuelCalculator(${i})" title="Fuel calculator">🧮</button></b> 
+          <b>LEG ${i+1}: ${l.from} -> ${l.to} ${getFuelIcons(l.to, i)}<button class="dispatch-mini-btn" onclick="openDispatchFuelCalculator(${i})" title="Fuel calculator">&#x1F9EE;</button></b> 
           ${wp.includes(',') && wp.split(',').length > 2 ? 
             `<br><span style="font-size:0.65rem; color:#2e7d32; font-weight:bold;">VIA: ${wp}</span>` : ''}
           <br><small>ID: ${l.flightLegId}</small>
@@ -1700,7 +2038,7 @@ function renderTimeline() {
      <br>
      <span style="color: #0b5394;">
     <b>Takeoff:</b> <input type="number" class="dispatch-inline-input" step="1" min="${takeoffMin}" value="${Math.round(l.takeoffFuel)}" onchange="updateLegTakeoffFuel(${i}, this.value, this)">L |
-    <b>Enroute:</b> −${Math.round(l.fuel)}L |
+    <b>Enroute:</b> -${Math.round(l.fuel)}L |
      <b>Landing:</b> ${Math.round(l.landingFuel)}L
      </span>
     <span style="display:block; font-size:0.68rem; color:#607d8b; margin-top:2px;">Minimum planned takeoff fuel: ${takeoffMin} L</span>
@@ -1708,18 +2046,18 @@ function renderTimeline() {
   ${fuelStopLegs.includes(i) && l.plannedCacheDraw > 0 ? `
     <div style="margin-top: 4px;">
       <span style="background:#e3f2fd; color:#1565c0; border:1px solid #bbdefb; border-radius:4px; padding:2px 6px; font-size:0.7rem; font-weight:bold; display:inline-block;">
-        ⛽ ${fuelAlertLabel}: ${Math.round(l.plannedCacheDraw)} L
+        FUEL ${fuelAlertLabel}: ${Math.round(l.plannedCacheDraw)} L
       </span>
     </div>
   ` : ''}
 </div>
 
-      ${isLast && !hasFuel && !l.manualFuelNote ? `<div class="fuel-warn-box"><b class="red-text">⚠ NO FUEL AT DESTINATION</b><br>Carry additional fuel: <input type="number" class="inline-cargo" value="${l.extraFuelLoad || 0}"> L <button class="btn-small blue darken-2" onclick="commitManualFuel(${i}, this.previousElementSibling.value)">ADD TO FLIGHT</button></div>` : ''}
+      ${isLast && !hasFuel && !l.manualFuelNote ? `<div class="fuel-warn-box"><b class="red-text">WARNING: NO FUEL AT DESTINATION</b><br>Carry additional fuel: <input type="number" class="inline-cargo" value="${l.extraFuelLoad || 0}"> L <button class="btn-small blue darken-2" onclick="commitManualFuel(${i}, this.previousElementSibling.value)">ADD TO FLIGHT</button></div>` : ''}
       
       <div style="font-size:0.75rem; margin: 8px 0;">
         <span class="limit-tag ${l.limitType.includes('Airport') ? 'bg-perf' : 'bg-struct'}">${l.limitType}: ${Math.round(l.limit)}kg</span>
         <span style="margin-left:10px">Payload Rem: <b>${Math.round(l.availPayload - l.payload)}kg</b></span>
-        ${l.manualFuelNote ? `<div style="font-size:0.7rem; color:#d32f2f; font-weight: bold; margin-top:4px;">⛽ ${l.manualFuelNote}</div>` : ''}
+        ${l.manualFuelNote ? `<div style="font-size:0.7rem; color:#d32f2f; font-weight: bold; margin-top:4px;">FUEL ${l.manualFuelNote}</div>` : ''}
       </div>
 
       <div style="background:#f9f9f9; padding:5px; border-radius:4px;">
@@ -1740,12 +2078,14 @@ function renderTimeline() {
               <button class="dispatch-mini-btn" title="Edit billing" onclick="openEditPaxModal_(${i}, ${pi})" style="color:#1565c0;">&#9998;</button>
               <button class="dispatch-mini-btn" title="Remove" onclick="removeDispatchPax_(${i}, ${pi})" style="color:#d32f2f;">&#x2715;</button>
             </span>
-            ${p.description ? `<div style="width: 100%; font-size: 0.75rem; color: #666; font-style: italic; margin-top: 2px; padding-left: 8px; border-left: 2px solid #ddd;">↳ ${p.description}</div>` : ''}
+            ${p.description ? `<div style="width: 100%; font-size: 0.75rem; color: #666; font-style: italic; margin-top: 2px; padding-left: 8px; border-left: 2px solid #ddd;">- ${p.description}</div>` : ''}
           </div>
         `).join('')}
       </div>
     </div>`; // This closes the leg-card div correctly
   }).join('');
+
+  dispatchRenderMissionMap_(false);
 }
 
 function renderMissionList(missions) {
@@ -1851,13 +2191,20 @@ function getFuelIcons(icao, legIndex) {
 const isS = fuelStopLegs.includes(legIndex);
 const ctx = dispatchFuelContext_(icao, legIndex);
 const cacheBlocked = ctx.cacheDisabled && !ctx.hasAirportFuel && ctx.cacheQty > 0;
+const leg = missionLegs[legIndex] || {};
+const stopSource = String(leg.fuelStopSource || (leg.isFuelCacheStop ? 'cache' : '')).toLowerCase();
 let lbl = ctx.hasAirportFuel ? 'APT FUEL' : (ctx.hasCacheFuel ? Math.round(ctx.cacheQty) + 'L' : (cacheBlocked ? 'CACHE OFF' : ''));
 if (!lbl) return '';
-const clickHandler = cacheBlocked ? `enableCacheFuel(${legIndex})` : `toggleFuelStop(${legIndex})`;
 const classes = ['fuel-pump'];
-if (isS) classes.push('fuel-used-up');
+if (isS && stopSource === 'airport') classes.push('fuel-airport-active');
+if (isS && stopSource === 'cache') classes.push('fuel-used-up');
 if (cacheBlocked) classes.push('fuel-cache-blocked');
-let html = `<span class="${classes.join(' ')}" onclick="${clickHandler}">⛽ <span class="fuel-qty-label">${lbl}</span></span>`;
+if (cacheBlocked) classes.push('fuel-pump-disabled');
+const clickAttr = cacheBlocked ? '' : ` onclick="toggleFuelStop(${legIndex})"`;
+const titleTxt = isS && stopSource === 'airport'
+  ? 'Airport fuel stop selected. Adds 15 minutes ground time.'
+  : (cacheBlocked ? 'Cache disabled for this leg. Click ALLOW CACHE to re-enable.' : 'Toggle fuel stop');
+let html = `<span class="${classes.join(' ')}"${clickAttr} title="${titleTxt}">&#x26FD; <span class="fuel-qty-label">${lbl}</span></span>`;
 // Show NO CACHE / ALLOW CACHE toggle right next to the badge so its always visible
 if (ctx.cacheQty > 0 && !ctx.hasAirportFuel) {
   const leg = missionLegs[legIndex] || {};
@@ -2173,7 +2520,6 @@ function runDispatchFuelCalculator() {
  });
 }
 
-
 function getAgeCategory(dob, flightDateStr) {
 if (!dob) return "ADULT";
 
@@ -2323,7 +2669,7 @@ function renderFlightBlocks(blocks) {
       ? '<span style="font-size:0.65rem;background:#cfd8dc;color:#546e7a;padding:1px 5px;border-radius:3px;margin-left:6px;">CLOSED</span>'
       : isPast ? '<span style="font-size:0.65rem;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px;margin-left:6px;">PAST</span>' : '';
 
-    // MX impact — look up aircraft in appData
+    // MX impact - look up aircraft in appData
     let mxLine = '';
     const acftObj = (appData.aircraft || []).find(a => a.reg === b.aircraft);
     if (acftObj && acftObj.hoursToInsp > 0) {

@@ -94,6 +94,12 @@
 #briefing-content .brief-badge.green { background: #388E3C !important; }
 #briefing-content .brief-badge.blue { background: #2167D1 !important; }
 #briefing-content .brief-badge.gray { background: #111 !important; }
+.briefing-content .brief-badge.airport-fuel-alert {
+  background: linear-gradient(180deg, #a5d6a7 0%, #2e7d32 100%) !important;
+  color: #fff !important;
+  border: 1px solid #1b5e20;
+  box-shadow: 0 0 0 1px rgba(46,125,50,0.25), 0 0 10px rgba(46,125,50,0.35);
+}
 #briefing-content .brief-badge.cache-draw-alert {
   background: linear-gradient(180deg, #ffd54f 0%, #f57f17 100%) !important;
   color: #1a1a1a !important;
@@ -1226,7 +1232,9 @@ function renderLegs(mission) {
     const burnFuel = Math.round(leg.fuel || 0);
     const landingFuel = Math.round(leg.landingFuel || 0);
     const groundTime = parseFloat(leg.groundTime) || 0.5;
+    const fuelStopSource = String(leg.fuelStopSource || (leg.isFuelCacheStop ? 'cache' : '')).toLowerCase();
     const cacheDraw = leg.isFuelCacheStop ? Math.round(leg.plannedCacheDraw || 0) : 0;
+    const airportFuelStop = fuelStopSource === 'airport';
     const routeText = legViaText_(leg);
     const runwayLimitWeight = Math.round(Number(leg.limit || leg.runwayLimit || leg.rwyLimit || 0) || 0);
     const aircraftMaxTakeoffWeight = Math.round(Number(
@@ -1305,6 +1313,7 @@ function renderLegs(mission) {
               <span class="brief-badge red">Burn: -${burnFuel}L</span>
               <span class="brief-badge green">Max T/O Wt: ${effectiveMaxTakeoffWeight}kg</span>
               <span class="brief-badge gray">Ldg: ${landingFuel}L</span>
+              ${airportFuelStop ? `<span class="brief-badge airport-fuel-alert">AIRPORT FUEL STOP +15M</span>` : ''}
               ${cacheDraw > 0 ? `<span class="brief-badge cache-draw-alert">FUEL CACHE DRAW +${cacheDraw}L</span>` : ''}
             </div>
             <div class="brief-data-line">Rem: <span class="good">${payloadRemaining}kg</span> | ${(leg.time||0).toFixed(1)}h flt | ${groundTime.toFixed(1)}h gnd | T/O: ${takeoffFuel}L${runwayLimitNote ? ` | <span class="weight-limit-note">${runwayLimitNote}</span>` : ''}</div>

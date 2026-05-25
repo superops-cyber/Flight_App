@@ -149,6 +149,11 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 4px;
   }
+  .rbc-grid-5 {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
   .rbc-grid-2 {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -163,7 +168,7 @@
     background: #f7f9fc;
     border: 1px solid #e3e8ef;
     border-radius: 5px;
-    padding: 5px 7px;
+    padding: 4px 6px;
   }
   .rbc-cell .lbl {
     font-size: 0.64rem;
@@ -182,7 +187,7 @@
     word-break: break-word;
   }
   .rbc-cell .val.big {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 900;
   }
   .rbc-cell .val.class-missing {
@@ -197,6 +202,66 @@
   .rbc-cell .val.danger { color: #c62828; }
   .rbc-cell .val.warn   { color: #e65100; }
   .rbc-cell .val.ok     { color: #2e7d32; }
+  #rbc-ident-grid .rbc-cell {
+    padding: 3px 5px;
+  }
+  #rbc-ident-grid .rbc-cell .lbl {
+    margin-bottom: 1px;
+  }
+  #rbc-ident-grid {
+    grid-template-columns: 0.72fr 0.75fr 0.75fr 2.15fr 1fr;
+  }
+  #rbc-ident-grid #rbc-coords {
+    font-size: 0.78rem !important;
+    line-height: 1.2;
+  }
+  #rbc-dims-grid {
+    display: grid;
+    gap: 5px;
+  }
+  #rbc-dims-grid .rbc-dims-row {
+    display: grid;
+    gap: 4px;
+  }
+  #rbc-dims-grid .rbc-dims-row.top {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  #rbc-dims-grid .rbc-dims-row.bottom {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  #rbc-dims-grid .rbc-cell {
+    padding: 4px 6px;
+  }
+  .rbc-mini-meta {
+    display: grid;
+    gap: 1px;
+    font-size: 0.72rem;
+    color: #455a64;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .rbc-toggle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 4px 8px;
+    border: 1px solid #b6c7d8;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #455a64;
+    cursor: pointer;
+    user-select: none;
+  }
+  .rbc-toggle-chip input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #1565c0;
+    cursor: pointer;
+    margin: 0;
+  }
 
   /* ── inline edit fields ── */
   .rbc-editable { cursor: text; }
@@ -500,6 +565,17 @@
       box-shadow: none;
     }
   }
+  @media (max-width: 760px) {
+    .rbc-grid-5,
+    .rbc-grid-4,
+    #rbc-dims-grid .rbc-dims-row.top,
+    #rbc-dims-grid .rbc-dims-row.bottom {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    #rbc-ident-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
 </style>
 
 <!-- ════════════════════════════════════════════
@@ -540,10 +616,11 @@
       <!-- HEADER INFO 4-column grid -->
       <div class="rbc-section" style="margin-top:10px;">
         <div class="rbc-section-title">Runway Identification</div>
-        <div class="rbc-section-body rbc-grid-4" id="rbc-ident-grid">
+        <div class="rbc-section-body rbc-grid-5" id="rbc-ident-grid">
           <div class="rbc-cell">
             <span class="lbl">Class</span>
-            <span class="val big" id="rbc-class" style="cursor:pointer; padding:4px; border-radius:4px;" onclick="_rbcMakeClassEditable()" title="Click to edit">–</span>\n            <input id="rbc-class-input" type="text" class="rbc-input-sm" style="display:none; width:100%; margin-top:4px;" placeholder="1, 2, or 3" onblur="_rbcSaveClassEdit()" onkeypress="if(event.key==='Enter') _rbcSaveClassEdit()">
+            <span class="val big" id="rbc-class" style="cursor:pointer; padding:4px; border-radius:4px;" onclick="_rbcMakeClassEditable()" title="Click to edit">–</span>
+            <input id="rbc-class-input" type="text" class="rbc-input-sm" style="display:none; width:100%; margin-top:4px;" placeholder="1, 2, or 3" onblur="_rbcSaveClassEdit()" onkeypress="if(event.key==='Enter') _rbcSaveClassEdit()">
           </div>
           <div class="rbc-cell">
             <span class="lbl">Runway</span>
@@ -557,6 +634,10 @@
             <span class="lbl">GPS Coordinates</span>
             <span class="val mono" style="font-size:0.72rem;" id="rbc-coords">–</span>
           </div>
+          <div class="rbc-cell">
+            <span class="lbl">Fuel Availability</span>
+            <span class="val" style="font-size:0.76rem; cursor:pointer; text-decoration:underline dotted;" id="rbc-fuel-status" onclick="rbcShowFuelContact()" title="Click to view fuel details">–</span>
+          </div>
         </div>
       </div>
 
@@ -567,15 +648,22 @@
           <button id="rbc-vbtn-dimensions" class="rbc-verify-btn" onclick="rbcToggleVerifyFlag('dimensions')">Mark Pilot Verify</button>
           <span id="rbc-vpill-dimensions" class="rbc-verify-pill">Pilot Verify Required</span>
         </div>
-        <div class="rbc-section-body rbc-grid-3" id="rbc-dims-grid"></div>
+        <div class="rbc-section-body" id="rbc-dims-grid"></div>
         <div class="rbc-section-body" id="rbc-slope-detail-row" style="padding-top:0;"></div>
         <div class="rbc-section-body" id="rbc-dims-edit-panel" style="display:none; padding:8px 10px; background:#f0f6ff; border-top:1px solid #c5d9f5;">
           <div style="font-size:0.7rem; font-weight:900; color:#0b5394; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Edit Runway Data</div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
             <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Class (1, 2, or 3)</label><input id="rbc-edit-class" type="text" class="rbc-input-sm" placeholder="1, 2, or 3"></div>
             <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Elevation (ft)</label><input id="rbc-edit-elevation" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="e.g. 1200"></div>
-            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Surface</label><input id="rbc-edit-surface" type="text" class="rbc-input-sm" placeholder="e.g. GRASS, ASPHALT"></div>
-            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Cutdown Area (m)</label><input id="rbc-edit-cutdown" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="e.g. 120"></div>
+            <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Surface</label><select id="rbc-edit-surface" class="browser-default rbc-input-sm"><option value="">Select...</option></select></div>
+            <div>
+              <label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Cutdown Area (m)</label>
+              <input id="rbc-edit-cutdown" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="e.g. 120">
+              <label class="rbc-toggle-chip">
+                <input id="rbc-edit-cutdown-sr" type="checkbox" onchange="_rbcToggleCutdownSr_(this)">
+                SR - Sem restricao
+              </label>
+            </div>
             <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Internal Length (m)</label><input id="rbc-edit-intlen" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="Measured length"></div>
             <div><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Internal Width (m)</label><input id="rbc-edit-intwid" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="Measured width"></div>
           </div>
@@ -583,10 +671,14 @@
         <div class="rbc-section-body" id="rbc-slope-editor" style="display:none; padding:8px 10px; background:#eef7f4; border-top:1px solid #b2dfdb;">
           <div style="font-size:0.7rem; font-weight:900; color:#00695c; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">⛰ Slope Profile Segments</div>
           <div id="rbc-slope-list" style="margin-bottom:6px; min-height:20px;"></div>
+          <label class="rbc-toggle-chip" style="margin:2px 0 8px 0;">
+            <input id="rbc-no-significant-slope" type="checkbox" onchange="rbcToggleNoSignificantSlope(this)">
+            No significant slope
+          </label>
           <div style="display:flex; gap:6px; align-items:flex-end;">
             <div style="flex:1;"><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Segment Length (m)</label><input id="rbc-slope-dist" type="number" inputmode="numeric" class="rbc-input-sm" placeholder="e.g. 100"></div>
             <div style="flex:1;"><label style="font-size:0.68rem; font-weight:800; color:#546e7a; display:block; margin-bottom:2px;">Slope %</label><input id="rbc-slope-pct" type="number" step="0.1" class="rbc-input-sm" placeholder="e.g. +2.0 or -1.5"></div>
-            <button class="rbc-btn rbc-btn-edit" style="height:30px; font-size:0.72rem; white-space:nowrap;" onclick="rbcAddSlopeSegment()">+ ADD</button>
+            <button id="rbc-slope-add-btn" class="rbc-btn rbc-btn-edit" style="height:30px; font-size:0.72rem; white-space:nowrap;" onclick="rbcAddSlopeSegment()">+ ADD</button>
           </div>
           <div style="font-size:0.67rem; color:#607d8b; margin-top:4px;">Add segments in order from threshold. e.g. 100m @ +2%, then 400m @ 0%.</div>
         </div>
@@ -928,6 +1020,16 @@
   </div><!-- /rbc-sheet -->
 </div><!-- /rbc-overlay -->
 
+<div id="rbc-fuel-contact-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10070; align-items:center; justify-content:center;" onclick="if(event.target===this)rbcCloseFuelContact()">
+  <div style="background:#fff; width:min(460px, 94vw); max-height:86vh; overflow:auto; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.3); padding:16px 16px 14px 16px; position:relative;">
+    <button onclick="rbcCloseFuelContact()" style="position:absolute; top:8px; right:10px; border:none; background:none; font-size:1.4rem; color:#90a4ae; cursor:pointer;">&times;</button>
+    <div id="rbc-fuel-contact-title" style="font-size:1rem; font-weight:900; color:#0b5394; margin-bottom:4px;">Fuel Details</div>
+    <div id="rbc-fuel-contact-sub" style="font-size:0.78rem; color:#78909c; margin-bottom:10px;"></div>
+    <div id="rbc-fuel-contact-rows"></div>
+    <div id="rbc-fuel-contact-notes" style="display:none; margin-top:10px; background:#f7f9fc; border-left:4px solid #1976d2; padding:8px 10px; font-size:0.82rem; border-radius:4px; color:#37474f; white-space:pre-wrap;"></div>
+  </div>
+</div>
+
 <style>
   .rbc-input-sm {
     width: 100%;
@@ -942,6 +1044,12 @@
     outline: none;
   }
   .rbc-input-sm:focus { border-color: #1565c0; background: #f0f6ff; }
+  .rbc-input-sm[disabled] {
+    background: #eceff1;
+    border-color: #cfd8dc;
+    color: #78909c;
+    cursor: not-allowed;
+  }
 
   /* Side selector button group */
   .rbc-side-btn {
@@ -1016,6 +1124,7 @@ window._rbcState = {
   rwyIdent: '',
   runway: null,          // full runway object from performanceTab4 / appData
   card: {},              // loaded/saved card data blob
+  surfaceOptions: [],
   editMode: false,
   dirty: false,
   mapDistM: null,        // go-around distance in metres from threshold
@@ -1131,6 +1240,7 @@ window.openRunwayBriefingCard = function(icao, rwyIdent, callerContext, forcedRu
 window.__rbcOpenRef = window.openRunwayBriefingCard;
 
 window.rbcClose = function() {
+  rbcCloseFuelContact();
   const overlay = document.getElementById('rbc-overlay');
   if (overlay) {
     overlay.classList.remove('rbc-open');
@@ -1323,6 +1433,7 @@ function _rbcApplySupervisorDiffChange_(change) {
     };
     const sig = function(x) { return [Math.round(Number(x.startDistanceM||0)), Math.round(Number((x.distanceM!=null?x.distanceM:x.distance)||0)), Math.round(Number(x.slope||0)*10)/10].join('|'); };
     if (!s.card.slopeSegments.some(function(x) { return sig(x) === sig(segObj); })) s.card.slopeSegments.push(segObj);
+    delete s.card.noSignificantSlope;
   }
 
   if (s.editMode) _rbcPopulateDimsEdit();
@@ -1783,6 +1894,125 @@ function _rbcReciprocalRunwayIdent(ident) {
   return String(recip).padStart(2, '0') + recipSuffix;
 }
 
+function _rbcBuildFuelInfoForIcao_(icao) {
+  const code = String(icao || '').trim().toUpperCase();
+  const airports = Array.isArray(window.appData && window.appData.airports) ? window.appData.airports : [];
+  const fuelCaches = Array.isArray(window.appData && window.appData.fuelCaches) ? window.appData.fuelCaches : [];
+  const apt = airports.find(function(a) {
+    return String(a && a.icao || '').trim().toUpperCase() === code;
+  }) || null;
+
+  const localFuelText = String((apt && apt.fuelAvailable) || '').trim();
+  const localFuelUpper = localFuelText.toUpperCase();
+  const hasLocalAvgas = !!(localFuelUpper && localFuelUpper !== 'NONE' && /AVGAS|100LL/.test(localFuelUpper));
+
+  const cacheRows = fuelCaches.filter(function(fc) {
+    return String(fc && fc.icao || '').trim().toUpperCase() === code;
+  });
+  const cacheAvgasRows = cacheRows.filter(function(fc) {
+    const t = String(fc && fc.type || '').toUpperCase();
+    return (t.indexOf('AVGAS') >= 0 || t.indexOf('100LL') >= 0) && Number(fc && fc.qty || 0) > 0;
+  });
+  const cacheAvgasLiters = cacheAvgasRows.reduce(function(sum, row) {
+    const qty = Number(row && row.qty || 0);
+    return sum + (isFinite(qty) && qty > 0 ? qty : 0);
+  }, 0);
+  const hasCacheAvgas = cacheAvgasLiters > 0;
+
+  let label = 'AVGAS unavailable';
+  if (hasLocalAvgas && hasCacheAvgas) {
+    label = 'Local + Cache (' + Math.round(cacheAvgasLiters) + ' L)';
+  } else if (hasLocalAvgas) {
+    label = 'Local supplier';
+  } else if (hasCacheAvgas) {
+    label = 'Cache: ' + Math.round(cacheAvgasLiters) + ' L';
+  }
+
+  return {
+    icao: code,
+    apt: apt,
+    hasLocalAvgas: hasLocalAvgas,
+    hasCacheAvgas: hasCacheAvgas,
+    cacheAvgasLiters: Math.round(cacheAvgasLiters),
+    localFuelText: localFuelText,
+    label: label
+  };
+}
+
+window._rbcFuelInfo = null;
+
+function rbcCloseFuelContact() {
+  const overlay = document.getElementById('rbc-fuel-contact-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function rbcShowFuelContact() {
+  const s = window._rbcState || {};
+  const info = window._rbcFuelInfo || _rbcBuildFuelInfoForIcao_(s.icao || '');
+  window._rbcFuelInfo = info;
+
+  const titleEl = document.getElementById('rbc-fuel-contact-title');
+  const subEl = document.getElementById('rbc-fuel-contact-sub');
+  const rowsEl = document.getElementById('rbc-fuel-contact-rows');
+  const notesEl = document.getElementById('rbc-fuel-contact-notes');
+  const overlay = document.getElementById('rbc-fuel-contact-overlay');
+  if (!titleEl || !subEl || !rowsEl || !notesEl || !overlay) return;
+
+  titleEl.textContent = 'Fuel Details - ' + String(info.icao || '');
+  subEl.textContent = info.label || 'AVGAS unavailable';
+  rowsEl.innerHTML = '';
+  notesEl.style.display = 'none';
+  notesEl.textContent = '';
+
+  const addRow = function(label, value) {
+    const txt = String(value || '').trim();
+    if (!txt) return;
+    rowsEl.innerHTML += '<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:7px 0; font-size:0.85rem;"><span style="color:#546e7a; font-weight:700;">' + _rbcEsc(label) + '</span><span style="color:#263238; font-weight:600; text-align:right; max-width:60%;">' + _rbcEsc(txt) + '</span></div>';
+  };
+
+  addRow('AVGAS Local Supplier', info.hasLocalAvgas ? 'YES' : 'NO');
+  addRow('AVGAS Cache', info.hasCacheAvgas ? (String(info.cacheAvgasLiters) + ' L') : 'None');
+  addRow('Local Fuel Field', info.localFuelText || 'None');
+
+  if (!(window.google && google.script && google.script.run)) {
+    addRow('Contact', 'Unavailable in this context');
+    overlay.style.display = 'flex';
+    return;
+  }
+
+  addRow('Contact', 'Loading...');
+  overlay.style.display = 'flex';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      rowsEl.innerHTML = '';
+      addRow('AVGAS Local Supplier', info.hasLocalAvgas ? 'YES' : 'NO');
+      addRow('AVGAS Cache', info.hasCacheAvgas ? (String(info.cacheAvgasLiters) + ' L') : 'None');
+      addRow('Local Fuel Field', info.localFuelText || 'None');
+      if (!res || !res.success || !res.found) {
+        addRow('Contact', 'No contact on file');
+        return;
+      }
+      addRow('Contact Name', res.contato || '');
+      addRow('Mobile', res.celular || '');
+      addRow('Phone 2', res.telefone2 || '');
+      addRow('Permanencia', res.permanencia || '');
+      addRow('Municipio', res.municipio || '');
+      const notes = String(res.anotacoes || '').trim();
+      if (notes) {
+        notesEl.style.display = '';
+        notesEl.textContent = notes;
+      }
+    })
+    .withFailureHandler(function(err) {
+      rowsEl.innerHTML = '';
+      addRow('AVGAS Local Supplier', info.hasLocalAvgas ? 'YES' : 'NO');
+      addRow('AVGAS Cache', info.hasCacheAvgas ? (String(info.cacheAvgasLiters) + ' L') : 'None');
+      addRow('Local Fuel Field', info.localFuelText || 'None');
+      addRow('Contact Error', err && err.message ? err.message : 'Failed to load contact');
+    })
+    .getAirportContacts(info.icao || '');
+}
+
 // ── PAGE 1 render ─────────────────────────────────────────────────
 
 function _rbcRenderPage1() {
@@ -1811,6 +2041,18 @@ function _rbcRenderPage1() {
   }
   _rbcSet('rbc-ident', _rbcRunwayPair(s.rwyIdent) || s.rwyIdent || '–');
   _rbcSet('rbc-icao', s.icao || '–');
+
+  // Fuel availability combines local supplier (DB_Airports) + fuel cache (DB_Fuel_Caches)
+  var fuelInfo = _rbcBuildFuelInfoForIcao_(s.icao || '');
+  window._rbcFuelInfo = fuelInfo;
+  _rbcSet('rbc-fuel-status', fuelInfo.label || 'AVGAS unavailable');
+  const fuelEl = document.getElementById('rbc-fuel-status');
+  if (fuelEl) {
+    const hasAny = !!(fuelInfo.hasLocalAvgas || fuelInfo.hasCacheAvgas);
+    fuelEl.style.color = hasAny ? '#2e7d32' : '#c62828';
+    fuelEl.style.cursor = 'pointer';
+    fuelEl.title = 'Click to view local supplier and cache details';
+  }
 
   // Coordinates from appData airport or verifiedOperational thresholds
   let coordsText = '–';
@@ -1854,8 +2096,12 @@ function _rbcRenderPage1() {
   const intWid  = Math.round(Number(card.internalWidthM) || (rwy ? Number(rwy.width || 0) : 0));
   const offLen  = rwy ? Math.round(Number((rwy.officialReference && rwy.officialReference.lengthM) || intLen || 0)) : 0;
   const offWid  = rwy ? Math.round(Number((rwy.officialReference && rwy.officialReference.widthM)  || intWid || 0)) : 0;
+  const cutdownLabelRaw = String((card && card.cutdownAreaLabel) || (rwy && rwy.cutdownAreaLabel) || '').trim();
+  const cutdownSemRestricao = !!(card && card.cutdownSemRestricao)
+    || /^SR\b/i.test(cutdownLabelRaw)
+    || /SEM\s*RESTR/i.test(cutdownLabelRaw);
   const cutdownVal = card.cutdownAreaM != null ? Number(card.cutdownAreaM) : (rwy ? Number(rwy.cutdownAreaM || 0) : 0);
-  const cutdown  = cutdownVal > 0 ? Math.round(cutdownVal) + ' m' : '–';
+  const cutdown  = cutdownSemRestricao ? 'SR - Sem restricao' : (cutdownVal > 0 ? Math.round(cutdownVal) + ' m' : '–');
   const elevVal  = Number(card.elevation) > 0 ? Number(card.elevation) : (rwy ? Number(rwy.elevation || 0) : 0);
   const elev     = elevVal > 0 ? Math.round(elevVal) + ' ft' : '–';
   const surface  = String(card.surface || (rwy && rwy.surface) || '–').trim() || '–';
@@ -1867,35 +2113,27 @@ function _rbcRenderPage1() {
   const dimsGrid = document.getElementById('rbc-dims-grid');
   if (dimsGrid) {
     const e = _rbcEsc;
-    const commonCells =
-      '<div class="rbc-cell"><span class="lbl">Cutdown Area</span><span class="val">' + e(cutdown) + '</span></div>' +
-      '<div class="rbc-cell"><span class="lbl">Elevation</span><span class="val">' + e(elev) + '</span></div>' +
-      '<div class="rbc-cell"><span class="lbl">Surface</span><span class="val">' + e(surface) + '</span></div>' +
-      '<div class="rbc-cell"><span class="lbl">Slope</span><span class="val" id="rbc-slope">' + e(slopePct) + '</span></div>' +
-      '<div class="rbc-cell"><span class="lbl">Survey Date</span><span class="val">' + e(survDate) + '</span></div>';
+    const surveyMeta = survDate !== '–'
+      ? (surveyPilot ? (survDate + ' · By ' + surveyPilot) : survDate)
+      : '–';
+    const intLenTxt = hasInternalDiff && intLen > 0 ? (intLen + ' m') : '–';
+    const intWidTxt = hasInternalDiff && intWid > 0 ? (intWid + ' m') : '–';
+    const intLabelSuffix = hasInternalDiff ? ' ⚠' : '';
 
-    if (hasInternalDiff) {
-      const pilotNote = surveyPilot ? 'Measured by ' + e(surveyPilot) : 'Internal measurement';
-      const dateNote  = survDate !== '–' ? ' (' + e(survDate) + ')' : '';
-      dimsGrid.innerHTML =
+    dimsGrid.innerHTML =
+      '<div class="rbc-dims-row top">' +
         '<div class="rbc-cell"><span class="lbl">Official Length</span><span class="val big">' + e(offLen ? offLen + ' m' : '–') + '</span></div>' +
         '<div class="rbc-cell"><span class="lbl">Official Width</span><span class="val">' + e(offWid ? offWid + ' m' : '–') + '</span></div>' +
-        '<div class="rbc-cell" style="background:#fff8e1; padding:6px; border-radius:4px;">' +
-          '<span class="lbl" style="color:#e65100;">⚠ Internal Length</span>' +
-          '<span class="val big" style="color:#bf360c;">' + e(intLen ? intLen + ' m' : '–') + '</span>' +
-          '<div style="font-size:0.65rem; color:#795548; margin-top:2px;">' + pilotNote + dateNote + '</div>' +
-        '</div>' +
-        '<div class="rbc-cell" style="background:#fff8e1; padding:6px; border-radius:4px;">' +
-          '<span class="lbl" style="color:#e65100;">⚠ Internal Width</span>' +
-          '<span class="val" style="color:#bf360c;">' + e(intWid ? intWid + ' m' : '–') + '</span>' +
-        '</div>' +
-        commonCells;
-    } else {
-      dimsGrid.innerHTML =
-        '<div class="rbc-cell"><span class="lbl">Length</span><span class="val big">' + e(offLen ? offLen + ' m' : '–') + '</span></div>' +
-        '<div class="rbc-cell"><span class="lbl">Width</span><span class="val">' + e(offWid ? offWid + ' m' : '–') + '</span></div>' +
-        commonCells;
-    }
+        '<div class="rbc-cell"><span class="lbl">Cutdown Area</span><span class="val">' + e(cutdown) + '</span></div>' +
+        '<div class="rbc-cell"><span class="lbl">Surface</span><span class="val">' + e(surface) + '</span></div>' +
+      '</div>' +
+      '<div class="rbc-dims-row bottom">' +
+        '<div class="rbc-cell"><span class="lbl">Slope</span><span class="val" id="rbc-slope">' + e(slopePct) + '</span></div>' +
+        '<div class="rbc-cell"><span class="lbl">Elevation</span><span class="val">' + e(elev) + '</span></div>' +
+        '<div class="rbc-cell"><span class="lbl">Survey Date</span><span class="val">' + e(surveyMeta) + '</span></div>' +
+        '<div class="rbc-cell"' + (hasInternalDiff ? ' style="background:#fff8e1;"' : '') + '><span class="lbl"' + (hasInternalDiff ? ' style="color:#e65100;"' : '') + '>Internal Width' + intLabelSuffix + '</span><span class="val"' + (hasInternalDiff ? ' style="color:#bf360c;"' : '') + '>' + e(intWidTxt) + '</span></div>' +
+        '<div class="rbc-cell"' + (hasInternalDiff ? ' style="background:#fff8e1;"' : '') + '><span class="lbl"' + (hasInternalDiff ? ' style="color:#e65100;"' : '') + '>Internal Length' + intLabelSuffix + '</span><span class="val"' + (hasInternalDiff ? ' style="color:#bf360c;"' : '') + '>' + e(intLenTxt) + '</span></div>' +
+      '</div>';
   }
 
   // Slope detail labels
@@ -2032,13 +2270,25 @@ function _rbcRenderRestrictions() {
 
 function _rbcGetEffectiveSlopeSegsForRunway(runway) {
   const s = window._rbcState || {};
+  if (s.card && s.card.noSignificantSlope) return [];
   if (s.card && Array.isArray(s.card.slopeSegments) && s.card.slopeSegments.length) {
     return s.card.slopeSegments;
+  }
+  if (runway && (runway.noSignificantSlope || (runway.verifiedOperational && runway.verifiedOperational.noSignificantSlope))) {
+    return [];
   }
   if (!runway) return [];
   return (Array.isArray(runway.surveySlopeSegments) && runway.surveySlopeSegments.length)
     ? runway.surveySlopeSegments
     : (Array.isArray(runway.slopeProfile) ? runway.slopeProfile : []);
+}
+
+function _rbcHasNoSignificantSlope_() {
+  const s = window._rbcState || {};
+  const card = (s.card && typeof s.card === 'object') ? s.card : {};
+  const runway = s.runway || {};
+  const vo = (runway.verifiedOperational && typeof runway.verifiedOperational === 'object') ? runway.verifiedOperational : {};
+  return !!card.noSignificantSlope || !!runway.noSignificantSlope || !!vo.noSignificantSlope;
 }
 
 function _rbcGetEffectiveFeaturesForRunway(runway) {
@@ -2677,6 +2927,7 @@ function _rbcSetEditUI(editing) {
   if (reEditor)  reEditor.style.display  = canEdit && editing ? 'block' : 'none';
   if (obsEditor) obsEditor.style.display = canEdit && editing ? 'block' : 'none';
   if (canEdit && editing) {
+    _rbcLoadSurfaceOptions_();
     _rbcPopulateRestrictionDropdowns();
     _rbcPopulateFeatureDropdowns();
     _rbcPopulateObstacleDropdowns();
@@ -2926,6 +3177,92 @@ function _rbcRenderHistory(result) {
 
 // ── dims edit helpers ─────────────────────────────────────────────
 
+function _rbcPopulateSurfaceSelect_(selectedRaw) {
+  const sel = document.getElementById('rbc-edit-surface');
+  if (!sel) return;
+  const selected = String(selectedRaw || '').trim();
+  const s = window._rbcState || {};
+  let options = Array.isArray(s.surfaceOptions) ? s.surfaceOptions.slice() : [];
+  if (!options.length && window.performanceTab4 && Array.isArray(window.performanceTab4.surfaceOptions)) {
+    options = window.performanceTab4.surfaceOptions.slice();
+  }
+
+  const seen = {};
+  const clean = [];
+  options.forEach(function(v) {
+    const txt = String(v || '').trim();
+    const key = txt.toUpperCase();
+    if (!txt || seen[key]) return;
+    seen[key] = true;
+    clean.push(txt);
+  });
+  clean.sort(function(a, b) { return a.localeCompare(b); });
+  sel.innerHTML = '<option value="">Select...</option>' + clean.map(function(txt) {
+    return '<option value="' + _rbcEsc(txt) + '">' + _rbcEsc(txt) + '</option>';
+  }).join('');
+
+  if (selected) {
+    const exists = Array.from(sel.options || []).some(function(o) { return String(o.value || '').trim() === selected; });
+    if (!exists) {
+      const opt = document.createElement('option');
+      opt.value = selected;
+      opt.textContent = selected;
+      sel.appendChild(opt);
+    }
+    sel.value = selected;
+  } else {
+    sel.value = '';
+  }
+}
+
+function _rbcToggleCutdownSr_(checkboxEl) {
+  const cb = checkboxEl || document.getElementById('rbc-edit-cutdown-sr');
+  const input = document.getElementById('rbc-edit-cutdown');
+  if (!cb || !input) return;
+  const checked = !!cb.checked;
+  if (!checked) {
+    input.style.display = '';
+    input.disabled = false;
+    return;
+  }
+  input.value = '';
+  input.style.display = 'none';
+  input.disabled = true;
+}
+
+function _rbcSetSlopeInputsDisabled_(disabled) {
+  ['rbc-slope-dist', 'rbc-slope-pct'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !!disabled;
+    if (disabled) el.value = '';
+  });
+  const addBtn = document.getElementById('rbc-slope-add-btn');
+  if (addBtn) addBtn.disabled = !!disabled;
+}
+
+function _rbcLoadSurfaceOptions_() {
+  const s = window._rbcState || {};
+  if (!window.google || !google.script || !google.script.run || typeof google.script.run.getRunwaySurveySurfaceOptions !== 'function') {
+    _rbcPopulateSurfaceSelect_(String((s.card && s.card.surface) || (s.runway && s.runway.surface) || ''));
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const opts = (res && Array.isArray(res.options)) ? res.options : [];
+      if (opts.length) s.surfaceOptions = opts.slice();
+      if (s.editMode) {
+        _rbcPopulateSurfaceSelect_(String((s.card && s.card.surface) || (s.runway && s.runway.surface) || ''));
+      }
+    })
+    .withFailureHandler(function() {
+      if (s.editMode) {
+        _rbcPopulateSurfaceSelect_(String((s.card && s.card.surface) || (s.runway && s.runway.surface) || ''));
+      }
+    })
+    .getRunwaySurveySurfaceOptions();
+}
+
 function _rbcPopulateDimsEdit() {
   const s = window._rbcState;
   const rwy = s.runway;
@@ -2934,8 +3271,21 @@ function _rbcPopulateDimsEdit() {
   const storedClass = String((card.runwayClass) || (rwy && rwy.verifiedOperational && rwy.verifiedOperational.runwayClass) || '').trim();
   if (g('rbc-edit-class'))     g('rbc-edit-class').value     = storedClass;
   if (g('rbc-edit-elevation')) g('rbc-edit-elevation').value = String(Number(card.elevation) > 0 ? card.elevation : ((rwy && rwy.elevation) || ''));
-  if (g('rbc-edit-surface'))   g('rbc-edit-surface').value   = String(card.surface || (rwy && rwy.surface) || '');
-  if (g('rbc-edit-cutdown'))   g('rbc-edit-cutdown').value   = String(card.cutdownAreaM != null ? card.cutdownAreaM : ((rwy && Number(rwy.cutdownAreaM) > 0 ? rwy.cutdownAreaM : '') || ''));
+  _rbcPopulateSurfaceSelect_(String(card.surface || (rwy && rwy.surface) || ''));
+  var cutdownSr = !!card.cutdownSemRestricao
+    || /^SR\b/i.test(String(card.cutdownAreaLabel || '').trim())
+    || /SEM\s*RESTR/i.test(String(card.cutdownAreaLabel || '').trim())
+    || !!(rwy && rwy.cutdownSemRestricao)
+    || /^SR\b/i.test(String((rwy && rwy.cutdownAreaLabel) || '').trim())
+    || /SEM\s*RESTR/i.test(String((rwy && rwy.cutdownAreaLabel) || '').trim());
+  if (g('rbc-edit-cutdown')) {
+    g('rbc-edit-cutdown').value = String(card.cutdownAreaM != null ? card.cutdownAreaM : ((rwy && Number(rwy.cutdownAreaM) > 0 ? rwy.cutdownAreaM : '') || ''));
+    g('rbc-edit-cutdown').disabled = !!cutdownSr;
+  }
+  if (g('rbc-edit-cutdown-sr')) {
+    g('rbc-edit-cutdown-sr').checked = !!cutdownSr;
+    _rbcToggleCutdownSr_(g('rbc-edit-cutdown-sr'));
+  }
   if (g('rbc-edit-intlen'))    g('rbc-edit-intlen').value    = String(card.internalLengthM != null ? card.internalLengthM : '');
   if (g('rbc-edit-intwid'))    g('rbc-edit-intwid').value    = String(card.internalWidthM != null ? card.internalWidthM : '');
 }
@@ -2950,8 +3300,22 @@ function _rbcCollectDimsEdit() {
   if (!isNaN(elev) && elev > 0) s.card.elevation = elev;
   const surf = g('rbc-edit-surface');
   if (surf) s.card.surface = surf;
-  const cutdown = parseFloat(g('rbc-edit-cutdown'));
-  if (!isNaN(cutdown) && cutdown >= 0) s.card.cutdownAreaM = cutdown;
+  const cutdownSrEl = document.getElementById('rbc-edit-cutdown-sr');
+  const cutdownSr = !!(cutdownSrEl && cutdownSrEl.checked);
+  if (cutdownSr) {
+    s.card.cutdownSemRestricao = true;
+    s.card.cutdownAreaM = 0;
+    s.card.cutdownAreaLabel = 'SR - Sem restricao';
+  } else {
+    delete s.card.cutdownSemRestricao;
+    const cutdown = parseFloat(g('rbc-edit-cutdown'));
+    if (!isNaN(cutdown) && cutdown >= 0) {
+      s.card.cutdownAreaM = cutdown;
+      s.card.cutdownAreaLabel = String(Math.round(cutdown)) + ' m';
+    } else {
+      delete s.card.cutdownAreaLabel;
+    }
+  }
   const intLen = parseFloat(g('rbc-edit-intlen'));
   if (!isNaN(intLen) && intLen > 0) s.card.internalLengthM = intLen;
   else delete s.card.internalLengthM;
@@ -2984,7 +3348,14 @@ function _rbcUpdateSlopeDetailLabel() {
 
 function _rbcRenderSlopeList() {
   const list = document.getElementById('rbc-slope-list');
+  const noSlopeEl = document.getElementById('rbc-no-significant-slope');
+  if (noSlopeEl) noSlopeEl.checked = _rbcHasNoSignificantSlope_();
+  _rbcSetSlopeInputsDisabled_(_rbcHasNoSignificantSlope_());
   if (!list) return;
+  if (_rbcHasNoSignificantSlope_()) {
+    list.innerHTML = '<div style="color:#546e7a; font-size:0.75rem; padding:2px 0; font-weight:700;">No significant slope selected.</div>';
+    return;
+  }
   const segs = _rbcGetEffectiveSlopeSegsForRunway(window._rbcState && window._rbcState.runway);
   if (!segs.length) {
     list.innerHTML = '<div style="color:#90a4ae; font-size:0.75rem; padding:2px 0;">No slope segments — runway treated as uniform slope.</div>';
@@ -3015,10 +3386,30 @@ window.rbcAddSlopeSegment = function() {
       return { distanceM: Math.round(Number(seg.distanceM != null ? seg.distanceM : (seg.distance || 0))), slope: Number(seg.slope || 0) };
     });
   }
+  delete s.card.noSignificantSlope;
+  const noSlopeEl = document.getElementById('rbc-no-significant-slope');
+  if (noSlopeEl) noSlopeEl.checked = false;
   s.card.slopeSegments.push({ distanceM: Math.round(dist), slope: pct });
   s.dirty = true;
   if (distEl) distEl.value = '';
   if (pctEl)  pctEl.value  = '';
+  _rbcRenderSlopeList();
+  _rbcUpdateSlopeDetailLabel();
+  _rbcDrawDiagram();
+};
+
+window.rbcToggleNoSignificantSlope = function(cb) {
+  const s = window._rbcState || {};
+  if (!s.card || typeof s.card !== 'object') s.card = {};
+  const checked = !!(cb && cb.checked);
+  if (checked) {
+    s.card.noSignificantSlope = true;
+    s.card.slopeSegments = [];
+  } else {
+    delete s.card.noSignificantSlope;
+  }
+  _rbcSetSlopeInputsDisabled_(checked);
+  s.dirty = true;
   _rbcRenderSlopeList();
   _rbcUpdateSlopeDetailLabel();
   _rbcDrawDiagram();
@@ -3285,27 +3676,21 @@ function _rbcPopulateRestrictionDropdowns() {
   const runways  = _rbcRunwayIdentsForCurrentAirport_();
   const activeRwy = String((window._rbcState && window._rbcState.rwyIdent) || '').trim().toUpperCase();
 
-  // Aircraft type select — populated from appData + current mission aircraft
+  // Aircraft type select — populated strictly from DB_Aircraft (window.appData.aircraft)
   if (acftSel) {
     const aircraft = Array.isArray(window.appData && window.appData.aircraft) ? window.appData.aircraft : [];
     const typeSet = {};
     const types = [];
-    const preferredModels = [
-      'CESSNA_206_F_G_550',
-      'CESSNA_206_F_G_520'
-    ];
-    preferredModels.forEach(function(model) {
-      if (!typeSet[model]) { typeSet[model] = true; types.push(model); }
-    });
     aircraft.forEach(function(a) {
       const t = String((a && (a.aircraftType || a.type || a.model)) || '').trim().toUpperCase();
       if (t && !typeSet[t]) { typeSet[t] = true; types.push(t); }
     });
-    const missionAcft = String((window._rbcState && window._rbcState.acft) || '').trim().toUpperCase();
-    if (missionAcft && !typeSet[missionAcft]) { typeSet[missionAcft] = true; types.push(missionAcft); }
     types.sort();
-    if (!types.length) types.push(missionAcft || 'UNSPECIFIED');
-    acftSel.innerHTML = types.map(function(t) { return '<option value="' + _rbcEsc(t) + '">' + _rbcEsc(t) + '</option>'; }).join('');
+    if (!types.length) {
+      acftSel.innerHTML = '<option value="">NO DB_AIRCRAFT TYPES FOUND</option>';
+    } else {
+      acftSel.innerHTML = types.map(function(t) { return '<option value="' + _rbcEsc(t) + '">' + _rbcEsc(t) + '</option>'; }).join('');
+    }
   }
 
   // Runway buttons — one per ident, active = current runway

@@ -8236,9 +8236,12 @@
     var t=document.getElementById('tools-panel-'+id); if(!t)return; t.classList.add('open');
     setTimeout(function() {
       try {
-        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var rect = t.getBoundingClientRect();
+        var viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        var needsScroll = rect.top < 80 || rect.bottom > (viewportH - 24);
+        if (needsScroll) t.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch (e) {
-        try { t.scrollIntoView(); } catch (e2) {}
+        try { t.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e2) {}
       }
     }, 0);
     if(id==='fuel')toolsRenderFuelList();

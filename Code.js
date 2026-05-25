@@ -2524,9 +2524,13 @@ function _supervisorBuildRunwayGapForLeg_(lookup, parsedRoute, legPayload, rawRo
   var knownObj = _parseJsonLoose_(knownRaw, {});
   var knownNorm = Array.isArray(knownObj) ? { features: knownObj } : (knownObj || {});
   var verified = (knownNorm.verifiedOperational && typeof knownNorm.verifiedOperational === 'object') ? knownNorm.verifiedOperational : {};
+  var briefingCard = (knownNorm.briefingCard && typeof knownNorm.briefingCard === 'object') ? knownNorm.briefingCard : {};
 
   var features = Array.isArray(verified.features) ? verified.features : (Array.isArray(knownNorm.features) ? knownNorm.features : []);
-  var slopeSegs = Array.isArray(verified.slopeSegments) ? verified.slopeSegments : (Array.isArray(knownNorm.slopeSegments) ? knownNorm.slopeSegments : []);
+  var slopeSegs = Array.isArray(verified.slopeSegments) ? verified.slopeSegments
+    : (Array.isArray(knownNorm.slopeSegments) ? knownNorm.slopeSegments
+      : (Array.isArray(briefingCard.slopeSegments) ? briefingCard.slopeSegments : []));
+  var noSignificantSlope = !!(verified.noSignificantSlope || knownNorm.noSignificantSlope || briefingCard.noSignificantSlope);
   var obstacleList = Array.isArray(verified.obstacleAngles50m) ? verified.obstacleAngles50m
     : (Array.isArray(verified.obstacleAngles) ? verified.obstacleAngles
     : (Array.isArray(knownNorm.obstacleAngles50m) ? knownNorm.obstacleAngles50m
@@ -2535,7 +2539,7 @@ function _supervisorBuildRunwayGapForLeg_(lookup, parsedRoute, legPayload, rawRo
 
   var hasCutdown = cutdown > 0;
   var hasObstacles = obstacleList.length > 0;
-  var hasSlope = slopeSegs.length > 0;
+  var hasSlope = noSignificantSlope || slopeSegs.length > 0;
   var hasInternalData = hasCutdown || hasObstacles || hasSlope || features.length > 0;
   var missing = [];
   if (!hasCutdown) missing.push('cutdown area');
@@ -18631,12 +18635,20 @@ function submitRunwayApprovalRequest(payload) {
 
     const surveyPayload = (payload && payload.survey && typeof payload.survey === 'object') ? payload.survey : {};
     const snapshotPayload = (surveyPayload.runwaySnapshot && typeof surveyPayload.runwaySnapshot === 'object') ? surveyPayload.runwaySnapshot : {};
+    const cutdownLabelRaw = String(
+      snapshotPayload.cutdownAreaLabel != null ? snapshotPayload.cutdownAreaLabel
+        : (surveyPayload.cutdownAreaLabel != null ? surveyPayload.cutdownAreaLabel
+          : (payload && payload.official && payload.official.cutdownAreaLabel != null ? payload.official.cutdownAreaLabel : ''))
+    ).trim();
+    const cutdownSemRestricao = !!(snapshotPayload.cutdownSemRestricao || surveyPayload.cutdownSemRestricao)
+      || /^SR\b/i.test(cutdownLabelRaw)
+      || /SEM\s*RESTR/i.test(cutdownLabelRaw);
     const cutdownCandidate = Number(
       snapshotPayload.cutdownAreaM != null ? snapshotPayload.cutdownAreaM
         : (surveyPayload.cutdownAreaM != null ? surveyPayload.cutdownAreaM
           : (payload && payload.official && payload.official.cutdownAreaM != null ? payload.official.cutdownAreaM : NaN))
     );
-    if (!isFinite(cutdownCandidate) || cutdownCandidate <= 0) {
+    if (!cutdownSemRestricao && (!isFinite(cutdownCandidate) || cutdownCandidate <= 0)) {
       return { success: false, error: 'Cutdown area is required for runway approval requests.' };
     }
 
@@ -18838,16 +18850,25 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
       const snapshot = (survey && typeof survey === 'object' && survey.runwaySnapshot && typeof survey.runwaySnapshot === 'object')
         ? survey.runwaySnapshot
         : {};
+      const cutdownLabelRaw = String(
+        mtowPayload.cutdownAreaLabel != null ? mtowPayload.cutdownAreaLabel
+          : (snapshot.cutdownAreaLabel != null ? snapshot.cutdownAreaLabel
+            : (official && official.cutdownAreaLabel != null ? official.cutdownAreaLabel : ''))
+      ).trim();
+      const cutdownSemRestricao = !!(mtowPayload.cutdownSemRestricao || snapshot.cutdownSemRestricao)
+        || /^SR\b/i.test(cutdownLabelRaw)
+        || /SEM\s*RESTR/i.test(cutdownLabelRaw);
       const cutdownCandidateRaw = Number(
         mtowPayload.cutdownAreaM != null ? mtowPayload.cutdownAreaM
           : (snapshot.cutdownAreaM != null ? snapshot.cutdownAreaM
             : (snapshot.cutdownArea != null ? snapshot.cutdownArea
               : (official && official.cutdownAreaM != null ? official.cutdownAreaM : NaN)))
       );
-      if (!isFinite(cutdownCandidateRaw) || cutdownCandidateRaw <= 0) {
+      if (!cutdownSemRestricao && (!isFinite(cutdownCandidateRaw) || cutdownCandidateRaw <= 0)) {
         return { success: false, error: 'Runway approval cannot be published without a valid cutdown area.' };
       }
-      const cutdownApprovedM = Math.round(cutdownCandidateRaw);
+      const cutdownApprovedM = cutdownSemRestricao ? 0 : Math.round(cutdownCandidateRaw);
+      const cutdownApprovedLabel = cutdownSemRestricao ? 'SR - Sem restricao' : (String(cutdownApprovedM) + ' m');
       const mtowModelKeyRaw = String(mtowPayload.modelKey || mtowPayload.model || snapshot.mtowModelKey || '').trim().toUpperCase();
       const mtowModelKey = mtowModelKeyRaw || 'GENERIC';
       const mtowKg = Number(mtowPayload.mtowKg || mtowPayload.value || snapshot.maxTakeoffWeight || 0);
@@ -18864,7 +18885,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
         mtowByModel: mtowByModel,
         supervisorMtowKg: mtowKg,
         cutdownAreaM: cutdownApprovedM,
-        cutdownAreaLabel: String(cutdownApprovedM) + ' m',
+        cutdownAreaLabel: cutdownApprovedLabel,
+        cutdownSemRestricao: !!cutdownSemRestricao,
         mtowApprovedBy: String(supervisorName || '').trim() || 'Supervisor',
         mtowApprovedAt: nowIso,
         officialLogId: id
@@ -18875,7 +18897,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
         mtowModelKey: mtowModelKey,
         mtowByModel: mtowByModel,
         cutdownAreaM: cutdownApprovedM,
-        cutdownAreaLabel: String(cutdownApprovedM) + ' m',
+        cutdownAreaLabel: cutdownApprovedLabel,
+        cutdownSemRestricao: !!cutdownSemRestricao,
         officialLogId: id,
         source: 'DB_Airports',
         sourceLocked: true,
@@ -18912,6 +18935,9 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
         const existingObj = _parseJsonLoose_(existingRaw, {});
         const normalizedExisting = Array.isArray(existingObj) ? { features: existingObj } : (existingObj || {});
         const cutdownLabelRaw = String(snapshot.cutdownAreaLabel || '').trim();
+        const cutdownSemRestricaoRow = !!snapshot.cutdownSemRestricao
+          || /^SR\b/i.test(cutdownLabelRaw)
+          || /SEM\s*RESTR/i.test(cutdownLabelRaw);
         const cutdownLabelParsed = (function(label) {
           var m = String(label || '').match(/-?\d+(?:[\.,]\d+)?/);
           if (!m) return null;
@@ -18923,7 +18949,12 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
             : (snapshot.cutdownArea != null ? snapshot.cutdownArea
               : (cutdownLabelParsed != null ? cutdownLabelParsed : 0))
         );
-        const cutdownAreaM = (isFinite(cutdownAreaMRaw) && cutdownAreaMRaw >= 0) ? Math.round(cutdownAreaMRaw) : null;
+        const cutdownAreaM = cutdownSemRestricaoRow
+          ? 0
+          : ((isFinite(cutdownAreaMRaw) && cutdownAreaMRaw >= 0) ? Math.round(cutdownAreaMRaw) : null);
+        const cutdownAreaLabelOut = cutdownSemRestricaoRow
+          ? 'SR - Sem restricao'
+          : (cutdownAreaM == null ? 'Unknown' : String(cutdownAreaM) + ' m');
 
         const verifiedOperational = Object.assign({}, (normalizedExisting.verifiedOperational || {}), {
           lengthM: Number(snapshot.runwayLengthM || 0) || officialSnapshot.lengthM || 0,
@@ -18931,7 +18962,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
           surface: String(snapshot.surface || '').trim() || officialSnapshot.surface || '',
           slopeFromThreshold: String(snapshot.runwayIdent || rowRwyIdent || rwyIdent).trim() || rowRwyIdent,
           cutdownAreaM: cutdownAreaM,
-          cutdownAreaLabel: (cutdownAreaM == null ? 'Unknown' : String(cutdownAreaM) + ' m'),
+          cutdownAreaLabel: cutdownAreaLabelOut,
+          cutdownSemRestricao: !!cutdownSemRestricaoRow,
           pilotNotes: String(snapshot.pilotNotes || rows[logRow][idx.NOTES] || '').trim(),
           approvedBy: String(supervisorName || '').trim() || 'Supervisor',
           approvedAt: nowIso,
@@ -18955,7 +18987,8 @@ function approveRunwaySurveyReview(stagingId, supervisorName, supervisorNotes, a
         const merged = Object.assign({}, normalizedExisting, {
           verifiedOperational: verifiedOperational,
           cutdownAreaM: cutdownAreaM,
-          cutdownAreaLabel: (cutdownAreaM == null ? 'Unknown' : String(cutdownAreaM) + ' m'),
+          cutdownAreaLabel: cutdownAreaLabelOut,
+          cutdownSemRestricao: !!cutdownSemRestricaoRow,
           verifiedSurvey: verifiedSurvey,
           officialReference: {
             lengthM: officialSnapshot.lengthM,
@@ -19543,8 +19576,8 @@ function saveRunwayBriefingCard(icao, rwyIdent, cardData) {
                'routes','rwyhist','incidents','othernotes','airstripPhoto',
                'mapDistM','mapDistM2','depTracePoints','revisedAt','revisedBy','verifyFlags',
                              'mapLabel1','mapLabel2',
-               'runwayClass','elevation','surface','cutdownAreaM',
-               'internalLengthM','internalWidthM','slopeSegments',
+               'runwayClass','elevation','surface','cutdownAreaM','cutdownAreaLabel','cutdownSemRestricao',
+               'internalLengthM','internalWidthM','slopeSegments','noSignificantSlope',
                'knownFeatures','obstacleAngles50m','obstacleAngles','departureArrow'];
     var safeCard = {};
     allowedKeys.forEach(function(k) {

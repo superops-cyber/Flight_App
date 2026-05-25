@@ -2590,15 +2590,9 @@
         fuelPopupLine = '<br>' + (anyFuel ? '⛽ Fuel: ' + (hasFuel ? aptRecord.fuelAvailable : 'Cache') : 'No fuel available');
         marker = window.L.marker([p.lat, p.lon], { icon: _enrouteAirportDivIcon(aptRecord.runwaySurfaceActual, anyFuel) });
       } else {
-        // Pure waypoint — small circle
-        marker = window.L.circleMarker([p.lat, p.lon], {
-          radius: 5,
-          color: passed ? '#2e7d32' : '#0b5394',
-          fillColor: passed ? '#81c784' : '#42a5f5',
-          fillOpacity: 0.95,
-          weight: 2,
-          opacity: passed ? 0.6 : 1
-        });
+        // Pure waypoint — render as triangle icon only.
+        marker = window.L.marker([p.lat, p.lon], { icon: _enrouteWpDbDivIcon() });
+        if (passed) marker.setOpacity(0.6);
       }
       const legDist = (p.distNm != null) ? Math.round(p.distNm) + ' nm' : '? nm';
       marker.bindPopup('<b>' + p.fix + '</b><br>ETA ' + p.eta + '<br>Leg ' + legDist + fuelPopupLine);

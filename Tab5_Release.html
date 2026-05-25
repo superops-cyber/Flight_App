@@ -432,10 +432,30 @@
     }
   }
 
+  function _releaseToggleCutdownSr_(checkboxEl) {
+    const cb = checkboxEl || document.getElementById('release5-cutdown-sr');
+    const input = document.getElementById('release5-cutdown');
+    if (!cb || !input) return;
+    if (cb.checked) {
+      input.value = '';
+      input.disabled = true;
+      return;
+    }
+    // Only re-enable manual numeric entry when SR is cleared.
+    input.disabled = false;
+  }
+
   function _releaseGetRbcFallbackCutdown_() {
     const rbc = window._rbcState && window._rbcState.card ? window._rbcState.card : null;
     const v = Number(rbc && rbc.cutdownAreaM != null ? rbc.cutdownAreaM : NaN);
     return isFinite(v) && v >= 0 ? Math.round(v) : null;
+  }
+
+  function _releaseGetRbcFallbackCutdownSr_() {
+    const rbc = window._rbcState && window._rbcState.card ? window._rbcState.card : null;
+    if (!rbc) return false;
+    const lbl = String(rbc.cutdownAreaLabel || '').trim();
+    return !!rbc.cutdownSemRestricao || /^SR\b/i.test(lbl) || /SEM\s*RESTR/i.test(lbl);
   }
 
   function _releaseGetRunwayContext(mission, leg) {
@@ -465,12 +485,24 @@
     const cutdownFromDataRaw = Number(selected && (selected.cutdownAreaM || selected.cutdownArea || selected.clearway || selected.cutdown || 0) || 0);
     const cutdownFromData = cutdownFromDataRaw > 0 ? Math.round(cutdownFromDataRaw) : null;
     const cutdownFromRbc = _releaseGetRbcFallbackCutdown_();
+    const cutdownFromDataLabel = String(selected && selected.cutdownAreaLabel || '').trim();
+    const cutdownFromDataSr = !!(selected && selected.cutdownSemRestricao)
+      || /^SR\b/i.test(cutdownFromDataLabel)
+      || /SEM\s*RESTR/i.test(cutdownFromDataLabel);
+    const cutdownFromRbcSr = _releaseGetRbcFallbackCutdownSr_();
+    const cutdownSrEl = document.getElementById('release5-cutdown-sr');
+    const cutdownSrChecked = !!(cutdownSrEl && cutdownSrEl.checked);
     const cutdownInputRaw = String(document.getElementById('release5-cutdown')?.value || '').trim();
     const cutdownInputNum = cutdownInputRaw === '' ? NaN : Number(cutdownInputRaw);
-    const cutdownAreaM = isFinite(cutdownInputNum) && cutdownInputNum >= 0
-      ? Math.round(cutdownInputNum)
-      : (cutdownFromData != null ? cutdownFromData : cutdownFromRbc);
-    const cutdownAreaLabel = (cutdownAreaM == null || !isFinite(cutdownAreaM)) ? 'Unknown' : (String(cutdownAreaM) + ' m');
+    const cutdownSemRestricao = cutdownSrEl ? cutdownSrChecked : (cutdownFromDataSr || cutdownFromRbcSr);
+    const cutdownAreaM = cutdownSemRestricao
+      ? 0
+      : (isFinite(cutdownInputNum) && cutdownInputNum >= 0
+        ? Math.round(cutdownInputNum)
+        : (cutdownFromData != null ? cutdownFromData : cutdownFromRbc));
+    const cutdownAreaLabel = cutdownSemRestricao
+      ? 'SR - Sem restricao'
+      : ((cutdownAreaM == null || !isFinite(cutdownAreaM)) ? 'Unknown' : (String(cutdownAreaM) + ' m'));
 
     const takeoffRollM = Math.round(Number(result.takeoffRollM || 0));
     const rollStopM = Math.round(Number(result.combinedRollM || 0));
@@ -556,6 +588,7 @@
       slopePct: slopePct,
       cutdownAreaM: cutdownAreaM,
       cutdownAreaLabel: cutdownAreaLabel,
+      cutdownSemRestricao: !!cutdownSemRestricao,
       heading: heading,
       windDir: windDir,
       windSpd: windSpd,
@@ -784,7 +817,7 @@
         </div>
         <div class="release5-grid">
           <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • ${runwayDimsLine}${internalDimsLine}${internalDateLine}</div>
-          <div class="release5-chip"><b>Cutdown Area:</b> <button type="button" onclick="_releasePadlockToggle_('release5-cutdown', this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" disabled style="height:30px; width:110px; margin-left:6px;"> <small style="color:#666; font-weight:500;" title="Pilot edits are sent for supervisor review before any DB_Airports update.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>
+          <div class="release5-chip"><b>Cutdown Area:</b> <button type="button" onclick="_releasePadlockToggle_('release5-cutdown', this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownSemRestricao ? '' : (brief.cutdownAreaM == null ? '' : brief.cutdownAreaM)}" placeholder="Unknown" disabled style="height:30px; width:110px; margin-left:6px;"> <label style="margin-left:8px; display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; color:#455a64; font-weight:700;"><input id="release5-cutdown-sr" type="checkbox" ${brief.cutdownSemRestricao ? 'checked' : ''} onchange="_releaseToggleCutdownSr_(this)">SR - Sem restricao</label> <small style="color:#666; font-weight:500;" title="Pilot edits are sent for supervisor review before any DB_Airports update.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>
           <div class="release5-chip"><b>Surface:</b> ${brief.surface || 'N/A'} • ${String(brief.surfaceCondition || 'DRY').toUpperCase()}</div>
           <div class="release5-chip"><b>Wind:</b> ${brief.windDir || 0}° / ${brief.windSpd || 0}kt • H/T ${brief.headTailKts || 0}kt • XW ${brief.crosswindKts || 0}kt</div>
           <div class="release5-chip"><b>Abort:</b> ${brief.abortPointM || 0}m • TO ${brief.takeoffRollM || 0}m • TO+Stop Roll ${brief.rollStopM || 0}m</div>
@@ -792,6 +825,7 @@
       </div>
 
       <div class="release5-card">
+    _releaseToggleCutdownSr_(document.getElementById('release5-cutdown-sr'));
         <div class="release5-subtitle" style="display: flex; align-items: center; justify-content: space-between;">
           <span>Safety Risk Matrix</span>
           <button class="info-btn" onclick="openSafetyMatrixInfo()" style="background: none; border: none; color: #1976d2; font-size: 1rem; cursor: pointer; padding: 0 4px; vertical-align: middle;">ⓘ Info</button>
