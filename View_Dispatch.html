@@ -80,15 +80,6 @@ font-weight: bold;
   border-color: #90caf9;
   color: #1565c0;
 }
-.fuel-cache-blocked {
-  background: #f5f5f5 !important;
-  border-color: #cfd8dc !important;
-  color: #607d8b !important;
-}
-.fuel-pump-disabled {
-  cursor: default !important;
-  opacity: 0.8;
-}
 .dispatch-inline-input {
   width: 56px !important;
   height: 22px !important;
@@ -894,17 +885,15 @@ return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 function dispatchFuelContext_(icao, legIndex) {
-  const leg = missionLegs[legIndex] || {};
   const apt = findAirport(icao);
   const cache = appData.fuelCaches ? appData.fuelCaches.find(c => String(c.icao || '').toUpperCase() === String(icao || '').toUpperCase()) : null;
   const hasAirportFuel = !!(apt && apt.fuelAvailable && apt.fuelAvailable !== 'None' && apt.fuelAvailable !== '');
   const cacheQty = cache ? (Number(cache.qty) || 0) : 0;
-  const cacheDisabled = !!leg.noCacheUsage;
-  const hasCacheFuel = cacheQty > 0 && !cacheDisabled;
+  const hasCacheFuel = cacheQty > 0;
   let preferredSource = '';
   if (hasAirportFuel) preferredSource = 'airport';
   else if (hasCacheFuel) preferredSource = 'cache';
-  return { apt, cache, cacheQty, hasAirportFuel, hasCacheFuel, hasFuelOption: hasAirportFuel || hasCacheFuel, preferredSource, cacheDisabled };
+  return { apt, cache, cacheQty, hasAirportFuel, hasCacheFuel, hasFuelOption: hasAirportFuel || hasCacheFuel, preferredSource };
 }
 
 function dispatchBuildRoutePlan_(fromIcao, toIcao) {
@@ -1972,7 +1961,6 @@ function addLeg() {
     groundTime: 0.5,
     pax: legPax, payload: 0, extraFuelLoad: 0, manualFuelNote: "",
     minFuel: fuel,
-    noCacheUsage: false,
     fuelStopSource: '',
     isFuelCacheStop: false,
     plannedCacheDraw: 0
@@ -2163,7 +2151,6 @@ google.script.run
  missionLegs = m.legs;
  missionLegs.forEach(leg => {
    leg.minFuel = Number(leg.minFuel || leg.fuel || 0);
-   leg.noCacheUsage = !!leg.noCacheUsage;
    leg.fuelStopSource = leg.fuelStopSource || (leg.isFuelCacheStop ? 'cache' : '');
  });
  fuelStopLegs = m.fuelStops || [];
@@ -2190,30 +2177,18 @@ google.script.run
 function getFuelIcons(icao, legIndex) {
 const isS = fuelStopLegs.includes(legIndex);
 const ctx = dispatchFuelContext_(icao, legIndex);
-const cacheBlocked = ctx.cacheDisabled && !ctx.hasAirportFuel && ctx.cacheQty > 0;
 const leg = missionLegs[legIndex] || {};
 const stopSource = String(leg.fuelStopSource || (leg.isFuelCacheStop ? 'cache' : '')).toLowerCase();
-let lbl = ctx.hasAirportFuel ? 'APT FUEL' : (ctx.hasCacheFuel ? Math.round(ctx.cacheQty) + 'L' : (cacheBlocked ? 'CACHE OFF' : ''));
+let lbl = ctx.hasAirportFuel ? 'APT FUEL' : (ctx.hasCacheFuel ? Math.round(ctx.cacheQty) + 'L' : '');
 if (!lbl) return '';
 const classes = ['fuel-pump'];
 if (isS && stopSource === 'airport') classes.push('fuel-airport-active');
 if (isS && stopSource === 'cache') classes.push('fuel-used-up');
-if (cacheBlocked) classes.push('fuel-cache-blocked');
-if (cacheBlocked) classes.push('fuel-pump-disabled');
-const clickAttr = cacheBlocked ? '' : ` onclick="toggleFuelStop(${legIndex})"`;
+const clickAttr = ` onclick="toggleFuelStop(${legIndex})"`;
 const titleTxt = isS && stopSource === 'airport'
   ? 'Airport fuel stop selected. Adds 15 minutes ground time.'
-  : (cacheBlocked ? 'Cache disabled for this leg. Click ALLOW CACHE to re-enable.' : 'Toggle fuel stop');
+  : 'Toggle fuel stop';
 let html = `<span class="${classes.join(' ')}"${clickAttr} title="${titleTxt}">&#x26FD; <span class="fuel-qty-label">${lbl}</span></span>`;
-// Show NO CACHE / ALLOW CACHE toggle right next to the badge so its always visible
-if (ctx.cacheQty > 0 && !ctx.hasAirportFuel) {
-  const leg = missionLegs[legIndex] || {};
-  if (!leg.noCacheUsage) {
-    html += ` <button class="dispatch-alert-action" onclick="disableCacheFuel(${legIndex})">NO CACHE</button>`;
-  } else {
-    html += ` <button class="dispatch-alert-action dispatch-muted" onclick="enableCacheFuel(${legIndex})">ALLOW CACHE</button>`;
-  }
-}
 return html;
 }
 function removeLeg(index) {
@@ -2237,7 +2212,6 @@ function toggleFuelStop(idx) {
   // Toggle Logic
  if (pos === -1) {
    if (!ctx.hasFuelOption) return;
-   leg.noCacheUsage = false;
    fuelStopLegs.push(idx);
    leg.fuelStopSource = ctx.preferredSource;
    // If adding fuel and time is standard (0.5), bump to 0.75
@@ -2252,23 +2226,6 @@ function toggleFuelStop(idx) {
      missionLegs[idx].groundTime = 0.5;
    }
  }
- calculateTotals();
-}
-
-function disableCacheFuel(idx) {
- const leg = missionLegs[idx];
- if (!leg) return;
- leg.noCacheUsage = true;
- leg.fuelStopSource = '';
- fuelStopLegs = fuelStopLegs.filter(stopIdx => stopIdx !== idx);
- if (leg.groundTime === 0.75) leg.groundTime = 0.5;
- calculateTotals();
-}
-
-function enableCacheFuel(idx) {
- const leg = missionLegs[idx];
- if (!leg) return;
- leg.noCacheUsage = false;
  calculateTotals();
 }
 

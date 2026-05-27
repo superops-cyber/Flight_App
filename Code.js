@@ -35,6 +35,13 @@ function include(filename) {
 return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
+function getToolsBuildVersion() {
+  var now = new Date();
+  var dateStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd');
+  var timeStr = Utilities.formatDate(now, Session.getScriptTimeZone() || 'UTC', 'HH:mm:ss');
+  return 'DEV ' + dateStr + ' ' + timeStr;
+}
+
 function getInclinometerStandaloneHtml() {
   return HtmlService.createHtmlOutputFromFile('inclinometer_hud_standalone').getContent();
 }
@@ -4965,6 +4972,7 @@ const DISPATCH_RANGE_COL = {
  DATE: DISPATCH_COL.DATE - 1,
  AIRCRAFT: DISPATCH_COL.AIRCRAFT - 1,
  PILOT: DISPATCH_COL.PILOT - 1,
+ COPILOT: DISPATCH_COL.COPILOT - 1,
  ROUTE: DISPATCH_COL.ROUTE - 1,
  RAW_DATA: DISPATCH_COL.RAW_DATA - 1,
  STATUS: DISPATCH_COL.STATUS - 1
@@ -5021,6 +5029,7 @@ for (let i = 0; i < data.length; i++) {
      date: dStr,
      acft: row[DISPATCH_RANGE_COL.AIRCRAFT],
      pilot: row[DISPATCH_RANGE_COL.PILOT],
+     copilot: row[DISPATCH_RANGE_COL.COPILOT],
      status: row[DISPATCH_RANGE_COL.STATUS],
      flightDescription: _extractMissionDescriptionFromRaw_(row[DISPATCH_RANGE_COL.RAW_DATA]),
      communicationRequests: _extractMissionCommunicationsFromRaw_(row[DISPATCH_RANGE_COL.RAW_DATA]),

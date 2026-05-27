@@ -410,7 +410,7 @@
       hasCentered: false
     };
 
-    function _supervisorEnsureLeaflet_(onReady) {
+    function _supervisorEnsureLeaflet_(onReady, onError) {
       if (window.L && typeof window.L.map === 'function') {
         onReady();
         return;
@@ -424,10 +424,17 @@
       }
       const existing = document.getElementById('supervisor-leaflet-js');
       if (existing) {
+        let attempts = 0;
         const t = setInterval(function() {
           if (window.L && typeof window.L.map === 'function') {
             clearInterval(t);
             onReady();
+            return;
+          }
+          attempts += 1;
+          if (attempts > 120) {
+            clearInterval(t);
+            if (typeof onError === 'function') onError('Leaflet script did not initialize.');
           }
         }, 100);
         return;
@@ -436,6 +443,9 @@
       script.id = 'supervisor-leaflet-js';
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
       script.onload = onReady;
+      script.onerror = function() {
+        if (typeof onError === 'function') onError('Failed to load map library.');
+      };
       document.head.appendChild(script);
     }
 
@@ -646,20 +656,30 @@
 
       const points = _supervisorMissionRoutePoints_(legs);
       const sig = JSON.stringify(points.map(function(p) { return [p.key, p.lat, p.lon, p.isAirport ? 1 : 0]; })) + '|' + (_supervisorMissionMap.showNearbyAirports ? '1' : '0');
-      if (sig === _supervisorMissionMap.signature) {
-        if (_supervisorMissionMap.map) setTimeout(function() { _supervisorMissionMap.map.invalidateSize(); }, 40);
+      const sameSignature = sig === _supervisorMissionMap.signature;
+      if (sameSignature && _supervisorMissionMap.map) {
+        if (forceFit && points.length) {
+          const existingBounds = L.latLngBounds(points.map(function(p) { return [p.lat, p.lon]; }));
+          if (existingBounds.isValid()) _supervisorMissionMap.map.fitBounds(existingBounds, { padding: [28, 28] });
+        }
+        setTimeout(function() { if (_supervisorMissionMap.map) _supervisorMissionMap.map.invalidateSize(); }, 40);
         return;
       }
-      _supervisorMissionMap.signature = sig;
 
       if (!points.length) {
         if (empty) empty.style.display = '';
         if (note) note.textContent = 'Map preview unavailable for this mission route.';
+        _supervisorMissionMap.signature = sig;
         _supervisorMapClear_();
         return;
       }
 
       _supervisorEnsureLeaflet_(function() {
+        if (!(window.L && typeof window.L.map === 'function')) {
+          if (empty) empty.style.display = '';
+          if (note) note.textContent = 'Map library unavailable right now.';
+          return;
+        }
         if (!_supervisorMissionMap.map) {
           _supervisorMissionMap.map = L.map('supervisorMissionMap', { zoomControl: true, attributionControl: false });
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16, minZoom: 2 }).addTo(_supervisorMissionMap.map);
@@ -720,8 +740,12 @@
           _supervisorMissionMap.map.fitBounds(bounds, { padding: [28, 28] });
           _supervisorMissionMap.hasCentered = true;
         }
+        _supervisorMissionMap.signature = sig;
         if (note) note.textContent = 'Icons follow Tab6 colors: asphalt black, grass green, water blue; badge A marks local/cache Avgas.';
         setTimeout(function() { if (_supervisorMissionMap.map) _supervisorMissionMap.map.invalidateSize(); }, 60);
+      }, function(errMsg) {
+        if (empty) empty.style.display = '';
+        if (note) note.textContent = errMsg || 'Map library failed to load.';
       });
     }
 
@@ -1168,7 +1192,7 @@
                 <input type="checkbox" id="supervisorMapNearbyToggle" onchange="_supervisorToggleNearbyMapAirports_()">
                 Nearby DB airports
               </label>
-              <button class="btn-small blue-grey darken-1" onclick="_supervisorCenterMissionMap_()" style="font-size:0.68rem; height:26px; line-height:26px;">CENTER</button>
+              <button type="button" class="btn-small blue-grey darken-1" onclick="_supervisorCenterMissionMap_()" style="font-size:0.68rem; height:26px; line-height:26px;">CENTER</button>
             </div>
           </div>
           <div class="supervisor-mission-map-legend">

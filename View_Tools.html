@@ -242,6 +242,10 @@
 </style>
 
 <div id="tools-container">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:8px 12px; background:#e3f2fd; border-radius:8px; border:1px solid #90caf9;">
+    <span style="font-size:0.76rem; font-weight:700; color:#1565c0;">Tools Panel</span>
+    <span id="tools-build-version" style="font-size:0.68rem; color:#42a5f5; font-weight:600;">Build: Loading...</span>
+  </div>
   <div class="tools-action-grid">
     <button class="tools-action-btn" onclick="toolsOpenPanel('pax')"><i class="material-icons">person_add</i><span>Add Passenger</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPassengerEditor()"><i class="material-icons">manage_accounts</i><span>Edit Passenger</span></button>
@@ -5405,6 +5409,7 @@
     var rwEl = toolsSyllabusField_(['RUNWAY_CHECKOUT']);
     var codeEl = toolsSyllabusField_(['TRAINING_CODE']);
     var descEl = toolsSyllabusField_(['DESCRIPTION']);
+    var catEl = document.getElementById('tools-syl-category');
 
     if (acftEl && src.aircraftType != null) acftEl.value = String(src.aircraftType || '');
     if (hrsEl && src.hours != null) hrsEl.value = String(src.hours || '');
@@ -5417,11 +5422,13 @@
     if (descEl && src.description != null) descEl.value = String(src.description || '');
 
     var state = toolsSyllabusPlanState_();
+    var parsedPlan = null;
     var stopsFromJson = [];
     try {
       var rawPlan = String(src.lessonPlanJson || src.plannedStopsJson || '').trim();
       if (rawPlan) {
         var parsed = JSON.parse(rawPlan);
+        parsedPlan = Array.isArray(parsed) ? { stops: parsed } : (parsed || {});
         var planData = Array.isArray(parsed) ? { stops: parsed } : (parsed || {});
         if (planData.category) state.category = String(planData.category || state.category || 'ROUTE_CHECK').trim().toUpperCase();
         if (planData.routeCheckPrompt != null) state.routeCheckPrompt = String(planData.routeCheckPrompt || '');
@@ -5439,10 +5446,24 @@
       }
     } catch (e) {}
 
+    var rowRunwayCheckout = String(src.runwayCheckout || '').trim().toUpperCase();
+    if (!String(state.runwayCheckLocation || '').trim() && rowRunwayCheckout) {
+      state.runwayCheckLocation = rowRunwayCheckout;
+    }
+    if (rowRunwayCheckout && String(state.category || '').toUpperCase() !== 'RUNWAY_CHECK') {
+      state.category = 'RUNWAY_CHECK';
+    }
+    if (catEl) catEl.value = String(state.category || 'ROUTE_CHECK');
+
     if (!stopsFromJson.length) {
       var routeTokens = toolsSyllabusRouteTokens_(src.route || '');
-      stopsFromJson = routeTokens.map(function(tok, idx) {
-        return { sequence: idx + 1, location: tok, landingType: 'TOUCH_AND_GO', breakStop: false, notes: '' };
+      var runwayTokens = toolsSyllabusRunwayTokens_(src.runwayCheckout || '');
+      var fallbackTokens = (String(state.category || '').toUpperCase() === 'RUNWAY_CHECK' && runwayTokens.length)
+        ? runwayTokens
+        : (routeTokens.length ? routeTokens : runwayTokens);
+      var defaultLandingType = (String(state.category || '').toUpperCase() === 'RUNWAY_CHECK') ? 'FULL_STOP' : 'TOUCH_AND_GO';
+      stopsFromJson = fallbackTokens.map(function(tok, idx) {
+        return { sequence: idx + 1, location: tok, landingType: defaultLandingType, breakStop: false, notes: '' };
       });
     }
     state.stops = stopsFromJson.length ? stopsFromJson : [{ sequence: 1, location: '', landingType: 'TOUCH_AND_GO', breakStop: false, notes: '' }];
@@ -5455,12 +5476,25 @@
         var custom = Array.isArray(mv && mv.customManeuvers) ? mv.customManeuvers : [];
         state.maneuvers = main.map(function(v) { return String(v || '').toUpperCase(); }).filter(Boolean);
         state.customManeuvers = custom.map(function(v) { return String(v || '').toUpperCase(); }).filter(Boolean);
+      } else if (parsedPlan && typeof parsedPlan === 'object') {
+        // Fallback for sheets that do not include MANEUVERS_JSON but store maneuvers in LESSON_PLAN_JSON.
+        var planMain = Array.isArray(parsedPlan.maneuvers) ? parsedPlan.maneuvers : [];
+        var planCustom = Array.isArray(parsedPlan.customManeuvers) ? parsedPlan.customManeuvers : [];
+        state.maneuvers = planMain.map(function(v) { return String(v || '').toUpperCase(); }).filter(Boolean);
+        state.customManeuvers = planCustom.map(function(v) { return String(v || '').toUpperCase(); }).filter(Boolean);
       }
     } catch (e2) {
       state.maneuvers = [];
       state.customManeuvers = [];
     }
 
+    if ((!state.maneuvers || !state.maneuvers.length) && String(state.category || '').toUpperCase() === 'RUNWAY_CHECK') {
+      state.maneuvers = ['SHORT FIELD LANDING', 'GO-AROUND'];
+      state.customManeuvers = [];
+    }
+
+    toolsRenderDbAddForm();
+    toolsSyllabusBindMetaUi_();
     toolsRenderSyllabusPlan_();
     toolsSyllabusSyncFromUi_();
   }
@@ -5488,19 +5522,24 @@
         }
 
         var p = res.payload || {};
+        function pickField_(candidates) {
+          var key = toolsDbFindKey_(candidates);
+          if (key && p[key] != null && String(p[key]).trim() !== '') return p[key];
+          return toolsSyllabusPickRowField_(p, candidates);
+        }
         var rowModel = {
-          code: String(p[toolsDbFindKey_(['TRAINING_CODE'])] || code),
-          description: String(p[toolsDbFindKey_(['DESCRIPTION'])] || ''),
-          aircraftType: String(p[toolsDbFindKey_(['AIRCRAFT_TYPE', 'AIRCRAFT', 'AIRCRAFT_CLASS', 'AC_TYPE', 'TARGET_ROLE'])] || ''),
-          hours: p[toolsDbFindKey_(['REQUIRED_HOURS'])],
-          plannedLandings: p[toolsDbFindKey_(['PLANNED_LANDINGS'])],
-          fuel: p[toolsDbFindKey_(['REQUIRED_FUEL'])],
-          requiredBallast: p[toolsDbFindKey_(['REQUIRED_BALLAST'])],
-          route: String(p[toolsDbFindKey_(['ROUTE'])] || ''),
-          runwayCheckout: String(p[toolsDbFindKey_(['RUNWAY_CHECKOUT'])] || ''),
-          lessonPlanJson: String(p[toolsDbFindKey_(['LESSON_PLAN_JSON', 'TRAINING_PLAN_JSON', 'PLAN_JSON'])] || ''),
-          plannedStopsJson: String(p[toolsDbFindKey_(['PLANNED_STOPS_JSON', 'STOP_PLAN_JSON'])] || ''),
-          maneuversJson: String(p[toolsDbFindKey_(['MANEUVERS_JSON', 'PLANNED_MANEUVERS_JSON'])] || '')
+          code: String(pickField_(['TRAINING_CODE']) || code),
+          description: String(pickField_(['DESCRIPTION']) || ''),
+          aircraftType: String(pickField_(['AIRCRAFT_TYPE', 'AIRCRAFT', 'AIRCRAFT_CLASS', 'AC_TYPE', 'TARGET_ROLE']) || ''),
+          hours: pickField_(['REQUIRED_HOURS']),
+          plannedLandings: pickField_(['PLANNED_LANDINGS']),
+          fuel: pickField_(['REQUIRED_FUEL']),
+          requiredBallast: pickField_(['REQUIRED_BALLAST']),
+          route: String(pickField_(['ROUTE']) || ''),
+          runwayCheckout: String(pickField_(['RUNWAY_CHECKOUT']) || ''),
+          lessonPlanJson: String(pickField_(['LESSON_PLAN_JSON', 'TRAINING_PLAN_JSON', 'PLAN_JSON']) || ''),
+          plannedStopsJson: String(pickField_(['PLANNED_STOPS_JSON', 'STOP_PLAN_JSON']) || ''),
+          maneuversJson: String(pickField_(['MANEUVERS_JSON', 'PLANNED_MANEUVERS_JSON']) || '')
         };
 
         _toolsSyllabusEditRow = Number(res.rowNumber || 0);
@@ -5741,6 +5780,28 @@
       .filter(Boolean);
   }
 
+  function toolsSyllabusRunwayTokens_(raw) {
+    var chunks = toolsSyllabusRouteTokens_(raw);
+    var out = [];
+
+    chunks.forEach(function(chunk) {
+      var value = String(chunk || '').trim().toUpperCase();
+      if (!value) return;
+      if (/RWY|PISTA|\//.test(value)) {
+        out.push(value);
+        return;
+      }
+      var compact = value.replace(/\s+/g, ' ').trim();
+      if (/^[A-Z0-9]{3,6}(\s+[A-Z0-9]{3,6})+$/.test(compact)) {
+        compact.split(/\s+/).forEach(function(tok) { if (tok) out.push(tok); });
+        return;
+      }
+      out.push(value);
+    });
+
+    return out.filter(Boolean).filter(function(token, idx, arr) { return arr.indexOf(token) === idx; });
+  }
+
   function toolsSyllabusRouteTokensFromForm_() {
     var originRaw = String((document.getElementById('tools-syl-origin') || {}).value || '').trim();
     var viaRaw = String((document.getElementById('tools-syl-via') || {}).value || '').trim();
@@ -5933,7 +5994,7 @@
 
     var routeTokens = [];
     if (String(state.category || '') === 'RUNWAY_CHECK' && String(state.runwayCheckLocation || '').trim()) {
-      routeTokens = toolsSyllabusRouteTokens_(state.runwayCheckLocation);
+      routeTokens = toolsSyllabusRunwayTokens_(state.runwayCheckLocation);
     } else {
       routeTokens = toolsSyllabusRouteTokensFromForm_();
     }
@@ -6211,11 +6272,13 @@
             + '<input id="tools-db-' + codeKey + '" data-tools-db-key="' + codeKey + '" type="text" placeholder="Código automático">'
             + '<div class="tools-syl-plan-note" style="margin-top:4px;">Formato: PREFIXO-ACFT-ORIG_DESTINO.</div></div>')
           : '')
-        + '<div class="tools-syl-route-grid">'
-        + '<div class="tools-syl-q"><label for="tools-syl-origin">Origem (ICAO/WP)</label><input id="tools-syl-origin" type="text" list="tools-syl-route-points-list" placeholder="SWXX"></div>'
-        + '<div class="tools-syl-q"><label for="tools-syl-via">Via (separar por vírgula)</label><input id="tools-syl-via" type="text" list="tools-syl-route-points-list" placeholder="SJMH, PAPA-PALIMIU"></div>'
-        + '<div class="tools-syl-q"><label for="tools-syl-destination">Destino (ICAO/WP)</label><input id="tools-syl-destination" type="text" list="tools-syl-route-points-list" placeholder="SBCF"></div>'
-        + '</div>'
+        + (String((window._toolsSyllabusPlanState || {}).category || 'ROUTE_CHECK') !== 'RUNWAY_CHECK'
+          ? ('<div class="tools-syl-route-grid">'
+            + '<div class="tools-syl-q"><label for="tools-syl-origin">Origem (ICAO/WP)</label><input id="tools-syl-origin" type="text" list="tools-syl-route-points-list" placeholder="SWXX"></div>'
+            + '<div class="tools-syl-q"><label for="tools-syl-via">Via (separar por vírgula)</label><input id="tools-syl-via" type="text" list="tools-syl-route-points-list" placeholder="SJMH, PAPA-PALIMIU"></div>'
+            + '<div class="tools-syl-q"><label for="tools-syl-destination">Destino (ICAO/WP)</label><input id="tools-syl-destination" type="text" list="tools-syl-route-points-list" placeholder="SBCF"></div>'
+            + '</div>')
+          : ('<div class="tools-syl-q"><label>Pistas de Cheque</label><div style="padding:8px; background:#f5f5f5; border-radius:3px; font-size:0.9rem; color:#424242;">' + (String((window._toolsSyllabusPlanState || {}).runwayCheckLocation || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || 'Nenhuma pista selecionada') + '</div></div>'))
         + '<datalist id="tools-syl-route-points-list">' + toolsSyllabusRoutePointOptionsHtml_() + '</datalist>'
         + '<div id="tools-syl-route-summary" class="tools-syl-route-summary">Ordem da rota: aguardando origem e destino.</div>'
         + '<h4 style="margin-top:10px;">Pousos e toque-e-arremetida por ponto</h4>'
@@ -6444,8 +6507,20 @@
 
   function toolsSetBuildMeta_() {
     var el = document.getElementById('tools-build-meta');
-    if (!el) return;
-    el.textContent = 'Tools build: ' + _toolsBuildTag;
+    var versionBadge = document.getElementById('tools-build-version');
+    
+    google.script.run
+      .withSuccessHandler(function(buildInfo) {
+        var version = buildInfo || _toolsBuildTag;
+        if (el) el.textContent = 'Tools build: ' + version;
+        if (versionBadge) versionBadge.textContent = 'Build: ' + version;
+      })
+      .withFailureHandler(function(err) {
+        var fallback = _toolsBuildTag;
+        if (el) el.textContent = 'Tools build: ' + fallback;
+        if (versionBadge) versionBadge.textContent = 'Build: ' + fallback;
+      })
+      .getToolsBuildVersion();
   }
 
   function toolsSetDiag_(message, tone) {

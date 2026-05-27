@@ -4749,6 +4749,11 @@
           const statusClass = isFlown
             ? 'text-flown'
             : ((isPartial || isInFlight) ? 'text-partial' : (isApproved ? 'text-approved' : 'text-pending'));
+          const crewNames = [m.pilot, m.copilot]
+            .map(n => String(n || '').trim())
+            .filter(Boolean)
+            .map(n => n.split(' ')[0]);
+          const crewLabel = crewNames.length ? crewNames.join(' / ') : 'N/A';
 
           return `
             <div class="mission-row" id="row-${m.id}" data-loadable="${isLoadable ? '1' : '0'}" data-status="${statusRaw}" onclick="selectMission('${m.id}')" style="${isLoadable ? '' : 'opacity:0.7;'}">
@@ -4757,7 +4762,7 @@
               <span class="m-acft">${m.acft}</span>
               <span class="m-route">${routeLabel}</span>
               <span class="m-status ${statusClass}">${statusText}</span>
-              <span class="m-pilot">${m.pilot ? m.pilot.split(' ')[0] : 'N/A'}</span>
+              <span class="m-pilot">${crewLabel}</span>
             </div>
           `;
         }).join('');
