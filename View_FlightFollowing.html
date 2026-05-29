@@ -301,6 +301,54 @@
     grid-template-columns: repeat(6, minmax(120px, 1fr));
   }
 
+  .ff-focus-grid-top .ff-field {
+    padding: 4px 6px;
+    border-radius: 6px;
+  }
+
+  .ff-focus-grid-top .ff-field-label {
+    font-size: 0.6rem;
+    margin-bottom: 2px;
+    letter-spacing: 0.02em;
+  }
+
+  .ff-focus-grid-top .ff-field-value {
+    font-size: 0.78rem;
+    min-height: 14px;
+    line-height: 1.15;
+  }
+
+  .ff-focus-grid-top .ff-field-input {
+    padding: 3px 5px;
+    font-size: 0.76rem;
+    line-height: 1.15;
+  }
+
+  .ff-field-actions {
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ff-verify-btn {
+    background: #f1f8e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.64rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    display: none;
+  }
+
+  .ff-verify-btn.show {
+    display: inline-block;
+  }
+
   .ff-focus-grid-mid {
     grid-template-columns: repeat(6, minmax(120px, 1fr));
   }
@@ -1165,6 +1213,8 @@
     airports: [],
     waypoints: [],
     fuelCaches: [],
+    currentUserEmail: '',
+    flightFollowerName: '',
     missionsByReg: {},
     activeFlights: new Set(),
     selectedFlightKey: '',
@@ -1396,6 +1446,159 @@
       return true;
     });
     return keep.join('\n').trim();
+  }
+
+  function _ffNameFromEmail_(email) {
+    var raw = String(email || '').trim().toLowerCase();
+    if (!raw) return '';
+    var local = raw.split('@')[0] || '';
+    if (!local) return '';
+    return local
+      .replace(/[._-]+/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(function(part) {
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      })
+      .join(' ')
+      .trim();
+  }
+
+  function _ffDateLabelPt_(raw) {
+    var txt = String(raw || '').trim();
+    if (!txt || txt === '--') return '--';
+
+    var m1 = txt.match(/^(\d{4})-(\d{2})-(\d{2})$/); // yyyy-mm-dd
+    var m2 = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); // dd/mm/yyyy
+    var day = 0, month = 0, year = 0;
+    if (m1) {
+      year = Number(m1[1]);
+      month = Number(m1[2]);
+      day = Number(m1[3]);
+    } else if (m2) {
+      day = Number(m2[1]);
+      month = Number(m2[2]);
+      year = Number(m2[3]);
+    } else {
+      return txt;
+    }
+
+    var mon = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    if (!(month >= 1 && month <= 12) || !(day >= 1 && day <= 31) || year < 1900) return txt;
+    return String(day) + '-' + mon[month - 1] + '-' + String(year);
+  }
+
+  function _ffNormTimeDigits_(text) {
+    var raw = String(text || '').trim();
+    if (!raw) return '';
+    var m = raw.match(/\b([01]?\d|2[0-3])[:h]?([0-5]\d)\b/);
+    if (!m) return '';
+    return String(m[1]).padStart(2, '0') + String(m[2]);
+  }
+
+  function _ffTimeLabel_(digits4) {
+    var d = String(digits4 || '').replace(/\D/g, '').slice(0, 4);
+    if (d.length !== 4) return '';
+    return d.slice(0, 2) + ':' + d.slice(2);
+  }
+
+  function _ffMessageBlob_(msg) {
+    var subject = String(msg && msg.subject || '');
+    var body = String(msg && msg.text || '');
+    var preview = String(msg && msg.previewText || '');
+    var operational = _ffOperationalMessageText_(body);
+    return [subject, preview, operational, body].join('\n').trim();
+  }
+
+  function _ffExtractPlanCode_(blob) {
+    var text = String(blob || '').toUpperCase();
+    if (!text) return '';
+    if (_ffHasNoFlightPlan_(text)) return 'NO FLIGHT PLAN';
+    var patterns = [
+      /(?:PLVO\s*(?:CODIGO|C[ÓO]DIGO|CODE)?|FPL\s*(?:CODE|CODIGO)?|PLANO\s*DE\s*VOO)\s*[:=\-]?\s*([A-Z0-9\/-]{3,24})/i,
+      /\b(?:PLVO|FPL)\s*#?\s*([A-Z0-9\/-]{3,24})\b/i
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      var m = String(blob || '').match(patterns[i]);
+      if (m && m[1]) return String(m[1]).trim().toUpperCase();
+    }
+    return '';
+  }
+
+  function _ffHasNoFlightPlan_(blob) {
+    var text = String(blob || '').toUpperCase();
+    if (!text) return false;
+    return (
+      /\bNO\s+FLIGHT\s+PLAN\b/.test(text) ||
+      /\bSEM\s+PLANO\s+DE\s+VOO\b/.test(text) ||
+      /\bPLANO\s+DE\s+VOO\s*[:=\-]?\s*(NAO|N[ÃA]O)\b/.test(text) ||
+      /\bPLANO\s+DE\s+VOO\s*[:=\-]?\s*SEM\b/.test(text) ||
+      /\bFPL\s*[:=\-]?\s*(NONE|NO\s+PLAN|N\/A|NA)\b/.test(text) ||
+      /\bPLVO\s*[:=\-]?\s*(NONE|NO\s+PLAN|N\/A|NA)\b/.test(text)
+    );
+  }
+
+  function _ffExtractPlvoTime_(blob) {
+    var text = String(blob || '');
+    if (!text) return '';
+    if (_ffHasNoFlightPlan_(text)) return '';
+    var keyMatch = text.match(/(?:PLVO|FPL|EOBT|HOR[ÁA]RIO\s*PLVO|HORARIO\s*PLVO)[^\n\r]{0,40}/i);
+    if (keyMatch) {
+      var t1 = _ffNormTimeDigits_(keyMatch[0]);
+      if (t1) return t1;
+    }
+    var explicit = text.match(/\b([01]?\d|2[0-3])[:h]?([0-5]\d)\s*Z\b/i);
+    if (explicit) return String(explicit[1]).padStart(2, '0') + String(explicit[2]);
+    return '';
+  }
+
+  function _ffExtractTakeoffTime_(blob) {
+    var text = String(blob || '');
+    if (!text) return '';
+    var keyMatch = text.match(/(?:DECOL(?:AGEM|OU)?|TAKE\s*OFF|TAKEOFF|AIRBORNE|OFF\s*BLOCKS?|BRK\s*REL(?:EASE)?|DEPARTURE)[^\n\r]{0,40}/i);
+    if (keyMatch) {
+      var t1 = _ffNormTimeDigits_(keyMatch[0]);
+      if (t1) return t1;
+    }
+    return '';
+  }
+
+  function _ffMissionMessageHints_(reg, mission) {
+    var out = {
+      planCode: '',
+      plvoTime: '',
+      takeoffTime: '',
+      noFlightPlan: false
+    };
+    var missionId = String(mission && mission.missionId || '').trim();
+    var flightLegId = String(mission && mission.flightLegId || '').trim();
+    var messages = (state.messagesByReg && state.messagesByReg[reg]) ? state.messagesByReg[reg].slice() : [];
+    messages.sort(function(a, b) {
+      return String(b && b.timestamp || '').localeCompare(String(a && a.timestamp || ''));
+    });
+
+    var relevant = messages.filter(function(msg) {
+      var blob = _ffMessageBlob_(msg).toUpperCase();
+      if (!blob) return false;
+      if (missionId && blob.indexOf(missionId.toUpperCase()) >= 0) return true;
+      if (flightLegId && blob.indexOf(flightLegId.toUpperCase()) >= 0) return true;
+      return true;
+    });
+
+    for (var i = 0; i < relevant.length; i++) {
+      var blob = _ffMessageBlob_(relevant[i]);
+      if (!out.noFlightPlan && _ffHasNoFlightPlan_(blob)) {
+        out.noFlightPlan = true;
+        out.planCode = 'NO FLIGHT PLAN';
+        out.plvoTime = '';
+      }
+      if (!out.planCode) out.planCode = _ffExtractPlanCode_(blob);
+      if (!out.plvoTime && !out.noFlightPlan) out.plvoTime = _ffExtractPlvoTime_(blob);
+      if (!out.takeoffTime) out.takeoffTime = _ffExtractTakeoffTime_(blob);
+      if ((out.planCode || out.noFlightPlan) && (out.plvoTime || out.noFlightPlan) && out.takeoffTime) break;
+    }
+
+    return out;
   }
 
   function _ffApplyStandaloneMode_() {
@@ -2095,6 +2298,8 @@
         state.airports = Array.isArray(data && data.airports) ? data.airports : [];
         state.waypoints = Array.isArray(data && data.waypoints) ? data.waypoints : [];
         state.fuelCaches = Array.isArray(data && data.fuelCaches) ? data.fuelCaches : [];
+        state.currentUserEmail = String(data && data.currentUserEmail || '').trim();
+        state.flightFollowerName = _ffNameFromEmail_(state.currentUserEmail);
         renderFlightList();
         renderSelectedFlight();
 
@@ -2127,30 +2332,6 @@
       return txt.split(/\s+/)[0] || '--';
     }
 
-    function ffDateLabelPt_(raw) {
-      var txt = String(raw || '').trim();
-      if (!txt || txt === '--') return '--';
-
-      var m1 = txt.match(/^(\d{4})-(\d{2})-(\d{2})$/); // yyyy-mm-dd
-      var m2 = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); // dd/mm/yyyy
-      var day = 0, month = 0, year = 0;
-      if (m1) {
-        year = Number(m1[1]);
-        month = Number(m1[2]);
-        day = Number(m1[3]);
-      } else if (m2) {
-        day = Number(m2[1]);
-        month = Number(m2[2]);
-        year = Number(m2[3]);
-      } else {
-        return txt;
-      }
-
-      var mon = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-      if (!(month >= 1 && month <= 12) || !(day >= 1 && day <= 31) || year < 1900) return txt;
-      return String(day) + '-' + mon[month - 1] + '-' + String(year);
-    }
-
     var rows = [];
     state.aircraft.forEach(function(acft) {
       var missions = state.missionsByReg[acft.reg] || [];
@@ -2165,7 +2346,7 @@
           route: (mission.from || '--') + ' - ' + (mission.to || '--'),
           pilot: ffPilotFirstName_(mission.pilot || '--'),
           date: mission.date || '--',
-          dateLabel: ffDateLabelPt_(mission.date || '--'),
+          dateLabel: _ffDateLabelPt_(mission.date || '--'),
           takeoffUTC: mission.takeoffUTC || ''
         });
       });
@@ -2342,10 +2523,14 @@
     var burnLph = Number(acft && (acft.burnLph || acft.burn) || 0);
     var fuelL = Number(mission && mission.fuelL || 0);
     var range = (burnLph > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burnLph) : '--:--';
-    var plannedTime = String(mission && mission.takeoffUTC || '').trim();
-    var dateText = String(mission && mission.date || '--').trim();
-    var planCode = mission && mission.noPlan ? 'NO PLAN' : String(mission && mission.planId || '--').trim();
+    var hints = _ffMissionMessageHints_(reg, mission);
+    var plannedTime = String(hints.plvoTime || '').trim().replace(/\D/g, '').slice(0, 4);
+    var dateText = _ffDateLabelPt_(mission && mission.date || '--');
+    var planCode = String(hints.planCode || '').trim() || '--';
+    var takeoffSuggested = String(hints.takeoffTime || '').trim().replace(/\D/g, '').slice(0, 4);
+    var takeoffSuggestedLabel = _ffTimeLabel_(takeoffSuggested);
     var roleText = String(mission && mission.copilot || '').trim() || 'Sem co-piloto/aluno';
+    var flightFollowerDefault = String(state.flightFollowerName || _ffNameFromEmail_(state.currentUserEmail) || '').trim();
     var pob = 1 + (Array.isArray(mission && mission.pax) ? mission.pax.length : 0);
     var closeBtn = opts.showClose
       ? '<button class="ff-flight-close-btn" type="button" onclick="ffCloseFlightFromWatch(\'' + esc(key) + '\')" title="Close this flight">&times;</button>'
@@ -2355,11 +2540,19 @@
       '<h3 class="ff-focus-title">' + esc(reg) + ' | Missao ' + esc(String(mission.missionId || '--')) + ' | ' + esc((mission.from || '--') + ' - ' + (mission.to || '--')) + '</h3>' +
       '<div class="ff-focus-grid-top">' +
         ffFieldReadonly_('Piloto', mission.pilot || '--') +
-        ffFieldInput_('Flight Follower', 'Nome do acompanhante') +
+        ffFieldInput_('Flight Follower', 'Nome do acompanhante', {
+          value: flightFollowerDefault,
+          id: 'ff-field-follower-' + safeId(key)
+        }) +
         ffFieldReadonly_('Data', dateText) +
-        ffFieldReadonly_('PLVO Codigo', planCode) +
-        ffFieldReadonly_('PLVO Horario', plannedTime ? plannedTime + 'Z' : '--') +
-        ffFieldInput_('Horario de Decolagem', '00:00') +
+        ffFieldReadonly_('PLVO Codigo', planCode, { id: 'ff-plvo-code-' + safeId(key) }) +
+        ffFieldReadonly_('PLVO Horario', plannedTime ? plannedTime + 'Z' : '--', { id: 'ff-plvo-time-' + safeId(key) }) +
+        ffFieldInput_('Horario de Decolagem', '00:00', {
+          id: 'ff-decolagem-input-' + safeId(key),
+          value: '',
+          attrs: ' data-ff-key="' + esc(key) + '" data-suggested-time="' + esc(takeoffSuggested) + '" oninput="ffHandleDecolagemInput(\'' + esc(key) + '\')"',
+          actionsHtml: '<button type="button" class="ff-verify-btn' + (takeoffSuggested ? ' show' : '') + '" id="ff-decolagem-verify-' + safeId(key) + '" onclick="ffApplyParsedDecolagem(\'' + esc(key) + '\')" title="Usar horário detectado na mensagem de decolagem">Verificar? ' + esc(takeoffSuggestedLabel || '') + '</button>'
+        }) +
       '</div>' +
       '<div class="ff-focus-grid-mid">' +
         ffFieldReadonly_('Callsign', reg || '--') +
@@ -2425,12 +2618,72 @@
     '</div>';
   }
 
-  function ffFieldReadonly_(label, value) {
-    return '<div class="ff-field"><div class="ff-field-label">' + esc(label) + '</div><div class="ff-field-value">' + esc(value) + '</div></div>';
+  function ffFieldReadonly_(label, value, opts) {
+    var o = opts || {};
+    var valueId = o.id ? ' id="' + esc(o.id) + '"' : '';
+    return '<div class="ff-field"><div class="ff-field-label">' + esc(label) + '</div><div class="ff-field-value"' + valueId + '>' + esc(value) + '</div></div>';
   }
 
-  function ffFieldInput_(label, placeholder) {
-    return '<div class="ff-field"><div class="ff-field-label">' + esc(label) + '</div><input class="ff-field-input" type="text" placeholder="' + esc(placeholder || '') + '"></div>';
+  function ffFieldInput_(label, placeholder, opts) {
+    var o = opts || {};
+    var value = String(o.value || '');
+    var inputId = o.id ? ' id="' + esc(o.id) + '"' : '';
+    var attrs = String(o.attrs || '');
+    var actionsHtml = String(o.actionsHtml || '');
+    return '<div class="ff-field"><div class="ff-field-label">' + esc(label) + '</div><input class="ff-field-input" type="text"' + inputId + ' value="' + esc(value) + '" placeholder="' + esc(placeholder || '') + '"' + attrs + '>' + (actionsHtml ? '<div class="ff-field-actions">' + actionsHtml + '</div>' : '') + '</div>';
+  }
+
+  function _ffSetDecolagemVerifyState_(key) {
+    var skey = safeId(key);
+    var input = document.getElementById('ff-decolagem-input-' + skey);
+    var btn = document.getElementById('ff-decolagem-verify-' + skey);
+    if (!input || !btn) return;
+    var suggested = String(input.getAttribute('data-suggested-time') || '').replace(/\D/g, '').slice(0, 4);
+    var current = _ffNormTimeDigits_(input.value);
+    var shouldShow = !!suggested && current !== suggested;
+    btn.classList.toggle('show', shouldShow);
+  }
+
+  window.ffHandleDecolagemInput = function(key) {
+    _ffSetDecolagemVerifyState_(key);
+  };
+
+  window.ffApplyParsedDecolagem = function(key) {
+    var skey = safeId(key);
+    var input = document.getElementById('ff-decolagem-input-' + skey);
+    if (!input) return;
+    var suggested = String(input.getAttribute('data-suggested-time') || '').replace(/\D/g, '').slice(0, 4);
+    if (!suggested) return;
+    input.value = _ffTimeLabel_(suggested);
+    _ffSetDecolagemVerifyState_(key);
+  };
+
+  function _ffRefreshParsedHeaderForReg_(reg) {
+    var watched = Array.isArray(state.watchFlightKeys) ? state.watchFlightKeys.slice() : [];
+    watched.forEach(function(key) {
+      var parts = String(key || '').split('|');
+      var keyReg = String(parts[0] || '').trim().toUpperCase();
+      var flightLegId = String(parts[1] || '').trim();
+      if (keyReg !== String(reg || '').trim().toUpperCase()) return;
+      var mission = (state.missionsByReg[keyReg] || []).find(function(m) {
+        return String(m && (m.flightLegId || m.missionId) || '').trim() === flightLegId;
+      });
+      if (!mission) return;
+
+      var hints = _ffMissionMessageHints_(keyReg, mission);
+      var skey = safeId(key);
+      var plvoCodeEl = document.getElementById('ff-plvo-code-' + skey);
+      var plvoTimeEl = document.getElementById('ff-plvo-time-' + skey);
+      var decInputEl = document.getElementById('ff-decolagem-input-' + skey);
+      if (plvoCodeEl) plvoCodeEl.textContent = hints.planCode || '--';
+      if (plvoTimeEl) plvoTimeEl.textContent = hints.plvoTime ? (hints.plvoTime + 'Z') : '--';
+      if (decInputEl && hints.takeoffTime) {
+        decInputEl.setAttribute('data-suggested-time', hints.takeoffTime);
+        var btn = document.getElementById('ff-decolagem-verify-' + skey);
+        if (btn) btn.textContent = 'Verificar? ' + _ffTimeLabel_(hints.takeoffTime);
+      }
+      _ffSetDecolagemVerifyState_(key);
+    });
   }
 
   function renderGrid() {
@@ -2681,6 +2934,8 @@
           '</tr>';
         }).join('') + '</tbody>' +
       '</table>';
+
+    _ffRefreshParsedHeaderForReg_(reg);
   }
 
   function _ffFindMessageByKey_(reg, messageKey) {

@@ -9679,16 +9679,30 @@ function testFFDebugKPS() {
 }
 
 function getFlightFollowInit() {
+  var currentUserEmail = '';
+  try {
+    currentUserEmail = String(Session.getActiveUser().getEmail() || '').trim();
+  } catch (e0) {
+    currentUserEmail = '';
+  }
+  if (!currentUserEmail) {
+    try {
+      currentUserEmail = String(Session.getEffectiveUser().getEmail() || '').trim();
+    } catch (e1) {
+      currentUserEmail = '';
+    }
+  }
+
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('DB_Aircraft');
-  if (!sheet) return { aircraft: [], airports: [], waypoints: [], fuelCaches: [] };
+  if (!sheet) return { aircraft: [], airports: [], waypoints: [], fuelCaches: [], currentUserEmail: currentUserEmail };
   var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return { aircraft: [], airports: [], waypoints: [], fuelCaches: [] };
+  if (data.length < 2) return { aircraft: [], airports: [], waypoints: [], fuelCaches: [], currentUserEmail: currentUserEmail };
   var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
   var regIdx  = headers.indexOf('REGISTRATION');
   var typeIdx = headers.indexOf('AIRCRAFT_TYPE');
   var burnIdx = headers.indexOf('BURN_LPH');
-  if (regIdx < 0) return { aircraft: [] };
+  if (regIdx < 0) return { aircraft: [], currentUserEmail: currentUserEmail };
   var aircraft = [];
   for (var i = 1; i < data.length; i++) {
     var reg = String(data[i][regIdx] || '').trim();
@@ -9765,7 +9779,13 @@ function getFlightFollowInit() {
     }
   } catch (e3) {}
 
-  return { aircraft: aircraft, airports: airports, waypoints: waypoints, fuelCaches: fuelCaches };
+  return {
+    aircraft: aircraft,
+    airports: airports,
+    waypoints: waypoints,
+    fuelCaches: fuelCaches,
+    currentUserEmail: currentUserEmail
+  };
 }
 
 function saveMissionFplToDrive(missionId, fplXml) {
