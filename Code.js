@@ -4220,15 +4220,38 @@ function _toolsDutyConfigDescriptions_() {
 function _flightFollowConfigDefaults_() {
   return {
     FLIGHT_FOLLOW_RECIPIENTS: 'acompanhamento@asasdesocorro.org.br',
-    FLIGHT_FOLLOW_OUTBOUND_MAP: ''
+    FLIGHT_FOLLOW_OUTBOUND_MAP: '',
+    FLIGHT_FOLLOW_MAPSHARE_MAP: ''
   };
 }
 
 function _flightFollowConfigDescriptions_() {
   return {
     FLIGHT_FOLLOW_RECIPIENTS: 'Email(s) de destino do Flight Following (separados por vírgula). Primeiro email também é usado para leitura do inbox.',
-    FLIGHT_FOLLOW_OUTBOUND_MAP: 'Mapeamento por aeronave para outbound (uma linha por registro: PTABC=email@dominio.com).'
+    FLIGHT_FOLLOW_OUTBOUND_MAP: 'Mapeamento por aeronave para outbound (uma linha por registro: PTABC=email@dominio.com).',
+    FLIGHT_FOLLOW_MAPSHARE_MAP: 'Links MapShare por aeronave (uma linha por registro: PTABC=https://share.garmin.com/DEVICE).'
   };
+}
+
+function _flightFollowMapshareByReg_() {
+  var out = {};
+  try {
+    var cfg = _flightFollowReadConfigMap_();
+    var raw = String(cfg.FLIGHT_FOLLOW_MAPSHARE_MAP || '').trim();
+    if (!raw) return out;
+    raw.split(/\r?\n/).forEach(function(line) {
+      var cleaned = String(line || '').trim();
+      if (!cleaned || cleaned.indexOf('#') === 0) return;
+      var parts = cleaned.split(/[=:]/);
+      if (parts.length < 2) return;
+      var reg = String(parts[0] || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var url = String(parts.slice(1).join(':') || '').trim();
+      if (!reg || !url) return;
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      out[reg] = url;
+    });
+  } catch (e) {}
+  return out;
 }
 
 function _flightFollowReadConfigMap_() {
@@ -8087,6 +8110,200 @@ var FF_MESSAGES_HEADERS_ = [
   'SOURCE',
   'SYNCED_AT'
 ];
+var FF_ARCHIVE_HEADERS_ = [
+  'ARCHIVED_AT',
+  'ARCHIVE_ID',
+  'FLIGHT_ID',
+  'MISSION_ID',
+  'FLIGHT_LEG_ID',
+  'REG',
+  'ARCHIVED_BY',
+  'REASON',
+  'SNAPSHOT_JSON',
+  'SNAPSHOT_FILE_ID',
+  'SNAPSHOT_FILE_URL',
+  'SNAPSHOT_SIZE'
+];
+
+function _flightFollowArchiveFolder_() {
+  var folderName = 'FF_Archived_Snapshots';
+  var it = DriveApp.getFoldersByName(folderName);
+  if (it.hasNext()) return it.next();
+  return DriveApp.createFolder(folderName);
+}
+
+function _flightFollowArchiveSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('Active spreadsheet not available for FF archive.');
+  var name = APP_SHEETS.FF_ARCHIVE || 'DB_FF_Archive';
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) sheet = ss.insertSheet(name);
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 1) {
+    sheet.getRange(1, 1, 1, FF_ARCHIVE_HEADERS_.length).setValues([FF_ARCHIVE_HEADERS_]);
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+
+  var currentHeaders = sheet.getRange(1, 1, 1, FF_ARCHIVE_HEADERS_.length).getValues()[0].map(function(h) {
+    return String(h || '').trim().toUpperCase();
+  });
+  var expectedHeaders = FF_ARCHIVE_HEADERS_.map(function(h) { return String(h || '').trim().toUpperCase(); });
+  var mismatch = false;
+  for (var i = 0; i < expectedHeaders.length; i++) {
+    if (currentHeaders[i] !== expectedHeaders[i]) { mismatch = true; break; }
+  }
+  if (mismatch) {
+    sheet.getRange(1, 1, 1, FF_ARCHIVE_HEADERS_.length).setValues([FF_ARCHIVE_HEADERS_]);
+  }
+  return sheet;
+}
+
+function archiveFlightFollowingSnapshot(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var flightId = String(body.flightId || body.flightLegId || '').trim();
+    var missionId = String(body.missionId || '').trim();
+    var flightLegId = String(body.flightLegId || '').trim();
+    var reg = String(body.reg || '').trim().toUpperCase();
+    var reason = String(body.reason || 'MANUAL_ARCHIVE').trim();
+    var snapshot = (body.snapshot && typeof body.snapshot === 'object') ? body.snapshot : body;
+    if (!flightId) return { success: false, error: 'flightId is required.' };
+
+    var archiveSheet = _flightFollowArchiveSheet_();
+    var archiveId = Utilities.getUuid();
+    var archivedAt = new Date();
+    var archivedBy = String((Session.getActiveUser() && Session.getActiveUser().getEmail && Session.getActiveUser().getEmail()) || '').trim() || 'unknown';
+
+    var snapshotText = '';
+    try {
+      snapshotText = JSON.stringify(snapshot || {});
+    } catch (serr) {
+      snapshotText = JSON.stringify({ _serializeError: String(serr && serr.message || serr), _rawType: typeof snapshot });
+    }
+
+    var snapshotFileId = '';
+    var snapshotFileUrl = '';
+    var inlineJson = snapshotText;
+    if (snapshotText.length > 45000) {
+      var folder = _flightFollowArchiveFolder_();
+      var fileName = 'ff_snapshot_' + String(flightId).replace(/[^A-Za-z0-9_-]+/g, '_') + '_' + archiveId + '.json';
+      var file = folder.createFile(fileName, snapshotText, MimeType.PLAIN_TEXT);
+      snapshotFileId = file.getId();
+      snapshotFileUrl = file.getUrl();
+      inlineJson = JSON.stringify({ external: true, fileId: snapshotFileId, bytes: snapshotText.length });
+    }
+
+    archiveSheet.appendRow([
+      archivedAt,
+      archiveId,
+      flightId,
+      missionId,
+      flightLegId,
+      reg,
+      archivedBy,
+      reason,
+      inlineJson,
+      snapshotFileId,
+      snapshotFileUrl,
+      snapshotText.length
+    ]);
+
+    return {
+      success: true,
+      archiveId: archiveId,
+      flightId: flightId,
+      archivedAt: archivedAt.toISOString(),
+      archivedBy: archivedBy,
+      snapshotBytes: snapshotText.length,
+      externalized: !!snapshotFileId,
+      snapshotFileId: snapshotFileId,
+      snapshotFileUrl: snapshotFileUrl
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getToolsFlightFollowingArchive(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var flightId = String(body.flightId || body.flightLegId || '').trim();
+    if (!flightId) return { success: false, error: 'flightId is required.' };
+
+    var sheet = _flightFollowArchiveSheet_();
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { success: false, error: 'No archived FF snapshots found.' };
+    var rows = sheet.getRange(2, 1, lastRow - 1, FF_ARCHIVE_HEADERS_.length).getValues();
+
+    var idx = {
+      archivedAt: 0,
+      archiveId: 1,
+      flightId: 2,
+      missionId: 3,
+      flightLegId: 4,
+      reg: 5,
+      archivedBy: 6,
+      reason: 7,
+      snapshotJson: 8,
+      snapshotFileId: 9,
+      snapshotFileUrl: 10,
+      snapshotSize: 11
+    };
+
+    var matches = rows.filter(function(r) {
+      return String(r[idx.flightId] || '').trim() === flightId;
+    });
+    if (!matches.length) return { success: false, error: 'No archived FF snapshot for flight ' + flightId + '.' };
+
+    matches.sort(function(a, b) {
+      var at = (a[idx.archivedAt] instanceof Date) ? a[idx.archivedAt].getTime() : new Date(a[idx.archivedAt] || 0).getTime();
+      var bt = (b[idx.archivedAt] instanceof Date) ? b[idx.archivedAt].getTime() : new Date(b[idx.archivedAt] || 0).getTime();
+      return bt - at;
+    });
+
+    var row = matches[0];
+    var snapshotText = String(row[idx.snapshotJson] || '');
+    var fileId = String(row[idx.snapshotFileId] || '').trim();
+    var fileUrl = String(row[idx.snapshotFileUrl] || '').trim();
+
+    if (fileId) {
+      try {
+        snapshotText = DriveApp.getFileById(fileId).getBlob().getDataAsString();
+      } catch (ferr) {
+        return { success: false, error: 'Snapshot file unreadable: ' + String(ferr && ferr.message || ferr) };
+      }
+    }
+
+    var snapshot = {};
+    try {
+      snapshot = snapshotText ? JSON.parse(snapshotText) : {};
+    } catch (jerr) {
+      snapshot = { _parseError: String(jerr && jerr.message || jerr), raw: String(snapshotText || '').slice(0, 1000) };
+    }
+
+    return {
+      success: true,
+      archive: {
+        archiveId: String(row[idx.archiveId] || ''),
+        flightId: String(row[idx.flightId] || ''),
+        missionId: String(row[idx.missionId] || ''),
+        flightLegId: String(row[idx.flightLegId] || ''),
+        reg: String(row[idx.reg] || ''),
+        archivedAt: (row[idx.archivedAt] instanceof Date) ? row[idx.archivedAt].toISOString() : String(row[idx.archivedAt] || ''),
+        archivedBy: String(row[idx.archivedBy] || ''),
+        reason: String(row[idx.reason] || ''),
+        snapshotSize: Number(row[idx.snapshotSize] || 0),
+        snapshotFileId: fileId,
+        snapshotFileUrl: fileUrl
+      },
+      snapshot: snapshot
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
 
 function _flightFollowSpreadsheet_() {
   var configuredId = '';
@@ -9767,6 +9984,9 @@ function getFlightFollowInit() {
         var cacheHeaders = cacheVals[0].map(function(h) { return String(h || '').toUpperCase().trim().replace(/\s+/g, '_'); });
         var icaoIdx = cacheHeaders.indexOf('ICAO');
         var qtyIdx = cacheHeaders.indexOf('CURRENT_QTY');
+        if (qtyIdx < 0) qtyIdx = cacheHeaders.indexOf('QTY');
+        if (qtyIdx < 0) qtyIdx = cacheHeaders.indexOf('CURRENT_INVENTORY');
+        if (qtyIdx < 0) qtyIdx = cacheHeaders.indexOf('INVENTORY');
         if (icaoIdx >= 0 && qtyIdx >= 0) {
           fuelCaches = cacheVals.slice(1).map(function(r) {
             return {
@@ -9779,11 +9999,14 @@ function getFlightFollowInit() {
     }
   } catch (e3) {}
 
+  var inreachByReg = _flightFollowMapshareByReg_();
+
   return {
     aircraft: aircraft,
     airports: airports,
     waypoints: waypoints,
     fuelCaches: fuelCaches,
+    inreachByReg: inreachByReg,
     currentUserEmail: currentUserEmail
   };
 }
@@ -14349,6 +14572,17 @@ function getToolsFlightDetailReport(payload) {
         graphPointsReturned: wbGraph.envelopeData.length
       }
     };
+
+    try {
+      var ffArchiveRes = getToolsFlightFollowingArchive({ flightId: flightId });
+      if (ffArchiveRes && ffArchiveRes.success) {
+        response.ffArchive = ffArchiveRes.archive || null;
+      } else {
+        response.ffArchive = null;
+      }
+    } catch (ffArcErr) {
+      response.ffArchive = null;
+    }
 
     response.debug.responseBytes = JSON.stringify(response).length;
     return response;

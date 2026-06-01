@@ -293,39 +293,65 @@
   .ff-focus-grid-top,
   .ff-focus-grid-mid {
     display: grid;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 6px;
+    margin-bottom: 8px;
   }
 
   .ff-focus-grid-top {
-    grid-template-columns: repeat(6, minmax(120px, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: start;
+    overflow: hidden;
   }
 
   .ff-focus-grid-top .ff-field {
-    padding: 4px 6px;
+    padding: 2px 6px;
     border-radius: 6px;
+    min-height: 46px;
+    height: 46px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow: visible;
   }
 
   .ff-focus-grid-top .ff-field-label {
-    font-size: 0.6rem;
-    margin-bottom: 2px;
+    font-size: 10px;
+    line-height: 1.2;
+    min-height: 12px;
+    margin-bottom: 1px;
     letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .ff-focus-grid-top .ff-field-value {
-    font-size: 0.78rem;
-    min-height: 14px;
-    line-height: 1.15;
+    font-size: 12px !important;
+    font-weight: 700;
+    min-height: 16px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .ff-focus-grid-top .ff-field-input {
-    padding: 3px 5px;
-    font-size: 0.76rem;
-    line-height: 1.15;
+    padding: 0 !important;
+    font-size: 12px !important;
+    font-weight: 800;
+    line-height: 1.2 !important;
+    min-height: 16px;
+    height: 16px;
+    margin: 0 !important;
+  }
+
+  .ff-focus-grid-top .ff-field-input::placeholder {
+    font-size: 13px;
+    color: #9aa5af;
   }
 
   .ff-field-actions {
-    margin-top: 4px;
+    margin-top: 1px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -353,45 +379,93 @@
     grid-template-columns: repeat(6, minmax(120px, 1fr));
   }
 
+  .ff-focus-grid-mid.ff-mid-main {
+    grid-template-columns: minmax(180px, 1.2fr) minmax(86px, 0.55fr) minmax(92px, 0.58fr) minmax(110px, 0.66fr) minmax(92px, 0.56fr);
+  }
+
+  .ff-focus-grid-mid .ff-field {
+    min-height: 46px;
+    height: 46px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .ff-focus-grid-mid .ff-field-label,
+  .ff-focus-grid-mid .ff-field-value {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ff-focus-grid-mid .ff-field-input {
+    height: 24px;
+    min-height: 24px;
+    padding: 1px 0 2px;
+    line-height: 1.2;
+  }
+
   .ff-field {
     border: 1px solid #d7e0e8;
     border-radius: 7px;
     background: #fff;
-    padding: 7px 8px;
+    padding: 2px 8px;
+    min-height: 46px;
+    height: 46px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
   }
 
   .ff-field-label {
-    font-size: 0.66rem;
+    font-size: 0.58rem;
     font-weight: 900;
     text-transform: uppercase;
     color: #607d8b;
-    margin-bottom: 4px;
+    line-height: 1.2;
+    min-height: 12px;
+    margin-bottom: 1px;
     letter-spacing: 0.03em;
   }
 
   .ff-field-value {
-    font-size: 0.85rem;
+    font-size: 0.74rem;
     font-weight: 800;
     color: #1f2d38;
-    min-height: 18px;
+    min-height: 14px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .ff-field-input {
     width: 100%;
-    border: 1px solid #cfd8dc;
-    border-radius: 4px;
-    padding: 5px 6px;
-    font-size: 0.82rem;
-    font-weight: 700;
+    border: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    border-radius: 0;
+    padding: 0 !important;
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: #1f2d38;
+    min-height: 14px;
+    height: 14px;
+    line-height: 1.2;
+    margin: 0 !important;
+    appearance: none;
   }
 
   .ff-field-input:focus {
-    outline: 2px solid #90caf9;
-    border-color: #64b5f6;
+    outline: none;
+    border: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
   }
 
   .ff-route-table-wrap {
-    margin-top: 10px;
+    margin-top: 8px;
     border: 1px solid #d8e2ea;
     border-radius: 8px;
     background: #fff;
@@ -409,22 +483,22 @@
   .ff-route-table th,
   .ff-route-table td {
     border-bottom: 1px solid #edf2f6;
-    padding: 2px 4px;
+    padding: 0 2px;
     text-align: left;
-    line-height: 1.2;
+    line-height: 1.0;
   }
 
   .ff-route-table th {
     background: #f9fbfd;
     color: #607d8b;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
 
-  .ff-route-col-waypoint { width: 20ch; }
-  .ff-route-col-short { width: 6ch; }
+  .ff-route-col-waypoint { width: 18ch; }
+  .ff-route-col-short { width: 5ch; }
 
   .ff-route-table th:nth-child(n+2),
   .ff-route-table td:nth-child(n+2) {
@@ -434,12 +508,13 @@
   .ff-route-cell-input {
     width: 100%;
     border: 1px solid #cfd8dc;
-    border-radius: 4px;
-    padding: 2px 4px;
+    border-radius: 3px;
+    padding: 0 2px;
     font-size: 12px;
-    height: 22px;
+    height: 16px;
     font-weight: 700;
     background: #fff;
+    line-height: 1.15;
   }
 
   .ff-route-table td:nth-child(n+2) .ff-route-cell-input {
@@ -448,8 +523,8 @@
 
   .ff-route-cell-blocked {
     width: 100%;
-    height: 22px;
-    border-radius: 4px;
+    height: 16px;
+    border-radius: 3px;
     border: 1px solid #1f2937;
     background: #111827;
   }
@@ -457,6 +532,35 @@
   .ff-route-cell-input:focus {
     outline: 2px solid #90caf9;
     border-color: #64b5f6;
+  }
+
+  /* Force compact waypoint rows even if host styles inject larger input/table defaults */
+  .ff-route-table thead tr,
+  .ff-route-table tbody tr {
+    height: 16px !important;
+    min-height: 16px !important;
+  }
+
+  .ff-route-table th,
+  .ff-route-table td {
+    padding: 0 1px !important;
+    line-height: 1.1 !important;
+    height: 16px !important;
+    min-height: 16px !important;
+  }
+
+  .ff-route-table .ff-route-cell-input {
+    font-size: 12px !important;
+    height: 14px !important;
+    min-height: 14px !important;
+    line-height: 14px !important;
+    padding: 0 1px !important;
+    margin: 0 !important;
+  }
+
+  .ff-route-table .ff-route-cell-blocked {
+    height: 14px !important;
+    min-height: 14px !important;
   }
 
   .ff-route-num {
@@ -615,7 +719,7 @@
   .ff-map-panel { display: flex; flex-direction: column; gap: 0; border: 1px solid #b3c5d4; border-radius: 4px; overflow: hidden; }
   .ff-map-toolbar {
     background: #1a3a52; color: #fff;
-    display: flex; align-items: center; gap: 6px; padding: 5px 8px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 6px; padding: 5px 8px; flex-wrap: nowrap; overflow-x: auto;
   }
   .ff-map-source-badge {
     font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em;
@@ -631,12 +735,33 @@
   }
   .ff-map-toggle-btn.active { background: #1565c0; border-color: #90caf9; }
   .ff-map-toggle-btn:hover  { background: rgba(255,255,255,0.22); }
-  .ff-map-inreach-url {
-    flex: 1; min-width: 100px; max-width: 260px;
-    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);
-    color: #fff; border-radius: 3px; padding: 3px 6px; font-size: 0.68rem;
+  .ff-map-wx-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
-  .ff-map-inreach-url::placeholder { color: rgba(255,255,255,0.45); }
+  .ff-map-wx-row {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    margin-left: 8px;
+  }
+  .ff-map-toolbar .ff-wx-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  .ff-map-wx-inline .ff-wx-toggle {
+    margin: 0;
+  }
+  .ff-map-wx-inline .ff-wx-controls {
+    margin: 0;
+  }
   .ff-map-legend {
     background: #ecf2f7;
     border-top: 1px solid #c6d2dc;
@@ -653,6 +778,22 @@
     text-transform: uppercase;
   }
   .ff-map-legend-item { display: inline-flex; align-items: center; gap: 4px; }
+  .ff-map-filter-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ff-map-filter-btn.active { background: #1565c0; border-color: #90caf9; }
+  .ff-map-filter-btn.off { background: rgba(0,0,0,0.18); border-color: rgba(255,255,255,0.2); color: #b0bec5; }
   .ff-map-leg-dot {
     width: 9px;
     height: 9px;
@@ -685,40 +826,127 @@
     display: inline-block;
   }
   .ff-map-leg-aircraft {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(0,0,0,0.3);
-    background: #e53935;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.8) inset;
+    width: 16px;
+    height: 16px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M30 4c1.8 0 3.2 1.4 3.2 3.2v11l14.7 6.1c1.7.7 2.6 2.6 2 4.4l-.8 2.5-15.9-3.9v10.2l5.7 4.4c1.1.9 1.6 2.4 1.1 3.8l-1.2 3.4-7.7-3-7.7 3-1.2-3.4c-.5-1.4 0-2.9 1.1-3.8l5.7-4.4V27.3l-15.9 3.9-.8-2.5c-.6-1.8.3-3.7 2-4.4l14.7-6.1v-11C28.8 5.4 30.2 4 32 4h-2z' fill='%23fafafa' stroke='%231d1d1d' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M29.5 10h5v26.5h-5z' fill='%23e53935' opacity='0.9'/%3E%3Cpath d='M22.5 19.5l9.5 3.8 9.5-3.8' fill='none' stroke='%231d1d1d' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));
     display: inline-block;
   }
+  .ff-airport-icon,
+  .ff-waypoint-icon { overflow: visible !important; }
+
+  .ff-focus-timebox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #112d41;
+    color: #cfe9ff;
+    border: 1px solid #2a5678;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .ff-focus-timebox .lab { color: #7cc8ff; font-weight: 800; }
   .ff-live-map-wrap  { position: relative; }
+  .ff-map-stale-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 500;
+    border: 1px solid #ffcc80;
+    background: rgba(191,54,12,0.92);
+    color: #fff;
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    display: none;
+    pointer-events: none;
+  }
+  .ff-map-stale-btn.show { display: inline-flex; }
   .ff-inreach-wrap   { position: relative; }
-  .ff-leaflet-map    { height: 220px; }
+  .ff-leaflet-map    { height: auto; aspect-ratio: 1 / 1; min-height: 200px; }
   .ff-map-content-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
     gap: 0;
     background: #d9e4ee;
   }
+  /* E/W stacked layout — maps full width, reduced heights */
+  .ff-map-content-grid.ff-route-ew {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    align-items: stretch;
+  }
   .ff-map-primary-col {
     min-width: 0;
     border-right: 1px solid #b3c5d4;
   }
+  .ff-map-content-grid.ff-route-ew .ff-map-primary-col {
+    border-right: none;
+    border-bottom: 1px solid #b3c5d4;
+  }
+  .ff-map-content-grid.ff-route-ew .ff-sat-wrap {
+    min-height: 0;
+    width: 100%;
+  }
+  /* Live map in E/W: aspect 2/1 then 10% shorter → aspect ~2.22/1 */
+  .ff-map-content-grid.ff-route-ew .ff-leaflet-map,
+  .ff-map-content-grid.ff-route-ew .ff-inreach-iframe,
+  .ff-map-content-grid.ff-route-ew .ff-inreach-fallback {
+    aspect-ratio: 20 / 9;
+    height: auto;
+    min-height: 120px;
+    max-height: 300px;
+    width: 100%;
+  }
+  /* Sat map in E/W: aspect 2/1 then 25% shorter → aspect ~2.67/1 */
+  .ff-map-content-grid.ff-route-ew .ff-sat-map,
+  .ff-map-content-grid.ff-route-ew .ff-sat-empty {
+    aspect-ratio: 8 / 3;
+    height: auto;
+    min-height: 100px;
+    max-height: 240px;
+    width: 100%;
+  }
+  /* N/S side-by-side: sat fills full height of primary col, no gap below */
+  .ff-map-content-grid:not(.ff-route-ew) .ff-sat-wrap {
+    display: flex;
+    flex-direction: column;
+  }
+  .ff-map-content-grid:not(.ff-route-ew) .ff-sat-map,
+  .ff-map-content-grid:not(.ff-route-ew) .ff-sat-empty {
+    flex: 1 1 auto;
+    height: 0;
+    min-height: 200px;
+    aspect-ratio: unset;
+  }
   .ff-sat-wrap {
     position: relative;
-    display: none;
+    display: block;
     min-width: 0;
     background: #0c1118;
+    min-height: 220px;
   }
-  .ff-sat-wrap.active { display: block; }
   .ff-sat-map {
-    height: 220px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    min-height: 200px;
     background: #0c1118;
   }
   .ff-sat-empty {
-    height: 220px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    min-height: 200px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -729,9 +957,50 @@
     padding: 14px;
     background: radial-gradient(circle at center, rgba(41, 62, 82, 0.45), rgba(7, 14, 24, 0.96));
   }
-  .ff-inreach-iframe { width: 100%; height: 220px; border: none; display: block; }
+  .ff-sat-layer-tabs {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 620;
+    display: inline-flex;
+    gap: 4px;
+  }
+  .ff-sat-meta {
+    position: absolute;
+    top: 9px;
+    right: 8px;
+    z-index: 620;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #e3f2fd;
+    background: rgba(10, 27, 38, 0.74);
+    border: 1px solid rgba(144,202,249,0.35);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+  }
+  .ff-sat-meta .ff-wx-time { color: #fff; }
+  .ff-sat-layer-btn {
+    border: 1px solid rgba(255,255,255,0.4);
+    background: rgba(10, 27, 38, 0.86);
+    color: #fff;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+  .ff-sat-layer-btn.active {
+    background: #1565c0;
+    border-color: #90caf9;
+  }
+  .ff-inreach-iframe { width: 100%; height: auto; aspect-ratio: 1 / 1; min-height: 200px; border: none; display: block; }
   .ff-inreach-fallback {
-    height: 220px; background: #263238; color: #90a4ae;
+    height: auto; aspect-ratio: 1 / 1; min-height: 200px; background: #263238; color: #90a4ae;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 8px; font-size: 0.82rem; font-weight: 700;
   }
@@ -911,7 +1180,7 @@
     align-items: center;
     justify-content: center;
     padding: 18px;
-    z-index: 4500;
+    z-index: 999999;
   }
 
   .ff-modal-backdrop.open {
@@ -1043,6 +1312,47 @@
 
   .ff-chat-send:hover { background: #1976d2; }
 
+  .ff-pax-summary {
+    margin-top: 8px;
+    border: 1px solid #d0dbe5;
+    border-radius: 6px;
+    background: #f8fbfe;
+    padding: 8px 10px;
+  }
+
+  .ff-pax-summary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #1c3f5f;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .ff-pax-summary-body {
+    font-size: 0.78rem;
+    color: #29465f;
+    line-height: 1.35;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .ff-pax-summary-line {
+    border-left: 3px solid #c7dcef;
+    padding-left: 8px;
+    word-break: break-word;
+  }
+
+  .ff-pax-summary-empty {
+    color: #607d8b;
+    font-weight: 600;
+  }
+
   .ff-pax-table {
     width: 100%;
     border: 1px solid #c0c0c0;
@@ -1085,14 +1395,14 @@
   @media (max-width: 1200px) {
     .ff-cards-grid { grid-template-columns: 1fr; }
     .ff-focus-grid-top,
-    .ff-focus-grid-mid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+    .ff-focus-grid-mid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
 
   @media (max-width: 980px) {
     .ff-layout { grid-template-columns: 1fr; }
     .ff-list-pane { max-height: 40vh; }
     .ff-focus-grid-top,
-    .ff-focus-grid-mid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+    .ff-focus-grid-mid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ff-map-content-grid { grid-template-columns: 1fr; }
     .ff-map-primary-col { border-right: none; border-bottom: 1px solid #b3c5d4; }
 
@@ -1184,7 +1494,6 @@
         <div class="ff-list-scroll" id="ff-flight-list"></div>
       </section>
       <section class="ff-detail-pane">
-        <div class="ff-pane-head">Flight Following</div>
         <div class="ff-detail-scroll" id="ff-detail-host">
           <div class="ff-empty-state">Selecione um voo na lista para abrir o painel de acompanhamento.</div>
         </div>
@@ -1226,7 +1535,11 @@
     checksByReg: {},
     livePositions: {},      // reg -> { lat, lng, bearing, gsKts, updatedAtMs }
     mapModeByKey: {},       // key -> 'inhouse' | 'inreach' | 'both'
+    mapFiltersByKey: {},    // key -> { grass: bool, asphalt: bool, waypoint: bool }
     inreachUrlByKey: {},    // key -> url string
+    inreachByReg: {},       // reg -> url string (master config)
+    showAirportsByKey: {},  // key -> bool
+    showWaypointsByKey: {}, // key -> bool
     leafletMapsByKey: {},   // key -> L.map instance
     leafletRouteLayersByKey: {}, // key -> L.layerGroup instance
     leafletDbLayersByKey: {}, // key -> L.layerGroup instance
@@ -1234,13 +1547,18 @@
     breadcrumbPointsByKey: {}, // key -> [{ lat, lng, ts }]
     breadcrumbLayersByKey: {}, // key -> L.layerGroup instance
     breadcrumbLastTsByKey: {}, // key -> last recorded sample timestamp (ms)
-    mapFollowByKey: {},     // key -> true/false (default true)
+    mapViewByKey: {},       // key -> { lat, lng, zoom } for live map view persistence
+    satViewByKey: {},       // key -> { lat, lng, zoom } for satellite map view persistence
     satMapsByKey: {},       // key -> L.map instance (satellite-only pane)
     satRouteLayersByKey: {}, // key -> L.layerGroup instance (sat route overlay)
-    routeEditsByKey: {}     // key -> [{ fix, eta, ata, fl }]
+    routeEditsByKey: {},    // key -> [{ fix, eta, ata, fl }]
+    eteByKey: {},           // key -> normalized ETE input (HH:MMZ)
+    archivePromptedByKey: {}, // key -> bool (prompt already shown)
+    archiveSavedByKey: {}     // key -> bool (snapshot archived)
   };
   var _ffPollTimer = null;
   var _ffMsgPollTimer = null;
+  var _ffClockTimer = null;
   var _ffLeafletReady = false;
   var _ffMissingGoogleWarned = false;
 
@@ -1348,6 +1666,17 @@
     return document.getElementById('ff-container');
   }
 
+  function _ffGetFullscreenElement_() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+
+  function _ffGetModalHost_() {
+    // In immersive fullscreen, mount modal under the fullscreen host so it stays on top.
+    var fsHost = _ffGetFullscreenElement_();
+    if (fsHost && fsHost.nodeType === 1) return fsHost;
+    return document.body;
+  }
+
   function _ffSyncTwoUpClass_() {
     var host = _ffGetContainer_();
     if (!host) return;
@@ -1363,7 +1692,7 @@
   }
 
   function _ffIsFullscreen_() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+    return !!_ffGetFullscreenElement_();
   }
 
   function _ffRequestFullscreen_(el) {
@@ -1496,6 +1825,12 @@
     return String(m[1]).padStart(2, '0') + String(m[2]);
   }
 
+  function _ffZuluTimeLabel_(text) {
+    var digits = _ffNormTimeDigits_(text);
+    if (!digits) return '';
+    return _ffTimeLabel_(digits) + 'Z';
+  }
+
   function _ffTimeLabel_(digits4) {
     var d = String(digits4 || '').replace(/\D/g, '').slice(0, 4);
     if (d.length !== 4) return '';
@@ -1510,17 +1845,89 @@
     return [subject, preview, operational, body].join('\n').trim();
   }
 
+  function _ffExtractDispatchLine_(blob, labelRegex) {
+    var text = String(blob || '');
+    if (!text) return '';
+    var lines = text.split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var line = String(lines[i] || '').trim();
+      if (!line) continue;
+      var m = line.match(labelRegex);
+      if (m && m[1]) return String(m[1]).trim();
+    }
+    return '';
+  }
+
+  function _ffExtractDispatchManifest_(blob) {
+    var text = String(blob || '');
+    if (!text) return [];
+    var lines = text.split(/\r?\n/);
+    var manifest = [];
+    var started = false;
+    for (var i = 0; i < lines.length; i++) {
+      var line = String(lines[i] || '').trim();
+      if (!line) {
+        if (started) break;
+        continue;
+      }
+      if (!started) {
+        if (/^Passageiros\s+e\s+contatos\s*:?$/i.test(line)) started = true;
+        continue;
+      }
+      // Exact release format: "1. Name | Tel: ..."
+      var item = line.match(/^\d+\.\s+(.+)$/);
+      if (!item || !item[1]) {
+        if (/^(Score\s+de\s+Risco|Matriz|RISCO:)/i.test(line)) break;
+        continue;
+      }
+      manifest.push(String(item[1]).trim());
+      if (manifest.length >= 10) break;
+    }
+    return manifest;
+  }
+
+  function _ffCleanPlanToken_(raw) {
+    var token = String(raw || '').trim().toUpperCase();
+    if (!token) return '';
+    token = token.replace(/^[\s:=\-]+|[\s:=\-]+$/g, '');
+    token = token.replace(/[\t\r\n]+/g, ' ');
+    token = token.replace(/\s{2,}/g, ' ');
+    token = token.replace(/[.;,]+$/g, '');
+    // keep common FPL token chars, route separators, and spaces
+    token = token.replace(/[^A-Z0-9\-\/\s]/g, '');
+    if (!token) return '';
+    return token.slice(0, 64).trim();
+  }
+
   function _ffExtractPlanCode_(blob) {
     var text = String(blob || '').toUpperCase();
     if (!text) return '';
     if (_ffHasNoFlightPlan_(text)) return 'NO FLIGHT PLAN';
+
+    // Exact dispatch release format: "Plano de Voo: DI <PLAN> @ <HHMM>Z"
+    var planLine = _ffExtractDispatchLine_(blob, /^Plano\s+de\s+Voo\s*:\s*(.+)$/i);
+    if (planLine) {
+      if (/NO\s+FLIGHT\s+PLAN/i.test(planLine)) return 'NO FLIGHT PLAN';
+      var diMatch = planLine.match(/\bDI\s+([A-Z0-9\/-]{2,24})\b/i);
+      if (diMatch && diMatch[1]) return String(diMatch[1]).trim().toUpperCase();
+      var pvCompact = planLine.match(/^([A-Z0-9\/-]{2,24})\s*@\s*[0-2]?\d[:h]?[0-5]\d\s*Z?$/i);
+      if (pvCompact && pvCompact[1]) return String(pvCompact[1]).trim().toUpperCase();
+    }
+
+    // Compact release line: "PV:<PLAN>@<HHMM>Z"
+    var pvLine = _ffExtractDispatchLine_(blob, /^PV\s*:\s*([A-Z0-9\/-]{2,24})\s*@\s*[0-2]?\d[:h]?[0-5]\d\s*Z?$/i);
+    if (pvLine) return String(pvLine).trim().toUpperCase();
+
     var patterns = [
-      /(?:PLVO\s*(?:CODIGO|C[ÓO]DIGO|CODE)?|FPL\s*(?:CODE|CODIGO)?|PLANO\s*DE\s*VOO)\s*[:=\-]?\s*([A-Z0-9\/-]{3,24})/i,
-      /\b(?:PLVO|FPL)\s*#?\s*([A-Z0-9\/-]{3,24})\b/i
+      /(?:PLVO\s*(?:CODIGO|C[ÓO]DIGO|CODE)?|FPL\s*(?:CODE|CODIGO)?|PLANO\s*DE\s*VOO|FLIGHT\s*PLAN)\s*[:=\-]?\s*([^\n\r]{3,90})/i,
+      /\b(?:PLVO|FPL)\s*#?\s*([A-Z0-9][A-Z0-9\/-]{2,48})\b/i
     ];
     for (var i = 0; i < patterns.length; i++) {
       var m = String(blob || '').match(patterns[i]);
-      if (m && m[1]) return String(m[1]).trim().toUpperCase();
+      if (m && m[1]) {
+        var cleaned = _ffCleanPlanToken_(m[1]);
+        if (cleaned) return cleaned;
+      }
     }
     return '';
   }
@@ -1542,6 +1949,19 @@
     var text = String(blob || '');
     if (!text) return '';
     if (_ffHasNoFlightPlan_(text)) return '';
+
+    var planLine = _ffExtractDispatchLine_(blob, /^Plano\s+de\s+Voo\s*:\s*(.+)$/i);
+    if (planLine) {
+      var dispatchTime = _ffNormTimeDigits_(planLine);
+      if (dispatchTime) return dispatchTime;
+    }
+
+    var pvLine = _ffExtractDispatchLine_(blob, /^PV\s*:\s*(.+)$/i);
+    if (pvLine) {
+      var pvTime = _ffNormTimeDigits_(pvLine);
+      if (pvTime) return pvTime;
+    }
+
     var keyMatch = text.match(/(?:PLVO|FPL|EOBT|HOR[ÁA]RIO\s*PLVO|HORARIO\s*PLVO)[^\n\r]{0,40}/i);
     if (keyMatch) {
       var t1 = _ffNormTimeDigits_(keyMatch[0]);
@@ -1563,12 +1983,145 @@
     return '';
   }
 
+  function _ffExtractEteTime_(blob) {
+    var text = String(blob || '');
+    if (!text) return '';
+
+    // Exact dispatch release format lines
+    var eteLine = _ffExtractDispatchLine_(blob, /^ETE\s*:\s*(.+)$/i);
+    if (eteLine) {
+      var exact = _ffNormTimeDigits_(eteLine);
+      if (exact) return exact;
+    }
+    var routeEte = _ffExtractDispatchLine_(blob, /^ROTA\s*:\s*.*?\bETE\s*:\s*([^\s]+.*)$/i);
+    if (routeEte) {
+      var routeExact = _ffNormTimeDigits_(routeEte);
+      if (routeExact) return routeExact;
+    }
+
+    var keyMatch = text.match(/(?:\bETE\b|\bEET\b|ESTIMATED\s+ENROUTE\s+TIME|TEMPO\s+ESTIMADO\s+DE\s+ENROTA)[^\n\r]{0,50}/i);
+    if (keyMatch) {
+      var t1 = _ffNormTimeDigits_(keyMatch[0]);
+      if (t1) return t1;
+    }
+    var explicit = text.match(/\b(?:ETE|EET)\s*[:=\-]?\s*([01]?\d|2[0-3])[:h]?([0-5]\d)\b/i);
+    if (explicit) return String(explicit[1]).padStart(2, '0') + String(explicit[2]);
+    return '';
+  }
+
+  function _ffParseFuelNumber_(raw) {
+    var txt = String(raw || '').trim();
+    if (!txt) return 0;
+    txt = txt.replace(/\s+/g, '');
+    // Treat commas as thousand separators when both separators exist.
+    if (txt.indexOf(',') >= 0 && txt.indexOf('.') >= 0) txt = txt.replace(/,/g, '');
+    txt = txt.replace(',', '.');
+    var n = Number(txt);
+    if (!isFinite(n) || n <= 0) return 0;
+    return Math.round(n);
+  }
+
+  function _ffExtractFuelLiters_(blob) {
+    var text = String(blob || '');
+    if (!text) return 0;
+
+    var patterns = [
+      /(?:FUEL|AVGAS|COMBUST(?:[ÍI]VEL)?)\s*(?:ON\s*BOARD|A\s*BORDO|BOARD|ATUAL|CURRENT|REMANESCENTE|RESTANTE|TOTAL)?\s*[:=\-]?\s*(\d{2,5}(?:[\.,]\d{1,2})?)\s*(?:L|LTS?|LITROS?)\b/i,
+      /(\d{2,5}(?:[\.,]\d{1,2})?)\s*(?:L|LTS?|LITROS?)\s*(?:OF\s*)?(?:FUEL|AVGAS|COMBUST(?:[ÍI]VEL)?)\b/i,
+      /(?:COMBUST(?:[ÍI]VEL)?|FUEL|AVGAS)\s*[:=\-]?\s*(\d{2,5}(?:[\.,]\d{1,2})?)\b/i
+    ];
+
+    for (var i = 0; i < patterns.length; i++) {
+      var m = text.match(patterns[i]);
+      if (m && m[1]) {
+        var liters = _ffParseFuelNumber_(m[1]);
+        if (liters > 0) return liters;
+      }
+    }
+    return 0;
+  }
+
+  function _ffExtractPob_(blob) {
+    var text = String(blob || '');
+    if (!text) return 0;
+
+    var dispatchPob = _ffExtractDispatchLine_(blob, /^POB\s*:\s*(\d{1,2})\b/i);
+    if (dispatchPob) {
+      var p = Number(dispatchPob);
+      if (isFinite(p) && p >= 1 && p <= 30) return p;
+    }
+
+    var patterns = [
+      /\bPOB\s*[:=\-]?\s*(\d{1,2})\b/i,
+      /\b(\d{1,2})\s*POB\b/i,
+      /\bPAX\s*[:=\-]?\s*(\d{1,2})\s*\+\s*PILOT\b/i,
+      /\bPAX\s*[:=\-]?\s*(\d{1,2})\b/i
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      var m = text.match(patterns[i]);
+      if (!m || !m[1]) continue;
+      var n = Number(m[1]);
+      if (!isFinite(n) || n <= 0) continue;
+      if (i >= 2) n = n + 1; // PAX count -> include pilot
+      if (n >= 1 && n <= 30) return n;
+    }
+    return 0;
+  }
+
+  function _ffExtractPaxLines_(blob) {
+    var text = String(blob || '');
+    if (!text) return [];
+    var dispatchManifest = _ffExtractDispatchManifest_(blob);
+    if (dispatchManifest.length) return dispatchManifest;
+
+    var lines = text.split(/\r?\n/).map(function(line) { return String(line || '').trim(); }).filter(Boolean);
+    var keep = [];
+    var seen = {};
+
+    // Named passenger sections often come after a PAX/NAMES header and then list plain names.
+    for (var h = 0; h < lines.length; h++) {
+      var header = lines[h];
+      if (!/(\bPAX\b|PASSAGEIR|PASSENGER|NOMES?\b|NAMES?\b)/i.test(header)) continue;
+      for (var j = h + 1; j < lines.length; j++) {
+        var candidate = String(lines[j] || '').trim();
+        if (!candidate) break;
+        if (/^(?:POB|ETA|ATA|ETE|EET|FPL|PLVO|FROM|TO|ORIGEM|DESTINO)\b/i.test(candidate)) break;
+        if (candidate.length > 80) continue;
+        if (/^[-*•\d\.)\s]+$/.test(candidate)) continue;
+        if (!/[A-Za-zÀ-ÿ]/.test(candidate)) continue;
+        var cleanCandidate = candidate.replace(/^[-*\d\.)\s]+/, '').trim();
+        if (!cleanCandidate) continue;
+        var k1 = cleanCandidate.toUpperCase();
+        if (seen[k1]) continue;
+        seen[k1] = true;
+        keep.push(cleanCandidate);
+        if (keep.length >= 8) return keep;
+      }
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (line.length > 160) continue;
+      if (!/(\bPAX\b|\bPOB\b|PASSAGEIR|PASSENGER|NOME|NAME|CONTATO|PHONE|TEL)/i.test(line)) continue;
+      var key = line.toUpperCase();
+      if (seen[key]) continue;
+      seen[key] = true;
+      keep.push(line);
+      if (keep.length >= 10) break;
+    }
+    return keep;
+  }
+
   function _ffMissionMessageHints_(reg, mission) {
     var out = {
       planCode: '',
       plvoTime: '',
       takeoffTime: '',
-      noFlightPlan: false
+      eteTime: '',
+      noFlightPlan: false,
+      fuelLiters: 0,
+      pob: 0,
+      paxLines: []
     };
     var missionId = String(mission && mission.missionId || '').trim();
     var flightLegId = String(mission && mission.flightLegId || '').trim();
@@ -1595,7 +2148,17 @@
       if (!out.planCode) out.planCode = _ffExtractPlanCode_(blob);
       if (!out.plvoTime && !out.noFlightPlan) out.plvoTime = _ffExtractPlvoTime_(blob);
       if (!out.takeoffTime) out.takeoffTime = _ffExtractTakeoffTime_(blob);
-      if ((out.planCode || out.noFlightPlan) && (out.plvoTime || out.noFlightPlan) && out.takeoffTime) break;
+      if (!out.eteTime) out.eteTime = _ffExtractEteTime_(blob);
+      if (!out.fuelLiters) out.fuelLiters = _ffExtractFuelLiters_(blob);
+      if (!out.pob) out.pob = _ffExtractPob_(blob);
+      if (out.paxLines.length < 6) {
+        var parsedLines = _ffExtractPaxLines_(blob);
+        for (var p = 0; p < parsedLines.length; p++) {
+          if (out.paxLines.indexOf(parsedLines[p]) >= 0) continue;
+          out.paxLines.push(parsedLines[p]);
+          if (out.paxLines.length >= 6) break;
+        }
+      }
     }
 
     return out;
@@ -1621,6 +2184,9 @@
   _ffApplyStandaloneMode_();
   loadAircraftAndMissions();
   _ffStartPolling();
+  _ffRefreshTimeBoxes_();
+  if (_ffClockTimer) clearInterval(_ffClockTimer);
+  _ffClockTimer = setInterval(_ffRefreshTimeBoxes_, 1000);
 
   function _ffStartPolling() {
     if (_ffPollTimer) clearInterval(_ffPollTimer);
@@ -1657,17 +2223,26 @@
     state.activeFlights.forEach(function(key) {
       var reg = key.split('|')[0];
       var pos = state.livePositions[reg] || null;
-      var sreg = safeId(reg);
+      var sreg = safeId(key);
       var ageMs = pos ? (Date.now() - pos.updatedAtMs) : Infinity;
       var isLive = pos && ageMs < 90000;  // < 90 s = live
       var isStale = pos && !isLive;
 
       // Update badge
       var badge = document.getElementById('ff-map-badge-' + sreg);
+      var staleBtn = document.getElementById('ff-map-stale-' + sreg);
       if (badge) {
-        if (isLive)  { badge.textContent = 'Live (' + Math.round(ageMs/1000) + 's ago)'; badge.className = 'ff-map-source-badge live'; }
-        else if (isStale) { badge.textContent = 'Stale (' + Math.round(ageMs/60000) + 'min ago)'; badge.className = 'ff-map-source-badge stale'; }
-        else { badge.textContent = 'No position'; badge.className = 'ff-map-source-badge none'; }
+        if (isLive)  { badge.textContent = 'Ao vivo (' + Math.round(ageMs/1000) + 's)'; badge.className = 'ff-map-source-badge live'; }
+        else if (isStale) { badge.textContent = 'Sem posição'; badge.className = 'ff-map-source-badge none'; }
+        else { badge.textContent = 'Sem posição'; badge.className = 'ff-map-source-badge none'; }
+      }
+      if (staleBtn) {
+        if (isStale) {
+          staleBtn.textContent = 'Sinal desatualizado ' + Math.round(ageMs / 60000) + ' min';
+          staleBtn.classList.add('show');
+        } else {
+          staleBtn.classList.remove('show');
+        }
       }
 
       // Auto-switch: if no live data and inReach URL set, prefer inReach
@@ -1766,15 +2341,17 @@
     var rows = _ffGetRouteRows_(key, mission);
     var body = rows.map(function(row, idx) {
       var fix = String(row && row.fix || '').trim().toUpperCase();
-      var etaText = String((row && row.eta) || (row && row.legEta) || '').trim().toUpperCase();
-      var ataText = String(row && row.ata || '').trim().toUpperCase();
+      var etaRaw = String((row && row.eta) || (row && row.legEta) || '').trim();
+      var ataRaw = String(row && row.ata || '').trim();
+      var etaText = _ffZuluTimeLabel_(etaRaw) || etaRaw.toUpperCase();
+      var ataText = _ffZuluTimeLabel_(ataRaw) || ataRaw.toUpperCase();
       var flText = String(row && row.fl || '').trim().toUpperCase();
       var etaCell = idx === 0
         ? '<div class="ff-route-cell-blocked" title="ETA nao aplicavel para origem"></div>'
-        : '<input class="ff-route-cell-input" value="' + esc(etaText) + '" placeholder="--:--Z" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'eta\',this.value)">';
+        : '<input class="ff-route-cell-input" value="' + esc(etaText) + '" placeholder="--:--Z" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'eta\',this.value)" onblur="ffNormalizeRouteTimeCell(\'' + esc(key) + '\',' + idx + ',\'eta\',this)">';
       var ataCell = idx === 0
         ? '<div class="ff-route-cell-blocked" title="ATA nao aplicavel para origem"></div>'
-        : '<input class="ff-route-cell-input" value="' + esc(ataText) + '" placeholder="--:--Z" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'ata\',this.value)">';
+        : '<input class="ff-route-cell-input" value="' + esc(ataText) + '" placeholder="--:--Z" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'ata\',this.value)" onblur="ffNormalizeRouteTimeCell(\'' + esc(key) + '\',' + idx + ',\'ata\',this)">';
       return '<tr>' +
         '<td><input class="ff-route-cell-input" value="' + esc(fix) + '" oninput="ffEditRouteCell(\'' + esc(key) + '\',' + idx + ',\'fix\',this.value)"></td>' +
         '<td>' + etaCell + '</td>' +
@@ -1811,19 +2388,174 @@
   window.ffEditRouteCell = function(key, idx, field, rawValue) {
     var rows = state.routeEditsByKey[key];
     if (!Array.isArray(rows) || !rows[idx]) return;
+    var previousAta = String(rows[idx].ata || '').trim().toUpperCase();
     if (field === 'fix') {
       rows[idx].fix = String(rawValue || '').trim().toUpperCase();
     } else if (field === 'eta') {
       rows[idx].eta = String(rawValue || '').trim().toUpperCase();
     } else if (field === 'ata') {
       rows[idx].ata = String(rawValue || '').trim().toUpperCase();
+      if (rows[idx].ata !== previousAta) {
+        state.archivePromptedByKey[key] = false;
+        state.archiveSavedByKey[key] = false;
+      }
+      if (_ffHasAtLeastFourDigits_(rows[idx].ata) && _ffZuluTimeLabel_(rows[idx].ata)) {
+        _ffMaybePromptArchive_(key, idx);
+      }
     } else if (field === 'fl') {
       rows[idx].fl = String(rawValue || '').trim().toUpperCase();
     }
     state.routeEditsByKey[key] = rows;
-    var reg = String(key || '').split('|')[0] || '';
-    _ffRefreshRouteTable_(key, reg);
   };
+
+  window.ffNormalizeRouteTimeCell = function(key, idx, field, inputEl) {
+    if (!inputEl || (field !== 'eta' && field !== 'ata')) return;
+    var normalized = _ffZuluTimeLabel_(inputEl.value);
+    if (!normalized) return;
+    inputEl.value = normalized;
+    window.ffEditRouteCell(key, idx, field, normalized);
+  };
+
+  function _ffToast_(html, classes, ms) {
+    if (window.M && typeof M.toast === 'function') {
+      M.toast({ html: String(html || ''), classes: String(classes || ''), displayLength: Number(ms || 2600) });
+    }
+  }
+
+  function _ffHasAtLeastFourDigits_(text) {
+    return String(text || '').replace(/\D/g, '').length >= 4;
+  }
+
+  function _ffIsLastAtaCompleted_(key, idx) {
+    var rows = state.routeEditsByKey[key];
+    if (!Array.isArray(rows) || rows.length < 2) return false;
+    var lastIdx = -1;
+    for (var i = rows.length - 1; i >= 1; i--) {
+      var row = rows[i] || {};
+      var hasAny = String(row.fix || '').trim() || String(row.eta || '').trim() || String(row.ata || '').trim() || String(row.fl || '').trim();
+      if (hasAny) {
+        lastIdx = i;
+        break;
+      }
+    }
+    if (lastIdx < 1) lastIdx = rows.length - 1;
+    if (typeof idx === 'number' && idx !== lastIdx) return false;
+    var lastAta = String(rows[lastIdx] && rows[lastIdx].ata || '').trim();
+    return !!_ffZuluTimeLabel_(lastAta);
+  }
+
+  function _ffHasSafeLandedSignal_(reg, mission) {
+    var msgs = state.messagesByReg[reg] || [];
+    if (!msgs.length) return false;
+    var landedRx = /(SAFELY\s+LANDED|LANDED\s+SAFELY|POUSO\s+SEGURO|POUSOU\s+COM\s+SEGURANCA|AERONAVE\s+NO\s+SOLO|ON\s+BLOCKS)/i;
+    return msgs.some(function(m) {
+      var full = [m && m.subject, m && m.text, m && m.body, m && m.summary].filter(Boolean).join(' ');
+      return landedRx.test(full);
+    });
+  }
+
+  function _ffBuildArchiveSnapshot_(key, mission) {
+    var skey = safeId(key);
+    var reg = String((mission && mission.aircraft) || String(key || '').split('|')[0] || '').trim().toUpperCase();
+    var cardEl = document.getElementById('ff-focus-card-' + skey);
+    var chatEl = document.getElementById('ff-chat-' + safeId(reg));
+    var followerEl = document.getElementById('ff-field-follower-' + skey);
+    var decolagemEl = document.getElementById('ff-decolagem-input-' + skey);
+    var eteEl = document.getElementById('ff-ete-input-' + skey);
+    var mode = String(state.mapModeByKey[key] || 'inhouse');
+    var filters = state.mapFiltersByKey[key] || { grass: true, asphalt: true, waypoint: true };
+    return {
+      uiVersion: String(FF_UI_VERSION || ''),
+      capturedAt: new Date().toISOString(),
+      watchKey: key,
+      reg: reg,
+      mission: {
+        missionId: String(mission && mission.missionId || ''),
+        flightLegId: String(mission && mission.flightLegId || ''),
+        planId: String(mission && mission.planId || ''),
+        pilot: String(mission && mission.pilot || ''),
+        from: String(mission && mission.from || ''),
+        to: String(mission && mission.to || ''),
+        date: String(mission && mission.date || '')
+      },
+      fields: {
+        flightFollower: String((followerEl && followerEl.value) || '').trim(),
+        decolagem: String((decolagemEl && decolagemEl.value) || '').trim(),
+        ete: String((eteEl && eteEl.value) || '').trim()
+      },
+      routeRows: Array.isArray(state.routeEditsByKey[key]) ? state.routeEditsByKey[key].map(function(r) {
+        return {
+          fix: String(r && r.fix || ''),
+          eta: String(r && r.eta || ''),
+          ata: String(r && r.ata || ''),
+          fl: String(r && r.fl || '')
+        };
+      }) : [],
+      map: {
+        mode: mode,
+        filters: {
+          grass: filters.grass !== false,
+          asphalt: filters.asphalt !== false,
+          waypoint: filters.waypoint !== false
+        }
+      },
+      messages: Array.isArray(state.messagesByReg[reg]) ? state.messagesByReg[reg].slice(0, 200) : [],
+      html: {
+        focusCard: cardEl ? cardEl.outerHTML : '',
+        chat: chatEl ? chatEl.innerHTML : ''
+      }
+    };
+  }
+
+  function _ffArchiveFlightFollowingSnapshot_(key, mission) {
+    if (!_ffHasGoogleScriptRun_()) return;
+    var reg = String(key || '').split('|')[0] || '';
+    var flightId = String((mission && (mission.flightLegId || mission.missionId)) || '').trim();
+    if (!flightId) {
+      _ffToast_('Nao foi possivel arquivar: flightId ausente.', 'orange', 3000);
+      return;
+    }
+    var payload = {
+      flightId: flightId,
+      missionId: String(mission && mission.missionId || '').trim(),
+      flightLegId: String(mission && mission.flightLegId || '').trim(),
+      reg: String(reg || '').trim().toUpperCase(),
+      reason: 'ATA_FINAL_AFTER_SAFE_LAND',
+      snapshot: _ffBuildArchiveSnapshot_(key, mission)
+    };
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          var msg = res && res.error ? String(res.error) : 'Erro ao arquivar voo.';
+          _ffToast_(msg, 'red darken-2', 3600);
+          state.archivePromptedByKey[key] = false;
+          return;
+        }
+        state.archiveSavedByKey[key] = true;
+        _ffToast_('Voo arquivado com sucesso. ID: ' + esc(String(res.archiveId || '')), 'green darken-2', 2800);
+      })
+      .withFailureHandler(function(err) {
+        var msg = err && err.message ? err.message : String(err);
+        _ffToast_('Falha no arquivamento: ' + esc(msg), 'red darken-2', 3600);
+        state.archivePromptedByKey[key] = false;
+      })
+      .archiveFlightFollowingSnapshot(payload);
+  }
+
+  function _ffMaybePromptArchive_(key, idx) {
+    if (state.archiveSavedByKey[key]) return;
+    if (state.archivePromptedByKey[key]) return;
+    if (!_ffIsLastAtaCompleted_(key, idx)) return;
+    var mission = _ffMissionForKey_(key);
+    if (!mission) return;
+    state.archivePromptedByKey[key] = true;
+    var ok = window.confirm('Voo realizado. Deseja arquivar?');
+    if (!ok) {
+      state.archivePromptedByKey[key] = false;
+      return;
+    }
+    _ffArchiveFlightFollowingSnapshot_(key, mission);
+  }
 
   function _ffEnsureLeaflet(cb) {
     if (window.L && typeof window.L.map === 'function') { cb(); return; }
@@ -1852,11 +2584,21 @@
 
   function _ffAirportSurfaceTone_(surfaceActual) {
     var surface = String(surfaceActual || '').toLowerCase();
-    if (!surface) return '#455a64';
-    if (surface.indexOf('water') !== -1 || surface.indexOf('agua') !== -1 || surface.indexOf('river') !== -1) return '#1e88e5';
-    if (surface.indexOf('grass') !== -1 || surface.indexOf('gravel') !== -1 || surface.indexOf('dirt') !== -1 || surface.indexOf('sand') !== -1 || surface.indexOf('turf') !== -1 || surface.indexOf('laterite') !== -1) return '#2e7d32';
-    if (surface.indexOf('asphalt') !== -1 || surface.indexOf('paved') !== -1 || surface.indexOf('concrete') !== -1 || surface.indexOf('bitumen') !== -1) return '#263238';
-    return '#6d4c41';
+    if (surface && surface.normalize) {
+      surface = surface.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    if (!surface) return '#2e7d32';
+    if (
+      surface.indexOf('asphalt') !== -1 ||
+      surface.indexOf('paved') !== -1 ||
+      surface.indexOf('concrete') !== -1 ||
+      surface.indexOf('bitumen') !== -1 ||
+      surface.indexOf('asfalto') !== -1 ||
+      surface.indexOf('paviment') !== -1 ||
+      surface.indexOf('concreto') !== -1 ||
+      surface.indexOf('betume') !== -1
+    ) return '#263238';
+    return '#2e7d32';
   }
 
   function _ffAirportDivIcon(surfaceActual, hasFuel) {
@@ -1889,40 +2631,212 @@
     delete store[key];
   }
 
+  function _ffCaptureMapView_(map) {
+    if (!map || typeof map.getCenter !== 'function' || typeof map.getZoom !== 'function') return null;
+    var c = map.getCenter();
+    if (!c || !isFinite(c.lat) || !isFinite(c.lng)) return null;
+    return { lat: Number(c.lat), lng: Number(c.lng), zoom: Number(map.getZoom()) };
+  }
+
+  function _ffApplySavedView_(map, saved) {
+    if (!map || !saved) return;
+    if (!isFinite(saved.lat) || !isFinite(saved.lng) || !isFinite(saved.zoom)) return;
+    map.setView([Number(saved.lat), Number(saved.lng)], Number(saved.zoom), { animate: false });
+  }
+
+  function _ffDisposeLeafletForKey_(key, preserveView) {
+    var keepView = preserveView !== false;
+    var liveMap = state.leafletMapsByKey[key];
+    var satMap = state.satMapsByKey[key];
+
+    if (keepView && liveMap) state.mapViewByKey[key] = _ffCaptureMapView_(liveMap) || state.mapViewByKey[key] || null;
+    if (keepView && satMap) state.satViewByKey[key] = _ffCaptureMapView_(satMap) || state.satViewByKey[key] || null;
+
+    _ffClearLayerGroup_(state.leafletRouteLayersByKey, key);
+    _ffClearLayerGroup_(state.leafletDbLayersByKey, key);
+    _ffClearLayerGroup_(state.breadcrumbLayersByKey, key);
+    _ffClearLayerGroup_(state.satRouteLayersByKey, key);
+
+    if (state.leafletMarkersByKey[key] && typeof state.leafletMarkersByKey[key].remove === 'function') {
+      state.leafletMarkersByKey[key].remove();
+    }
+    delete state.leafletMarkersByKey[key];
+
+    if (liveMap && typeof liveMap.off === 'function') liveMap.off();
+    if (liveMap && typeof liveMap.remove === 'function') liveMap.remove();
+    delete state.leafletMapsByKey[key];
+
+    if (satMap && typeof satMap.off === 'function') satMap.off();
+    if (satMap && typeof satMap.remove === 'function') satMap.remove();
+    delete state.satMapsByKey[key];
+
+    var ws = _wxByKey[key];
+    if (ws) {
+      ws.layer = null;
+      ws.pendingLayer = null;
+    }
+  }
+
+  function _ffRebuildLeafletContainers_(keysToKeep) {
+    var keep = {};
+    (keysToKeep || []).forEach(function(k) {
+      keep[String(k || '').trim()] = true;
+    });
+
+    var all = {};
+    Object.keys(state.leafletMapsByKey || {}).forEach(function(k) { all[k] = true; });
+    Object.keys(state.satMapsByKey || {}).forEach(function(k) { all[k] = true; });
+
+    Object.keys(all).forEach(function(k) {
+      _ffDisposeLeafletForKey_(k, !!keep[k]);
+    });
+  }
+
+  function _ffRestoreSavedMapViews_(key) {
+    _ffApplySavedView_(state.leafletMapsByKey[key], state.mapViewByKey[key]);
+    _ffApplySavedView_(state.satMapsByKey[key], state.satViewByKey[key]);
+  }
+
+  function _ffFuelAvailableToBool_(ap, icao, fuelQtyByIcao) {
+    var key = String(icao || '').trim().toUpperCase();
+    var cacheQty = Number((fuelQtyByIcao && fuelQtyByIcao[key]) || 0);
+    var hasCacheFuel = isFinite(cacheQty) && cacheQty > 0;
+
+    var favRaw = String(ap && ap.fuelAvailable || '').trim();
+    var fav = favRaw.toUpperCase();
+    var hasAirportFuel = !!(favRaw && fav !== 'NONE' && fav !== 'N' && fav !== 'NO' && fav !== '0' && fav !== 'NAO' && fav !== 'SEM');
+
+    return ap && ap.hasFuel === true || hasAirportFuel || hasCacheFuel;
+  }
+
+  function _ffLocalFuelValueToBool_(raw) {
+    var token = String(raw || '').trim().toUpperCase();
+    return !!(token && token !== 'NONE' && token !== 'N' && token !== 'NO' && token !== '0' && token !== 'NAO' && token !== 'SEM');
+  }
+
+  function _ffLookupPointMeta_(fixToken) {
+    var token = String(fixToken || '').trim().toUpperCase();
+    if (!token) return null;
+    var fuelQtyByIcao = (state.fuelCaches || []).reduce(function(map, c) {
+      var cIcao = String(c && c.icao || '').trim().toUpperCase();
+      if (!cIcao) return map;
+      var cQty = Number(c && c.qty || 0);
+      if (!isFinite(cQty)) cQty = 0;
+      map[cIcao] = Math.max(Number(map[cIcao] || 0), cQty);
+      return map;
+    }, {});
+    for (var a = 0; a < state.airports.length; a++) {
+      var ap = state.airports[a] || {};
+      var icao = String(ap.icao || '').trim().toUpperCase();
+      if (icao !== token) continue;
+      var lat = Number(ap.lat);
+      var lon = Number(ap.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return null;
+      return {
+        lat: lat,
+        lon: lon,
+        kind: 'airport',
+        type: 'airport',
+        name: String(ap.nome || ap.name || '').trim(),
+        surface: String(ap.runwaySurfaceActual || ap.surfaceOfficial || '').trim(),
+        hasFuel: _ffFuelAvailableToBool_(ap, icao, fuelQtyByIcao)
+      };
+    }
+    for (var w = 0; w < state.waypoints.length; w++) {
+      var wp = state.waypoints[w] || {};
+      var wpId = String(wp.wp_id || '').trim().toUpperCase();
+      if (wpId !== token) continue;
+      var wLat = Number(wp.lat);
+      var wLon = Number(wp.lon);
+      if (!isFinite(wLat) || !isFinite(wLon)) return null;
+      return {
+        lat: wLat,
+        lon: wLon,
+        kind: 'waypoint',
+        type: String(wp.type || '').trim(),
+        surface: '',
+        hasFuel: false
+      };
+    }
+    return null;
+  }
+
   function _ffBuildRoutePoints_(mission) {
     if (!mission) return [];
     var points = [];
     var waypoints = Array.isArray(mission.waypoints) ? mission.waypoints : [];
     waypoints.forEach(function(w, idx) {
-      if (!isFinite(w.lat) || !isFinite(w.lon)) return;
+      var fix = String(w.fix || w.wp_id || w.icao || '').trim().toUpperCase();
+      var meta = _ffLookupPointMeta_(fix);
+      var lat = isFinite(w.lat) ? Number(w.lat) : (meta ? Number(meta.lat) : NaN);
+      var lon = isFinite(w.lon) ? Number(w.lon) : (meta ? Number(meta.lon) : NaN);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+      var kindRaw = String(w.kind || '').trim().toLowerCase();
+      var kind = kindRaw || (meta ? String(meta.kind || '').trim().toLowerCase() : 'fix') || 'fix';
+      var fromMeta = !!(meta && meta.hasFuel);
+      var fromLocalField = _ffLocalFuelValueToBool_(w.fuelAvailable);
+      var fromWaypointBool = (w.hasFuel === true);
+      var hasFuel = fromMeta || fromLocalField || fromWaypointBool;
       points.push({
-        fix: String(w.fix || '').trim().toUpperCase(),
-        lat: Number(w.lat),
-        lon: Number(w.lon),
-        kind: String(w.kind || '').trim().toLowerCase() || 'fix',
-        type: String(w.type || '').trim(),
-        surface: String(w.surface || '').trim(),
-        hasFuel: !!w.hasFuel,
+        fix: fix,
+        lat: lat,
+        lon: lon,
+        kind: kind,
+        type: String(w.type || (meta && meta.type) || '').trim(),
+        surface: String(w.surface || w.runwaySurfaceActual || (meta && meta.surface) || '').trim(),
+        hasFuel: !!hasFuel,
         fuelAvailable: String(w.fuelAvailable || '').trim(),
         distNm: Number(w.distNm || 0),
         order: idx
       });
     });
     if (points.length) return points;
+    var fromMeta = _ffLookupPointMeta_(mission.from || '');
+    var toMeta = _ffLookupPointMeta_(mission.to || '');
     var fromCoord = mission.fromCoord && isFinite(mission.fromCoord.lat) && isFinite(mission.fromCoord.lon)
-      ? { fix: String(mission.from || '').trim().toUpperCase(), lat: Number(mission.fromCoord.lat), lon: Number(mission.fromCoord.lon), kind: 'airport', surface: '', hasFuel: false, distNm: 0, order: 0 }
+      ? { fix: String(mission.from || '').trim().toUpperCase(), lat: Number(mission.fromCoord.lat), lon: Number(mission.fromCoord.lon), kind: 'airport', surface: String(fromMeta && fromMeta.surface || ''), hasFuel: !!(fromMeta && fromMeta.hasFuel), distNm: 0, order: 0 }
       : null;
     var toCoord = mission.toCoord && isFinite(mission.toCoord.lat) && isFinite(mission.toCoord.lon)
-      ? { fix: String(mission.to || '').trim().toUpperCase(), lat: Number(mission.toCoord.lat), lon: Number(mission.toCoord.lon), kind: 'airport', surface: '', hasFuel: false, distNm: 0, order: 1 }
+      ? { fix: String(mission.to || '').trim().toUpperCase(), lat: Number(mission.toCoord.lat), lon: Number(mission.toCoord.lon), kind: 'airport', surface: String(toMeta && toMeta.surface || ''), hasFuel: !!(toMeta && toMeta.hasFuel), distNm: 0, order: 1 }
       : null;
     if (fromCoord) points.push(fromCoord);
     if (toCoord) points.push(toCoord);
     return points;
   }
+  function _ffApplyDynamicMapLayout_(key, reg, mission) {
+    var sreg = safeId(key);
+    var grid = document.getElementById('ff-map-grid-' + sreg);
+    if (!grid) return;
+    var pts = _ffBuildRoutePoints_(mission || {});
+    if (!pts.length) {
+      grid.classList.remove('ff-route-ew');
+      return;
+    }
+    var minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+    pts.forEach(function(p) {
+      var lat = Number(p.lat), lon = Number(p.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+    });
+    if (!isFinite(minLat) || !isFinite(maxLat) || !isFinite(minLon) || !isFinite(maxLon)) {
+      grid.classList.remove('ff-route-ew');
+      return;
+    }
+    var midLat = (minLat + maxLat) / 2;
+    var widthNm = _ffDistNm(midLat, minLon, midLat, maxLon);
+    var heightNm = _ffDistNm(minLat, (minLon + maxLon) / 2, maxLat, (minLon + maxLon) / 2);
+    var mostlyEastWest = widthNm > (heightNm * 1.18);
+    grid.classList.toggle('ff-route-ew', mostlyEastWest);
+    var liveMap = state.leafletMapsByKey[key];
+    var satMap = state.satMapsByKey[key];
+    if (liveMap) setTimeout(function() { liveMap.invalidateSize(); }, 50);
+    if (satMap) setTimeout(function() { satMap.invalidateSize(); }, 50);
+  }
 
   function _ffRenderRouteLayer(map, key, mission) {
-    if (!map) return false;
-    _ffClearLayerGroup_(state.leafletRouteLayersByKey, key);
     var routePoints = _ffBuildRoutePoints_(mission);
     if (!routePoints.length) return false;
     var layer = L.layerGroup();
@@ -1930,11 +2844,23 @@
     if (latlngs.length >= 2) {
       L.polyline(latlngs, { color: '#1565c0', weight: 3, opacity: 0.82, dashArray: '8 6' }).addTo(layer);
     }
+    var showAirports = state.showAirportsByKey[key] !== false;
+    var showWaypoints = state.showWaypointsByKey[key] !== false;
+    var filters = state.mapFiltersByKey[key] || { grass: true, asphalt: true, waypoint: true };
     routePoints.forEach(function(point, idx) {
-      var isAirport = point.kind === 'airport' || /^[A-Z0-9]{4}$/.test(point.fix || '');
+      var isAirport = String(point.kind || '').trim().toLowerCase() === 'airport';
+      if ((isAirport && !showAirports) || (!isAirport && !showWaypoints)) return;
+      if (!isAirport && !filters.waypoint) return;
+      if (isAirport) {
+        var tone = _ffAirportSurfaceTone_(point.surface);
+        var isAsphalt = tone === '#263238';
+        if ((isAsphalt && !filters.asphalt) || (!isAsphalt && !filters.grass)) return;
+      }
       var icon = isAirport ? _ffAirportDivIcon(point.surface, point.hasFuel) : _ffWpDivIcon();
       var popup = '<strong>' + esc(point.fix || 'PONTO') + '</strong>';
       if (isAirport) {
+        var airportTitle = String(point.name || '').trim();
+        if (airportTitle) popup = '<strong>' + esc(airportTitle) + ' (' + esc(point.fix || 'PONTO') + ')</strong>';
         popup += '<br>Surface: ' + esc(point.surface || 'N/D');
         popup += '<br>Avgas: ' + (point.hasFuel ? 'SIM' : 'NAO');
       } else if (point.type) {
@@ -1946,6 +2872,7 @@
     layer.addTo(map);
     state.leafletRouteLayersByKey[key] = layer;
     map.fitBounds(L.latLngBounds(latlngs), { padding: [22, 22] });
+    _ffApplyDynamicMapLayout_(key, String(key || '').split('|')[0] || '', mission || null);
     return true;
   }
 
@@ -1958,32 +2885,46 @@
     var bounds = map.getBounds && map.getBounds();
     var paddedBounds = bounds && bounds.isValid && bounds.isValid() ? bounds.pad(0.35) : null;
     var anchorPoints = routePoints.length ? routePoints : [{ lat: map.getCenter().lat, lon: map.getCenter().lng }];
-    var fuelSet = new Set((state.fuelCaches || []).map(function(c) { return String(c.icao || '').trim().toUpperCase(); }).filter(Boolean));
+    var fuelQtyByIcao = (state.fuelCaches || []).reduce(function(mapObj, c) {
+      var cIcao = String(c && c.icao || '').trim().toUpperCase();
+      if (!cIcao) return mapObj;
+      var cQty = Number(c && c.qty || 0);
+      if (!isFinite(cQty)) cQty = 0;
+      mapObj[cIcao] = Math.max(Number(mapObj[cIcao] || 0), cQty);
+      return mapObj;
+    }, {});
+    var showAirports = state.showAirportsByKey[key] !== false;
+    var showWaypoints = state.showWaypointsByKey[key] !== false;
+    var filters = state.mapFiltersByKey[key] || { grass: true, asphalt: true, waypoint: true };
 
-    (state.airports || []).forEach(function(ap) {
+    if (showAirports) (state.airports || []).forEach(function(ap) {
       var lat = Number(ap.lat);
       var lon = Number(ap.lon);
       var icao = String(ap.icao || '').trim().toUpperCase();
       if (!icao || !isFinite(lat) || !isFinite(lon) || routeIds.has(icao)) return;
       var inBounds = paddedBounds ? paddedBounds.contains([lat, lon]) : false;
-      var nearRoute = anchorPoints.some(function(p) { return _ffDistNm(p.lat, p.lon, lat, lon) <= 35; });
+      var nearRoute = anchorPoints.some(function(p) { return _ffDistNm(p.lat, p.lon, lat, lon) <= 60; });
       if (!inBounds && !nearRoute) return;
-      var hasFuel = !!ap.hasFuel || fuelSet.has(icao);
-      var popup = '<strong>' + esc(icao) + '</strong>' +
-        '<br>' + esc(ap.name || 'Aerodromo') +
+      var tone = _ffAirportSurfaceTone_(ap.runwaySurfaceActual || ap.surfaceOfficial);
+      var isAsphalt = tone === '#263238';
+      if ((isAsphalt && !filters.asphalt) || (!isAsphalt && !filters.grass)) return;
+      var hasFuel = _ffFuelAvailableToBool_(ap, icao, fuelQtyByIcao);
+      var airportName = String(ap.nome || ap.name || '').trim() || 'Aerodromo';
+      var popup = '<strong>' + esc(airportName) + ' (' + esc(icao) + ')</strong>' +
         '<br>Surface: ' + esc(ap.runwaySurfaceActual || ap.surfaceOfficial || 'N/D') +
         '<br>Avgas: ' + (hasFuel ? 'SIM' : 'NAO');
       L.marker([lat, lon], { icon: _ffAirportDivIcon(ap.runwaySurfaceActual || ap.surfaceOfficial, hasFuel), keyboard: false, opacity: 0.92 }).bindPopup(popup).addTo(layer);
     });
 
-    (state.waypoints || []).forEach(function(wp) {
+    if (showWaypoints) (state.waypoints || []).forEach(function(wp) {
       var lat = Number(wp.lat);
       var lon = Number(wp.lon);
       var wpId = String(wp.wp_id || '').trim().toUpperCase();
       if (!wpId || !isFinite(lat) || !isFinite(lon) || routeIds.has(wpId)) return;
       var inBounds = paddedBounds ? paddedBounds.contains([lat, lon]) : false;
-      var nearRoute = anchorPoints.some(function(p) { return _ffDistNm(p.lat, p.lon, lat, lon) <= 20; });
+      var nearRoute = anchorPoints.some(function(p) { return _ffDistNm(p.lat, p.lon, lat, lon) <= 60; });
       if (!inBounds && !nearRoute) return;
+      if (!filters.waypoint) return;
       var popup = '<strong>' + esc(wpId) + '</strong>' + (wp.type ? '<br>Tipo: ' + esc(wp.type) : '');
       L.marker([lat, lon], { icon: _ffWpDivIcon(), keyboard: false, opacity: 0.9 }).bindPopup(popup).addTo(layer);
     });
@@ -2031,42 +2972,45 @@
 
   function _ffInitMap(key, reg, mission) {
     if (state.leafletMapsByKey[key]) return; // already initialized
-    var sreg = safeId(reg);
+    var sreg = safeId(key);
     var mapEl = document.getElementById('ff-live-map-' + sreg);
     if (!mapEl) return;
     _ffEnsureLeaflet(function() {
       var map = L.map('ff-live-map-' + sreg, { zoomControl: true, attributionControl: false });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16, minZoom: 2 }).addTo(map);
       state.leafletMapsByKey[key] = map;
-      if (typeof state.mapFollowByKey[key] === 'undefined') state.mapFollowByKey[key] = true;
-      _ffRefreshFollowBtn_(key, reg);
-      map.on('dragstart', function() {
-        if (state.mapFollowByKey[key] === false) return;
-        state.mapFollowByKey[key] = false;
-        _ffRefreshFollowBtn_(key, reg);
-      });
+      setTimeout(function() { map.invalidateSize(); }, 0);
+      if (typeof state.showAirportsByKey[key] === 'undefined') state.showAirportsByKey[key] = true;
+      if (typeof state.showWaypointsByKey[key] === 'undefined') state.showWaypointsByKey[key] = true;
+      if (!state.mapFiltersByKey[key]) state.mapFiltersByKey[key] = { grass: true, asphalt: true, waypoint: true };
+      _ffRefreshLayerToggleBtns_(key, reg);
       map.on('moveend', function() {
         _ffRefreshDbLayers(key, map, mission);
       });
       if (_ffRenderRouteLayer(map, key, mission)) {
         _ffRefreshDbLayers(key, map, mission);
         _ffRefreshBreadcrumbLayer(key, map);
+        _ffEnsureWxState_(key, mission);
         return;
       }
       if (_ffPlotMissionTrace(map, mission, { color: '#1565c0', weight: 2, opacity: 0.7, dashArray: '8 6', addEndpoints: true })) {
         _ffRefreshDbLayers(key, map, mission);
         _ffRefreshBreadcrumbLayer(key, map);
+        _ffApplyDynamicMapLayout_(key, reg, mission);
+        _ffEnsureWxState_(key, mission);
         return;
       }
       map.setView([-3.5, -60.0], 5); // Default: central Brazil
       _ffRefreshDbLayers(key, map, mission);
       _ffRefreshBreadcrumbLayer(key, map);
+      _ffApplyDynamicMapLayout_(key, reg, mission);
+      _ffEnsureWxState_(key, mission);
     });
   }
 
   function _ffInitSatMap(key, reg, mission) {
     if (state.satMapsByKey[key]) return state.satMapsByKey[key];
-    var sreg = safeId(reg);
+    var sreg = safeId(key);
     var mapEl = document.getElementById('ff-sat-map-' + sreg);
     if (!mapEl) return null;
     var satMap = L.map('ff-sat-map-' + sreg, { zoomControl: true, attributionControl: false });
@@ -2074,6 +3018,7 @@
       satMap.zoomControl.setPosition('topright');
     }
     state.satMapsByKey[key] = satMap;
+    setTimeout(function() { satMap.invalidateSize(); }, 0);
     if (!_ffRenderSatRouteLayer(key, satMap, mission)) {
       satMap.setView([-3.5, -60.0], 5);
     }
@@ -2169,7 +3114,7 @@
   }
 
   function _ffUpdateMapMarker(key, reg, pos) {
-    var sreg = safeId(reg);
+    var sreg = safeId(key);
     _ffEnsureLeaflet(function() {
       var map = state.leafletMapsByKey[key];
       if (!map) { _ffInitMap(key, reg, null); return; }
@@ -2183,12 +3128,10 @@
           reg + ' — ' + Math.round(pos.gsKts) + ' kts / hdg ' + Math.round(pos.bearing) + '°'
         );
         _ffPushBreadcrumbPoint(key, map, pos);
-        if (state.mapFollowByKey[key] !== false) {
-          var c = map.getCenter();
-          var offNm = (c && isFinite(c.lat) && isFinite(c.lng)) ? _ffDistNm(Number(c.lat), Number(c.lng), Number(pos.lat), Number(pos.lng)) : 999;
-          if (offNm > 0.12) {
-            map.panTo(latlng, { animate: true, duration: 0.35 });
-          }
+        var c = map.getCenter();
+        var offNm = (c && isFinite(c.lat) && isFinite(c.lng)) ? _ffDistNm(Number(c.lat), Number(c.lng), Number(pos.lat), Number(pos.lng)) : 999;
+        if (offNm > 0.12) {
+          map.panTo(latlng, { animate: true, duration: 0.35 });
         }
       } else {
         var marker = L.marker(latlng, { icon: icon })
@@ -2201,30 +3144,66 @@
     });
   }
 
-  function _ffRefreshFollowBtn_(key, reg) {
-    var sreg = safeId(reg);
-    var btn = document.getElementById('ff-map-follow-' + sreg);
-    if (!btn) return;
-    var followOn = state.mapFollowByKey[key] !== false;
-    btn.textContent = followOn ? 'Follow ON' : 'Follow OFF';
-    btn.className = 'ff-map-toggle-btn' + (followOn ? ' active' : '');
+  function _ffRefreshLayerToggleBtns_(key, reg) {
+    var sreg = safeId(key);
+    var f = state.mapFiltersByKey[key] || { grass: true, asphalt: true, waypoint: true };
+    var gBtn = document.getElementById('ff-map-filter-grass-' + sreg);
+    var aBtn = document.getElementById('ff-map-filter-asphalt-' + sreg);
+    var wBtn = document.getElementById('ff-map-filter-waypoint-' + sreg);
+    if (gBtn) {
+      gBtn.className = 'ff-map-filter-btn' + (f.grass ? ' active' : ' off');
+      gBtn.innerHTML = '<span class="ff-map-leg-dot" style="background:#2e7d32;"></span>Grama ' + (f.grass ? 'ON' : 'OFF');
+    }
+    if (aBtn) {
+      aBtn.className = 'ff-map-filter-btn' + (f.asphalt ? ' active' : ' off');
+      aBtn.innerHTML = '<span class="ff-map-leg-dot" style="background:#263238;"></span>Asfalto ' + (f.asphalt ? 'ON' : 'OFF');
+    }
+    if (wBtn) {
+      wBtn.className = 'ff-map-filter-btn' + (f.waypoint ? ' active' : ' off');
+      wBtn.innerHTML = '<span class="ff-map-leg-tri"></span>Waypoint ' + (f.waypoint ? 'ON' : 'OFF');
+    }
   }
 
-  window.ffToggleMapFollow = function(key) {
-    var reg = key.split('|')[0];
-    var followOn = state.mapFollowByKey[key] !== false;
-    state.mapFollowByKey[key] = !followOn;
-    _ffRefreshFollowBtn_(key, reg);
-
-    if (state.mapFollowByKey[key] !== false) {
-      var map = state.leafletMapsByKey[key];
-      if (!map) return;
-      var marker = state.leafletMarkersByKey[key];
-      if (marker && marker.getLatLng) {
-        var ll = marker.getLatLng();
-        if (ll) map.panTo(ll, { animate: true, duration: 0.35 });
-      }
+  window.ffToggleMapFilter = function(key, which) {
+    if (!state.mapFiltersByKey[key]) state.mapFiltersByKey[key] = { grass: true, asphalt: true, waypoint: true };
+    if (!Object.prototype.hasOwnProperty.call(state.mapFiltersByKey[key], which)) return;
+    state.mapFiltersByKey[key][which] = !state.mapFiltersByKey[key][which];
+    var reg = String(key || '').split('|')[0] || '';
+    var mission = _ffMissionForKey_(key);
+    var map = state.leafletMapsByKey[key];
+    if (map) {
+      _ffRenderRouteLayer(map, key, mission);
+      _ffRefreshDbLayers(key, map, mission);
     }
+    _ffRefreshLayerToggleBtns_(key, reg);
+  };
+
+  function _ffMissionForKey_(key) {
+    var parts = String(key || '').split('|');
+    var reg = String(parts[0] || '').trim().toUpperCase();
+    var flightLegId = String(parts[1] || '').trim();
+    return (state.missionsByReg[reg] || []).find(function(m) {
+      return String(m && (m.flightLegId || m.missionId) || '').trim() === flightLegId;
+    }) || null;
+  }
+
+  window.ffToggleMapAirports = function(key) {
+    var reg = String(key || '').split('|')[0] || '';
+    state.showAirportsByKey[key] = !(state.showAirportsByKey[key] !== false);
+    var map = state.leafletMapsByKey[key];
+    if (map) _ffRefreshDbLayers(key, map, _ffMissionForKey_(key));
+    _ffRefreshLayerToggleBtns_(key, reg);
+  };
+
+  window.ffToggleMapWaypoints = function(key) {
+    var reg = String(key || '').split('|')[0] || '';
+    state.showWaypointsByKey[key] = !(state.showWaypointsByKey[key] !== false);
+    var map = state.leafletMapsByKey[key];
+    if (map) {
+      _ffRenderRouteLayer(map, key, _ffMissionForKey_(key));
+      _ffRefreshDbLayers(key, map, _ffMissionForKey_(key));
+    }
+    _ffRefreshLayerToggleBtns_(key, reg);
   };
 
   window.ffSetMapMode = function(key, mode) {
@@ -2235,20 +3214,25 @@
     _ffApplyMapModeUI(key, reg, mode);
   };
 
+  window.ffCycleMapMode = function(key) {
+    var current = state.mapModeByKey[key] || 'inhouse';
+    var next = current === 'inhouse' ? 'inreach' : (current === 'inreach' ? 'both' : 'inhouse');
+    window.ffSetMapMode(key, next);
+  };
+
   function _ffApplyMapModeUI(key, reg, mode) {
-    var sreg = safeId(reg);
+    var sreg = safeId(key);
     var liveWrap    = document.getElementById('ff-live-wrap-' + sreg);
     var inreachWrap = document.getElementById('ff-inreach-wrap-' + sreg);
-    var btnIn  = document.getElementById('ff-maptab-inhouse-' + sreg);
-    var btnIr  = document.getElementById('ff-maptab-inreach-' + sreg);
-    var btnBoth= document.getElementById('ff-maptab-both-' + sreg);
+    var modeBtn = document.getElementById('ff-map-mode-cycle-' + sreg);
     var showLive    = mode === 'inhouse' || mode === 'both';
     var showInreach = mode === 'inreach' || mode === 'both';
     if (liveWrap)    liveWrap.style.display    = showLive    ? '' : 'none';
     if (inreachWrap) inreachWrap.style.display = showInreach ? '' : 'none';
-    if (btnIn)   btnIn.className   = 'ff-map-toggle-btn' + (mode === 'inhouse' ? ' active' : '');
-    if (btnIr)   btnIr.className   = 'ff-map-toggle-btn' + (mode === 'inreach' ? ' active' : '');
-    if (btnBoth) btnBoth.className = 'ff-map-toggle-btn' + (mode === 'both'    ? ' active' : '');
+    if (modeBtn) {
+      modeBtn.className = 'ff-map-toggle-btn active';
+      modeBtn.textContent = 'Mapa: ' + (mode === 'inhouse' ? 'Interno' : (mode === 'inreach' ? 'InReach' : 'Ambos'));
+    }
     // Invalidate Leaflet size if shown
     if (showLive) {
       var map = state.leafletMapsByKey[key];
@@ -2277,10 +3261,13 @@
   };
 
   function _ffRenderInreachFrame(key, reg) {
-    var sreg = safeId(reg);
+    var sreg = safeId(key);
     var wrap = document.getElementById('ff-inreach-wrap-' + sreg);
     if (!wrap) return;
-    var url = state.inreachUrlByKey[key] || '';
+    var regKey = String(reg || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var configured = String((state.inreachByReg || {})[regKey] || '').trim();
+    var url = state.inreachUrlByKey[key] || configured || '';
+    if (!state.inreachUrlByKey[key] && configured) state.inreachUrlByKey[key] = configured;
     if (!url) { /* leave fallback text */ return; }
     var existing = wrap.querySelector('iframe');
     if (existing && existing.src === url) return; // already loaded
@@ -2298,6 +3285,7 @@
         state.airports = Array.isArray(data && data.airports) ? data.airports : [];
         state.waypoints = Array.isArray(data && data.waypoints) ? data.waypoints : [];
         state.fuelCaches = Array.isArray(data && data.fuelCaches) ? data.fuelCaches : [];
+        state.inreachByReg = (data && data.inreachByReg && typeof data.inreachByReg === 'object') ? data.inreachByReg : {};
         state.currentUserEmail = String(data && data.currentUserEmail || '').trim();
         state.flightFollowerName = _ffNameFromEmail_(state.currentUserEmail);
         renderFlightList();
@@ -2467,6 +3455,7 @@
     if (!watched.length && state.selectedFlightKey) watched = [state.selectedFlightKey];
 
     if (!watched.length) {
+      _ffRebuildLeafletContainers_([]);
       host.innerHTML = '<div class="ff-empty-state">Selecione um voo na lista para abrir o painel de acompanhamento.</div>';
       return;
     }
@@ -2490,9 +3479,12 @@
     });
 
     if (!cards.length) {
+      _ffRebuildLeafletContainers_([]);
       host.innerHTML = '<div class="ff-empty-state">Dados do voo ainda carregando. Tente novamente em alguns segundos.</div>';
       return;
     }
+
+    _ffRebuildLeafletContainers_(mapInitTargets.map(function(t) { return t.key; }));
 
     host.innerHTML = watched.length >= 2
       ? '<div class="ff-detail-split-grid">' + cards.join('') + '</div>'
@@ -2502,7 +3494,15 @@
       mapInitTargets.forEach(function(target) {
         _ffInitMap(target.key, target.reg, target.mission);
         renderMessages(target.reg);
+        _ffRefreshLayerToggleBtns_(target.key, target.reg);
       });
+      setTimeout(function() {
+        mapInitTargets.forEach(function(target) {
+          _ffRestoreSavedMapViews_(target.key);
+          _ffApplyDynamicMapLayout_(target.key, target.reg, target.mission);
+        });
+      }, 70);
+      _ffRefreshTimeBoxes_();
     }, 80);
   }
 
@@ -2515,15 +3515,47 @@
     return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
   }
 
+  function _ffResolvePob_(mission, hints) {
+    var hintPob = Number(hints && hints.pob || 0);
+    if (!isFinite(hintPob)) hintPob = 0;
+    var missionPob = Number(String(mission && mission.pob || '').replace(/[^\d]/g, ''));
+    if (!isFinite(missionPob)) missionPob = 0;
+    var paxListCount = Array.isArray(mission && mission.pax) ? mission.pax.length : 0;
+    var fallbackPob = paxListCount > 0 ? (paxListCount + 1) : 1;
+    return Math.max(1, hintPob, missionPob, fallbackPob);
+  }
+
+  function _ffPaxSummaryHtml_(mission, hints, pobValue) {
+    var lines = [];
+    if (Array.isArray(hints && hints.paxLines)) lines = hints.paxLines.slice(0, 8);
+    if (!lines.length && Array.isArray(mission && mission.pax) && mission.pax.length) {
+      lines = mission.pax.slice(0, 8).map(function(p) {
+        var name = String(p && p.name || '').trim();
+        var phone = String(p && p.phone || '').trim();
+        return [name, phone ? ('tel ' + phone) : ''].filter(Boolean).join(' | ');
+      }).filter(Boolean);
+    }
+    var paxOnly = Math.max(0, Number(pobValue || 0) - 1);
+    var head = '<div class="ff-pax-summary-head"><span>PAX info parsed</span><span>POB ' + esc(String(pobValue || '--')) + ' | PAX ' + esc(String(paxOnly)) + '</span></div>';
+    if (!lines.length) {
+      return head + '<div class="ff-pax-summary-body"><div class="ff-pax-summary-empty">Sem detalhes de passageiros detectados nas mensagens.</div></div>';
+    }
+    return head + '<div class="ff-pax-summary-body">' + lines.map(function(line) {
+      return '<div class="ff-pax-summary-line">' + esc(line) + '</div>';
+    }).join('') + '</div>';
+  }
+
   function buildFocusCard(acft, mission, options) {
     var opts = options || {};
     var reg = String(acft && acft.reg || '').trim();
     var sreg = safeId(reg);
     var key = String(opts.watchKey || flightKey(reg, mission && (mission.flightLegId || mission.missionId) || '')).trim();
-    var burnLph = Number(acft && (acft.burnLph || acft.burn) || 0);
-    var fuelL = Number(mission && mission.fuelL || 0);
-    var range = (burnLph > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burnLph) : '--:--';
+    var smap = safeId(key);
+    state.inreachUrlByKey[key] = String((state.inreachByReg || {})[String(reg || '').toUpperCase().replace(/[^A-Z0-9]/g, '')] || '').trim();
     var hints = _ffMissionMessageHints_(reg, mission);
+    var burnLph = Number(acft && (acft.burnLph || acft.burn) || 0);
+    var fuelL = Number(hints.fuelLiters || 0);
+    var range = (burnLph > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burnLph) : '--:--';
     var plannedTime = String(hints.plvoTime || '').trim().replace(/\D/g, '').slice(0, 4);
     var dateText = _ffDateLabelPt_(mission && mission.date || '--');
     var planCode = String(hints.planCode || '').trim() || '--';
@@ -2531,20 +3563,21 @@
     var takeoffSuggestedLabel = _ffTimeLabel_(takeoffSuggested);
     var roleText = String(mission && mission.copilot || '').trim() || 'Sem co-piloto/aluno';
     var flightFollowerDefault = String(state.flightFollowerName || _ffNameFromEmail_(state.currentUserEmail) || '').trim();
-    var pob = 1 + (Array.isArray(mission && mission.pax) ? mission.pax.length : 0);
-    var closeBtn = opts.showClose
-      ? '<button class="ff-flight-close-btn" type="button" onclick="ffCloseFlightFromWatch(\'' + esc(key) + '\')" title="Close this flight">&times;</button>'
-      : '';
-    return '<div class="ff-focus-card">' +
+    var pob = _ffResolvePob_(mission, hints);
+    var storedEte = String(state.eteByKey[key] || '').trim();
+    var parsedEte = _ffZuluTimeLabel_(hints.eteTime || '');
+    var eteValue = storedEte || parsedEte;
+    if (!storedEte && parsedEte) state.eteByKey[key] = parsedEte;
+    var closeBtn = '<button class="ff-flight-close-btn" type="button" onclick="ffCloseFlightFromWatch(\'' + esc(key) + '\')" title="Close this flight">&times;</button>';
+    return '<div class="ff-focus-card" id="ff-focus-card-' + safeId(key) + '">' +
       closeBtn +
-      '<h3 class="ff-focus-title">' + esc(reg) + ' | Missao ' + esc(String(mission.missionId || '--')) + ' | ' + esc((mission.from || '--') + ' - ' + (mission.to || '--')) + '</h3>' +
+      '<h3 class="ff-focus-title">' + esc(reg) + ' | Missao ' + esc(String(mission.missionId || '--')) + ' | ' + esc((mission.from || '--') + ' - ' + (mission.to || '--')) + ' | Data ' + esc(dateText) + '<span class="ff-focus-timebox" id="ff-timebox-' + safeId(key) + '"></span></h3>' +
       '<div class="ff-focus-grid-top">' +
         ffFieldReadonly_('Piloto', mission.pilot || '--') +
         ffFieldInput_('Flight Follower', 'Nome do acompanhante', {
           value: flightFollowerDefault,
           id: 'ff-field-follower-' + safeId(key)
         }) +
-        ffFieldReadonly_('Data', dateText) +
         ffFieldReadonly_('PLVO Codigo', planCode, { id: 'ff-plvo-code-' + safeId(key) }) +
         ffFieldReadonly_('PLVO Horario', plannedTime ? plannedTime + 'Z' : '--', { id: 'ff-plvo-time-' + safeId(key) }) +
         ffFieldInput_('Horario de Decolagem', '00:00', {
@@ -2554,55 +3587,48 @@
           actionsHtml: '<button type="button" class="ff-verify-btn' + (takeoffSuggested ? ' show' : '') + '" id="ff-decolagem-verify-' + safeId(key) + '" onclick="ffApplyParsedDecolagem(\'' + esc(key) + '\')" title="Usar horário detectado na mensagem de decolagem">Verificar? ' + esc(takeoffSuggestedLabel || '') + '</button>'
         }) +
       '</div>' +
-      '<div class="ff-focus-grid-mid">' +
-        ffFieldReadonly_('Callsign', reg || '--') +
+      '<div class="ff-focus-grid-mid ff-mid-main">' +
         ffFieldReadonly_('Co-piloto / Aluno', roleText) +
-        ffFieldInput_('Follower Backup', 'Nome (opcional)') +
-        ffFieldInput_('ETE', '00:00') +
-        ffFieldReadonly_('Combustivel a bordo (L)', isFinite(fuelL) && fuelL > 0 ? String(Math.round(fuelL)) : '--') +
-        ffFieldReadonly_('Range (combustivel/burn)', range) +
-      '</div>' +
-      '<div class="ff-focus-grid-mid" style="grid-template-columns: repeat(3, minmax(120px, 1fr)); margin-bottom:0;">' +
-        ffFieldReadonly_('POB (piloto + pax)', String(pob)) +
-        ffFieldReadonly_('Burn rate (DB_Aircraft)', isFinite(burnLph) && burnLph > 0 ? burnLph.toFixed(1) + ' L/h' : '--') +
-        ffFieldReadonly_('Aeronave', acft.type || '--') +
+        ffFieldInput_('ETE', '00:00Z', {
+          id: 'ff-ete-input-' + safeId(key),
+          value: eteValue,
+          attrs: ' data-ff-key="' + esc(key) + '" oninput="ffHandleEteInput(\'' + esc(key) + '\')" onblur="ffNormalizeEteInput(\'' + esc(key) + '\')"'
+        }) +
+        ffFieldReadonly_('Avgas (L)', isFinite(fuelL) && fuelL > 0 ? String(Math.round(fuelL)) : '--', { id: 'ff-avgas-' + safeId(key) }) +
+        ffFieldReadonly_('Autonomia', range, { id: 'ff-autonomia-' + safeId(key) }) +
+        ffFieldReadonly_('POB', String(pob), { id: 'ff-pob-' + safeId(key) }) +
       '</div>' +
 
       '<div id="ff-route-host-' + safeId(key) + '">' + _ffBuildRouteTableHtml_(key, reg, mission) + '</div>' +
 
-      '<div class="ff-map-panel" id="ff-map-panel-' + sreg + '" style="margin-top:10px;">' +
+      '<div class="ff-map-panel" id="ff-map-panel-' + smap + '" style="margin-top:10px;">' +
         '<div class="ff-map-toolbar">' +
-          '<span class="ff-map-source-badge none" id="ff-map-badge-' + sreg + '">No data</span>' +
-          '<button class="ff-map-toggle-btn active" id="ff-maptab-inhouse-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inhouse\')">In-House</button>' +
-          '<button class="ff-map-toggle-btn" id="ff-maptab-inreach-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inreach\')">InReach</button>' +
-          '<button class="ff-map-toggle-btn" id="ff-maptab-both-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'both\')">Both</button>' +
-          '<button class="ff-map-toggle-btn active" id="ff-map-follow-' + sreg + '" onclick="ffToggleMapFollow(\''+key+'\')">Follow ON</button>' +
-          '<input class="ff-map-inreach-url" id="ff-inreach-url-' + sreg + '" type="url" placeholder="share.garmin.com/DeviceID" onblur="ffSetInreachUrl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\')ffSetInreachUrl(\''+key+'\',this.value)">' +
+          '<button class="ff-map-filter-btn active" id="ff-map-filter-grass-' + smap + '" onclick="ffToggleMapFilter(\''+key+'\',\'grass\')"><span class="ff-map-leg-dot" style="background:#2e7d32;"></span>Grama ON</button>' +
+          '<button class="ff-map-filter-btn active" id="ff-map-filter-asphalt-' + smap + '" onclick="ffToggleMapFilter(\''+key+'\',\'asphalt\')"><span class="ff-map-leg-dot" style="background:#263238;"></span>Asfalto ON</button>' +
+          '<button class="ff-map-filter-btn active" id="ff-map-filter-waypoint-' + smap + '" onclick="ffToggleMapFilter(\''+key+'\',\'waypoint\')"><span class="ff-map-leg-tri"></span>Waypoint ON</button>' +
+          '<button class="ff-map-filter-btn" id="ff-map-mode-cycle-' + smap + '" onclick="ffCycleMapMode(\''+key+'\')">Mapa: Interno</button>' +
+          '<span class="ff-map-wx-row">' + _ffBuildWxToolbarControls_(key, smap) + '</span>' +
         '</div>' +
-        '<div class="ff-map-legend">' +
-          '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#2e7d32;"></span>Grass</span>' +
-          '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#1e88e5;"></span>Water</span>' +
-          '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#263238;"></span>Paved/Other</span>' +
-          '<span class="ff-map-legend-item"><span class="ff-map-leg-fuel">A</span>Avgas</span>' +
-          '<span class="ff-map-legend-item"><span class="ff-map-leg-tri"></span>Waypoint</span>' +
-          '<span class="ff-map-legend-item"><span class="ff-map-leg-aircraft"></span>Aircraft</span>' +
-        '</div>' +
-        _ffBuildWxBar(key, sreg) +
-        '<div class="ff-map-content-grid">' +
+        '<div class="ff-map-content-grid" id="ff-map-grid-' + smap + '">' +
           '<div class="ff-map-primary-col">' +
-            '<div class="ff-live-map-wrap" id="ff-live-wrap-' + sreg + '">' +
-              '<div class="ff-leaflet-map" id="ff-live-map-' + sreg + '"></div>' +
+            '<div class="ff-live-map-wrap" id="ff-live-wrap-' + smap + '">' +
+              '<button class="ff-map-stale-btn" id="ff-map-stale-' + smap + '" type="button">Sinal desatualizado</button>' +
+              '<div class="ff-leaflet-map" id="ff-live-map-' + smap + '"></div>' +
             '</div>' +
-            '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + sreg + '" style="display:none">' +
-              '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + sreg + '">' +
-                'Paste the Garmin MapShare URL above<br>' +
-                '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">e.g. share.garmin.com/YourDevice</span>' +
+            '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + smap + '" style="display:none">' +
+              '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + smap + '">' +
+                'Link MapShare não configurado para esta aeronave.<br>' +
+                '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">Defina em Ferramentas > Master Config > Flight Following.</span>' +
               '</div>' +
             '</div>' +
           '</div>' +
-          '<div class="ff-sat-wrap" id="ff-sat-wrap-' + sreg + '">' +
-            '<div class="ff-sat-map" id="ff-sat-map-' + sreg + '"></div>' +
-            '<div class="ff-sat-empty" id="ff-sat-empty-' + sreg + '">Satellite weather frames load here.<br>Use Visible / Infrared and Play when needed.</div>' +
+          '<div class="ff-sat-wrap" id="ff-sat-wrap-' + smap + '">' +
+            '<div class="ff-sat-layer-tabs">' +
+              '<button class="ff-sat-layer-btn active" id="ff-sat-visible-' + smap + '" onclick="ffWxSetLayer(\'' + key + '\',\'geocolor\')">Visivel</button>' +
+              '<button class="ff-sat-layer-btn" id="ff-sat-ir-' + smap + '" onclick="ffWxSetLayer(\'' + key + '\',\'ir\')">Infravermelho</button>' +
+            '</div>' +
+            '<div class="ff-sat-map" id="ff-sat-map-' + smap + '"></div>' +
+            '<div class="ff-sat-empty" id="ff-sat-empty-' + smap + '" style="display:none;">As imagens de satélite aparecem aqui.<br>Use visível / infravermelho e play quando necessário.</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -2615,6 +3641,7 @@
           '<button class="ff-chat-send" onclick="ffSendChat(\'' + esc(reg) + '\')">Send</button>' +
         '</div>' +
       '</div>' +
+      '<div class="ff-pax-summary" id="ff-pax-summary-' + safeId(key) + '">' + _ffPaxSummaryHtml_(mission, hints, pob) + '</div>' +
     '</div>';
   }
 
@@ -2658,6 +3685,21 @@
     _ffSetDecolagemVerifyState_(key);
   };
 
+  window.ffHandleEteInput = function(key) {
+    var input = document.getElementById('ff-ete-input-' + safeId(key));
+    if (!input) return;
+    state.eteByKey[key] = String(input.value || '').trim().toUpperCase();
+  };
+
+  window.ffNormalizeEteInput = function(key) {
+    var input = document.getElementById('ff-ete-input-' + safeId(key));
+    if (!input) return;
+    var normalized = _ffZuluTimeLabel_(input.value);
+    if (!normalized) return;
+    input.value = normalized;
+    state.eteByKey[key] = normalized;
+  };
+
   function _ffRefreshParsedHeaderForReg_(reg) {
     var watched = Array.isArray(state.watchFlightKeys) ? state.watchFlightKeys.slice() : [];
     watched.forEach(function(key) {
@@ -2674,9 +3716,31 @@
       var skey = safeId(key);
       var plvoCodeEl = document.getElementById('ff-plvo-code-' + skey);
       var plvoTimeEl = document.getElementById('ff-plvo-time-' + skey);
+      var avgasEl = document.getElementById('ff-avgas-' + skey);
+      var autonomiaEl = document.getElementById('ff-autonomia-' + skey);
+      var pobEl = document.getElementById('ff-pob-' + skey);
+      var paxSummaryEl = document.getElementById('ff-pax-summary-' + skey);
       var decInputEl = document.getElementById('ff-decolagem-input-' + skey);
+      var eteInputEl = document.getElementById('ff-ete-input-' + skey);
       if (plvoCodeEl) plvoCodeEl.textContent = hints.planCode || '--';
       if (plvoTimeEl) plvoTimeEl.textContent = hints.plvoTime ? (hints.plvoTime + 'Z') : '--';
+      var fuelL = Number(hints.fuelLiters || 0);
+      if (avgasEl) avgasEl.textContent = (isFinite(fuelL) && fuelL > 0) ? String(Math.round(fuelL)) : '--';
+      if (autonomiaEl) {
+        var burn = Number((state.aircraft.find(function(a) { return a.reg === keyReg; }) || {}).burnLph || 0);
+        autonomiaEl.textContent = (burn > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burn) : '--:--';
+      }
+      var pobValue = _ffResolvePob_(mission, hints);
+      if (pobEl) pobEl.textContent = String(pobValue);
+      if (paxSummaryEl) paxSummaryEl.innerHTML = _ffPaxSummaryHtml_(mission, hints, pobValue);
+      var parsedEte = _ffZuluTimeLabel_(hints.eteTime || '');
+      if (eteInputEl) {
+        var currentEte = String(eteInputEl.value || '').trim();
+        if (!currentEte && parsedEte) {
+          eteInputEl.value = parsedEte;
+          state.eteByKey[key] = parsedEte;
+        }
+      }
       if (decInputEl && hints.takeoffTime) {
         decInputEl.setAttribute('data-suggested-time', hints.takeoffTime);
         var btn = document.getElementById('ff-decolagem-verify-' + skey);
@@ -2713,8 +3777,12 @@
       var reg = parts[0];
       var missionId = parts[1];
       var mission = (state.missionsByReg[reg] || []).find(function(m) { return m.missionId === missionId; }) || null;
-      setTimeout(function() { _ffInitMap(key, reg, mission); }, 80);
+      setTimeout(function() {
+        _ffInitMap(key, reg, mission);
+        _ffRefreshLayerToggleBtns_(key, reg);
+      }, 80);
     });
+    _ffRefreshTimeBoxes_();
     // Kick off a position poll immediately when flights change
     _ffPollLivePositions();
   }
@@ -2724,6 +3792,7 @@
     var sreg = safeId(reg);
     var missionId = mission.missionId || '';
     var key = flightKey(reg, missionId);
+    var smap = safeId(key);
     var checks = state.checksByReg[key] || { fuel: false, data: false };
     var pax = Array.isArray(mission.pax) ? mission.pax : [];
     var waypoints = Array.isArray(mission.waypoints) ? mission.waypoints : [];
@@ -2812,39 +3881,33 @@
           '</div>' +
         '</div>' +
 
-        '<div class="ff-map-panel" id="ff-map-panel-' + sreg + '">' +
+        '<div class="ff-map-panel" id="ff-map-panel-' + smap + '">' +
           '<div class="ff-map-toolbar">' +
-            '<span class="ff-map-source-badge none" id="ff-map-badge-' + sreg + '">No data</span>' +
-            '<button class="ff-map-toggle-btn active" id="ff-maptab-inhouse-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inhouse\')">In-House</button>' +
-            '<button class="ff-map-toggle-btn" id="ff-maptab-inreach-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'inreach\')">InReach</button>' +
-            '<button class="ff-map-toggle-btn" id="ff-maptab-both-' + sreg + '" onclick="ffSetMapMode(\''+key+'\',\'both\')">Both</button>' +
-            '<button class="ff-map-toggle-btn active" id="ff-map-follow-' + sreg + '" onclick="ffToggleMapFollow(\''+key+'\')">Follow ON</button>' +
-            '<input class="ff-map-inreach-url" id="ff-inreach-url-' + sreg + '" type="url" placeholder="share.garmin.com/DeviceID" onblur="ffSetInreachUrl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\')ffSetInreachUrl(\''+key+'\',this.value)">' +
+            '<button class="ff-map-filter-btn active" id="ff-map-filter-grass-' + smap + '" onclick="ffToggleMapFilter(\''+key+'\',\'grass\')"><span class="ff-map-leg-dot" style="background:#2e7d32;"></span>Grama ON</button>' +
+            '<button class="ff-map-filter-btn active" id="ff-map-filter-asphalt-' + smap + '" onclick="ffToggleMapFilter(\''+key+'\',\'asphalt\')"><span class="ff-map-leg-dot" style="background:#263238;"></span>Asfalto ON</button>' +
+            '<button class="ff-map-filter-btn active" id="ff-map-filter-waypoint-' + smap + '" onclick="ffToggleMapFilter(\''+key+'\',\'waypoint\')"><span class="ff-map-leg-tri"></span>Waypoint ON</button>' +
+            '<span class="ff-map-wx-row">' + _ffBuildWxToolbarControls_(key, smap) + '</span>' +
           '</div>' +
-          '<div class="ff-map-legend">' +
-            '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#2e7d32;"></span>Grass</span>' +
-            '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#1e88e5;"></span>Water</span>' +
-            '<span class="ff-map-legend-item"><span class="ff-map-leg-dot" style="background:#263238;"></span>Paved/Other</span>' +
-            '<span class="ff-map-legend-item"><span class="ff-map-leg-fuel">A</span>Avgas</span>' +
-            '<span class="ff-map-legend-item"><span class="ff-map-leg-tri"></span>Waypoint</span>' +
-            '<span class="ff-map-legend-item"><span class="ff-map-leg-aircraft"></span>Aircraft</span>' +
-          '</div>' +
-          _ffBuildWxBar(key, sreg) +
-          '<div class="ff-map-content-grid">' +
+          '<div class="ff-map-content-grid" id="ff-map-grid-' + smap + '">' +
             '<div class="ff-map-primary-col">' +
-              '<div class="ff-live-map-wrap" id="ff-live-wrap-' + sreg + '">' +
-                '<div class="ff-leaflet-map" id="ff-live-map-' + sreg + '"></div>' +
+              '<div class="ff-live-map-wrap" id="ff-live-wrap-' + smap + '">' +
+                '<button class="ff-map-stale-btn" id="ff-map-stale-' + smap + '" type="button">Sinal desatualizado</button>' +
+                '<div class="ff-leaflet-map" id="ff-live-map-' + smap + '"></div>' +
               '</div>' +
-              '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + sreg + '" style="display:none">' +
-                '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + sreg + '">' +
-                  'Paste the Garmin MapShare URL above<br>' +
-                  '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">e.g. share.garmin.com/YourDevice</span>' +
+              '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + smap + '" style="display:none">' +
+                '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + smap + '">' +
+                  'Link MapShare não configurado para esta aeronave.<br>' +
+                  '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">Defina em Ferramentas > Master Config > Flight Following.</span>' +
                 '</div>' +
               '</div>' +
             '</div>' +
-            '<div class="ff-sat-wrap" id="ff-sat-wrap-' + sreg + '">' +
-              '<div class="ff-sat-map" id="ff-sat-map-' + sreg + '"></div>' +
-              '<div class="ff-sat-empty" id="ff-sat-empty-' + sreg + '">Satellite weather frames load here.<br>Use Visible / Infrared and Play when needed.</div>' +
+            '<div class="ff-sat-wrap" id="ff-sat-wrap-' + smap + '">' +
+              '<div class="ff-sat-layer-tabs">' +
+                '<button class="ff-sat-layer-btn active" id="ff-sat-visible-' + smap + '" onclick="ffWxSetLayer(\'' + key + '\',\'geocolor\')">Visivel</button>' +
+                '<button class="ff-sat-layer-btn" id="ff-sat-ir-' + smap + '" onclick="ffWxSetLayer(\'' + key + '\',\'ir\')">Infravermelho</button>' +
+              '</div>' +
+              '<div class="ff-sat-map" id="ff-sat-map-' + smap + '"></div>' +
+              '<div class="ff-sat-empty" id="ff-sat-empty-' + smap + '" style="display:none;">As imagens de satélite aparecem aqui.<br>Use visível / infravermelho e play quando necessário.</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -2924,11 +3987,11 @@
             '<td><span class="ff-chat-dir-badge ' + direction.toLowerCase() + '">' + direction + '</span></td>' +
             '<td>' + esc(String(reg || '').toUpperCase()) + '</td>' +
             '<td>' + esc(_ffFormatZuluTime_(msg.timestamp)) + '</td>' +
-            '<td>' +
+            '<td style="cursor:pointer;" onclick="ffShowMessageBody(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">' +
               '<div class="ff-chat-message-preview">' + esc(preview || '(empty message)') + '</div>' +
             '</td>' +
             '<td>' +
-              '<button type="button" class="ff-chat-row-btn" onclick="ffShowMessageDetails(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">View</button> ' +
+              '<button type="button" class="ff-chat-row-btn" onclick="event.stopPropagation();ffShowMessageDetails(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">View</button> ' +
               '<button type="button" class="ff-chat-row-btn" onclick="ffToggleArchiveMessage(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">' + archiveLabel + '</button>' +
             '</td>' +
           '</tr>';
@@ -2978,13 +4041,47 @@
         '<div class="ff-modal-field"><div class="ff-modal-label">Message Key</div><div class="ff-modal-value">' + esc(messageKey) + '</div></div>' +
       '</div>' +
       '<div class="ff-modal-message"><div class="ff-modal-label">Message</div><pre>' + esc(displayMessage || msg.text || '') + '</pre></div>';
-    modal.classList.add('open');
+    _ffOpenModal_(modal);
   };
+
+  window.ffShowMessageBody = function(reg, messageKey) {
+    messageKey = decodeURIComponent(String(messageKey || ''));
+    var msg = _ffFindMessageByKey_(reg, messageKey);
+    var modal = document.getElementById('ff-message-modal');
+    var body = document.getElementById('ff-message-modal-body');
+    var displayMessage = _ffOperationalMessageText_(msg && msg.text);
+    if (!msg || !modal || !body) return;
+    var titleEl = modal.querySelector('.ff-modal-title');
+    if (titleEl) titleEl.textContent = 'Mensagem';
+    body.innerHTML = '<pre style="white-space:pre-wrap;word-break:break-word;font-family:monospace;font-size:0.85rem;line-height:1.55;padding:8px;margin:0;">' + esc(displayMessage || msg.text || '(empty)') + '</pre>';
+    _ffOpenModal_(modal);
+  };
+
+  function _ffOpenModal_(modal) {
+    if (!modal) return;
+    var modalHost = _ffGetModalHost_();
+    if (modal.parentNode !== modalHost) modalHost.appendChild(modal);
+    // Force inline styles with !important to guarantee overlay above any stacking context
+    modal.style.setProperty('position', 'fixed', 'important');
+    modal.style.setProperty('top', '0', 'important');
+    modal.style.setProperty('left', '0', 'important');
+    modal.style.setProperty('right', '0', 'important');
+    modal.style.setProperty('bottom', '0', 'important');
+    modal.style.setProperty('z-index', '2147483647', 'important');
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('align-items', 'center', 'important');
+    modal.style.setProperty('justify-content', 'center', 'important');
+    modal.style.setProperty('padding', '18px', 'important');
+    modal.style.setProperty('background', 'rgba(23,34,43,0.72)', 'important');
+    modal.classList.add('open');
+  }
 
   window.ffCloseMessageModal = function(evt) {
     if (evt && evt.target && evt.target !== evt.currentTarget) return;
     var modal = document.getElementById('ff-message-modal');
-    if (modal) modal.classList.remove('open');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.style.setProperty('display', 'none', 'important');
   };
 
   function loadSyncMetadata() {
@@ -3177,25 +4274,22 @@
   function _ffWxUpdateDisplay(key) {
     var ws = _wxByKey[key];
     if (!ws) return;
-    var sreg = safeId(key.split('|')[0]);
+    var sreg = safeId(key);
     var timeEl = document.getElementById('ff-wx-time-' + sreg);
     if (timeEl && ws.frames.length) {
-      var d   = new Date(ws.frames[ws.frameIdx]);
+      var d = new Date(ws.frames[ws.frameIdx]);
       var mon = String(d.getUTCMonth() + 1).padStart(2, '0');
       var day = String(d.getUTCDate()).padStart(2, '0');
-      var hh  = String(d.getUTCHours()).padStart(2, '0');
-      var mn  = String(d.getUTCMinutes()).padStart(2, '0');
+      var hh = String(d.getUTCHours()).padStart(2, '0');
+      var mn = String(d.getUTCMinutes()).padStart(2, '0');
       timeEl.textContent = mon + '/' + day + ' ' + hh + ':' + mn + 'Z';
     }
     var playBtn = document.getElementById('ff-wx-play-' + sreg);
     if (playBtn) playBtn.textContent = ws.playing ? '⏸' : '▶';
-    var satLayerBtn = document.getElementById('ff-wx-layer-toggle-' + sreg);
-    if (satLayerBtn) {
-      satLayerBtn.textContent = ws.layerKey === 'ir' ? 'Infrared' : 'Visible';
-      satLayerBtn.title = 'Switch Visible / Infrared';
-    }
-    var modeSel = document.querySelector('#ff-wx-controls-' + sreg + ' .ff-wx-select');
-    if (modeSel) modeSel.value = ws.layerKey;
+    var visBtn = document.getElementById('ff-sat-visible-' + sreg);
+    var irBtn = document.getElementById('ff-sat-ir-' + sreg);
+    if (visBtn) visBtn.classList.toggle('active', ws.layerKey !== 'ir');
+    if (irBtn) irBtn.classList.toggle('active', ws.layerKey === 'ir');
     var dotsEl = document.getElementById('ff-wx-dots-' + sreg);
     if (dotsEl && ws.frames.length) {
       var html = '';
@@ -3268,62 +4362,64 @@
 
   function _ffBuildWxBar(key, sreg) {
     var k = esc(key);
-    return '<div class="ff-wx-bar">' +
-      '<button class="ff-wx-toggle" id="ff-wx-toggle-' + sreg + '" onclick="ffToggleWx(\'' + k + '\')">SAT &#9729;</button>' +
-      '<span class="ff-wx-controls" id="ff-wx-controls-' + sreg + '" style="display:none;">' +
-        '<button class="ff-wx-btn" id="ff-wx-layer-toggle-' + sreg + '" onclick="ffWxCycleLayer(\'' + k + '\')">Visible</button>' +
-        '<button class="ff-wx-btn" id="ff-wx-play-' + sreg + '" onclick="ffWxPlayPause(\'' + k + '\')">&#9654;</button>' +
-        '<button class="ff-wx-btn" onclick="ffWxStep(\'' + k + '\',-1)">&#9664;</button>' +
-        '<button class="ff-wx-btn" onclick="ffWxStep(\'' + k + '\',1)">&#9654;&#9654;</button>' +
-        '<span class="ff-wx-time" id="ff-wx-time-' + sreg + '">--/-- --:--Z</span>' +
-        '<span id="ff-wx-dots-' + sreg + '" style="margin:0 3px;"></span>' +
-        '<select class="ff-wx-select" onchange="ffWxSetLayer(\'' + k + '\',this.value)">' +
-          '<option value="geocolor">Visible</option>' +
-          '<option value="ir">Infrared</option>' +
-        '</select>' +
-        '<input type="range" min="0.25" max="1" step="0.05" value="0.85" class="ff-wx-opacity" title="Opacity" oninput="ffWxSetOpacity(\'' + k + '\',this.value)">' +
-      '</span>' +
-    '</div>';
+    return '<span class="ff-wx-bar">' +
+      '<button class="ff-wx-btn" id="ff-wx-play-' + sreg + '" onclick="ffWxPlayPause(\'' + k + '\')">▶</button>' +
+      '<span id="ff-wx-dots-' + sreg + '" style="margin:0 3px;"></span>' +
+      '<span class="ff-wx-time" id="ff-wx-time-' + sreg + '">--/-- --:--Z</span>' +
+    '</span>';
+  }
+
+  function _ffBuildWxToolbarControls_(key, sreg) {
+    return _ffBuildWxBar(key, sreg);
+  }
+
+  function _ffFmtClock_(timeZone) {
+    try {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: timeZone,
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      }).format(new Date());
+    } catch (e) {
+      return '--:--:--';
+    }
+  }
+
+  function _ffRefreshTimeBoxes_() {
+    var nodes = document.querySelectorAll('[id^="ff-timebox-"]');
+    if (!nodes || !nodes.length) return;
+    var z = _ffFmtClock_('UTC');
+    var b = _ffFmtClock_('America/Sao_Paulo');
+    var m = _ffFmtClock_('America/Manaus');
+    nodes.forEach(function(node) {
+      node.innerHTML = '<span><span class="lab">Z</span> ' + esc(z) + '</span><span><span class="lab">BSB</span> ' + esc(b) + '</span><span><span class="lab">MAO</span> ' + esc(m) + '</span>';
+    });
+  }
+
+  function _ffEnsureWxState_(key, mission) {
+    if (!_wxByKey[key]) {
+      _wxByKey[key] = { enabled: true, frames: [], frameIdx: 0, playing: false, timer: null, layer: null, pendingLayer: null, layerKey: 'geocolor', opacity: 0.85, mission: null };
+    }
+    var ws = _wxByKey[key];
+    ws.enabled = true;
+    ws.mission = mission || ws.mission || _ffMissionFromKey_(key);
+    if (!ws.frames || !ws.frames.length) {
+      ws.frames = _ffWxBuildTimes(8, 10);
+      ws.frameIdx = ws.frames.length - 1;
+    }
+    var reg = key.split('|')[0];
+    var sreg = safeId(key);
+    var satEmpty = document.getElementById('ff-sat-empty-' + sreg);
+    if (satEmpty) satEmpty.style.display = 'none';
+    _ffEnsureLeaflet(function() {
+      _ffInitSatMap(key, reg, ws.mission || null);
+      var satMap = state.satMapsByKey[key];
+      if (satMap) setTimeout(function(){ satMap.invalidateSize(); }, 60);
+      _ffWxRenderFrame(key);
+    });
   }
 
   window.ffToggleWx = function(key) {
-    if (!_wxByKey[key]) {
-      _wxByKey[key] = { enabled: false, frames: [], frameIdx: 0, playing: false, timer: null, layer: null, pendingLayer: null, layerKey: 'geocolor', opacity: 0.85, mission: null };
-    }
-    var ws = _wxByKey[key];
-    ws.enabled = !ws.enabled;
-    var sreg     = safeId(key.split('|')[0]);
-    var btn      = document.getElementById('ff-wx-toggle-'   + sreg);
-    var controls = document.getElementById('ff-wx-controls-' + sreg);
-    var satWrap  = document.getElementById('ff-sat-wrap-' + sreg);
-    var satEmpty = document.getElementById('ff-sat-empty-' + sreg);
-    if (ws.enabled) {
-      ws.frames   = _ffWxBuildTimes(8, 10);
-      ws.frameIdx = ws.frames.length - 1;
-      ws.mission  = _ffMissionFromKey_(key);
-      if (btn)      { btn.classList.add('active'); btn.innerHTML = 'SAT &#9729; ON'; }
-      if (controls) controls.style.display = '';
-      if (satWrap) satWrap.classList.add('active');
-      if (satEmpty) satEmpty.style.display = 'none';
-      _ffEnsureLeaflet(function() {
-        _ffInitSatMap(key, key.split('|')[0], ws.mission || null);
-        var satMap = state.satMapsByKey[key];
-        if (satMap) setTimeout(function(){ satMap.invalidateSize(); }, 60);
-        _ffWxRenderFrame(key);
-      });
-    } else {
-      if (ws.timer) { clearInterval(ws.timer); ws.timer = null; }
-      ws.playing = false;
-      var map = state.satMapsByKey[key];
-      if (map && ws.layer) { try { map.removeLayer(ws.layer); } catch(e2) {} }
-      if (map && ws.pendingLayer) { try { map.removeLayer(ws.pendingLayer); } catch(e3) {} }
-      ws.layer = null;
-      ws.pendingLayer = null;
-      if (btn)      { btn.classList.remove('active'); btn.innerHTML = 'SAT &#9729;'; }
-      if (controls) controls.style.display = 'none';
-      if (satWrap) satWrap.classList.remove('active');
-      if (satEmpty) satEmpty.style.display = '';
-    }
+    _ffEnsureWxState_(key, _ffMissionFromKey_(key));
   };
 
   window.ffWxStep = function(key, dir) {
@@ -3351,13 +4447,12 @@
 
   window.ffWxSetLayer = function(key, layerKey) {
     var ws = _wxByKey[key];
-    if (!ws) return;
-    ws.layerKey = layerKey;
-    if (ws.enabled) {
-      _ffWxRenderFrame(key);
-    } else {
-      _ffWxUpdateDisplay(key);
+    if (!ws) {
+      _ffEnsureWxState_(key, _ffMissionFromKey_(key));
+      ws = _wxByKey[key];
     }
+    ws.layerKey = layerKey;
+    _ffWxRenderFrame(key);
   };
 
   window.ffWxCycleLayer = function(key) {

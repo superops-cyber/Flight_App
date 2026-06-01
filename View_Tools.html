@@ -224,6 +224,10 @@
   .tools-discrepancy-actions { display:flex; gap:6px; flex-wrap:wrap; }
   .tools-master-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
   .tools-master-note { font-size:0.78rem; color:#546e7a; margin:0 0 10px 0; }
+  .tools-master-ff-mapshare-list { display:grid; gap:6px; margin-top:8px; }
+  .tools-master-ff-mapshare-row { display:grid; grid-template-columns:120px minmax(0,1fr); gap:8px; align-items:center; }
+  .tools-master-ff-mapshare-reg { font-size:0.78rem; font-weight:900; color:#0b5394; background:#eff5fb; border:1px solid #dbe7f3; border-radius:6px; height:32px; display:flex; align-items:center; justify-content:center; }
+  .tools-master-ff-mapshare-input { width:100%; height:32px; border:1px solid #d1dbe6; border-radius:6px; padding:0 8px; font-size:0.78rem; box-sizing:border-box; }
   .tools-dutylogs-table-wrap { overflow:auto; border:1px solid #dbe4ee; border-radius:8px; background:#fff; max-height:360px; }
   .tools-dutylogs-table { width:100%; border-collapse:collapse; font-size:0.78rem; }
   .tools-dutylogs-table th, .tools-dutylogs-table td { border-bottom:1px solid #edf2f7; padding:7px 8px; text-align:left; white-space:nowrap; }
@@ -492,9 +496,11 @@
             <input id="tools-report-flight-id" type="text" placeholder="ADS26-001-01">
           </div>
           <button class="btn-ta" type="button" onclick="toolsLoadFlightDetailReport_()">LOAD FLIGHT DETAIL</button>
+          <button class="btn-ta" type="button" onclick="toolsLoadFlightFollowingArchive_()">FLIGHT FOLLOWING INFO</button>
           <button class="btn-ts" type="button" onclick="(function(){ var el=document.getElementById('tools-report-flight-id'); if(el) el.value=''; _toolsFlightDetailData=null; toolsRenderFlightDetailReport_(null); })()">CLEAR</button>
         </div>
         <div id="tools-report-flightdetail-body"><div class="tools-report-empty">Enter a Flight ID and click LOAD FLIGHT DETAIL.</div></div>
+        <div id="tools-report-ffarchive-body"><div class="tools-report-empty">Flight Following archive appears here after clicking FLIGHT FOLLOWING INFO.</div></div>
       </div>
       <div class="tools-report-section">
         <div class="tools-report-section-head">
@@ -1198,6 +1204,11 @@
           <textarea id="tools-master-ff-outbound-map" placeholder="PTABC=inreach-address-1@inreach.garmin.com&#10;PTDEF=inreach-address-2@inreach.garmin.com" style="min-height:90px; font-size:0.8rem;"></textarea>
           <div class="tools-dbadd-help">Uma linha por aeronave. Formato: REG=EMAIL (ex: PTABC=inreach@garmin.com). Se não houver mapeamento, usa Inbound/Ops Recipients.</div>
         </div>
+        <div class="tools-field" style="grid-column:1/-1;">
+          <label>MapShare InReach por Aeronave</label>
+          <div class="tools-dbadd-help">Defina aqui o link do dispositivo para cada matrícula da DB_Aircraft. Ex.: https://share.garmin.com/ASASKPS</div>
+          <div id="tools-master-ff-mapshare-list" class="tools-master-ff-mapshare-list"></div>
+        </div>
       </div>
       <div class="tools-btn-row">
         <button class="btn-ts" type="button" onclick="toolsLoadMasterFlightFollowConfig_()">RELOAD FF</button>
@@ -1635,6 +1646,7 @@
   var _toolsAirportBulkUnmatched = [];
   var _toolsReportsData = null;
   var _toolsFlightDetailData = null;
+  var _toolsFfArchiveData = null;
   var _toolsReportCategory = 'finance';
   var _toolsMasterConfigData = null;
   var _toolsSchedulerAccessProfile = null;
@@ -4624,9 +4636,19 @@
   }
 
   function toolsMasterFlightFollowPayload_() {
+    var mapInputs = document.querySelectorAll('#tools-master-ff-mapshare-list .tools-master-ff-mapshare-input[data-reg]');
+    var mapLines = [];
+    for (var i = 0; i < mapInputs.length; i++) {
+      var reg = String(mapInputs[i].getAttribute('data-reg') || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var url = String(mapInputs[i].value || '').trim();
+      if (!reg || !url) continue;
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      mapLines.push(reg + '=' + url);
+    }
     return {
       FLIGHT_FOLLOW_RECIPIENTS: String((document.getElementById('tools-master-ff-recipients') || {}).value || '').trim(),
-      FLIGHT_FOLLOW_OUTBOUND_MAP: String((document.getElementById('tools-master-ff-outbound-map') || {}).value || '').trim()
+      FLIGHT_FOLLOW_OUTBOUND_MAP: String((document.getElementById('tools-master-ff-outbound-map') || {}).value || '').trim(),
+      FLIGHT_FOLLOW_MAPSHARE_MAP: mapLines.join('\n')
     };
   }
 
@@ -4634,8 +4656,40 @@
     var c = cfg || {};
     var recipientsEl = document.getElementById('tools-master-ff-recipients');
     var outboundMapEl = document.getElementById('tools-master-ff-outbound-map');
+    var mapshareHost = document.getElementById('tools-master-ff-mapshare-list');
     if (recipientsEl) recipientsEl.value = String(c.FLIGHT_FOLLOW_RECIPIENTS || '');
     if (outboundMapEl) outboundMapEl.value = String(c.FLIGHT_FOLLOW_OUTBOUND_MAP || '');
+    if (mapshareHost) {
+      var mapByReg = {};
+      String(c.FLIGHT_FOLLOW_MAPSHARE_MAP || '').split(/\r?\n/).forEach(function(line) {
+        var cleaned = String(line || '').trim();
+        if (!cleaned || cleaned.indexOf('#') === 0) return;
+        var parts = cleaned.split(/[=:]/);
+        if (parts.length < 2) return;
+        var reg = String(parts[0] || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        var url = String(parts.slice(1).join(':') || '').trim();
+        if (!reg || !url) return;
+        mapByReg[reg] = url;
+      });
+
+      var data = toolsGetData_();
+      var regs = Array.from(new Set((data.aircraft || []).map(function(a) {
+        return String(a && a.reg || '').trim().toUpperCase();
+      }).filter(Boolean))).sort();
+
+      if (!regs.length) {
+        mapshareHost.innerHTML = '<div style="font-size:0.78rem;color:#90a4ae;">Nenhuma aeronave encontrada na DB_Aircraft.</div>';
+      } else {
+        mapshareHost.innerHTML = regs.map(function(reg) {
+          var key = String(reg || '').replace(/[^A-Z0-9]/g, '');
+          var val = String(mapByReg[key] || '').trim();
+          return '<div class="tools-master-ff-mapshare-row">'
+            + '<div class="tools-master-ff-mapshare-reg">' + toolsEscapeHtml_(reg) + '</div>'
+            + '<input class="tools-master-ff-mapshare-input" data-reg="' + toolsEscapeHtml_(reg) + '" type="url" placeholder="https://share.garmin.com/SEUDEVICE" value="' + toolsEscapeHtml_(val) + '">'
+            + '</div>';
+        }).join('');
+      }
+    }
   }
 
   function toolsLoadMasterFlightFollowConfig_() {
@@ -6876,10 +6930,12 @@
   function toolsRenderFlightDetailReport_(data) {
     var metaEl = document.getElementById('tools-report-flightdetail-meta');
     var bodyEl = document.getElementById('tools-report-flightdetail-body');
+    var ffArchiveEl = document.getElementById('tools-report-ffarchive-body');
     if (!bodyEl) return;
     if (!data || !data.success) {
       if (metaEl) metaEl.textContent = 'Load one flight to view all saved fields, W&B, debrief, fuel/times, and passengers.';
       bodyEl.innerHTML = '<div class="tools-report-empty">Enter a Flight ID and click LOAD FLIGHT DETAIL.</div>';
+      if (ffArchiveEl) ffArchiveEl.innerHTML = '<div class="tools-report-empty">Flight Following archive appears here after clicking FLIGHT FOLLOWING INFO.</div>';
       return;
     }
 
@@ -6899,6 +6955,7 @@
       var debugBits = [];
       if (dbg.responseBytes) debugBits.push('Bytes: ' + dbg.responseBytes);
       if (dbg.rawFieldsReturned || dbg.rawFieldCount) debugBits.push('LOG fields: ' + String(dbg.rawFieldsReturned || 0) + '/' + String(dbg.rawFieldCount || 0));
+      if (data.ffArchive && data.ffArchive.archiveId) debugBits.push('FF archive: ' + String(data.ffArchive.archiveId));
       metaEl.textContent = 'Flight ' + toolsAircraftEscape_(data.flightId || '') + ' loaded | Pax(TX): ' + txPax.length + ' | Pax(W&B): ' + wbPax.length + (debugBits.length ? ' | ' + debugBits.join(' | ') : '');
     }
 
@@ -7075,6 +7132,93 @@
         + landingTable
       + '</div>'
       + '</div>';
+
+    if (ffArchiveEl) {
+      if (data.ffArchive && data.ffArchive.archiveId) {
+        ffArchiveEl.innerHTML = '<div class="tools-report-meta" style="margin:10px 0 6px;">Latest archive found for this flight: '
+          + toolsAircraftEscape_(String(data.ffArchive.archiveId || ''))
+          + ' | ' + toolsAircraftEscape_(toolsFmtDateTimeAny_(data.ffArchive.archivedAt))
+          + ' | click FLIGHT FOLLOWING INFO to load full snapshot replica.</div>';
+      } else {
+        ffArchiveEl.innerHTML = '<div class="tools-report-empty">No Flight Following archive found for this flight yet.</div>';
+      }
+    }
+  }
+
+  function toolsRenderFlightFollowingArchive_(res) {
+    var host = document.getElementById('tools-report-ffarchive-body');
+    if (!host) return;
+    if (!res || !res.success) {
+      host.innerHTML = '<div class="tools-report-empty">No Flight Following archive found for this flight.</div>';
+      return;
+    }
+
+    var archive = res.archive || {};
+    var snapshot = res.snapshot || {};
+    var mission = snapshot.mission || {};
+    var fields = snapshot.fields || {};
+    var routeRows = Array.isArray(snapshot.routeRows) ? snapshot.routeRows : [];
+    var rowHtml = routeRows.map(function(r, idx) {
+      return '<tr>'
+        + '<td>' + toolsAircraftEscape_(String(idx + 1)) + '</td>'
+        + '<td>' + toolsAircraftEscape_(String(r.fix || '')) + '</td>'
+        + '<td>' + toolsAircraftEscape_(String(r.eta || '')) + '</td>'
+        + '<td>' + toolsAircraftEscape_(String(r.ata || '')) + '</td>'
+        + '<td>' + toolsAircraftEscape_(String(r.fl || '')) + '</td>'
+        + '</tr>';
+    }).join('');
+
+    var replicaHtml = String(snapshot && snapshot.html && snapshot.html.focusCard || '').trim();
+    host.innerHTML = ''
+      + '<div class="tools-flight-detail-card" style="margin-top:10px;">'
+      + '<h5>Flight Following Archive Snapshot</h5>'
+      + '<div class="tools-report-meta">Archive ID: ' + toolsAircraftEscape_(String(archive.archiveId || ''))
+      + ' | Archived At: ' + toolsAircraftEscape_(toolsFmtDateTimeAny_(archive.archivedAt))
+      + ' | By: ' + toolsAircraftEscape_(String(archive.archivedBy || ''))
+      + ' | Reason: ' + toolsAircraftEscape_(String(archive.reason || ''))
+      + '</div>'
+      + '<div class="tools-flight-detail-kv" style="margin-top:8px;">'
+      + '<div class="tools-flight-detail-k"><span>Reg</span><strong>' + toolsAircraftEscape_(String(archive.reg || mission.reg || '')) + '</strong></div>'
+      + '<div class="tools-flight-detail-k"><span>Mission</span><strong>' + toolsAircraftEscape_(String(mission.missionId || archive.missionId || '')) + '</strong></div>'
+      + '<div class="tools-flight-detail-k"><span>Flight Leg</span><strong>' + toolsAircraftEscape_(String(mission.flightLegId || archive.flightLegId || '')) + '</strong></div>'
+      + '<div class="tools-flight-detail-k"><span>Follower</span><strong>' + toolsAircraftEscape_(String(fields.flightFollower || '---')) + '</strong></div>'
+      + '<div class="tools-flight-detail-k"><span>Decolagem</span><strong>' + toolsAircraftEscape_(String(fields.decolagem || '---')) + '</strong></div>'
+      + '<div class="tools-flight-detail-k"><span>ETE</span><strong>' + toolsAircraftEscape_(String(fields.ete || '---')) + '</strong></div>'
+      + '</div>'
+      + '<div style="overflow:auto;margin-top:10px;">'
+      + '<table class="tools-report-table"><thead><tr><th>#</th><th>Fix</th><th>ETA</th><th>ATA</th><th>FL</th></tr></thead><tbody>'
+      + (rowHtml || '<tr><td colspan="5">No route rows captured.</td></tr>')
+      + '</tbody></table>'
+      + '</div>'
+      + (replicaHtml
+        ? '<div style="margin-top:12px;"><div class="tools-report-meta" style="margin-bottom:6px;">Replica do cartao FF no momento do arquivamento</div><div style="border:1px solid #dce3ec;border-radius:10px;overflow:auto;max-height:520px;padding:10px;background:#fff;">' + replicaHtml + '</div></div>'
+        : '<div class="tools-report-meta" style="margin-top:12px;">No full HTML replica stored in this snapshot.</div>')
+      + '</div>';
+  }
+
+  function toolsLoadFlightFollowingArchive_(flightIdArg, silent) {
+    var inputEl = document.getElementById('tools-report-flight-id');
+    var flightId = String(flightIdArg || (inputEl && inputEl.value) || '').trim();
+    if (!flightId) {
+      if (!silent) toolsToast_('Enter a Flight ID first.', 'orange');
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        _toolsFfArchiveData = (res && res.success) ? res : null;
+        toolsRenderFlightFollowingArchive_(res);
+        if (!silent) {
+          if (res && res.success) toolsToast_('Flight Following snapshot loaded.', 'green');
+          else toolsToast_((res && res.error) ? String(res.error) : 'No snapshot found.', 'orange');
+        }
+      })
+      .withFailureHandler(function(err) {
+        var msg = err && err.message ? err.message : String(err);
+        _toolsFfArchiveData = null;
+        toolsRenderFlightFollowingArchive_(null);
+        if (!silent) toolsToast_('Server error: ' + msg, 'red');
+      })
+      .getToolsFlightFollowingArchive({ flightId: flightId });
   }
 
   function toolsLoadFlightDetailReport_() {
@@ -7104,6 +7248,7 @@
         }
         _toolsFlightDetailData = res;
         toolsRenderFlightDetailReport_(res);
+        toolsLoadFlightFollowingArchive_(flightId, true);
         toolsSetDiag_('flight detail #' + reqId + ' ok for ' + flightId, 'green');
       })
       .withFailureHandler(function(err) {

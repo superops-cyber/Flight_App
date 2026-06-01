@@ -56,7 +56,8 @@ const APP_SHEETS = {
   LIABILITY_RELEASES: 'DB_Liability_Releases',
   FORM_IMPORT_LOG: 'DB_Form_Import_Log',
   LIVE_TRACK: 'LIVE_Track',
-  FF_MESSAGES: 'DB_FF_Messages'
+  FF_MESSAGES: 'DB_FF_Messages',
+  FF_ARCHIVE: 'DB_FF_Archive'
 };
 
 const DISPATCH_COL = {

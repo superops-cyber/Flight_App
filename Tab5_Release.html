@@ -651,48 +651,80 @@
     };
   }
 
+  function _releaseFormatHoursPt_(hours) {
+    const h = Number(hours || 0);
+    if (!isFinite(h) || h <= 0) return '--:--';
+    const totalMinutes = Math.round(h * 60);
+    const hh = Math.floor(totalMinutes / 60);
+    const mm = totalMinutes % 60;
+    return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  }
+
   function _releaseBuildMessage(mission, riskTotal, riskDetail, leg) {
     const activeLeg = leg || _releaseGetActiveLeg_(mission);
     const flightId = (activeLeg && (activeLeg.flightLegId || activeLeg.flight_id || activeLeg.id)) || mission.id || 'N/A';
     const route = _releaseFlightRoute(activeLeg);
     const flightPlan = _releaseResolveFlightPlan_(mission, activeLeg);
+    const pic = String(mission && mission.pilot || 'N/A').trim() || 'N/A';
+    const copilot = String((mission && mission.meta && mission.meta.copilot) || (mission && mission.copilot) || '').trim() || 'Sem copiloto/aluno';
+    const ete = _releaseFormatHoursPt_(activeLeg && activeLeg.time);
+    const fuelOnBoard = Math.round(Number((activeLeg && activeLeg.takeoffFuel) || (mission && mission.fuelL) || 0)) || 0;
     const pax = Array.isArray(activeLeg.pax)
       ? activeLeg.pax.filter(p => String(p.name || '').toUpperCase() !== 'FREIGHT')
       : [];
     const pob = 1 + (mission && mission.meta && mission.meta.copilot ? 1 : 0) + pax.length;
+    const paxCount = pax.length;
     const manifestLines = pax.length
-      ? pax.map((p, idx) => `${idx + 1}. ${p.name || 'Unknown'} • ${p.phone || 'No phone'}`).join('\n')
-      : 'No passengers listed';
+      ? pax.map((p, idx) => {
+          const paxName = String(p.name || 'Passageiro sem nome').trim();
+          const paxPhone = String(p.phone || '').trim() || 'Sem telefone';
+          const paxEmergency = String(p.emergencyContact || '').trim();
+          return `${idx + 1}. ${paxName} | Tel: ${paxPhone}${paxEmergency ? ' | Emerg: ' + paxEmergency : ''}`;
+        }).join('\n')
+      : 'Nenhum passageiro informado';
 
     const riskCategories = ['Pilot', 'Aircraft', 'Runway', 'Weather', 'Mission'];
+    const riskLabels = {
+      Pilot: 'Piloto',
+      Aircraft: 'Aeronave',
+      Runway: 'Pista',
+      Weather: 'Tempo',
+      Mission: 'Missão'
+    };
     const riskBreakdown = riskCategories.map(c =>
-      `${c}: ${riskDetail && riskDetail[c] != null ? riskDetail[c] : '-'}`).join(' | ');
-    const scoreLabel = riskTotal >= 11 ? 'HIGH RISK / NO-GO' : riskTotal >= 9 ? 'CAUTION' : 'Standard Ops';
+      `${riskLabels[c] || c}: ${riskDetail && riskDetail[c] != null ? riskDetail[c] : '-'}`).join(' | ');
+    const scoreLabel = riskTotal >= 11 ? 'RISCO ALTO / NO-GO' : riskTotal >= 9 ? 'ATENÇÃO' : 'OPERAÇÃO PADRÃO';
 
     const full = [
-      '🛫 DISPATCH RELEASE',
-      `Flight ID: ${flightId}`,
-      `Aircraft: ${mission && mission.acft || 'N/A'}`,
-      `PIC: ${mission && mission.pilot || 'N/A'}`,
-      `Route: ${route}`,
-      `Flight Plan: ${flightPlan.full}`,
+      '🛫 MENSAGEM DE DESPACHO',
+      `ID do Voo: ${flightId}`,
+      `Aeronave: ${mission && mission.acft || 'N/A'}`,
+      `PIC: ${pic}`,
+      `Co-piloto/Aluno: ${copilot}`,
+      `Rota: ${route}`,
+      `ETE: ${ete}`,
+      `Combustível a bordo: ${fuelOnBoard > 0 ? (fuelOnBoard + ' L') : '--'}`,
+      `Plano de Voo: ${flightPlan.full}`,
+      `Passageiros: ${paxCount}`,
       `POB: ${pob}`,
       '',
-      'Manifest:',
+      'Passageiros e contatos:',
       manifestLines,
       '',
-      `Risk Score: ${riskTotal} – ${scoreLabel}`,
-      `Matrix: ${riskBreakdown}`
+      `Score de Risco: ${riskTotal} – ${scoreLabel}`,
+      `Matriz: ${riskBreakdown}`
     ].join('\n');
 
     // Compact version for inReach (no emoji, condensed for satellite bandwidth)
     const compact = [
-      `DISPATCH FLT:${flightId}`,
-      `AC:${mission && mission.acft || '?'} PIC:${mission && mission.pilot || '?'}`,
-      `ROUTE:${route} POB:${pob}`,
-      `FP:${flightPlan.compact}`,
-      pax.length ? pax.map((p, i) => `${i + 1}.${(p.name || '?').split(' ')[0]}`).join(' ') : 'NO PAX',
-      `RISK:${riskTotal}-${scoreLabel.toUpperCase().replace(/ /g,'_')}`
+      `DESPACHO ID:${flightId}`,
+      `AC:${mission && mission.acft || '?'} PIC:${pic}`,
+      `COPIL:${copilot.split(' ')[0] || 'SEM'}`,
+      `ROTA:${route} ETE:${ete}`,
+      `FUEL:${fuelOnBoard > 0 ? (fuelOnBoard + 'L') : '--'} PAX:${paxCount} POB:${pob}`,
+      `PV:${flightPlan.compact}`,
+      pax.length ? pax.map((p, i) => `${i + 1}.${(p.name || '?').split(' ')[0]}`).join(' ') : 'SEM_PAX',
+      `RISCO:${riskTotal}-${scoreLabel.toUpperCase().replace(/[ /]/g,'_')}`
     ].join('\n');
 
     return { full, compact, flightId, pob, manifestLines };
@@ -908,7 +940,7 @@
       return;
     }
 
-    const subject = 'Dispatch Release – Flight ' + (window.releaseTab5State.flightId || '');
+    const subject = 'Mensagem de Despacho – Voo ' + (window.releaseTab5State.flightId || '');
     const recipients = ['acompanhamento@asasdesocorro.org.br', 'supervisor.voo@asasdesocorro.org.br'];
     const payload = { emails: recipients, subject: subject, message: msg.full };
 
