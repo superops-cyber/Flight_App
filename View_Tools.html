@@ -260,6 +260,7 @@
     <button class="tools-action-btn" onclick="toolsOpenDiscrepancyPanel()"><i class="material-icons">report_problem</i><span>Report Discrepancy</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('airports')"><i class="material-icons">add_business</i><span>Add Airport</span></button>
     <button class="tools-action-btn" onclick="toolsOpenStaffPanel()"><i class="material-icons">badge</i><span>Add/Edit Staff</span></button>
+    <button class="tools-action-btn" onclick="toolsOpenStudentPanel()"><i class="material-icons">school</i><span>Add/Edit Student</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPilotAuthPanel()"><i class="material-icons">verified_user</i><span>Pilot Authorizations</span></button>
     <button class="tools-action-btn" onclick="toolsOpenSavedRoutesPanel()"><i class="material-icons">route</i><span>Route Manager</span></button>
     <button class="tools-action-btn" onclick="toolsOpenTrainingModulePanel()"><i class="material-icons">school</i><span>Training Modules</span></button>
@@ -748,6 +749,71 @@
     <div class="tools-btn-row">
       <button class="btn-ts" type="button" onclick="toolsStaffClearForm_()">LIMPAR</button>
       <button class="btn-tp" type="button" onclick="toolsStaffSave_()">SALVAR STAFF</button>
+    </div>
+  </div>
+
+  <div id="tools-panel-students" class="tools-panel">
+    <div class="tools-panel-header">
+      <h3 class="tools-panel-title">Add/Edit Student</h3>
+      <button class="tools-panel-close" onclick="toolsClosePanel('students')">&times;</button>
+    </div>
+    <div class="tools-search-box">
+      <div class="tools-row" style="align-items:flex-end;">
+        <div class="tools-field" style="margin-bottom:0;">
+          <label for="tools-student-select">Selecionar Aluno Existente</label>
+          <select id="tools-student-select" class="browser-default" onchange="toolsStudentLoadSelected_()"></select>
+        </div>
+        <div class="tools-field" style="margin-bottom:0; flex:0 0 130px;">
+          <button class="btn-ts" type="button" onclick="toolsStudentClearForm_()">NOVO</button>
+        </div>
+      </div>
+      <div id="tools-student-meta" class="tools-report-meta" style="margin-top:8px;">Nenhum aluno carregado.</div>
+    </div>
+
+    <div class="tools-row">
+      <div class="tools-field"><label for="tools-student-name">Nome</label><input id="tools-student-name" type="text"></div>
+      <div class="tools-field"><label for="tools-student-email">Email</label><input id="tools-student-email" type="email"></div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-field"><label for="tools-student-cpf">CPF</label><input id="tools-student-cpf" type="text" placeholder="000.000.000-00"></div>
+      <div class="tools-field"><label for="tools-student-canac">CANAC</label><input id="tools-student-canac" type="text"></div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-field"><label for="tools-student-dob">Data de Nascimento</label><input id="tools-student-dob" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-student-dob')"></div>
+      <div class="tools-field"><label for="tools-student-medical-expiry">Validade CMA</label><input id="tools-student-medical-expiry" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-student-medical-expiry')"></div>
+    </div>
+    <div class="tools-row">
+      <div class="tools-field"><label for="tools-student-medical-class">Classe CMA</label><select id="tools-student-medical-class" class="browser-default"><option value="">Selecione...</option><option value="1">Classe 1</option><option value="2">Classe 2</option><option value="3">Classe 3</option><option value="4">Classe 4</option></select></div>
+      <div class="tools-field"><label for="tools-student-rate">Taxa de Uso (R$/hora)</label><input id="tools-student-rate" type="number" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+
+    <div class="tools-field">
+      <label for="tools-student-ratings">Habilitações Atuais (ANAC)</label>
+      <select id="tools-student-ratings" class="browser-default" multiple size="8"></select>
+      <div class="tools-dbadd-help">Segure Ctrl (Windows) para selecionar múltiplas habilitações.</div>
+    </div>
+
+    <div style="border:1px solid #dbe4ee;border-radius:8px;background:#f8fbff;padding:10px;margin:8px 0;">
+      <div style="font-size:0.78rem;font-weight:800;color:#0b5394;text-transform:uppercase;margin-bottom:6px;">Fundos / Depósito</div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-balance">Saldo Atual (R$)</label><input id="tools-student-balance" type="number" step="0.01" readonly></div>
+        <div class="tools-field"><label for="tools-student-credit">Creditar Valor (R$)</label><input id="tools-student-credit" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field" style="flex:2;"><label for="tools-student-credit-note">Observação do Crédito</label><input id="tools-student-credit-note" type="text" placeholder="Pacote 10h, crédito avulso, ajuste, etc."></div>
+        <div class="tools-field" style="flex:1;"><label for="tools-student-deposit-file">Comprovante Depósito (PDF)</label><input id="tools-student-deposit-file" type="file" accept="application/pdf" onchange="toolsStudentOnReceiptSelected_()"></div>
+      </div>
+      <div id="tools-student-receipt-meta" class="tools-dbadd-help">Nenhum comprovante selecionado.</div>
+    </div>
+
+    <div class="tools-field">
+      <label>Histórico de Créditos</label>
+      <div id="tools-student-ledger" class="tools-search-results" style="max-height:220px;"></div>
+    </div>
+
+    <div class="tools-btn-row">
+      <button class="btn-ts" type="button" onclick="toolsStudentClearForm_()">LIMPAR</button>
+      <button class="btn-tp" type="button" onclick="toolsStudentSave_()">SALVAR ALUNO</button>
     </div>
   </div>
 
@@ -1659,12 +1725,15 @@
   var _toolsDiagSeq = 0;
   var _toolsDiscrepancyRows = [];
   var _toolsStaffData = { currentUser: {}, staff: [], roles: [], modules: [], pilotAuthorizations: [], authorizationConfig: {} };
+  var _toolsStudentsData = { rows: [], ratingsOptions: [] };
   var _toolsSelectedStaffRow = 0;
+  var _toolsSelectedStudentRow = 0;
+  var _toolsPendingStudentReceipt = null;
   var _toolsSelectedPilotAuthRow = 0;
   var _toolsSelectedModuleRow = 0;
   var _toolsAircraftDocsRows = [];
   var _toolsAircraftDocsFolderUrl = '';
-  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','pilotauth','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations'];
+  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','students','pilotauth','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations'];
 
   function toolsCurrentAdmin_() {
     var userEl = document.getElementById('userDisplay');
@@ -3103,6 +3172,284 @@
         toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
       })
       .saveToolsStaffProfile(payload);
+  }
+
+  function toolsOpenStudentPanel() {
+    toolsOpenPanel('students');
+    toolsLoadStudentsData_(false);
+    toolsStudentClearForm_();
+    toolsInitDatePickers_(document.getElementById('tools-panel-students') || document);
+  }
+
+  function toolsStudentRatingsOptionsHtml_(selectedRatings) {
+    var selectedMap = {};
+    (Array.isArray(selectedRatings) ? selectedRatings : []).forEach(function(v) {
+      var key = String(v || '').trim().toUpperCase();
+      if (key) selectedMap[key] = true;
+    });
+    var options = Array.isArray(_toolsStudentsData.ratingsOptions) ? _toolsStudentsData.ratingsOptions : [];
+    return options.map(function(item) {
+      var value = String(item && item.code || '').trim();
+      var label = String(item && item.label || value).trim();
+      if (!value) return '';
+      var selected = selectedMap[value.toUpperCase()] ? ' selected' : '';
+      return '<option value="' + toolsAircraftEscape_(value) + '"' + selected + '>' + toolsAircraftEscape_(label) + '</option>';
+    }).join('');
+  }
+
+  function toolsStudentReadSelectedRatings_() {
+    var el = document.getElementById('tools-student-ratings');
+    if (!el) return [];
+    return Array.prototype.slice.call(el.selectedOptions || [])
+      .map(function(opt) { return String(opt.value || '').trim(); })
+      .filter(Boolean);
+  }
+
+  function toolsStudentRenderLedger_(entries) {
+    var listEl = document.getElementById('tools-student-ledger');
+    if (!listEl) return;
+    var rows = Array.isArray(entries) ? entries.slice() : [];
+    if (!rows.length) {
+      listEl.innerHTML = '<div class="tools-search-item"><div class="tools-search-meta">Sem créditos lançados para este aluno.</div></div>';
+      return;
+    }
+    listEl.innerHTML = rows.slice().reverse().map(function(item) {
+      var amount = Number(item && item.amount || 0);
+      var rate = Number(item && item.rate || 0);
+      var stamp = String(item && item.timestamp || '').trim();
+      var note = String(item && item.note || '').trim();
+      var url = String(item && item.receiptUrl || '').trim();
+      var by = String(item && item.by || '').trim();
+      return '<div class="tools-search-item">'
+        + '<div class="tools-search-name">R$ ' + amount.toFixed(2) + ' · Taxa R$ ' + rate.toFixed(2) + '/h</div>'
+        + '<div class="tools-search-meta">' + toolsAircraftEscape_(stamp + (by ? (' · ' + by) : '')) + '</div>'
+        + (note ? ('<div class="tools-search-meta">' + toolsAircraftEscape_(note) + '</div>') : '')
+        + (url ? ('<div class="tools-search-meta"><a href="' + toolsAircraftEscape_(url) + '" target="_blank" rel="noopener">Abrir comprovante</a></div>') : '')
+        + '</div>';
+    }).join('');
+  }
+
+  function toolsStudentRefreshSelect_() {
+    var sel = document.getElementById('tools-student-select');
+    if (!sel) return;
+    var rows = Array.isArray(_toolsStudentsData.rows) ? _toolsStudentsData.rows : [];
+    sel.innerHTML = '<option value="">Novo aluno...</option>' + rows.map(function(item) {
+      var label = String(item.name || 'Sem nome');
+      if (item.canac) label += ' · CANAC ' + String(item.canac);
+      if (item.cpf) label += ' · CPF ' + String(item.cpf);
+      return '<option value="' + toolsAircraftEscape_(String(item.rowNumber || '')) + '">' + toolsAircraftEscape_(label) + '</option>';
+    }).join('');
+  }
+
+  function toolsLoadStudentsData_(forceRefresh) {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          toolsToast_((res && res.error) ? res.error : 'Falha ao carregar alunos.', 'red');
+          return;
+        }
+        _toolsStudentsData.rows = Array.isArray(res.rows) ? res.rows : [];
+        _toolsStudentsData.ratingsOptions = Array.isArray(res.ratingsOptions) ? res.ratingsOptions : [];
+        toolsStudentRefreshSelect_();
+        var ratingsEl = document.getElementById('tools-student-ratings');
+        if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_([]);
+        var metaEl = document.getElementById('tools-student-meta');
+        if (metaEl) metaEl.textContent = _toolsStudentsData.rows.length + ' alunos carregados.';
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .getToolsStudentProfiles();
+  }
+
+  function toolsStudentLoadSelected_() {
+    var sel = document.getElementById('tools-student-select');
+    var rowNumber = Number((sel && sel.value) || 0);
+    _toolsSelectedStudentRow = rowNumber;
+    var item = (_toolsStudentsData.rows || []).find(function(s) { return Number(s.rowNumber || 0) === rowNumber; }) || null;
+    if (!item) {
+      toolsStudentClearForm_();
+      return;
+    }
+
+    document.getElementById('tools-student-name').value = String(item.name || '');
+    document.getElementById('tools-student-email').value = String(item.email || '');
+    document.getElementById('tools-student-cpf').value = String(item.cpf || '');
+    document.getElementById('tools-student-canac').value = String(item.canac || '');
+    document.getElementById('tools-student-dob').value = String(item.dob || '');
+    document.getElementById('tools-student-medical-expiry').value = String(item.medicalExpiry || '');
+    document.getElementById('tools-student-medical-class').value = String(item.medicalClass || '');
+    document.getElementById('tools-student-rate').value = Number(item.rateBrlHour || 0).toFixed(2);
+    document.getElementById('tools-student-balance').value = Number(item.balanceBrl || 0).toFixed(2);
+    document.getElementById('tools-student-credit').value = '';
+    document.getElementById('tools-student-credit-note').value = '';
+    _toolsPendingStudentReceipt = {
+      driveUrl: String(item.lastDepositFileUrl || ''),
+      driveFileId: String(item.lastDepositFileId || '')
+    };
+
+    var ratingsEl = document.getElementById('tools-student-ratings');
+    if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_(item.ratings || []);
+
+    var receiptMetaEl = document.getElementById('tools-student-receipt-meta');
+    if (receiptMetaEl) {
+      if (_toolsPendingStudentReceipt && _toolsPendingStudentReceipt.driveUrl) {
+        receiptMetaEl.innerHTML = 'Último comprovante: <a href="' + toolsAircraftEscape_(_toolsPendingStudentReceipt.driveUrl) + '" target="_blank" rel="noopener">Abrir PDF</a>';
+      } else {
+        receiptMetaEl.textContent = 'Nenhum comprovante selecionado.';
+      }
+    }
+
+    toolsStudentRenderLedger_(item.ledger || []);
+    var metaEl = document.getElementById('tools-student-meta');
+    if (metaEl) metaEl.textContent = 'Editando aluno linha ' + rowNumber + '.';
+  }
+
+  function toolsStudentClearForm_() {
+    _toolsSelectedStudentRow = 0;
+    _toolsPendingStudentReceipt = null;
+    var sel = document.getElementById('tools-student-select');
+    if (sel) sel.value = '';
+    ['tools-student-name','tools-student-email','tools-student-cpf','tools-student-canac','tools-student-dob','tools-student-medical-expiry','tools-student-rate','tools-student-credit','tools-student-credit-note'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    var balEl = document.getElementById('tools-student-balance');
+    if (balEl) balEl.value = '0.00';
+    var medClassEl = document.getElementById('tools-student-medical-class');
+    if (medClassEl) medClassEl.value = '';
+    var ratingsEl = document.getElementById('tools-student-ratings');
+    if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_([]);
+    var fileEl = document.getElementById('tools-student-deposit-file');
+    if (fileEl) fileEl.value = '';
+    var receiptMetaEl = document.getElementById('tools-student-receipt-meta');
+    if (receiptMetaEl) receiptMetaEl.textContent = 'Nenhum comprovante selecionado.';
+    toolsStudentRenderLedger_([]);
+    var metaEl = document.getElementById('tools-student-meta');
+    if (metaEl) metaEl.textContent = 'Novo aluno.';
+  }
+
+  function toolsStudentOnReceiptSelected_() {
+    _toolsPendingStudentReceipt = null;
+    var fileEl = document.getElementById('tools-student-deposit-file');
+    var metaEl = document.getElementById('tools-student-receipt-meta');
+    if (!metaEl) return;
+    var file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+    if (!file) {
+      metaEl.textContent = 'Nenhum comprovante selecionado.';
+      return;
+    }
+    var sizeLabel = file.size > 1048576 ? (file.size / 1048576).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB';
+    metaEl.textContent = 'Arquivo selecionado: ' + file.name + ' (' + sizeLabel + ').';
+  }
+
+  function toolsStudentUploadReceipt_(file, studentName, callback) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var raw = String(e && e.target && e.target.result || '');
+      var commaIdx = raw.indexOf(',');
+      var base64 = commaIdx >= 0 ? raw.slice(commaIdx + 1) : raw;
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.success) {
+            toolsToast_((res && res.error) ? res.error : 'Falha no upload do comprovante.', 'red');
+            callback(null);
+            return;
+          }
+          callback(res);
+        })
+        .withFailureHandler(function(err) {
+          toolsToast_('Erro no upload: ' + (err && err.message ? err.message : String(err)), 'red');
+          callback(null);
+        })
+        .uploadStudentDepositReceipt({
+          studentName: String(studentName || '').trim(),
+          fileName: file.name,
+          mimeType: file.type || 'application/pdf',
+          base64Data: base64
+        });
+    };
+    reader.onerror = function() {
+      toolsToast_('Não foi possível ler o PDF.', 'red');
+      callback(null);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function toolsStudentSave_() {
+    var payload = {
+      rowNumber: _toolsSelectedStudentRow,
+      name: String((document.getElementById('tools-student-name') || {}).value || '').trim(),
+      email: String((document.getElementById('tools-student-email') || {}).value || '').trim(),
+      cpf: String((document.getElementById('tools-student-cpf') || {}).value || '').trim(),
+      canac: String((document.getElementById('tools-student-canac') || {}).value || '').trim(),
+      dob: String((document.getElementById('tools-student-dob') || {}).value || '').trim(),
+      medicalExpiry: String((document.getElementById('tools-student-medical-expiry') || {}).value || '').trim(),
+      medicalClass: String((document.getElementById('tools-student-medical-class') || {}).value || '').trim(),
+      ratings: toolsStudentReadSelectedRatings_(),
+      rateBrlHour: Number((document.getElementById('tools-student-rate') || {}).value || 0),
+      creditAmountBrl: Number((document.getElementById('tools-student-credit') || {}).value || 0),
+      creditNote: String((document.getElementById('tools-student-credit-note') || {}).value || '').trim(),
+      updatedBy: toolsCurrentAdmin_()
+    };
+
+    if (!payload.name) {
+      toolsToast_('Nome do aluno é obrigatório.', 'orange');
+      return;
+    }
+    if (!payload.email && !payload.cpf && !payload.canac) {
+      toolsToast_('Informe ao menos email, CPF ou CANAC para identificar o aluno.', 'orange');
+      return;
+    }
+
+    var doSave = function(receiptInfo) {
+      if (receiptInfo && receiptInfo.success) {
+        payload.depositFileUrl = String(receiptInfo.driveUrl || '').trim();
+        payload.depositFileId = String(receiptInfo.driveFileId || '').trim();
+      } else if (_toolsPendingStudentReceipt && _toolsPendingStudentReceipt.driveUrl) {
+        payload.depositFileUrl = String(_toolsPendingStudentReceipt.driveUrl || '').trim();
+        payload.depositFileId = String(_toolsPendingStudentReceipt.driveFileId || '').trim();
+      }
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.success) {
+            toolsToast_((res && res.error) ? res.error : 'Falha ao salvar aluno.', 'red');
+            return;
+          }
+          toolsToast_('Aluno salvo com sucesso.', 'green');
+          _toolsSelectedStudentRow = Number(res.rowNumber || 0);
+          toolsLoadStudentsData_(true);
+          if (_toolsSelectedStudentRow >= 2) {
+            setTimeout(function() {
+              var sel = document.getElementById('tools-student-select');
+              if (sel) {
+                sel.value = String(_toolsSelectedStudentRow);
+                toolsStudentLoadSelected_();
+              }
+            }, 120);
+          }
+        })
+        .withFailureHandler(function(err) {
+          toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
+        })
+        .saveToolsStudentProfile(payload);
+    };
+
+    var fileEl = document.getElementById('tools-student-deposit-file');
+    var file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+    if (file) {
+      if (String(file.type || '').toLowerCase() !== 'application/pdf') {
+        toolsToast_('Comprovante deve ser PDF.', 'orange');
+        return;
+      }
+      toolsStudentUploadReceipt_(file, payload.name, function(uploadRes) {
+        if (!uploadRes) return;
+        doSave(uploadRes);
+      });
+      return;
+    }
+    doSave(null);
   }
 
   function toolsOpenPilotAuthPanel() {
@@ -8482,6 +8829,7 @@
       toolsDiscrepancyOnAircraftChanged_();
     }
     if(id==='staff'){toolsLoadStaffSetupData_(false);}
+    if(id==='students'){toolsLoadStudentsData_(false);}
     if(id==='trainingmodule'){toolsLoadStaffSetupData_(false);}
     if(id==='maneuvers'){toolsManeuverPanelOpen_();}
     if(id==='practical'){toolsLoadStaffSetupData_(false);}
@@ -9555,6 +9903,7 @@
   window.toolsOpenReportsPanel = toolsOpenReportsPanel;
   window.toolsOpenDiscrepancyPanel = toolsOpenDiscrepancyPanel;
   window.toolsOpenStaffPanel = toolsOpenStaffPanel;
+  window.toolsOpenStudentPanel = toolsOpenStudentPanel;
   window.toolsOpenPilotAuthPanel = toolsOpenPilotAuthPanel;
   window.toolsOpenSavedRoutesPanel = toolsOpenSavedRoutesPanel;
   window.toolsOpenTrainingModulePanel = toolsOpenTrainingModulePanel;

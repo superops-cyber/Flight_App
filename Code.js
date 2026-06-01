@@ -16723,6 +16723,298 @@ function getToolsStaffSetupData() {
   }
 }
 
+function _toolsStudentRatingsOptions_() {
+  return [
+    { code: 'PP-A', label: 'Piloto Privado Avião (PP-A)' },
+    { code: 'PC-A', label: 'Piloto Comercial Avião (PC-A)' },
+    { code: 'IFR', label: 'Voo por Instrumentos (IFR)' },
+    { code: 'INVA', label: 'Instrutor de Voo Avião (INVA)' },
+    { code: 'MLTE', label: 'Classe Multimotor Terrestre (MLTE)' },
+    { code: 'MNTE', label: 'Classe Monomotor Terrestre (MNTE)' },
+    { code: 'MLTE-IFR', label: 'Multimotor + IFR' },
+    { code: 'JET', label: 'Tipo Jato' },
+    { code: 'ANAC-AGR', label: 'Piloto Agrícola' },
+    { code: 'ANAC-CFI', label: 'Instrutor Credenciado' }
+  ];
+}
+
+function _toolsEnsurePilotStudentHeaders_(sheet) {
+  var headers = _toolsSheetHeaderRow_(sheet);
+  var existingNorms = headers.map(function(h) { return _toolsNormHeader_(h); });
+  var required = [
+    'CPF',
+    'CANAC',
+    'DOB',
+    'MEDICAL_EXPIRY',
+    'MEDICAL_CLASS',
+    'CURRENT_RATINGS',
+    'STUDENT_PROFILE_JSON',
+    'FUNDS_BALANCE_BRL',
+    'FUNDS_RATE_BRL_HOUR',
+    'FUNDS_LEDGER_JSON',
+    'LAST_DEPOSIT_FILE_URL',
+    'LAST_DEPOSIT_FILE_ID',
+    'LAST_DEPOSIT_AT'
+  ];
+
+  var missing = [];
+  required.forEach(function(label) {
+    if (existingNorms.indexOf(_toolsNormHeader_(label)) === -1) missing.push(label);
+  });
+
+  if (missing.length) {
+    sheet.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
+    headers = headers.concat(missing);
+  }
+
+  return headers;
+}
+
+function _toolsStudentRecordFromRow_(headers, row, rowNumber) {
+  var nameIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_NAME', 'PILOT', 'NAME', 'STUDENT_NAME', 'NOME']);
+  var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_EMAIL', 'EMAIL', 'E_MAIL']);
+  var cpfIdx = _toolsHeaderIndexFromCandidates_(headers, ['CPF', 'ID_NUMBER_CPF_PASSPORT']);
+  var canacIdx = _toolsHeaderIndexFromCandidates_(headers, ['CANAC', 'ANAC_CODE', 'LICENSE']);
+  var dobIdx = _toolsHeaderIndexFromCandidates_(headers, ['DOB', 'DATE_OF_BIRTH', 'BIRTH_DATE']);
+  var medExpiryIdx = _toolsHeaderIndexFromCandidates_(headers, ['MEDICAL_EXPIRY', 'MEDICAL_EXP', 'CMA_EXPIRY']);
+  var medClassIdx = _toolsHeaderIndexFromCandidates_(headers, ['MEDICAL_CLASS', 'CMA_CLASS']);
+  var ratingsIdx = _toolsHeaderIndexFromCandidates_(headers, ['CURRENT_RATINGS', 'RATINGS']);
+  var balanceIdx = _toolsHeaderIndexFromCandidates_(headers, ['FUNDS_BALANCE_BRL', 'BALANCE_BRL', 'CREDIT_BALANCE']);
+  var rateIdx = _toolsHeaderIndexFromCandidates_(headers, ['FUNDS_RATE_BRL_HOUR', 'RATE_BRL_HOUR', 'HOURLY_RATE']);
+  var ledgerIdx = _toolsHeaderIndexFromCandidates_(headers, ['FUNDS_LEDGER_JSON', 'CREDIT_LEDGER_JSON']);
+  var profileIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_PROFILE_JSON']);
+  var lastUrlIdx = _toolsHeaderIndexFromCandidates_(headers, ['LAST_DEPOSIT_FILE_URL', 'DEPOSIT_FILE_URL']);
+  var lastIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['LAST_DEPOSIT_FILE_ID', 'DEPOSIT_FILE_ID']);
+
+  var ratingsRaw = ratingsIdx >= 0 ? row[ratingsIdx] : '';
+  var ratings = [];
+  try {
+    var parsedRatings = typeof ratingsRaw === 'string' ? JSON.parse(ratingsRaw) : ratingsRaw;
+    if (Array.isArray(parsedRatings)) ratings = parsedRatings.map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+  } catch (e) {
+    ratings = String(ratingsRaw || '').split(/[;,]+/).map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+  }
+
+  var ledger = [];
+  try {
+    var parsedLedger = ledgerIdx >= 0 ? _parseJsonLoose_(row[ledgerIdx], []) : [];
+    if (Array.isArray(parsedLedger)) ledger = parsedLedger;
+  } catch (e2) {}
+
+  var profileJson = {};
+  try {
+    profileJson = profileIdx >= 0 ? _parseJsonLoose_(row[profileIdx], {}) : {};
+  } catch (e3) {}
+
+  return {
+    rowNumber: rowNumber,
+    name: nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '',
+    email: emailIdx >= 0 ? String(row[emailIdx] || '').trim().toLowerCase() : '',
+    cpf: cpfIdx >= 0 ? String(row[cpfIdx] || '').trim() : '',
+    canac: canacIdx >= 0 ? String(row[canacIdx] || '').trim() : '',
+    dob: dobIdx >= 0 ? safeDateStr(row[dobIdx]) : '',
+    medicalExpiry: medExpiryIdx >= 0 ? safeDateStr(row[medExpiryIdx]) : '',
+    medicalClass: medClassIdx >= 0 ? String(row[medClassIdx] || '').trim() : '',
+    ratings: ratings,
+    balanceBrl: balanceIdx >= 0 ? Number(row[balanceIdx] || 0) : Number(profileJson.balanceBrl || 0),
+    rateBrlHour: rateIdx >= 0 ? Number(row[rateIdx] || 0) : Number(profileJson.rateBrlHour || 0),
+    ledger: ledger,
+    lastDepositFileUrl: lastUrlIdx >= 0 ? String(row[lastUrlIdx] || '').trim() : '',
+    lastDepositFileId: lastIdIdx >= 0 ? String(row[lastIdIdx] || '').trim() : ''
+  };
+}
+
+function getToolsStudentProfiles() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = getRequiredSheet_(ss, APP_SHEETS.PILOTS, 'getToolsStudentProfiles');
+    var data = sh.getDataRange().getValues();
+    if (data.length < 1) return { success: true, rows: [], ratingsOptions: _toolsStudentRatingsOptions_() };
+    var headers = data[0] || [];
+    var rows = [];
+    for (var i = 1; i < data.length; i++) {
+      var rec = _toolsStudentRecordFromRow_(headers, data[i], i + 1);
+      if (!rec.name && !rec.email && !rec.cpf && !rec.canac) continue;
+      rows.push(rec);
+    }
+    rows.sort(function(a, b) { return String(a.name || '').localeCompare(String(b.name || '')); });
+    return { success: true, rows: rows, ratingsOptions: _toolsStudentRatingsOptions_() };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e), rows: [], ratingsOptions: _toolsStudentRatingsOptions_() };
+  }
+}
+
+function saveToolsStudentProfile(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = getRequiredSheet_(ss, APP_SHEETS.PILOTS, 'saveToolsStudentProfile');
+    var headers = _toolsEnsurePilotStudentHeaders_(sh);
+    var data = sh.getDataRange().getValues();
+
+    var rowNumber = Number(body.rowNumber || 0);
+    var name = String(body.name || '').trim();
+    var email = String(body.email || '').trim().toLowerCase();
+    var cpf = String(body.cpf || '').trim();
+    var canac = String(body.canac || '').trim();
+    if (!name) return { success: false, error: 'Student name is required.' };
+    if (!email && !cpf && !canac) return { success: false, error: 'Provide email, CPF or CANAC.' };
+
+    var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_EMAIL', 'EMAIL', 'E_MAIL']);
+    var cpfIdx = _toolsHeaderIndexFromCandidates_(headers, ['CPF', 'ID_NUMBER_CPF_PASSPORT']);
+    var canacIdx = _toolsHeaderIndexFromCandidates_(headers, ['CANAC', 'ANAC_CODE', 'LICENSE']);
+
+    if (rowNumber < 2) {
+      for (var i = 1; i < data.length; i++) {
+        var rowEmail = emailIdx >= 0 ? String(data[i][emailIdx] || '').trim().toLowerCase() : '';
+        var rowCpf = cpfIdx >= 0 ? String(data[i][cpfIdx] || '').trim() : '';
+        var rowCanac = canacIdx >= 0 ? String(data[i][canacIdx] || '').trim() : '';
+        if ((email && rowEmail && rowEmail === email) || (cpf && rowCpf && rowCpf === cpf) || (canac && rowCanac && rowCanac === canac)) {
+          rowNumber = i + 1;
+          break;
+        }
+      }
+    }
+
+    var existingRow = rowNumber >= 2 ? sh.getRange(rowNumber, 1, 1, headers.length).getValues()[0] : headers.map(function() { return ''; });
+    var existingRecord = _toolsStudentRecordFromRow_(headers, existingRow, rowNumber >= 2 ? rowNumber : 0);
+    var currentBalance = Number(existingRecord.balanceBrl || 0);
+    var rate = Number(body.rateBrlHour || existingRecord.rateBrlHour || 0);
+    var creditAmount = Number(body.creditAmountBrl || 0);
+    if (isNaN(rate) || rate < 0) rate = 0;
+    if (isNaN(creditAmount) || creditAmount < 0) creditAmount = 0;
+
+    var ratings = Array.isArray(body.ratings) ? body.ratings : String(body.ratings || '').split(/[;,]+/);
+    ratings = ratings.map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+
+    var ledger = Array.isArray(existingRecord.ledger) ? existingRecord.ledger.slice() : [];
+    var now = new Date();
+    var nowIso = Utilities.formatDate(now, Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd HH:mm:ss');
+    var depositFileUrl = String(body.depositFileUrl || '').trim();
+    var depositFileId = String(body.depositFileId || '').trim();
+
+    var newBalance = currentBalance;
+    if (creditAmount > 0) {
+      newBalance = currentBalance + creditAmount;
+      ledger.push({
+        timestamp: nowIso,
+        amount: creditAmount,
+        rate: rate,
+        note: String(body.creditNote || '').trim(),
+        receiptUrl: depositFileUrl,
+        receiptFileId: depositFileId,
+        by: String(body.updatedBy || _toolsCurrentUserEmail_() || 'tools')
+      });
+    }
+
+    var profileJson = {
+      name: name,
+      email: email,
+      cpf: cpf,
+      canac: canac,
+      dob: String(body.dob || '').trim(),
+      medicalExpiry: String(body.medicalExpiry || '').trim(),
+      medicalClass: String(body.medicalClass || '').trim(),
+      ratings: ratings,
+      balanceBrl: newBalance,
+      rateBrlHour: rate,
+      lastUpdatedAt: nowIso
+    };
+
+    var lastDepositAtIdx = _toolsHeaderIndexFromCandidates_(headers, ['LAST_DEPOSIT_AT']);
+    var existingLastDepositAt = lastDepositAtIdx >= 0 ? String(existingRow[lastDepositAtIdx] || '').trim() : '';
+
+    var dataMap = {
+      PILOT_NAME: name,
+      PILOT: name,
+      NAME: name,
+      PILOT_EMAIL: email,
+      EMAIL: email,
+      CPF: cpf,
+      CANAC: canac,
+      DOB: String(body.dob || '').trim(),
+      MEDICAL_EXPIRY: String(body.medicalExpiry || '').trim(),
+      MEDICAL_CLASS: String(body.medicalClass || '').trim(),
+      CURRENT_RATINGS: ratings.join('; '),
+      STUDENT_PROFILE_JSON: JSON.stringify(profileJson),
+      FUNDS_BALANCE_BRL: newBalance,
+      FUNDS_RATE_BRL_HOUR: rate,
+      FUNDS_LEDGER_JSON: JSON.stringify(ledger),
+      LAST_DEPOSIT_FILE_URL: depositFileUrl,
+      LAST_DEPOSIT_FILE_ID: depositFileId,
+      LAST_DEPOSIT_AT: depositFileUrl ? nowIso : existingLastDepositAt
+    };
+
+    var record = headers.map(function(header) {
+      var key = _toolsNormHeader_(header);
+      return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : '';
+    });
+
+    var result;
+    if (rowNumber >= 2) {
+      var merged = headers.map(function(header, idx) {
+        var key = _toolsNormHeader_(header);
+        return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : existingRow[idx];
+      });
+      sh.getRange(rowNumber, 1, 1, merged.length).setValues([merged]);
+      result = { success: true, action: 'updated', rowNumber: rowNumber };
+    } else {
+      sh.appendRow(record);
+      result = { success: true, action: 'created', rowNumber: sh.getLastRow() };
+    }
+
+    result.balanceBrl = newBalance;
+    result.rateBrlHour = rate;
+    return result;
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function uploadStudentDepositReceipt(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var base64Data = String(body.base64Data || '').trim();
+    var fileName = String(body.fileName || '').trim() || 'deposit.pdf';
+    var mimeType = String(body.mimeType || 'application/pdf').trim().toLowerCase();
+    var studentName = String(body.studentName || '').trim() || 'student';
+
+    if (!base64Data) return { success: false, error: 'No file data provided.' };
+    if (mimeType.indexOf('pdf') < 0 && !/\.pdf$/i.test(fileName)) return { success: false, error: 'Only PDF receipts are allowed.' };
+
+    var rootName = 'FlightApp_Student_Deposits';
+    var rootFolders = DriveApp.getFoldersByName(rootName);
+    var rootFolder = rootFolders.hasNext() ? rootFolders.next() : DriveApp.createFolder(rootName);
+
+    var studentFolderName = String(studentName).replace(/[^A-Z0-9 _-]/gi, '').trim();
+    if (!studentFolderName) studentFolderName = 'Student';
+    var studentFolders = rootFolder.getFoldersByName(studentFolderName);
+    var studentFolder = studentFolders.hasNext() ? studentFolders.next() : rootFolder.createFolder(studentFolderName);
+
+    var bytes = Utilities.base64Decode(base64Data);
+    var safeName = String(fileName).replace(/[^A-Z0-9._-]/gi, '_');
+    if (!/\.pdf$/i.test(safeName)) safeName += '.pdf';
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyyMMdd_HHmmss');
+    var finalName = 'deposit_' + stamp + '_' + safeName;
+
+    var blob = Utilities.newBlob(bytes, 'application/pdf', finalName);
+    var file = studentFolder.createFile(blob);
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (sharingErr) {}
+
+    return {
+      success: true,
+      driveFileId: file.getId(),
+      driveUrl: file.getUrl(),
+      fileName: finalName,
+      uploadedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd HH:mm:ss')
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 function saveToolsStaffProfile(payload) {
   try {
     var body = (payload && typeof payload === 'object') ? payload : {};
