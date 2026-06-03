@@ -1309,7 +1309,7 @@ for(let i=1; i<=count; i++) {
 paxList.innerHTML += `
 <div class="card-panel pax-entry" style="padding:10px; margin-bottom:5px; border-left: 4px solid #0b5394;">
   <label>Passenger ${i}</label>
-  <select id="paxName${i}" class="browser-default">${appData.passengers.map(p => `<option value="${p.name}">${p.name}</option>`).join('')}</select>
+  <select id="paxName${i}" class="browser-default">${appData.passengers.map(p => `<option value="${p.name}">${String((p && (p.nameDisplay || p.name)) || '')}</option>`).join('')}</select>
   <div class="row" style="margin:5px 0">
     <div class="col s4"><label>Extra Cargo (kg)</label><input type="number" id="paxCargo${i}" value="15"></div>
     <div class="col s4"><label>Fund</label><select id="paxFund${i}" class="browser-default">${fundOptions}</select></div>
@@ -1376,10 +1376,14 @@ function dispatchEnsurePassengerCached_(payload) {
   });
   const next = {
     name: String(payload.name || '').trim(),
+    nameDisplay: payload.termsAcceptedCurrent ? (String(payload.name || '').trim() + ' ✓') : String(payload.name || '').trim(),
     weight: parseFloat(payload.weight) || 80,
     gender: String(payload.gender || 'U').trim() || 'U',
     dob: String(payload.dob || '').trim(),
-    phone: String(payload.phone || '').trim()
+    phone: String(payload.phone || '').trim(),
+    termsAccepted: !!payload.termsAccepted,
+    termsAcceptedAt: String(payload.termsAcceptedAt || '').trim(),
+    termsAcceptedCurrent: !!payload.termsAcceptedCurrent
   };
   if (existingIdx >= 0) appData.passengers[existingIdx] = Object.assign({}, appData.passengers[existingIdx], next);
   else appData.passengers.push(next);
@@ -1476,9 +1480,10 @@ function refreshDispatchLegLoadPassengerOptions_(selectedName) {
   dispatchSortPassengers_();
   paxSel.innerHTML = '<option value="">Select Passenger</option>' + passengers.map(function(p) {
     const name = String((p && p.name) || '').trim();
+    const label = String((p && (p.nameDisplay || p.name)) || '').trim();
     const wt = Number((p && p.weight) || 80);
     if (!name) return '';
-    return '<option value="' + name + '">' + name + ' (' + Math.round(wt) + 'kg)</option>';
+    return '<option value="' + name + '">' + label + ' (' + Math.round(wt) + 'kg)</option>';
   }).join('');
   if (selectedName) paxSel.value = selectedName;
 }

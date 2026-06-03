@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Captura Historico de Voos</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --card: #ffffff;
+        --line: #d9e1ec;
+        --text: #1f2a36;
+        --muted: #66788a;
+        --brand: #0b5ed7;
+        --ok: #2e7d32;
+        --warn: #ef6c00;
+        --bad: #c62828;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: radial-gradient(circle at 10% -20%, #e7f0ff 0%, var(--bg) 45%, #edf3ff 100%);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 14px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 8px rgba(15, 35, 70, 0.06);
+      }
+      h1 {
+        margin: 0 0 8px 0;
+        font-size: 1.12rem;
+      }
+      .muted { color: var(--muted); font-size: 0.88rem; }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .field { flex: 1 1 220px; }
+      label {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 4px;
+        font-size: 0.8rem;
+        color: #3d4f63;
+      }
+      input, select, button, textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #c9d5e2;
+        font-size: 0.92rem;
+        padding: 9px 10px;
+      }
+      textarea { min-height: 90px; }
+      button {
+        border: none;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button.secondary { background: #607d8b; }
+      button.success { background: var(--ok); }
+      button.warn { background: var(--warn); }
+      button.danger { background: var(--bad); }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      .meta {
+        margin-top: 8px;
+        font-size: 0.84rem;
+        color: #42576f;
+      }
+      .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        margin-right: 6px;
+      }
+      .new { background: #e3f2fd; color: #0d47a1; }
+      .possible_duplicate { background: #fff3e0; color: #e65100; }
+      .likely_duplicate { background: #ffebee; color: #b71c1c; }
+      .invalid { background: #fbe9e7; color: #bf360c; }
+      .row-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px;
+        margin-top: 8px;
+        background: #fcfdff;
+      }
+      .row-title {
+        font-weight: 800;
+        color: #184069;
+        font-size: 0.92rem;
+      }
+      .actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .actions button { padding: 8px; font-size: 0.78rem; }
+      .status {
+        padding: 8px;
+        border-radius: 8px;
+        margin-top: 8px;
+        font-size: 0.85rem;
+        background: #eef4ff;
+        color: #0f3f80;
+      }
+      .ok { background: #e8f5e9; color: #1b5e20; }
+      .error { background: #ffebee; color: #b71c1c; }
+      @media (max-width: 640px) {
+        .actions { flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Captura Historico de Voos</h1>
+        <div class="muted">Fluxo: foto/PDF da ficha > Gemini extrai > revisao humana > commit para LOG_Flights.</div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="field">
+            <label for="hc-batch-id">Batch ID</label>
+            <input id="hc-batch-id" type="text" placeholder="Deixe em branco para criar novo lote">
+          </div>
+          <div class="field">
+            <label for="hc-source-label">Fonte</label>
+            <input id="hc-source-label" type="text" value="HISTORICO_SECRETARIA">
+          </div>
+          <div class="field">
+            <label for="hc-imported-by">Operador</label>
+            <input id="hc-imported-by" type="text" placeholder="Nome da secretaria">
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="field">
+            <label for="hc-file">Documento(s) (imagem ou PDF)</label>
+            <input id="hc-file" type="file" accept="image/*,application/pdf" multiple>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="field"><button id="hc-upload-btn" onclick="hcUploadAndExtract()">ENVIAR E EXTRAIR COM GEMINI</button></div>
+          <div class="field"><button class="secondary" onclick="hcTestGemini()">TESTAR GEMINI (SEM UPLOAD)</button></div>
+          <div class="field"><button class="secondary" onclick="hcLoadBatchReview()">RECARREGAR REVISAO DO BATCH</button></div>
+          <div class="field"><button class="success" onclick="hcCommitBatch()">COMMIT APROVADOS</button></div>
+        </div>
+        <div id="hc-status" class="status">Pronto para capturar.</div>
+        <div id="hc-meta" class="meta"></div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="align-items:center;">
+          <div class="field" style="flex:2;"><strong>Revisao de Linhas</strong></div>
+          <div class="field" style="flex:3;"><span id="hc-batch-summary" class="muted">Nenhum batch carregado.</span></div>
+        </div>
+        <div id="hc-review-list"></div>
+      </div>
+    </div>
+
+    <script>
+      function hcSetStatus(msg, kind) {
+        var el = document.getElementById('hc-status');
+        if (!el) return;
+        el.className = 'status' + (kind ? ' ' + kind : '');
+        el.textContent = String(msg || '');
+      }
+
+      function hcRequireSecureContext_() {
+        var proto = String((window.location && window.location.protocol) || '').toLowerCase();
+        if (proto === 'https:') return true;
+        hcSetStatus('Conexao insegura detectada. Abra o app com URL https://.../exec?view=histcapture em Chrome/Safari externo.', 'error');
+        return false;
+      }
+
+      function hcIsDevUrl_() {
+        var p = String((window.location && window.location.pathname) || '').toLowerCase();
+        return /\/dev(?:$|[/?#])/.test(p);
+      }
+
+      function hcFormatBytes_(n) {
+        var b = Number(n || 0);
+        if (!isFinite(b) || b <= 0) return '0 B';
+        if (b < 1024) return Math.round(b) + ' B';
+        if (b < 1024 * 1024) return Math.round(b / 1024) + ' KB';
+        return (b / (1024 * 1024)).toFixed(2) + ' MB';
+      }
+
+      function hcReadFileAsPayload(file, cb) {
+        if (!file) { cb(null, 'Selecione um arquivo.'); return; }
+
+        var MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+        var TARGET_IMAGE_BYTES = 650 * 1024;
+
+        var originalName = String(file.name || '').toLowerCase();
+        var originalMime = String(file.type || '').toLowerCase();
+        var isHeicLike = /\.hei(c|f)$/.test(originalName) || /image\/(heic|heif)/.test(originalMime);
+        if (isHeicLike) {
+          cb(null, 'HEIC/HEIF nao e estavel neste fluxo no iPad. Tire a foto em JPG (Camera > Formats > Most Compatible) ou envie um screenshot/JPG.');
+          return;
+        }
+
+        function readRaw() {
+          if ((file.size || 0) > MAX_UPLOAD_BYTES) {
+            cb(null, 'Arquivo muito grande para upload estavel no iPad: ' + hcFormatBytes_(file.size || 0) + '. Limite recomendado: ' + hcFormatBytes_(MAX_UPLOAD_BYTES) + '.');
+            return;
+          }
+          var reader = new FileReader();
+          reader.onload = function(evt) {
+            var result = String((evt && evt.target && evt.target.result) || '');
+            var base64Data = result.indexOf(',') >= 0 ? result.split(',').pop() : result;
+            var approxBytes = Math.floor((String(base64Data || '').length * 3) / 4);
+            if (approxBytes > MAX_UPLOAD_BYTES) {
+              cb(null, 'Upload excede o limite recomendado no iPad: ' + hcFormatBytes_(approxBytes) + '.');
+              return;
+            }
+            cb({ fileName: file.name, mimeType: file.type || '', base64Data: base64Data, sizeBytes: file.size || 0, optimized: false });
+          };
+          reader.onerror = function() { cb(null, 'Nao foi possivel ler o arquivo.'); };
+          reader.readAsDataURL(file);
+        }
+
+        var mime = String(file.type || '').toLowerCase();
+        if (mime.indexOf('image/') !== 0) {
+          if (mime === 'application/pdf' && (file.size || 0) > (1.5 * 1024 * 1024)) {
+            cb(null, 'PDF grande demais para upload estavel no iPad (' + hcFormatBytes_(file.size || 0) + '). Gere PDF menor ou envie foto JPG da ficha.');
+            return;
+          }
+          readRaw();
+          return;
+        }
+
+        // Reduce image payload for mobile reliability (Safari/iPad often aborts large uploads).
+        var imgReader = new FileReader();
+        imgReader.onload = function(evt) {
+          var src = String((evt && evt.target && evt.target.result) || '');
+          var img = new Image();
+          img.onload = function() {
+            try {
+              var w = Number(img.width || 0);
+              var h = Number(img.height || 0);
+              if (!(w > 0 && h > 0)) { readRaw(); return; }
+
+              var canvas = document.createElement('canvas');
+              var ctx = canvas.getContext('2d');
+              if (!ctx) { readRaw(); return; }
+
+              var attempts = [
+                { maxSide: 1600, quality: 0.72 },
+                { maxSide: 1300, quality: 0.66 },
+                { maxSide: 1100, quality: 0.60 },
+                { maxSide: 950, quality: 0.56 },
+                { maxSide: 800, quality: 0.52 },
+                { maxSide: 700, quality: 0.48 }
+              ];
+
+              var chosen = null;
+              for (var i = 0; i < attempts.length; i += 1) {
+                var step = attempts[i];
+                var scale = Math.min(1, Number(step.maxSide || 1) / Math.max(w, h));
+                var tw = Math.max(1, Math.round(w * scale));
+                var th = Math.max(1, Math.round(h * scale));
+                canvas.width = tw;
+                canvas.height = th;
+                ctx.clearRect(0, 0, tw, th);
+                ctx.drawImage(img, 0, 0, tw, th);
+
+                var outMime = 'image/jpeg';
+                var outUrl = canvas.toDataURL(outMime, Number(step.quality || 0.7));
+                var outBase64 = outUrl.split(',').pop();
+                var approxBytes = Math.floor((outBase64.length * 3) / 4);
+
+                chosen = {
+                  fileName: String(file.name || 'capture.jpg').replace(/\.[^.]+$/, '') + '.jpg',
+                  mimeType: outMime,
+                  base64Data: outBase64,
+                  sizeBytes: approxBytes,
+                  optimized: true,
+                  originalSizeBytes: file.size || 0,
+                  resizeMaxSide: step.maxSide,
+                  jpegQuality: step.quality
+                };
+
+                if (approxBytes <= TARGET_IMAGE_BYTES) break;
+              }
+
+              if (!chosen || Number(chosen.sizeBytes || 0) > MAX_UPLOAD_BYTES) {
+                cb(null, 'Imagem ainda muito grande para upload estavel no iPad apos otimizar. Tente recortar a foto e reenviar.');
+                return;
+              }
+
+              cb(chosen);
+            } catch (e) {
+              cb(null, 'Nao foi possivel otimizar esta imagem no iPad. Tente uma foto JPG simples (nao HEIC) ou recorte a imagem antes de enviar.');
+            }
+          };
+          img.onerror = function() {
+            cb(null, 'Formato de imagem nao suportado para otimizacao no iPad. Use JPG (Camera > Most Compatible) ou screenshot.');
+          };
+          img.src = src;
+        };
+        imgReader.onerror = function() { readRaw(); };
+        imgReader.readAsDataURL(file);
+      }
+
+      function hcUploadAndExtract() {
+        if (!hcRequireSecureContext_()) return;
+        if (hcIsDevUrl_()) {
+          hcSetStatus('Voce esta em URL /dev. No iPad use o deploy /exec para evitar falhas de autenticacao/rede.', 'error');
+          return;
+        }
+        var fileEl = document.getElementById('hc-file');
+        var files = fileEl && fileEl.files ? Array.prototype.slice.call(fileEl.files) : [];
+        if (!files.length) { hcSetStatus('Selecione uma imagem ou PDF.', 'error'); return; }
+        var batchId = String((document.getElementById('hc-batch-id') || {}).value || '').trim();
+        var sourceLabel = String((document.getElementById('hc-source-label') || {}).value || '').trim() || 'HISTORICO_SECRETARIA';
+        var importedBy = String((document.getElementById('hc-imported-by') || {}).value || '').trim() || 'Secretaria';
+
+        var idx = 0;
+        var totalRows = 0;
+        var processed = 0;
+
+        function ingestViaDirectPost(payload, onSuccess, onFail) {
+          var baseUrl = String((window.location && window.location.href) || '').split('#')[0];
+          var requestBody = {
+            action: 'ingestHistoricalFlightDocument',
+            payload: payload
+          };
+
+          fetch(baseUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            credentials: 'same-origin',
+            body: JSON.stringify(requestBody)
+          })
+            .then(function(resp) { return resp.text(); })
+            .then(function(txt) {
+              var parsed = null;
+              try { parsed = JSON.parse(String(txt || '{}')); } catch (e) {}
+              if (!parsed || !parsed.success) {
+                onFail((parsed && parsed.error) ? parsed.error : ('Falha no modo alternativo de upload. Resposta: ' + String(txt || '').slice(0, 200)));
+                return;
+              }
+              onSuccess(parsed);
+            })
+            .catch(function(fetchErr) {
+              onFail(fetchErr && fetchErr.message ? fetchErr.message : String(fetchErr || 'Erro de rede no modo alternativo'));
+            });
+        }
+
+        function ingestViaChunkedRpc(payload, onSuccess, onFail) {
+          var base64 = String((payload && payload.base64Data) || '');
+          if (!base64) { onFail('Sem dados para upload em chunks.'); return; }
+
+          var CHUNK_SIZE = 45000;
+          var chunks = [];
+          for (var p = 0; p < base64.length; p += CHUNK_SIZE) {
+            chunks.push(base64.slice(p, p + CHUNK_SIZE));
+          }
+          if (!chunks.length) { onFail('Nao foi possivel preparar chunks.'); return; }
+
+          var meta = {
+            batchId: String(payload.batchId || ''),
+            sourceLabel: String(payload.sourceLabel || 'HISTORICAL_PAPER_CAPTURE'),
+            importedBy: String(payload.importedBy || 'Secretaria'),
+            fileName: String(payload.fileName || 'capture.jpg'),
+            mimeType: String(payload.mimeType || 'application/octet-stream'),
+            totalChunks: chunks.length
+          };
+
+          google.script.run
+            .withSuccessHandler(function(initRes) {
+              if (!initRes || !initRes.success || !initRes.uploadId) {
+                onFail((initRes && initRes.error) ? initRes.error : 'Falha ao iniciar upload em chunks.');
+                return;
+              }
+
+              var uploadId = String(initRes.uploadId);
+              var sent = 0;
+
+              function sendNextChunk() {
+                if (sent >= chunks.length) {
+                  hcSetStatus('Upload em chunks concluido. Enfileirando processamento...', '');
+                  google.script.run
+                    .withSuccessHandler(function(finalRes) {
+                      if (!finalRes || !finalRes.success) {
+                        onFail((finalRes && finalRes.error) ? finalRes.error : 'Falha ao finalizar upload em chunks.');
+                        return;
+                      }
+
+                      if (finalRes.queued && finalRes.queueId) {
+                        var queueId = String(finalRes.queueId || '');
+                        var attempts = 0;
+                        var maxAttempts = 240;
+
+                        function pollQueueStatus() {
+                          attempts += 1;
+                          hcSetStatus('Processando no servidor... (' + attempts + '/' + maxAttempts + ')', '');
+                          google.script.run
+                            .withSuccessHandler(function(stRes) {
+                              if (!stRes || !stRes.success) {
+                                if (attempts >= maxAttempts) {
+                                  onFail((stRes && stRes.error) ? stRes.error : 'Nao foi possivel verificar status do processamento.');
+                                  return;
+                                }
+                                setTimeout(pollQueueStatus, 3000);
+                                return;
+                              }
+
+                              var status = String(stRes.status || '').toUpperCase();
+                              if (status === 'DONE') {
+                                onSuccess({
+                                  success: true,
+                                  batchId: String(stRes.batchId || finalRes.batchId || ''),
+                                  rowCount: Number(stRes.rowCount || 0),
+                                  extractionModel: String(stRes.extractionModel || '')
+                                });
+                                return;
+                              }
+
+                              if (status === 'ERROR') {
+                                onFail(stRes.error ? String(stRes.error) : 'Processamento em fila falhou.');
+                                return;
+                              }
+
+                              if (attempts >= maxAttempts) {
+                                onSuccess({
+                                  success: true,
+                                  batchId: String(finalRes.batchId || ''),
+                                  rowCount: 0,
+                                  backgroundPending: true
+                                });
+                                return;
+                              }
+                              setTimeout(pollQueueStatus, 3000);
+                            })
+                            .withFailureHandler(function(stErr) {
+                              if (attempts >= maxAttempts) {
+                                onFail(stErr && stErr.message ? stErr.message : String(stErr || 'Falha ao consultar fila'));
+                                return;
+                              }
+                              setTimeout(pollQueueStatus, 3000);
+                            })
+                            .getHistoricalFlightImportQueueStatus(queueId);
+                        }
+
+                        pollQueueStatus();
+                        return;
+                      }
+
+                      onSuccess(finalRes);
+                    })
+                    .withFailureHandler(function(finalErr) {
+                      onFail(finalErr && finalErr.message ? finalErr.message : String(finalErr || 'Erro ao finalizar upload em chunks'));
+                    })
+                    .finalizeHistoricalFlightChunkUpload(uploadId);
+                  return;
+                }
+
+                var currentIdx = sent;
+                if ((currentIdx % 5) === 0) {
+                  hcSetStatus('Enviando em chunks (' + (currentIdx + 1) + '/' + chunks.length + ')...', '');
+                }
+
+                google.script.run
+                  .withSuccessHandler(function(chunkRes) {
+                    if (!chunkRes || !chunkRes.success) {
+                      onFail((chunkRes && chunkRes.error) ? chunkRes.error : ('Falha no chunk #' + currentIdx));
+                      return;
+                    }
+                    sent += 1;
+                    sendNextChunk();
+                  })
+                  .withFailureHandler(function(chunkErr) {
+                    onFail(chunkErr && chunkErr.message ? chunkErr.message : String(chunkErr || ('Erro no chunk #' + currentIdx)));
+                  })
+                  .appendHistoricalFlightChunk(uploadId, currentIdx, chunks[currentIdx]);
+              }
+
+              sendNextChunk();
+            })
+            .withFailureHandler(function(initErr) {
+              onFail(initErr && initErr.message ? initErr.message : String(initErr || 'Erro ao iniciar chunk upload'));
+            })
+            .initHistoricalFlightChunkUpload(meta);
+        }
+
+        function ingestWithFallback(payload, onSuccess, onFail) {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              onSuccess(res);
+            })
+            .withFailureHandler(function(err2) {
+              var msg = String(err2 && err2.message ? err2.message : err2 || 'unknown error');
+              if (/connection failure|network|http\s*0/i.test(msg)) {
+                hcSetStatus('Falha HTTP 0 no canal padrao. Tentando modo alternativo de upload...', '');
+                ingestViaDirectPost(payload,
+                  onSuccess,
+                  function(postMsg) {
+                    hcSetStatus('Modo alternativo direto falhou. Tentando upload em chunks...', '');
+                    ingestViaChunkedRpc(payload, onSuccess, onFail);
+                  }
+                );
+                return;
+              }
+              onFail(msg);
+            })
+            .ingestHistoricalFlightDocument(payload);
+        }
+
+        function next() {
+          if (idx >= files.length) {
+            if (batchId) {
+              document.getElementById('hc-batch-id').value = String(batchId || '');
+              localStorage.setItem('hc_last_batch_id', String(batchId || ''));
+            }
+            document.getElementById('hc-meta').textContent = 'Arquivos processados: ' + processed + ' | Linhas extraidas: ' + totalRows + ' | Batch: ' + String(batchId || '');
+            hcSetStatus('Extracao em lote concluida. Revise as linhas abaixo.', 'ok');
+            hcLoadBatchReview();
+            return;
+          }
+
+          var file = files[idx];
+          hcSetStatus('Processando arquivo ' + (idx + 1) + ' de ' + files.length + '...', '');
+          hcReadFileAsPayload(file, function(filePayload, err) {
+            if (err) { hcSetStatus(err, 'error'); return; }
+            var payload = {
+              batchId: batchId,
+              sourceLabel: sourceLabel,
+              importedBy: importedBy,
+              fileName: filePayload.fileName,
+              mimeType: filePayload.mimeType,
+              base64Data: filePayload.base64Data
+            };
+            ingestWithFallback(payload,
+              function(res) {
+                if (!res || !res.success) {
+                  hcSetStatus((res && res.error) ? res.error : ('Falha na extracao do arquivo ' + file.name + '.'), 'error');
+                  return;
+                }
+                if (res.batchId) batchId = String(res.batchId || batchId || '');
+                processed += 1;
+                totalRows += Number(res.rowCount || 0);
+                if (res && res.backgroundPending) {
+                  document.getElementById('hc-meta').textContent = 'Arquivo enviado. Processamento continua em segundo plano; use "RECARREGAR REVISAO DO BATCH" em instantes.';
+                }
+                if (filePayload && filePayload.optimized) {
+                  var ob = Number(filePayload.originalSizeBytes || 0);
+                  var nb = Number(filePayload.sizeBytes || 0);
+                  document.getElementById('hc-meta').textContent = 'Arquivo otimizado: ' + hcFormatBytes_(ob) + ' -> ' + hcFormatBytes_(nb) + ' (lado max ' + Number(filePayload.resizeMaxSide || 0) + 'px, q=' + Number(filePayload.jpegQuality || 0).toFixed(2) + ')';
+                }
+                idx += 1;
+                next();
+              },
+              function(msg) {
+                hcSetStatus('Erro: ' + msg, 'error');
+              }
+            );
+          });
+        }
+
+        next();
+      }
+
+      function hcTestGemini() {
+        if (!hcRequireSecureContext_()) return;
+        if (hcIsDevUrl_()) {
+          hcSetStatus('Voce esta em URL /dev. No iPad use o deploy /exec para testes confiaveis.', 'error');
+          return;
+        }
+        hcSetStatus('Testando conectividade com Gemini (sem upload)...', '');
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) {
+              hcSetStatus('Gemini teste falhou: ' + ((res && res.error) ? res.error : 'erro desconhecido'), 'error');
+              return;
+            }
+            hcSetStatus('Gemini OK (modelo: ' + String(res.model || 'n/a') + '). Se upload falha com HTTP 0, o problema e transporte do arquivo no navegador.', 'ok');
+          })
+          .withFailureHandler(function(err) {
+            var msg = String(err && err.message ? err.message : err || 'unknown error');
+            hcSetStatus('Falha no teste Gemini: ' + msg, 'error');
+          })
+          .testHistoricalGeminiConnectivity();
+      }
+
+      function hcLoadBatchReview() {
+        var batchId = String((document.getElementById('hc-batch-id') || {}).value || '').trim();
+        if (!batchId) {
+          batchId = String(localStorage.getItem('hc_last_batch_id') || '').trim();
+          if (batchId) document.getElementById('hc-batch-id').value = batchId;
+        }
+        if (!batchId) { hcSetStatus('Informe ou gere um Batch ID primeiro.', 'error'); return; }
+
+        hcSetStatus('Carregando revisao do batch...', '');
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) {
+              hcSetStatus((res && res.error) ? res.error : 'Nao foi possivel carregar o batch.', 'error');
+              return;
+            }
+            hcRenderBatchReview(res);
+            hcSetStatus('Batch carregado para revisao.', 'ok');
+          })
+          .withFailureHandler(function(err) {
+            hcSetStatus('Erro: ' + (err && err.message ? err.message : String(err)), 'error');
+          })
+          .getHistoricalFlightBatchReview(batchId);
+      }
+
+      function hcRenderBatchReview(res) {
+        var batch = res.batch || {};
+        var rows = Array.isArray(res.rows) ? res.rows : [];
+        var summary = 'Batch ' + String(batch.batchId || '')
+          + ' | Docs: ' + Number(batch.documentCount || 0)
+          + ' | Linhas: ' + Number(batch.rowCount || rows.length)
+          + ' | Pendentes: ' + Number(batch.unresolvedCount || 0);
+        document.getElementById('hc-batch-summary').textContent = summary;
+
+        var list = document.getElementById('hc-review-list');
+        if (!list) return;
+        if (!rows.length) {
+          list.innerHTML = '<div class="muted">Nenhuma linha em staging para este batch.</div>';
+          return;
+        }
+
+        list.innerHTML = rows.map(function(row) {
+          var st = String(row.matchStatus || 'NEW').toLowerCase();
+          var badge = '<span class="badge ' + st + '">' + String(row.matchStatus || 'NEW').replace(/_/g, ' ') + '</span>';
+          var doc = row.sourceFileUrl ? ('<a href="' + row.sourceFileUrl + '" target="_blank" rel="noopener">evidencia</a>') : 'sem evidencia';
+          var v = row.validation || {};
+          function fmtRef(label, refObj) {
+            var obj = refObj || {};
+            var status = String(obj.status || 'n/a');
+            var value = String(obj.matchedName || obj.matchedRegistration || obj.matchedIcao || obj.input || '-');
+            return label + ': ' + value + ' [' + status + ']';
+          }
+          var vLine = [
+            fmtRef('Aluno', v.student),
+            fmtRef('Instrutor', v.instructor),
+            fmtRef('Aeronave', v.aircraft),
+            fmtRef('Origem', v.fromAirport),
+            fmtRef('Destino', v.toAirport)
+          ].join(' | ');
+          var vIssues = Array.isArray(v.issues) && v.issues.length ? ('<div class="meta" style="color:#b71c1c;">Pendencias de validacao: ' + v.issues.join(' ; ') + '</div>') : '';
+          return '<div class="row-card">'
+            + '<div class="row-title">#' + Number(row.rowNo || 0) + ' ' + badge + '</div>'
+            + '<div class="meta">'
+            + String(row.date || '(sem data)') + ' | '
+            + String(row.pilot || '(sem piloto)') + ' | '
+            + String(row.acft || '(sem acft)') + ' | '
+            + String(row.from || '?') + '>' + String(row.to || '?') + ' | '
+            + 'T=' + String(row.totalTimeH || '') + 'h | '
+            + 'LDG=' + String(row.numberLdgs || '') + ' | T&G=' + String(row.touchAndGos || '')
+            + '</div>'
+            + '<div class="meta">'
+            + 'Razao: ' + String(row.matchReason || 'n/a')
+            + (row.matchedFlightId ? (' | Match: ' + row.matchedFlightId) : '')
+            + (row.extractionModel ? (' | Modelo: ' + row.extractionModel) : '')
+            + (row.extractionConfidence !== '' && row.extractionConfidence != null ? (' | Conf: ' + row.extractionConfidence + '%') : '')
+            + ' | ' + doc
+            + '</div>'
+            + (row.sourceNote ? '<div class="meta">Obs: ' + String(row.sourceNote) + '</div>' : '')
+            + '<div class="meta">Comparacao com bases: ' + vLine + '</div>'
+            + vIssues
+            + '<div class="actions">'
+            + '<button class="success" onclick="hcReviewRow(' + Number(row.rowNo || 0) + ',\'COMMIT\')">COMMIT</button>'
+            + '<button class="warn" onclick="hcReviewRow(' + Number(row.rowNo || 0) + ',\'DUPLICATE\')">DUPLICATE</button>'
+            + '<button class="danger" onclick="hcReviewRow(' + Number(row.rowNo || 0) + ',\'IGNORE\')">IGNORE</button>'
+            + '</div>'
+            + '<div class="meta">Decisao atual: <strong>' + String(row.reviewDecision || 'PENDENTE') + '</strong></div>'
+            + '</div>';
+        }).join('');
+      }
+
+      function hcReviewRow(rowNo, decision) {
+        var batchId = String((document.getElementById('hc-batch-id') || {}).value || '').trim();
+        if (!batchId) { hcSetStatus('Batch ID ausente.', 'error'); return; }
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) {
+              hcSetStatus((res && res.error) ? res.error : 'Falha ao revisar linha.', 'error');
+              return;
+            }
+            hcLoadBatchReview();
+          })
+          .withFailureHandler(function(err) {
+            hcSetStatus('Erro: ' + (err && err.message ? err.message : String(err)), 'error');
+          })
+          .reviewHistoricalFlightStagingRow(batchId, rowNo, decision, 'Reviewed via mobile capture app');
+      }
+
+      function hcCommitBatch() {
+        var batchId = String((document.getElementById('hc-batch-id') || {}).value || '').trim();
+        if (!batchId) { hcSetStatus('Batch ID ausente.', 'error'); return; }
+        hcSetStatus('Efetuando commit das linhas aprovadas...', '');
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.success) {
+              hcSetStatus((res && res.error) ? res.error : 'Commit falhou.', 'error');
+              return;
+            }
+            hcSetStatus('Commit concluido. Inseridos: ' + Number(res.committed || 0) + ', duplicados: ' + Number(res.duplicates || 0) + '.', 'ok');
+            hcLoadBatchReview();
+          })
+          .withFailureHandler(function(err) {
+            hcSetStatus('Erro: ' + (err && err.message ? err.message : String(err)), 'error');
+          })
+          .commitHistoricalFlightBatch(batchId);
+      }
+
+      (function boot() {
+        if (!hcRequireSecureContext_()) return;
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res && res.success) {
+              var last = String(localStorage.getItem('hc_last_batch_id') || '').trim();
+              if (last) document.getElementById('hc-batch-id').value = last;
+            }
+          })
+          .withFailureHandler(function() {})
+          .setupHistoricalFlightImportSchema();
+      })();
+    </script>
+  </body>
+</html>

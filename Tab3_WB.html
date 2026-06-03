@@ -2146,8 +2146,9 @@ window.refreshOfflineLoadTools = function() {
   });
   paxSelect.innerHTML = '<option value="">Select Passenger</option>' + dedupedPassengers.map(function(p) {
     const name = wbNormName_(p && p.name);
+    const displayName = String((p && p.nameDisplay) || (p && p.name) || '');
     const weight = wbNum_(p && p.weight, 80);
-    return `<option value="${name}" data-wb-weight="${weight}">${name} (${Math.round(weight)}kg)</option>`;
+    return `<option value="${name}" data-wb-weight="${weight}">${displayName} (${Math.round(weight)}kg)</option>`;
   }).join('');
 
   const funds = Array.isArray(source.funds) ? source.funds : [];
@@ -3295,7 +3296,7 @@ window.renderManifest = function() {
     waitingContainer.style.display = 'block';
     const waitingHTML = window.wbData.waitingPassengers.map(p => `
       <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px 8px; padding:6px; background:white; border-radius:3px;">
-        <span style="font-weight:600; font-size:1.425rem;">${p.name} <span style="color:#999; font-size:1.35rem;">(${p.weight}kg)</span></span>
+        <span style="font-weight:600; font-size:1.425rem;">${String(p && (p.nameDisplay || p.name) || '')} <span style="color:#999; font-size:1.35rem;">(${p.weight}kg)</span></span>
         <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end;">
           ${Object.keys(window.wbData.seats).filter(seatId => {
             const s = window.wbData.seats[seatId];

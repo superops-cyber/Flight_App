@@ -2,23 +2,59 @@
 1. MAIN PORTAL CONTROLLER
 ================================================== */
 function doGet(e) {
- const view = (e && e.parameter && e.parameter.view ? e.parameter.view : "").toLowerCase();
+ function getQueryParam_(name) {
+   var key = String(name || '').toLowerCase();
+   if (!key) return '';
+   var map = (e && e.parameter) ? e.parameter : {};
+   var maps = (e && e.parameters) ? e.parameters : {};
+   if (map && map[name] != null) return String(map[name] || '');
+   if (map && map[key] != null) return String(map[key] || '');
+   if (maps && maps[name] != null) {
+     return Array.isArray(maps[name]) ? String((maps[name][0] || '')) : String(maps[name] || '');
+   }
+   if (maps && maps[key] != null) {
+     return Array.isArray(maps[key]) ? String((maps[key][0] || '')) : String(maps[key] || '');
+   }
+
+   var qs = String((e && e.queryString) || '');
+   if (qs) {
+     var parts = qs.split('&');
+     for (var i = 0; i < parts.length; i += 1) {
+       var pair = parts[i].split('=');
+       var k = decodeURIComponent(String(pair[0] || '')).toLowerCase();
+       if (k === key) {
+         return decodeURIComponent(String(pair.slice(1).join('=') || '').replace(/\+/g, ' '));
+       }
+     }
+   }
+   return '';
+ }
+
+ const pathInfo = String((e && e.pathInfo) || '').toLowerCase();
+ const queryRaw = String((e && e.queryString) || '').toLowerCase();
+ const looseHistHint = /view=histcapture|view=historicalcapture|view=historical|histcapture|historicalcapture/.test(queryRaw);
+ const viewRaw = getQueryParam_('view');
+ const view = String(viewRaw || '').toLowerCase();
+ const pathHasHistCapture = /histcapture|historicalcapture|historical/.test(pathInfo);
+ const isFlightReport = view === "flightreport" || view === "postflight";
+ const isHistCapture = view === "histcapture" || view === "historicalcapture" || view === "historical" || pathHasHistCapture || looseHistHint;
  const isDuty = view === "duty" || view === "dutyapp";
- const pilotParamTrue = String(e && e.parameter && e.parameter.pilot || '').toLowerCase() === 'true';
- const isPilot = !isDuty && (view === "dev_pilot" || view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue);
+ const pilotParamTrue = String(getQueryParam_('pilot') || '').toLowerCase() === 'true';
+ const isPilot = !isDuty && !isFlightReport && !isHistCapture && (view === "dev_pilot" || view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue);
  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', "yyyy-MM-dd HH:mm:ss") + ' | ' + Utilities.getUuid().slice(0, 8);
 
  try {
-   console.log('[doGet] view=%s duty=%s pilot=%s hash=%s', view, isDuty, isPilot, (e && e.parameter && e.parameter.hash) ? e.parameter.hash : '');
+   console.log('[doGet] view=%s duty=%s pilot=%s hist=%s path=%s hash=%s', view, isDuty, isPilot, isHistCapture, pathInfo, getQueryParam_('hash'));
  } catch (logErr) {}
 
- const fileName = isDuty ? 'DutyApp' : (isPilot ? 'PilotApp' : 'Index');
- const title = isDuty ? 'Duty Time' : (isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal');
+ const fileName = isFlightReport ? 'View_FlightReport' : (isHistCapture ? 'View_HistoricalCapture' : (isDuty ? 'DutyApp' : (isPilot ? 'PilotApp' : 'Index')));
+ const title = isFlightReport ? 'Relatorio Pos-Voo' : (isHistCapture ? 'Captura Historico de Voos' : (isDuty ? 'Duty Time' : (isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal')));
 
  const template = HtmlService.createTemplateFromFile(fileName);
  template.webAppUrl = ScriptApp.getService().getUrl();
  template.buildStamp = stamp;
  template.routeView = view;
+ template.routeFlightId = String(getQueryParam_('flightId') || '');
 
  return template.evaluate()
    .setTitle(title)
@@ -62,12 +98,62 @@ function safeDateStr(val) {
   var raw = String(val).trim();
   if (!raw) return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  var br = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) {
+    var dd = Number(br[1]);
+    var mm = Number(br[2]);
+    var yyyy = Number(br[3]);
+    var dt = new Date(yyyy, mm - 1, dd);
+    if (!isNaN(dt.getTime()) && dt.getFullYear() === yyyy && (dt.getMonth() + 1) === mm && dt.getDate() === dd) {
+      return Utilities.formatDate(dt, 'GMT', 'yyyy-MM-dd');
+    }
+  }
   if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(0, 10);
   var parsed = new Date(raw);
   if (!isNaN(parsed.getTime())) {
     return Utilities.formatDate(parsed, 'GMT', 'yyyy-MM-dd');
   }
   return '';
+}
+
+function _passengerToIsoDate_(value) {
+  if (!value) return '';
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, 'GMT', 'yyyy-MM-dd');
+  }
+  var raw = String(value).trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(0, 10);
+  var slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    var dd = String(parseInt(slash[1], 10)).padStart(2, '0');
+    var mm = String(parseInt(slash[2], 10)).padStart(2, '0');
+    var yyyy = slash[3];
+    return yyyy + '-' + mm + '-' + dd;
+  }
+  var parsed = new Date(raw);
+  if (!isNaN(parsed.getTime())) {
+    return Utilities.formatDate(parsed, 'GMT', 'yyyy-MM-dd');
+  }
+  return '';
+}
+
+function _passengerToDate_(value) {
+  var iso = _passengerToIsoDate_(value);
+  if (!iso) return null;
+  var parts = iso.split('-').map(function(p) { return parseInt(p, 10); });
+  if (parts.length !== 3) return null;
+  var dt = new Date(parts[0], parts[1] - 1, parts[2]);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function _passengerConsentCurrent_(value) {
+  var acceptedAt = _passengerToDate_(value);
+  if (!acceptedAt) return false;
+  var now = new Date();
+  var cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 365);
+  return acceptedAt.getTime() >= cutoff.getTime();
 }
 
 function _airportNormalizeMtowKey_(raw) {
@@ -496,15 +582,28 @@ routes: routeData.vals.map((r, idx) => ({
      const weightIdx = h.indexOf("WEIGHT_KG") !== -1 ? h.indexOf("WEIGHT_KG") : h.indexOf("WEIGHT_KGS");
      const dobIdx = h.indexOf("DOB");
      const phoneIdx = h.indexOf("PHONE");
+     const consentAtIdx = h.indexOf("TERMS_ACCEPTED_AT") !== -1
+       ? h.indexOf("TERMS_ACCEPTED_AT")
+       : (h.indexOf("AGREED_TO_TERMS_AT") !== -1 ? h.indexOf("AGREED_TO_TERMS_AT") : h.indexOf("TERMS_LAST_ACCEPTED_AT"));
+     const consentFlagIdx = h.indexOf("TERMS_ACCEPTED");
+     const consentAtRaw = consentAtIdx !== -1 ? r[consentAtIdx] : "";
+     const consentAt = _passengerToIsoDate_(consentAtRaw);
+     const consentCurrent = _passengerConsentCurrent_(consentAtRaw);
+     const name = r[h.indexOf("PASSENGER_NAME")] || "Unknown";
      return {
-       name: r[h.indexOf("PASSENGER_NAME")] || "Unknown",
+       name: name,
+       nameDisplay: consentCurrent ? (String(name) + ' ✓') : String(name),
        weight: parseFloat(r[weightIdx]) || 80,
        gender: r[h.indexOf("GENDER")] || "U",
        dob: safeDobStr(dobIdx !== -1 ? r[dobIdx] : ""),
-       phone: phoneIdx !== -1 ? String(r[phoneIdx] || "") : ""
+       phone: phoneIdx !== -1 ? String(r[phoneIdx] || "") : "",
+       termsAcceptedAt: consentAt,
+       termsAccepted: consentFlagIdx !== -1 ? _schedulerTruthyFlag_(r[consentFlagIdx]) : !!consentAt,
+       termsAcceptedCurrent: consentCurrent
      };
  }).filter(p => p.name && p.name !== "Unknown"),
- airports: mapAirportRows(air)
+ airports: mapAirportRows(air),
+ passengerConsentConfig: _passengerConsentReadConfigMap_()
 };
 } catch (e) {
 // Return a safe error object instead of crashing
@@ -528,7 +627,8 @@ function getPilotStartupData() {
     routes: data && Array.isArray(data.routes) ? data.routes : [],
     airports: data && Array.isArray(data.airports) ? data.airports : [],
     aircraft: data && Array.isArray(data.aircraft) ? data.aircraft : [],
-    passengers: data && Array.isArray(data.passengers) ? data.passengers : []
+    passengers: data && Array.isArray(data.passengers) ? data.passengers : [],
+    passengerConsentConfig: data && data.passengerConsentConfig ? data.passengerConsentConfig : _passengerConsentReadConfigMap_()
   };
 }
 
@@ -3015,6 +3115,9 @@ if (!sheet) return "Error: DB missing";
 const data = sheet.getDataRange().getValues();
 const user = "Admin";
 let missionFound = false;
+let missionPilotName = '';
+let missionType = '';
+let missionTotalHours = 0;
 for (let i = 1; i < data.length; i++) {
 if (String(data[i][DISPATCH_COL.MISSION_ID]) === String(missionId)) {
  missionFound = true;
@@ -3023,11 +3126,17 @@ if (String(data[i][DISPATCH_COL.MISSION_ID]) === String(missionId)) {
  if (!pilotName || pilotKey === 'PILOT TBD' || pilotKey === 'TBD' || pilotKey === 'UNASSIGNED') {
   throw new Error('Mission cannot be approved without an assigned pilot.');
  }
+ if (!missionPilotName) missionPilotName = pilotName;
+ if (!missionType) missionType = String(data[i][DISPATCH_COL.TYPE] || '').trim();
+ missionTotalHours += Number(data[i][DISPATCH_COL.FLIGHT_TIME] || 0);
  sheet.getRange(i + 1, DISPATCH_COL.STATUS + 1).setValue("APPROVED");
 }
 }
 if (missionFound) {
   _financePostMissionTransactions_(ss, missionId, Session.getActiveUser().getEmail() || 'Admin');
+  if (missionType.toUpperCase() === 'TRAINING' && missionPilotName && missionTotalHours > 0) {
+    _toolsStudentDebitForMission_(ss, missionId, missionPilotName, missionTotalHours, Session.getActiveUser().getEmail() || 'Admin');
+  }
 }
 invalidateScheduledMissionsCache_();
 const audit = ss.getSheetByName(APP_SHEETS.AUDIT);
@@ -4201,7 +4310,13 @@ function _toolsDutyConfigDefaults_() {
     DUTY_MORNING_WINDOW_MIN: '120',
     DUTY_EVENING_WINDOW_MIN: '180',
     DUTY_GEOFENCE_RADIUS_KM: '8000',
-    DUTY_ALERT_RECIPIENTS: ''
+    DUTY_ALERT_RECIPIENTS: '',
+    PASSENGER_TERMS_STATEMENT_1: 'Doacoes: Entendo que Asas de Socorro e uma organizacao sem fins lucrativos e depende de doacoes para realizar voos.',
+    PASSENGER_TERMS_STATEMENT_2: 'Seguranca: A Asas de Socorro adota padroes de seguranca, mas todo voo tem riscos inerentes.',
+    PASSENGER_TERMS_STATEMENT_3: 'Operacao: Os voos sao diurnos e podem sofrer atraso, desvio ou cancelamento por clima, seguranca, motivo tecnico ou logistica.',
+    PASSENGER_TERMS_STATEMENT_4: 'Responsabilidade por atraso: Nao ha responsabilizacao por perdas decorrentes de atrasos.',
+    PASSENGER_TERMS_QR_PROMPT: 'Vou escanear este QR Code para apoiar ou compartilhar este ministerio.',
+    PASSENGER_TERMS_QR_URL: ''
   };
 }
 
@@ -4213,8 +4328,44 @@ function _toolsDutyConfigDescriptions_() {
     DUTY_MORNING_WINDOW_MIN: 'Janela em minutos para prompt de manhã.',
     DUTY_EVENING_WINDOW_MIN: 'Janela em minutos para prompt de tarde/noite.',
     DUTY_GEOFENCE_RADIUS_KM: 'Raio de proximidade (metros) para gatilho por localização.',
-    DUTY_ALERT_RECIPIENTS: 'Emails para alertas de duty time (separados por vírgula).'
+    DUTY_ALERT_RECIPIENTS: 'Emails para alertas de duty time (separados por vírgula).',
+    PASSENGER_TERMS_STATEMENT_1: 'Texto curto do termo de passageiro #1.',
+    PASSENGER_TERMS_STATEMENT_2: 'Texto curto do termo de passageiro #2.',
+    PASSENGER_TERMS_STATEMENT_3: 'Texto curto do termo de passageiro #3.',
+    PASSENGER_TERMS_STATEMENT_4: 'Texto curto do termo de passageiro #4.',
+    PASSENGER_TERMS_QR_PROMPT: 'Texto exibido junto ao QR de apoio/compartilhamento.',
+    PASSENGER_TERMS_QR_URL: 'URL de destino do QR de apoio/compartilhamento.'
   };
+}
+
+function _passengerConsentReadConfigMap_() {
+  var out = {
+    PASSENGER_TERMS_STATEMENT_1: '',
+    PASSENGER_TERMS_STATEMENT_2: '',
+    PASSENGER_TERMS_STATEMENT_3: '',
+    PASSENGER_TERMS_STATEMENT_4: '',
+    PASSENGER_TERMS_QR_PROMPT: '',
+    PASSENGER_TERMS_QR_URL: ''
+  };
+  var defaults = _toolsDutyConfigDefaults_();
+  Object.keys(out).forEach(function(key) {
+    out[key] = String(defaults[key] || '');
+  });
+
+  try {
+    var cfg = _toolsDutyReadConfigMap_();
+    Object.keys(out).forEach(function(key) {
+      if (Object.prototype.hasOwnProperty.call(cfg, key)) {
+        out[key] = String(cfg[key] == null ? '' : cfg[key]).trim() || String(defaults[key] || '');
+      }
+    });
+  } catch (e) {}
+
+  return out;
+}
+
+function getPassengerConsentConfig() {
+  return _passengerConsentReadConfigMap_();
 }
 
 function _flightFollowConfigDefaults_() {
@@ -5278,6 +5429,23 @@ function reverseFuelForMission(missionId) {
    }
  }
 }
+
+function _ensurePassengerConsentColumns_(sheet) {
+  if (!sheet) return;
+  var wanted = ['TERMS_ACCEPTED', 'TERMS_ACCEPTED_AT', 'TERMS_SOURCE'];
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(v) { return String(v || '').trim(); });
+  var norms = headerRow.map(function(v) {
+    return String(v || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+  });
+  wanted.forEach(function(col) {
+    var norm = String(col).toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+    if (norms.indexOf(norm) >= 0) return;
+    var nextCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, nextCol).setValue(col);
+    norms.push(norm);
+  });
+}
+
 function savePassengerToDB(data) {
 try {
  const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -5285,6 +5453,8 @@ try {
   if (!sheet) {
    throw new Error("Sheet 'DB_Passengers' not found!");
  }
+
+ _ensurePassengerConsentColumns_(sheet);
 
 
 
@@ -5460,6 +5630,7 @@ function _formGetOrCreateSheetByHeaders_(ss, sheetName, headers) {
 function _formUpsertPassengerFromIntake_(passenger, ctx) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = getRequiredSheet_(ss, APP_SHEETS.PASSENGERS, '_formUpsertPassengerFromIntake_');
+  _ensurePassengerConsentColumns_(sh);
   var data = sh.getDataRange().getValues();
   if (!data || data.length < 1) throw new Error('DB_Passengers header row missing');
   var headers = data[0].map(function(v) { return String(v || '').trim(); });
@@ -5482,6 +5653,9 @@ function _formUpsertPassengerFromIntake_(passenger, ctx) {
   var idxPhone = idxByAliases(['PHONE', 'TELEFONE']);
   var idxNotes = idxByAliases(['NOTES', 'OBSERVACOES', 'OBS']);
   var idxLastFlown = idxByAliases(['LAST_FLOWN', 'LAST_FLOWN_DATE', 'ULTIMO_VOO']);
+  var idxTermsAccepted = idxByAliases(['TERMS_ACCEPTED', 'AGREED_TO_TERMS']);
+  var idxTermsAcceptedAt = idxByAliases(['TERMS_ACCEPTED_AT', 'AGREED_TO_TERMS_AT', 'TERMS_LAST_ACCEPTED_AT']);
+  var idxTermsSource = idxByAliases(['TERMS_SOURCE', 'CONSENT_SOURCE']);
 
   var matchRow = -1;
   var paxId = String(passenger.idNum || '').replace(/\s+/g, '').toUpperCase();
@@ -5530,6 +5704,11 @@ function _formUpsertPassengerFromIntake_(passenger, ctx) {
     else if (values[idxNotes].indexOf(note) < 0) values[idxNotes] += ' | ' + note;
   }
   if (idxLastFlown >= 0 && !values[idxLastFlown]) values[idxLastFlown] = new Date();
+
+  var intakeDate = _passengerToDate_(ctx && ctx.submittedAt ? ctx.submittedAt : '');
+  if (idxTermsAccepted >= 0) values[idxTermsAccepted] = 'Y';
+  if (idxTermsAcceptedAt >= 0 && intakeDate) values[idxTermsAcceptedAt] = intakeDate;
+  if (idxTermsSource >= 0) values[idxTermsSource] = String(ctx && ctx.formName || 'FORM_INTAKE');
 
   if (matchRow > 0) sh.getRange(matchRow, 1, 1, headers.length).setValues([values]);
   else sh.appendRow(values);
@@ -10801,6 +10980,7 @@ function recordDebriefLog(payload) {
 
   invalidateScheduledMissionsCache_();
   const syncRes = _syncDispatchMissionStatusForFlightLeg_(flightLegId);
+  const postFlightEmail = _sendPostFlightReportToStudent_(ss, flightLegId, payload, trainingDebrief);
 
   return {
     success: true,
@@ -10822,8 +11002,142 @@ function recordDebriefLog(payload) {
     trainingDebrief: trainingDebrief,
     trainingChecksAdded: trainingChecksAdded,
     totalTime: persistedTotalTime,
-    debriefAt: new Date().toISOString()
+    debriefAt: new Date().toISOString(),
+    postFlightEmail: postFlightEmail
   };
+}
+
+function _postFlightNormName_(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+function _postFlightResolveStudentEmail_(ss, traineeNameCandidates) {
+  var pilotsSh = ss.getSheetByName(APP_SHEETS.PILOTS);
+  if (!pilotsSh) return '';
+
+  var wantedMap = {};
+  (Array.isArray(traineeNameCandidates) ? traineeNameCandidates : []).forEach(function(name) {
+    var key = _postFlightNormName_(name);
+    if (key) wantedMap[key] = true;
+  });
+  if (!Object.keys(wantedMap).length) return '';
+
+  var headers = _toolsEnsurePilotStudentHeaders_(pilotsSh);
+  var data = pilotsSh.getDataRange().getValues();
+  if (!data || data.length < 2) return '';
+
+  var firstEmailMatch = '';
+  for (var i = 1; i < data.length; i++) {
+    var rec = _toolsStudentRecordFromRow_(headers, data[i], i + 1);
+    var recNameKey = _postFlightNormName_(rec && rec.name);
+    var recEmail = String(rec && rec.email || '').trim().toLowerCase();
+    if (!recNameKey || !recEmail || !wantedMap[recNameKey]) continue;
+
+    var recType = String(rec && rec.personType || '').trim().toUpperCase();
+    if (recType === 'STUDENT') return recEmail;
+    if (!firstEmailMatch) firstEmailMatch = recEmail;
+  }
+
+  return firstEmailMatch;
+}
+
+function _postFlightBuildStudentEmailBody_(report, externalLink) {
+  var summary = (report && report.summary && typeof report.summary === 'object') ? report.summary : {};
+  var log = (report && report.log && typeof report.log === 'object') ? report.log : {};
+  var wb = (report && report.wb && typeof report.wb === 'object') ? report.wb : {};
+  var lesson = (report && report.lessonPlanSummary && typeof report.lessonPlanSummary === 'object') ? report.lessonPlanSummary : {};
+  var funds = (report && report.studentFunds && typeof report.studentFunds === 'object') ? report.studentFunds : {};
+
+  var lines = [
+    'Ola,',
+    '',
+    'Seu relatorio pos-voo ja esta disponivel.',
+    '',
+    'Flight ID: ' + String(report && report.flightId || '---'),
+    'Data: ' + String(summary.date || log.date || '---'),
+    'Aeronave: ' + String(summary.aircraft || log.aircraft || '---'),
+    'Rota: ' + String(summary.from || log.from || '---') + ' -> ' + String(summary.to || log.to || '---'),
+    'Tempo total: ' + String(log.totalTime || log.totalTimeHours || '---'),
+    'Pousos: ' + String(log.numLandings == null ? '---' : log.numLandings),
+    'Touch and Go: ' + String(log.numTouchAndGos == null ? '---' : log.numTouchAndGos),
+    'W&B Peso/CG: ' + String(wb.grossWeight == null ? '---' : wb.grossWeight) + ' kg / ' + String(wb.cgPosition == null ? '---' : wb.cgPosition),
+    'Plano de aula: ' + String(lesson.lessonName || '---'),
+    'Resultado: ' + String(lesson.flightResult || '---'),
+    'Saldo do fundo: ' + (funds.balanceBrl == null ? '---' : ('R$ ' + Number(funds.balanceBrl || 0).toFixed(2))),
+    ''
+  ];
+
+  if (externalLink) {
+    lines.push('Abrir relatorio completo:');
+    lines.push(String(externalLink));
+    lines.push('');
+  }
+
+  lines.push('Atenciosamente,');
+  lines.push('Equipe Flight Ops');
+
+  return lines.join('\n');
+}
+
+function _sendPostFlightReportToStudent_(ss, flightLegId, payload, trainingDebrief) {
+  try {
+    var appUrl = String(ScriptApp.getService().getUrl() || '').replace(/\/$/, '');
+    var externalLink = appUrl ? (appUrl + '?view=flightreport&flightId=' + encodeURIComponent(String(flightLegId || ''))) : '';
+
+    var report = getToolsFlightDetailReport({ flightId: flightLegId });
+    if (!report || !report.success) {
+      return {
+        sent: false,
+        skipped: true,
+        reason: 'post-flight report unavailable'
+      };
+    }
+
+    var traineeEmailFromPayload = String(trainingDebrief && trainingDebrief.traineeEmail || '').trim().toLowerCase();
+    var recipient = traineeEmailFromPayload;
+
+    if (!recipient || recipient.indexOf('@') < 0) {
+      var lesson = (report.lessonPlanSummary && typeof report.lessonPlanSummary === 'object') ? report.lessonPlanSummary : {};
+      var funds = (report.studentFunds && typeof report.studentFunds === 'object') ? report.studentFunds : {};
+      var names = [
+        String(trainingDebrief && trainingDebrief.traineeName || '').trim(),
+        String(lesson.traineeName || '').trim(),
+        String(funds.studentName || '').trim(),
+        String(payload && payload.pilotName || '').trim()
+      ].filter(Boolean);
+
+      recipient = _postFlightResolveStudentEmail_(ss, names);
+    }
+
+    if (!recipient || recipient.indexOf('@') < 0) {
+      return {
+        sent: false,
+        skipped: true,
+        reason: 'student email not found'
+      };
+    }
+
+    var subject = '[Pos-Voo] Relatorio do voo ' + String(flightLegId || '');
+    var body = _postFlightBuildStudentEmailBody_(report, externalLink);
+    MailApp.sendEmail({
+      to: recipient,
+      subject: subject,
+      body: body
+    });
+
+    return {
+      sent: true,
+      to: recipient,
+      subject: subject,
+      link: externalLink
+    };
+  } catch (e) {
+    return {
+      sent: false,
+      skipped: false,
+      error: e && e.message ? e.message : String(e)
+    };
+  }
 }
 
 function initializeWB(flightId) {
@@ -14448,6 +14762,147 @@ function getToolsFlightDetailReport(payload) {
     var debriefTab8 = (actualLoad && actualLoad.debrief && typeof actualLoad.debrief === 'object') ? actualLoad.debrief : {};
     var arrivalData = (actualLoad && actualLoad.arrival && typeof actualLoad.arrival === 'object') ? actualLoad.arrival : {};
     var takeoffRollData = (actualLoad && actualLoad.takeoffRoll && typeof actualLoad.takeoffRoll === 'object') ? actualLoad.takeoffRoll : {};
+    var dispatchRaw = {};
+    if (dispatchRow && dispatchRawIdx >= 0) {
+      try {
+        dispatchRaw = JSON.parse(String(dispatchRow[dispatchRawIdx] || '{}'));
+      } catch (drErr) {
+        dispatchRaw = {};
+      }
+    }
+    var dispatchTraining = (dispatchRaw && dispatchRaw.training && typeof dispatchRaw.training === 'object')
+      ? dispatchRaw.training
+      : ((dispatchRaw && dispatchRaw.meta && dispatchRaw.meta.training && typeof dispatchRaw.meta.training === 'object')
+        ? dispatchRaw.meta.training
+        : {});
+    var trainingDebriefRaw = debriefTab8.trainingDebrief;
+    var trainingDebriefObj = {};
+    if (trainingDebriefRaw && typeof trainingDebriefRaw === 'object') {
+      trainingDebriefObj = trainingDebriefRaw;
+    } else if (trainingDebriefRaw) {
+      try {
+        var parsedTrainingDebrief = JSON.parse(String(trainingDebriefRaw));
+        if (parsedTrainingDebrief && typeof parsedTrainingDebrief === 'object') trainingDebriefObj = parsedTrainingDebrief;
+      } catch (tdErr) {
+        trainingDebriefObj = {};
+      }
+    }
+    var missionIdValue = normText((dispatchRow && dispatchMissionIdIdx >= 0) ? dispatchRow[dispatchMissionIdIdx] : '');
+    if (!missionIdValue && typeof missionIdFromFlightLeg_ === 'function') {
+      missionIdValue = String(missionIdFromFlightLeg_(flightId) || '').trim();
+    }
+    var trainingCodeValue = normText(trainingDebriefObj.trainingCode || dispatchTraining.trainingCode || dispatchTraining.code || '');
+    var lessonNameValue = normText(trainingDebriefObj.lessonName || dispatchTraining.lessonName || dispatchTraining.externalLessonName || '');
+    var traineeNameValue = normText(trainingDebriefObj.traineeName || dispatchTraining.student || dispatchTraining.traineeName || '');
+    var instructorNameValue = normText(trainingDebriefObj.instructorName || dispatchTraining.instructor || dispatchTraining.instructorName || ((dispatchRow && dispatchPilotIdx >= 0) ? dispatchRow[dispatchPilotIdx] : ''));
+    var runwayChecksList = Array.isArray(trainingDebriefObj.runwayChecks) ? trainingDebriefObj.runwayChecks : [];
+    var runwayChecksPassed = runwayChecksList.filter(function(item) {
+      return !!(item && (item.ok === true || String(item.ok || '').toUpperCase() === 'Y'));
+    }).length;
+
+    var lessonEvalSummary = null;
+    if (missionIdValue && trainingCodeValue && typeof getPilotLessonEvaluation === 'function') {
+      try {
+        var evalRes = getPilotLessonEvaluation(missionIdValue, trainingCodeValue);
+        if (evalRes && evalRes.success && evalRes.found) {
+          var evalScores = (evalRes.scores && typeof evalRes.scores === 'object') ? evalRes.scores : {};
+          var evalValues = Object.keys(evalScores).map(function(k) { return Number(evalScores[k] || 0); }).filter(function(v) {
+            return isFinite(v) && v > 0;
+          });
+          var evalAvg = evalValues.length ? Number((evalValues.reduce(function(a, b) { return a + b; }, 0) / evalValues.length).toFixed(2)) : null;
+          lessonEvalSummary = {
+            found: true,
+            status: normText(evalRes.status || ''),
+            result: normText(evalRes.result || ''),
+            scoreCount: evalValues.length,
+            averageScore: evalAvg,
+            submittedAt: normText(evalRes.submittedAt || ''),
+            reviewer: normText(evalRes.reviewer || ''),
+            notesCount: (evalRes.notes && typeof evalRes.notes === 'object') ? Object.keys(evalRes.notes).length : 0
+          };
+        }
+      } catch (evalErr) {
+        lessonEvalSummary = null;
+      }
+    }
+
+    if (!traineeNameValue) {
+      for (var txi = 0; txi < passengersFromTransactions.length; txi++) {
+        var txItem = passengersFromTransactions[txi] || {};
+        var txCat = String(txItem.category || '').trim().toUpperCase();
+        if (txCat.indexOf('STUDENT') >= 0 && String(txItem.name || '').trim()) {
+          traineeNameValue = String(txItem.name || '').trim();
+          break;
+        }
+      }
+    }
+
+    var studentFundsSummary = {
+      studentName: traineeNameValue,
+      studentKey: '',
+      balanceBrl: null,
+      lastTransactions: []
+    };
+    if (traineeNameValue) {
+      try {
+        var pilotsSh = ss.getSheetByName(APP_SHEETS.PILOTS);
+        if (pilotsSh) {
+          var pilotsHeaders = _toolsEnsurePilotStudentHeaders_(pilotsSh);
+          var pilotsVals = pilotsSh.getDataRange().getValues();
+          var nameIdxPilot = _toolsHeaderIndexFromCandidates_(pilotsHeaders, ['PILOT_NAME', 'PILOT', 'NAME', 'STUDENT_NAME', 'NOME']);
+          var matchedRec = null;
+          var traineeNorm = String(traineeNameValue || '').trim().toUpperCase();
+          for (var pi = 1; pi < pilotsVals.length; pi++) {
+            var rn = nameIdxPilot >= 0 ? String(pilotsVals[pi][nameIdxPilot] || '').trim().toUpperCase() : '';
+            if (rn && rn === traineeNorm) {
+              matchedRec = _toolsStudentRecordFromRow_(pilotsHeaders, pilotsVals[pi], pi + 1);
+              break;
+            }
+          }
+          if (matchedRec) {
+            var studentKeyValue = String(matchedRec.studentKey || _toolsStudentIdentityKey_(matchedRec) || '').trim();
+            var allLedgers = _toolsStudentLedgerMap_(ss);
+            var ledgerRows = allLedgers[studentKeyValue] || [];
+            var liveRows = ledgerRows.filter(function(tx) {
+              var statusKey = String(tx && tx.status || '').trim().toUpperCase();
+              return statusKey !== 'VOIDED';
+            });
+            var balanceValue = _toolsStudentCurrentBalanceFromLedger_(ss, studentKeyValue, Number(matchedRec.balanceBrl || 0));
+            studentFundsSummary.studentName = matchedRec.name || traineeNameValue;
+            studentFundsSummary.studentKey = studentKeyValue;
+            studentFundsSummary.balanceBrl = Number(isFinite(balanceValue) ? balanceValue : 0);
+            studentFundsSummary.lastTransactions = liveRows.slice(-3).reverse().map(function(tx) {
+              return {
+                txId: String(tx && tx.txId || '').trim(),
+                timestamp: String(tx && tx.timestamp || '').trim(),
+                txType: String(tx && tx.txType || '').trim().toUpperCase(),
+                amountBrl: Number(tx && tx.amount || 0),
+                rateBrlHour: Number(tx && tx.rate || 0),
+                note: String(tx && tx.note || '').trim(),
+                referenceType: String(tx && tx.referenceType || '').trim().toUpperCase(),
+                referenceId: String(tx && tx.referenceId || '').trim(),
+                balanceAfterBrl: Number(tx && tx.balanceAfter || 0),
+                receiptUrl: String(tx && tx.receiptUrl || '').trim()
+              };
+            });
+          }
+        }
+      } catch (sfErr) {
+        // Optional section for reporting; keep the rest of report intact.
+      }
+    }
+
+    var lessonPlanSummary = {
+      missionId: missionIdValue,
+      trainingCode: trainingCodeValue,
+      lessonName: lessonNameValue,
+      traineeName: traineeNameValue,
+      instructorName: instructorNameValue,
+      flightResult: normText(trainingDebriefObj.flightResult || ''),
+      runwayChecksTotal: runwayChecksList.length,
+      runwayChecksPassed: runwayChecksPassed,
+      evaluation: lessonEvalSummary
+    };
     var totalTimeHours = durationHoursFromAny(logTotalTimeIdx >= 0 ? logRow[logTotalTimeIdx] : null);
     if (!(totalTimeHours > 0)) {
       totalTimeHours = durationHoursBetween(
@@ -14495,7 +14950,7 @@ function getToolsFlightDetailReport(payload) {
       success: true,
       flightId: flightId,
       generatedAt: new Date().toISOString(),
-      appUrl: '',
+      appUrl: ScriptApp.getService().getUrl() || '',
       summary: {
         date: dateToYmd(logDateIdx >= 0 ? logRow[logDateIdx] : ''),
         pilot: normText(logPilotIdx >= 0 ? logRow[logPilotIdx] : ''),
@@ -14556,11 +15011,14 @@ function getToolsFlightDetailReport(payload) {
           ifrHrs: asNumber(debriefTab8.ifrHrs, 0),
           landingLog: sanitizeForClient(Array.isArray(debriefTab8.landingLog) ? debriefTab8.landingLog : [], 3),
           debriefAt: normText(debriefTab8.debriefAt),
-          trainingDebrief: toCompactJsonText(debriefTab8.trainingDebrief || {}, 500)
+          trainingDebrief: sanitizeForClient(trainingDebriefObj, 3),
+          trainingDebriefText: toCompactJsonText(trainingDebriefObj || {}, 500)
         },
         arrival: toCompactJsonText(arrivalData, 700),
         takeoffRoll: toCompactJsonText(takeoffRollData, 700)
       },
+      lessonPlanSummary: lessonPlanSummary,
+      studentFunds: studentFundsSummary,
       landingTimeline: landingTimeline,
       rawFields: rawFields.slice(0, 40),
       debug: {
@@ -16731,6 +17189,7 @@ function _toolsStudentRatingsOptions_() {
     { code: 'INVA', label: 'Instrutor de Voo Avião (INVA)' },
     { code: 'MLTE', label: 'Classe Multimotor Terrestre (MLTE)' },
     { code: 'MNTE', label: 'Classe Monomotor Terrestre (MNTE)' },
+    { code: 'MNAF', label: 'Monomotor Anfíbio (MNAF)' },
     { code: 'MLTE-IFR', label: 'Multimotor + IFR' },
     { code: 'JET', label: 'Tipo Jato' },
     { code: 'ANAC-AGR', label: 'Piloto Agrícola' },
@@ -16747,11 +17206,13 @@ function _toolsEnsurePilotStudentHeaders_(sheet) {
     'DOB',
     'MEDICAL_EXPIRY',
     'MEDICAL_CLASS',
+    'PERSON_TYPE',
     'CURRENT_RATINGS',
+    'STUDENT_KEY',
     'STUDENT_PROFILE_JSON',
     'FUNDS_BALANCE_BRL',
     'FUNDS_RATE_BRL_HOUR',
-    'FUNDS_LEDGER_JSON',
+    'RATINGS_EXPIRY_JSON',
     'LAST_DEPOSIT_FILE_URL',
     'LAST_DEPOSIT_FILE_ID',
     'LAST_DEPOSIT_AT'
@@ -16770,6 +17231,353 @@ function _toolsEnsurePilotStudentHeaders_(sheet) {
   return headers;
 }
 
+function _toolsStudentFundsLedgerHeaders_() {
+  return [
+    'TX_ID',
+    'STUDENT_KEY',
+    'STUDENT_ROW_NUMBER',
+    'STUDENT_NAME',
+    'STUDENT_EMAIL',
+    'TX_DATE',
+    'TX_TYPE',
+    'AMOUNT_BRL',
+    'RATE_BRL_HOUR',
+    'BALANCE_AFTER_BRL',
+    'RECEIPT_FILE_URL',
+    'RECEIPT_FILE_ID',
+    'NOTES',
+    'REFERENCE_TYPE',
+    'REFERENCE_ID',
+    'CREATED_AT',
+    'CREATED_BY',
+    'STATUS'
+  ];
+}
+
+function _toolsStudentFundsLedgerSheet_(ss) {
+  var target = APP_SHEETS.STUDENT_FUNDS_LEDGER || 'DB_Student_Funds_Ledger';
+  var ensured = _schemaEnsureSheetHeaders_(ss, target, _toolsStudentFundsLedgerHeaders_());
+  return ensured.sheet;
+}
+
+function _toolsStudentIdentityKey_(body) {
+  var email = String(body && body.email || '').trim().toLowerCase();
+  var cpf = String(body && body.cpf || '').trim().replace(/\D+/g, '');
+  var canac = String(body && body.canac || '').trim().toUpperCase();
+  var name = String(body && body.name || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  var dob = String(body && body.dob || '').trim();
+  if (cpf) return 'CPF:' + cpf;
+  if (canac) return 'CANAC:' + canac;
+  if (email) return 'EMAIL:' + email;
+  return 'NAME:' + name + '|DOB:' + dob;
+}
+
+function _toolsStudentTxDateTime_(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd HH:mm:ss');
+  }
+  return String(value || '').trim();
+}
+
+function _toolsStudentLedgerMap_(ss) {
+  var map = {};
+  var sh = _toolsStudentFundsLedgerSheet_(ss);
+  var values = sh.getDataRange().getValues();
+  if (!values || values.length < 2) return map;
+
+  var headers = values[0] || [];
+  var keyIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_KEY']);
+  var amountIdx = _toolsHeaderIndexFromCandidates_(headers, ['AMOUNT_BRL']);
+  var rateIdx = _toolsHeaderIndexFromCandidates_(headers, ['RATE_BRL_HOUR']);
+  var txDateIdx = _toolsHeaderIndexFromCandidates_(headers, ['TX_DATE']);
+  var noteIdx = _toolsHeaderIndexFromCandidates_(headers, ['NOTES']);
+  var receiptUrlIdx = _toolsHeaderIndexFromCandidates_(headers, ['RECEIPT_FILE_URL']);
+  var byIdx = _toolsHeaderIndexFromCandidates_(headers, ['CREATED_BY']);
+  var balAfterIdx = _toolsHeaderIndexFromCandidates_(headers, ['BALANCE_AFTER_BRL']);
+  var txIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['TX_ID']);
+  var txTypeIdx = _toolsHeaderIndexFromCandidates_(headers, ['TX_TYPE']);
+  var refTypeIdx = _toolsHeaderIndexFromCandidates_(headers, ['REFERENCE_TYPE']);
+  var refIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['REFERENCE_ID']);
+  var statusIdx = _toolsHeaderIndexFromCandidates_(headers, ['STATUS']);
+  var studentNameLedIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_NAME']);
+
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    var studentKey = keyIdx >= 0 ? String(row[keyIdx] || '').trim() : '';
+    if (!studentKey) continue;
+    if (!map[studentKey]) map[studentKey] = [];
+    map[studentKey].push({
+      txId: txIdIdx >= 0 ? String(row[txIdIdx] || '').trim() : '',
+      txType: txTypeIdx >= 0 ? String(row[txTypeIdx] || '').trim().toUpperCase() : '',
+      referenceType: refTypeIdx >= 0 ? String(row[refTypeIdx] || '').trim().toUpperCase() : '',
+      referenceId: refIdIdx >= 0 ? String(row[refIdIdx] || '').trim() : '',
+      status: statusIdx >= 0 ? String(row[statusIdx] || '').trim().toUpperCase() : '',
+      studentName: studentNameLedIdx >= 0 ? String(row[studentNameLedIdx] || '').trim() : '',
+      timestamp: txDateIdx >= 0 ? _toolsStudentTxDateTime_(row[txDateIdx]) : '',
+      amount: amountIdx >= 0 ? Number(row[amountIdx] || 0) : 0,
+      rate: rateIdx >= 0 ? Number(row[rateIdx] || 0) : 0,
+      note: noteIdx >= 0 ? String(row[noteIdx] || '').trim() : '',
+      receiptUrl: receiptUrlIdx >= 0 ? String(row[receiptUrlIdx] || '').trim() : '',
+      by: byIdx >= 0 ? String(row[byIdx] || '').trim() : '',
+      balanceAfter: balAfterIdx >= 0 ? Number(row[balAfterIdx] || 0) : 0
+    });
+  }
+
+  Object.keys(map).forEach(function(k) {
+    map[k].sort(function(a, b) {
+      return String(a.timestamp || '').localeCompare(String(b.timestamp || ''));
+    });
+  });
+
+  return map;
+}
+
+function _toolsAppendStudentLedgerEntry_(ss, entry) {
+  var sh = _toolsStudentFundsLedgerSheet_(ss);
+  var headers = _toolsSheetHeaderRow_(sh);
+  var txId = 'STX_' + Utilities.getUuid().slice(0, 8).toUpperCase();
+  var createdAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd HH:mm:ss');
+  var txDate = String(entry && entry.txDate || '').trim() || createdAt;
+  var dataMap = {
+    TX_ID: txId,
+    STUDENT_KEY: String(entry && entry.studentKey || '').trim(),
+    STUDENT_ROW_NUMBER: Number(entry && entry.studentRowNumber || 0),
+    STUDENT_NAME: String(entry && entry.studentName || '').trim(),
+    STUDENT_EMAIL: String(entry && entry.studentEmail || '').trim().toLowerCase(),
+    TX_DATE: txDate,
+    TX_TYPE: String(entry && entry.txType || 'CREDIT').trim().toUpperCase(),
+    AMOUNT_BRL: Number(entry && entry.amountBrl || 0),
+    RATE_BRL_HOUR: Number(entry && entry.rateBrlHour || 0),
+    BALANCE_AFTER_BRL: Number(entry && entry.balanceAfterBrl || 0),
+    RECEIPT_FILE_URL: String(entry && entry.receiptFileUrl || '').trim(),
+    RECEIPT_FILE_ID: String(entry && entry.receiptFileId || '').trim(),
+    NOTES: String(entry && entry.notes || '').trim(),
+    REFERENCE_TYPE: String(entry && entry.referenceType || '').trim(),
+    REFERENCE_ID: String(entry && entry.referenceId || '').trim(),
+    CREATED_AT: createdAt,
+    CREATED_BY: String(entry && entry.createdBy || _toolsCurrentUserEmail_() || 'tools')
+  };
+
+  var row = headers.map(function(header) {
+    var key = _toolsNormHeader_(header);
+    return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : '';
+  });
+  sh.appendRow(row);
+  return txId;
+}
+
+function _toolsRoundMoney_(value) {
+  return Number((Number(value || 0)).toFixed(2));
+}
+
+function _toolsStudentNormalizeDateIso_(value) {
+  return safeDateStr(value);
+}
+
+function _toolsStudentCurrentBalanceFromLedger_(ss, studentKey, fallback) {
+  var key = String(studentKey || '').trim();
+  if (!key) return Number(fallback || 0);
+  var ledger = _toolsStudentLedgerMap_(ss)[key] || [];
+  if (!ledger.length) return Number(fallback || 0);
+  var last = ledger[ledger.length - 1] || {};
+  var bal = Number(last.balanceAfter || 0);
+  return isFinite(bal) ? bal : Number(fallback || 0);
+}
+
+function _toolsStudentBuildFifoLots_(entries) {
+  var rows = Array.isArray(entries) ? entries.slice() : [];
+  rows.sort(function(a, b) {
+    return String(a && a.timestamp || '').localeCompare(String(b && b.timestamp || ''));
+  });
+
+  var lots = [];
+  for (var i = 0; i < rows.length; i++) {
+    var item = rows[i] || {};
+    var amount = Number(item.amount || 0);
+    var rate = Number(item.rate || 0);
+    if (amount > 0 && rate > 0) {
+      lots.push({
+        rate: rate,
+        remainingAmount: _toolsRoundMoney_(amount),
+        sourceTimestamp: String(item.timestamp || ''),
+        sourceNote: String(item.note || '')
+      });
+      continue;
+    }
+    if (amount >= 0) continue;
+
+    var toConsume = _toolsRoundMoney_(Math.abs(amount));
+    while (toConsume > 0.00001 && lots.length) {
+      var lot = lots[0];
+      var take = Math.min(lot.remainingAmount, toConsume);
+      lot.remainingAmount = _toolsRoundMoney_(lot.remainingAmount - take);
+      toConsume = _toolsRoundMoney_(toConsume - take);
+      if (lot.remainingAmount <= 0.00001) lots.shift();
+    }
+  }
+  return lots;
+}
+
+function _toolsStudentComputeFifoDebit_(entries, debitHours) {
+  var hoursWanted = Number(debitHours || 0);
+  if (!isFinite(hoursWanted) || hoursWanted <= 0) {
+    return { success: true, lines: [], totalAmount: 0, availableHours: 0, shortageHours: 0 };
+  }
+
+  var lots = _toolsStudentBuildFifoLots_(entries);
+  var availableHours = lots.reduce(function(acc, lot) {
+    var r = Number(lot.rate || 0);
+    if (!r || r <= 0) return acc;
+    return acc + (Number(lot.remainingAmount || 0) / r);
+  }, 0);
+
+  var remainingHours = Number(hoursWanted.toFixed(4));
+  var lines = [];
+  var totalAmount = 0;
+
+  for (var i = 0; i < lots.length && remainingHours > 0.00001; i++) {
+    var lot = lots[i];
+    var rate = Number(lot.rate || 0);
+    var remainingAmount = Number(lot.remainingAmount || 0);
+    if (!rate || rate <= 0 || remainingAmount <= 0) continue;
+
+    var lotHours = remainingAmount / rate;
+    var useHours = Math.min(remainingHours, lotHours);
+    var useAmount = _toolsRoundMoney_(useHours * rate);
+    if (useAmount > remainingAmount) useAmount = _toolsRoundMoney_(remainingAmount);
+    if (useAmount <= 0) continue;
+
+    var exactHours = useAmount / rate;
+    lines.push({
+      rate: rate,
+      hours: Number(exactHours.toFixed(4)),
+      amount: useAmount,
+      sourceTimestamp: lot.sourceTimestamp,
+      sourceNote: lot.sourceNote
+    });
+
+    remainingHours = Number((remainingHours - exactHours).toFixed(4));
+    totalAmount = _toolsRoundMoney_(totalAmount + useAmount);
+  }
+
+  if (remainingHours > 0.00001) {
+    return {
+      success: false,
+      error: 'Insufficient FIFO credit to cover ' + hoursWanted.toFixed(2) + ' h. Available: ' + availableHours.toFixed(2) + ' h.',
+      lines: lines,
+      totalAmount: totalAmount,
+      availableHours: availableHours,
+      shortageHours: Number(remainingHours.toFixed(4))
+    };
+  }
+
+  return {
+    success: true,
+    lines: lines,
+    totalAmount: totalAmount,
+    availableHours: availableHours,
+    shortageHours: 0
+  };
+}
+
+/**
+ * Apply a FIFO student debit for a completed training mission.
+ * Idempotent: skips if a FLIGHT_DEBIT_FIFO entry for missionId already exists.
+ * Returns { success, skipped?, reason?, totalDebited?, newBalance?, error? }
+ */
+function _toolsStudentDebitForMission_(ss, missionId, pilotName, flightHours, actorEmail) {
+  try {
+    var hours = Number(flightHours || 0);
+    if (!hours || hours <= 0) return { success: true, skipped: true, reason: 'No flight hours' };
+    if (!pilotName || !missionId) return { success: false, error: 'Missing pilotName or missionId' };
+
+    var sh = ss.getSheetByName(APP_SHEETS.PILOTS);
+    if (!sh) return { success: false, error: 'DB_Pilots not found' };
+
+    var headers = _toolsEnsurePilotStudentHeaders_(sh);
+    var data = sh.getDataRange().getValues();
+    var nameIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_NAME', 'PILOT', 'NAME', 'STUDENT_NAME', 'NOME']);
+    var balanceIdx = _toolsHeaderIndexFromCandidates_(headers, ['FUNDS_BALANCE_BRL', 'BALANCE_BRL']);
+
+    var pilotNameNorm = String(pilotName).trim().toUpperCase();
+    var pilotRowNumber = -1;
+    var pilotRow = null;
+    for (var i = 1; i < data.length; i++) {
+      var rowName = nameIdx >= 0 ? String(data[i][nameIdx] || '').trim().toUpperCase() : '';
+      if (rowName && rowName === pilotNameNorm) {
+        pilotRowNumber = i + 1;
+        pilotRow = data[i];
+        break;
+      }
+    }
+    if (!pilotRow) return { success: false, error: 'Pilot not found in DB_Pilots: ' + pilotName };
+
+    var rec = _toolsStudentRecordFromRow_(headers, pilotRow, pilotRowNumber);
+    var personType = String(rec.personType || '').trim().toUpperCase();
+    if (personType !== 'STUDENT') {
+      return { success: true, skipped: true, reason: 'Person type ' + (personType || 'UNKNOWN') + ' is non-billable for training debit' };
+    }
+    if (!rec.studentKey) rec.studentKey = _toolsStudentIdentityKey_(rec);
+    var studentKey = rec.studentKey;
+
+    // Idempotency: skip if a FLIGHT_DEBIT_FIFO for this missionId already exists
+    var existingEntries = _toolsStudentLedgerMap_(ss)[studentKey] || [];
+    for (var e = 0; e < existingEntries.length; e++) {
+      if (String(existingEntries[e].referenceId || '') === String(missionId) &&
+          String(existingEntries[e].referenceType || '').toUpperCase() === 'FLIGHT_DEBIT_FIFO') {
+        return { success: true, skipped: true, reason: 'Debit already posted for mission ' + missionId };
+      }
+    }
+
+    var currentBalance = _toolsStudentCurrentBalanceFromLedger_(ss, studentKey, Number(rec.balanceBrl || 0));
+    var fifoDebit = _toolsStudentComputeFifoDebit_(existingEntries, hours);
+    if (!fifoDebit.success) return { success: false, error: fifoDebit.error };
+    if (!fifoDebit.lines || !fifoDebit.lines.length) return { success: true, skipped: true, reason: 'No debit lines produced' };
+
+    var nowIso = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd HH:mm:ss');
+    var actor = String(actorEmail || _toolsCurrentUserEmail_() || 'system');
+    var runningBalance = Number(currentBalance);
+
+    for (var fi = 0; fi < fifoDebit.lines.length; fi++) {
+      var d = fifoDebit.lines[fi] || {};
+      var debitAmount = _toolsRoundMoney_(Math.abs(Number(d.amount || 0)));
+      if (debitAmount <= 0) continue;
+      runningBalance = _toolsRoundMoney_(runningBalance - debitAmount);
+      _toolsAppendStudentLedgerEntry_(ss, {
+        studentKey: studentKey,
+        studentRowNumber: pilotRowNumber,
+        studentName: rec.name,
+        studentEmail: rec.email,
+        txDate: nowIso,
+        txType: 'DEBIT',
+        amountBrl: -debitAmount,
+        rateBrlHour: Number(d.rate || 0),
+        balanceAfterBrl: runningBalance,
+        notes: 'Flight debit ' + Number(d.hours || 0).toFixed(2) + 'h @ R$' + Number(d.rate || 0).toFixed(2) + '/h | Mission: ' + missionId,
+        referenceType: 'FLIGHT_DEBIT_FIFO',
+        referenceId: missionId,
+        createdBy: actor
+      });
+    }
+
+    // Update FUNDS_BALANCE_BRL snapshot in DB_Pilots row
+    if (balanceIdx >= 0) {
+      sh.getRange(pilotRowNumber, balanceIdx + 1).setValue(runningBalance);
+    }
+
+    return {
+      success: true,
+      studentKey: studentKey,
+      pilotName: rec.name,
+      flightHours: hours,
+      totalDebited: fifoDebit.totalAmount,
+      newBalance: runningBalance
+    };
+  } catch (ex) {
+    return { success: false, error: ex && ex.message ? ex.message : String(ex) };
+  }
+}
+
 function _toolsStudentRecordFromRow_(headers, row, rowNumber) {
   var nameIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_NAME', 'PILOT', 'NAME', 'STUDENT_NAME', 'NOME']);
   var emailIdx = _toolsHeaderIndexFromCandidates_(headers, ['PILOT_EMAIL', 'EMAIL', 'E_MAIL']);
@@ -16778,11 +17586,16 @@ function _toolsStudentRecordFromRow_(headers, row, rowNumber) {
   var dobIdx = _toolsHeaderIndexFromCandidates_(headers, ['DOB', 'DATE_OF_BIRTH', 'BIRTH_DATE']);
   var medExpiryIdx = _toolsHeaderIndexFromCandidates_(headers, ['MEDICAL_EXPIRY', 'MEDICAL_EXP', 'CMA_EXPIRY']);
   var medClassIdx = _toolsHeaderIndexFromCandidates_(headers, ['MEDICAL_CLASS', 'CMA_CLASS']);
+  var personTypeIdx = _toolsHeaderIndexFromCandidates_(headers, ['PERSON_TYPE']);
+  var staffIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['STAFF_ID']);
   var ratingsIdx = _toolsHeaderIndexFromCandidates_(headers, ['CURRENT_RATINGS', 'RATINGS']);
+  var studentKeyIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_KEY']);
   var balanceIdx = _toolsHeaderIndexFromCandidates_(headers, ['FUNDS_BALANCE_BRL', 'BALANCE_BRL', 'CREDIT_BALANCE']);
   var rateIdx = _toolsHeaderIndexFromCandidates_(headers, ['FUNDS_RATE_BRL_HOUR', 'RATE_BRL_HOUR', 'HOURLY_RATE']);
-  var ledgerIdx = _toolsHeaderIndexFromCandidates_(headers, ['FUNDS_LEDGER_JSON', 'CREDIT_LEDGER_JSON']);
   var profileIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_PROFILE_JSON']);
+  var ratingsExpiryIdx = _toolsHeaderIndexFromCandidates_(headers, ['RATINGS_EXPIRY_JSON']);
+  var mnteValidityIdx = _toolsHeaderIndexFromCandidates_(headers, ['MNTE_VALIDITY']);
+  var mnafValidityIdx = _toolsHeaderIndexFromCandidates_(headers, ['MNAF_VALIDITY', 'MANF_VALIDITY']);
   var lastUrlIdx = _toolsHeaderIndexFromCandidates_(headers, ['LAST_DEPOSIT_FILE_URL', 'DEPOSIT_FILE_URL']);
   var lastIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['LAST_DEPOSIT_FILE_ID', 'DEPOSIT_FILE_ID']);
 
@@ -16795,16 +17608,25 @@ function _toolsStudentRecordFromRow_(headers, row, rowNumber) {
     ratings = String(ratingsRaw || '').split(/[;,]+/).map(function(v) { return String(v || '').trim(); }).filter(Boolean);
   }
 
-  var ledger = [];
+  var ratingsExpiry = {};
   try {
-    var parsedLedger = ledgerIdx >= 0 ? _parseJsonLoose_(row[ledgerIdx], []) : [];
-    if (Array.isArray(parsedLedger)) ledger = parsedLedger;
-  } catch (e2) {}
+    var parsedMap = ratingsExpiryIdx >= 0 ? _parseJsonLoose_(row[ratingsExpiryIdx], {}) : {};
+    if (parsedMap && typeof parsedMap === 'object') ratingsExpiry = parsedMap;
+  } catch (eRe) {}
+  if (!ratingsExpiry.MNTE && mnteValidityIdx >= 0) ratingsExpiry.MNTE = safeDateStr(row[mnteValidityIdx]);
+  if (!ratingsExpiry.MNAF && mnafValidityIdx >= 0) ratingsExpiry.MNAF = safeDateStr(row[mnafValidityIdx]);
 
   var profileJson = {};
   try {
     profileJson = profileIdx >= 0 ? _parseJsonLoose_(row[profileIdx], {}) : {};
   } catch (e3) {}
+
+  var rawPersonType = personTypeIdx >= 0 ? String(row[personTypeIdx] || '').trim().toUpperCase() : '';
+  var inferredPersonType = rawPersonType;
+  if (!inferredPersonType) {
+    var staffIdVal = staffIdIdx >= 0 ? String(row[staffIdIdx] || '').trim() : '';
+    inferredPersonType = staffIdVal ? 'STAFF' : 'STUDENT';
+  }
 
   return {
     rowNumber: rowNumber,
@@ -16815,10 +17637,13 @@ function _toolsStudentRecordFromRow_(headers, row, rowNumber) {
     dob: dobIdx >= 0 ? safeDateStr(row[dobIdx]) : '',
     medicalExpiry: medExpiryIdx >= 0 ? safeDateStr(row[medExpiryIdx]) : '',
     medicalClass: medClassIdx >= 0 ? String(row[medClassIdx] || '').trim() : '',
+    personType: inferredPersonType,
     ratings: ratings,
+    ratingsExpiry: ratingsExpiry,
+    studentKey: studentKeyIdx >= 0 ? String(row[studentKeyIdx] || '').trim() : '',
     balanceBrl: balanceIdx >= 0 ? Number(row[balanceIdx] || 0) : Number(profileJson.balanceBrl || 0),
     rateBrlHour: rateIdx >= 0 ? Number(row[rateIdx] || 0) : Number(profileJson.rateBrlHour || 0),
-    ledger: ledger,
+    ledger: [],
     lastDepositFileUrl: lastUrlIdx >= 0 ? String(row[lastUrlIdx] || '').trim() : '',
     lastDepositFileId: lastIdIdx >= 0 ? String(row[lastIdIdx] || '').trim() : ''
   };
@@ -16828,13 +17653,22 @@ function getToolsStudentProfiles() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sh = getRequiredSheet_(ss, APP_SHEETS.PILOTS, 'getToolsStudentProfiles');
+    _toolsEnsurePilotStudentHeaders_(sh);
     var data = sh.getDataRange().getValues();
     if (data.length < 1) return { success: true, rows: [], ratingsOptions: _toolsStudentRatingsOptions_() };
     var headers = data[0] || [];
+    var ledgerByKey = _toolsStudentLedgerMap_(ss);
     var rows = [];
     for (var i = 1; i < data.length; i++) {
       var rec = _toolsStudentRecordFromRow_(headers, data[i], i + 1);
       if (!rec.name && !rec.email && !rec.cpf && !rec.canac) continue;
+      if (!rec.studentKey) rec.studentKey = _toolsStudentIdentityKey_(rec);
+      rec.ledger = ledgerByKey[rec.studentKey] || [];
+      if (rec.ledger.length) {
+        var lastEntry = rec.ledger[rec.ledger.length - 1] || {};
+        var bal = Number(lastEntry.balanceAfter || rec.balanceBrl || 0);
+        rec.balanceBrl = isFinite(bal) ? bal : Number(rec.balanceBrl || 0);
+      }
       rows.push(rec);
     }
     rows.sort(function(a, b) { return String(a.name || '').localeCompare(String(b.name || '')); });
@@ -16878,44 +17712,86 @@ function saveToolsStudentProfile(payload) {
 
     var existingRow = rowNumber >= 2 ? sh.getRange(rowNumber, 1, 1, headers.length).getValues()[0] : headers.map(function() { return ''; });
     var existingRecord = _toolsStudentRecordFromRow_(headers, existingRow, rowNumber >= 2 ? rowNumber : 0);
-    var currentBalance = Number(existingRecord.balanceBrl || 0);
+    var personType = String(body.personType || existingRecord.personType || 'OPS_PILOT').trim().toUpperCase();
+    if (personType !== 'STUDENT' && personType !== 'OPS_PILOT' && personType !== 'STAFF') personType = 'OPS_PILOT';
+    var studentKey = existingRecord.studentKey || _toolsStudentIdentityKey_({ name: name, email: email, cpf: cpf, canac: canac, dob: String(body.dob || '').trim() });
+    var currentBalance = _toolsStudentCurrentBalanceFromLedger_(ss, studentKey, Number(existingRecord.balanceBrl || 0));
     var rate = Number(body.rateBrlHour || existingRecord.rateBrlHour || 0);
     var creditAmount = Number(body.creditAmountBrl || 0);
+    var debitHours = Number(body.debitHours || 0);
     if (isNaN(rate) || rate < 0) rate = 0;
     if (isNaN(creditAmount) || creditAmount < 0) creditAmount = 0;
+    if (isNaN(debitHours) || debitHours < 0) debitHours = 0;
+    if (personType === 'STAFF') {
+      rate = 0;
+      creditAmount = 0;
+    }
+    if (debitHours > 0) {
+      return { success: false, error: 'Manual debit is disabled. Training mission approval posts debit automatically.' };
+    }
+    if (creditAmount > 0 && rate <= 0) {
+      return { success: false, error: 'Rate (R$/hour) is required for each deposit credit.' };
+    }
 
-    var ratings = Array.isArray(body.ratings) ? body.ratings : String(body.ratings || '').split(/[;,]+/);
-    ratings = ratings.map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+    var ratingsWithExpiry = Array.isArray(body.ratingsWithExpiry) ? body.ratingsWithExpiry : [];
+    var ratings = [];
+    var ratingsExpiryMap = {};
+    if (ratingsWithExpiry.length > 0) {
+      ratingsWithExpiry.forEach(function(it) {
+        var code = String(it && it.code || '').trim();
+        var expiry = _toolsStudentNormalizeDateIso_(String(it && it.expiry || '').trim());
+        if (!code) return;
+        ratings.push(code);
+        if (expiry) ratingsExpiryMap[code] = expiry;
+      });
+    } else {
+      ratings = Array.isArray(body.ratings) ? body.ratings : String(body.ratings || '').split(/[;,]+/);
+      ratings = ratings.map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+      ratingsExpiryMap = (existingRecord && existingRecord.ratingsExpiry && typeof existingRecord.ratingsExpiry === 'object')
+        ? existingRecord.ratingsExpiry
+        : {};
+    }
 
-    var ledger = Array.isArray(existingRecord.ledger) ? existingRecord.ledger.slice() : [];
     var now = new Date();
     var nowIso = Utilities.formatDate(now, Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd HH:mm:ss');
     var depositFileUrl = String(body.depositFileUrl || '').trim();
     var depositFileId = String(body.depositFileId || '').trim();
+    var dobIso = _toolsStudentNormalizeDateIso_(String(body.dob || '').trim());
+    var medExpiryIso = _toolsStudentNormalizeDateIso_(String(body.medicalExpiry || '').trim());
 
-    var newBalance = currentBalance;
+    var ledgerEntries = _toolsStudentLedgerMap_(ss)[studentKey] || [];
+    var fifoEntries = ledgerEntries.slice();
     if (creditAmount > 0) {
-      newBalance = currentBalance + creditAmount;
-      ledger.push({
+      fifoEntries.push({
         timestamp: nowIso,
         amount: creditAmount,
         rate: rate,
         note: String(body.creditNote || '').trim(),
         receiptUrl: depositFileUrl,
-        receiptFileId: depositFileId,
-        by: String(body.updatedBy || _toolsCurrentUserEmail_() || 'tools')
+        by: String(body.updatedBy || _toolsCurrentUserEmail_() || 'tools'),
+        balanceAfter: _toolsRoundMoney_(currentBalance + creditAmount)
       });
     }
+
+    var fifoDebit = _toolsStudentComputeFifoDebit_(fifoEntries, 0);
+    if (!fifoDebit.success) {
+      return { success: false, error: fifoDebit.error };
+    }
+
+    var newBalance = _toolsRoundMoney_(currentBalance + creditAmount - Number(fifoDebit.totalAmount || 0));
 
     var profileJson = {
       name: name,
       email: email,
       cpf: cpf,
       canac: canac,
-      dob: String(body.dob || '').trim(),
-      medicalExpiry: String(body.medicalExpiry || '').trim(),
+      dob: dobIso,
+      medicalExpiry: medExpiryIso,
       medicalClass: String(body.medicalClass || '').trim(),
+      personType: personType,
       ratings: ratings,
+      ratingsExpiry: ratingsExpiryMap,
+      studentKey: studentKey,
       balanceBrl: newBalance,
       rateBrlHour: rate,
       lastUpdatedAt: nowIso
@@ -16932,14 +17808,18 @@ function saveToolsStudentProfile(payload) {
       EMAIL: email,
       CPF: cpf,
       CANAC: canac,
-      DOB: String(body.dob || '').trim(),
-      MEDICAL_EXPIRY: String(body.medicalExpiry || '').trim(),
+      DOB: dobIso,
+      MEDICAL_EXPIRY: medExpiryIso,
       MEDICAL_CLASS: String(body.medicalClass || '').trim(),
+      PERSON_TYPE: personType,
       CURRENT_RATINGS: ratings.join('; '),
+      RATINGS_EXPIRY_JSON: JSON.stringify(ratingsExpiryMap),
+      MNTE_VALIDITY: String(ratingsExpiryMap.MNTE || ''),
+      MNAF_VALIDITY: String(ratingsExpiryMap.MNAF || ''),
+      STUDENT_KEY: studentKey,
       STUDENT_PROFILE_JSON: JSON.stringify(profileJson),
       FUNDS_BALANCE_BRL: newBalance,
       FUNDS_RATE_BRL_HOUR: rate,
-      FUNDS_LEDGER_JSON: JSON.stringify(ledger),
       LAST_DEPOSIT_FILE_URL: depositFileUrl,
       LAST_DEPOSIT_FILE_ID: depositFileId,
       LAST_DEPOSIT_AT: depositFileUrl ? nowIso : existingLastDepositAt
@@ -16961,10 +17841,34 @@ function saveToolsStudentProfile(payload) {
     } else {
       sh.appendRow(record);
       result = { success: true, action: 'created', rowNumber: sh.getLastRow() };
+      rowNumber = result.rowNumber;
+    }
+
+    if (creditAmount > 0) {
+      _toolsAppendStudentLedgerEntry_(ss, {
+        studentKey: studentKey,
+        studentRowNumber: rowNumber,
+        studentName: name,
+        studentEmail: email,
+        txDate: nowIso,
+        txType: 'CREDIT',
+        amountBrl: creditAmount,
+        rateBrlHour: rate,
+        balanceAfterBrl: newBalance,
+        receiptFileUrl: depositFileUrl,
+        receiptFileId: depositFileId,
+        notes: String(body.creditNote || '').trim(),
+        referenceType: 'MANUAL_CREDIT',
+        referenceId: '',
+        createdBy: String(body.updatedBy || _toolsCurrentUserEmail_() || 'tools')
+      });
     }
 
     result.balanceBrl = newBalance;
     result.rateBrlHour = rate;
+    result.studentKey = studentKey;
+    result.debitedHours = 0;
+    result.debitedAmountBrl = 0;
     return result;
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
@@ -17015,6 +17919,198 @@ function uploadStudentDepositReceipt(payload) {
   }
 }
 
+// ---- Student Deposit Void / Edit ----
+
+function _toolsStudentFindLedgerRowByTxId_(ss, txId) {
+  var sh = _toolsStudentFundsLedgerSheet_(ss);
+  var values = sh.getDataRange().getValues();
+  if (!values || values.length < 2) return null;
+  var headers = values[0] || [];
+  var txIdIdx = _toolsHeaderIndexFromCandidates_(headers, ['TX_ID']);
+  if (txIdIdx < 0) return null;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][txIdIdx] || '').trim() === txId) {
+      return { rowIndex: i + 1, headers: headers, row: values[i] };
+    }
+  }
+  return null;
+}
+
+function _toolsStudentMarkLedgerRowStatus_(ss, rowIndex, headers, row, newStatus, auditNote) {
+  var sh = _toolsStudentFundsLedgerSheet_(ss);
+  var statusIdx = _toolsHeaderIndexFromCandidates_(headers, ['STATUS']);
+  var noteIdx = _toolsHeaderIndexFromCandidates_(headers, ['NOTES']);
+  if (statusIdx >= 0) sh.getRange(rowIndex, statusIdx + 1).setValue(newStatus);
+  if (noteIdx >= 0 && auditNote) {
+    var existingNote = String(row[noteIdx] || '').trim();
+    sh.getRange(rowIndex, noteIdx + 1).setValue(existingNote ? existingNote + ' | ' + auditNote : auditNote);
+  }
+}
+
+function _toolsStudentUpdatePilotBalance_(ss, studentRowNumber, newBalance) {
+  if (!studentRowNumber || studentRowNumber < 2) return;
+  var sh = ss.getSheetByName(APP_SHEETS.PILOTS);
+  if (!sh) return;
+  var headers = _toolsEnsurePilotStudentHeaders_(sh);
+  var balanceIdx = _toolsHeaderIndexFromCandidates_(headers, ['FUNDS_BALANCE_BRL', 'BALANCE_BRL']);
+  if (balanceIdx >= 0) sh.getRange(studentRowNumber, balanceIdx + 1).setValue(newBalance);
+}
+
+function voidStudentLedgerEntry(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var txId = String(body.txId || '').trim();
+    var studentKey = String(body.studentKey || '').trim();
+    var reason = String(body.reason || '').trim();
+    var actor = String(body.actorEmail || _toolsCurrentUserEmail_() || 'tools');
+    if (!txId) return { success: false, error: 'TX ID required.' };
+    if (!studentKey) return { success: false, error: 'Student key required.' };
+    if (!reason) return { success: false, error: 'Reason is required to void.' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var found = _toolsStudentFindLedgerRowByTxId_(ss, txId);
+    if (!found) return { success: false, error: 'Transaction not found: ' + txId };
+
+    var headers = found.headers;
+    var row = found.row;
+    var rowIndex = found.rowIndex;
+    var txTypeIdx = _toolsHeaderIndexFromCandidates_(headers, ['TX_TYPE']);
+    var statusIdx = _toolsHeaderIndexFromCandidates_(headers, ['STATUS']);
+    var amountIdx = _toolsHeaderIndexFromCandidates_(headers, ['AMOUNT_BRL']);
+    var rateIdx = _toolsHeaderIndexFromCandidates_(headers, ['RATE_BRL_HOUR']);
+    var studentNameIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_NAME']);
+    var studentEmailIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_EMAIL']);
+    var studentRowIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_ROW_NUMBER']);
+
+    var txType = txTypeIdx >= 0 ? String(row[txTypeIdx] || '').trim().toUpperCase() : '';
+    var currentStatus = statusIdx >= 0 ? String(row[statusIdx] || '').trim().toUpperCase() : '';
+    if (txType !== 'CREDIT') return { success: false, error: 'Only CREDIT entries can be voided.' };
+    if (currentStatus === 'VOIDED') return { success: true, skipped: true, reason: 'Already voided.' };
+    if (currentStatus === 'AMENDED') return { success: false, error: 'Cannot void an amended entry directly.' };
+
+    var originalAmount = Math.abs(amountIdx >= 0 ? Number(row[amountIdx] || 0) : 0);
+    var originalRate = rateIdx >= 0 ? Number(row[rateIdx] || 0) : 0;
+    var studentName = studentNameIdx >= 0 ? String(row[studentNameIdx] || '').trim() : '';
+    var studentEmail = studentEmailIdx >= 0 ? String(row[studentEmailIdx] || '').trim() : '';
+    var studentRowNumber = studentRowIdx >= 0 ? Number(row[studentRowIdx] || 0) : 0;
+
+    var nowIso = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd HH:mm:ss');
+    var currentBalance = _toolsStudentCurrentBalanceFromLedger_(ss, studentKey, 0);
+    var newBalance = _toolsRoundMoney_(currentBalance - originalAmount);
+
+    _toolsAppendStudentLedgerEntry_(ss, {
+      studentKey: studentKey,
+      studentRowNumber: studentRowNumber,
+      studentName: studentName,
+      studentEmail: studentEmail,
+      txDate: nowIso,
+      txType: 'VOID_REVERSAL',
+      amountBrl: -originalAmount,
+      rateBrlHour: originalRate,
+      balanceAfterBrl: newBalance,
+      notes: 'Void of ' + txId + '. Reason: ' + reason,
+      referenceType: 'VOID_REVERSAL',
+      referenceId: txId,
+      createdBy: actor
+    });
+    _toolsStudentMarkLedgerRowStatus_(ss, rowIndex, headers, row, 'VOIDED',
+      'Voided ' + nowIso + ' by ' + actor + '. Reason: ' + reason);
+    _toolsStudentUpdatePilotBalance_(ss, studentRowNumber, newBalance);
+
+    return { success: true, newBalance: newBalance };
+  } catch (ex) {
+    return { success: false, error: ex && ex.message ? ex.message : String(ex) };
+  }
+}
+
+function editStudentLedgerEntry(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var txId = String(body.txId || '').trim();
+    var studentKey = String(body.studentKey || '').trim();
+    var newAmount = Number(body.newAmount || 0);
+    var newRate = Number(body.newRate || 0);
+    var newNote = String(body.newNote || '').trim();
+    var reason = String(body.reason || '').trim();
+    var actor = String(body.actorEmail || _toolsCurrentUserEmail_() || 'tools');
+    if (!txId) return { success: false, error: 'TX ID required.' };
+    if (!studentKey) return { success: false, error: 'Student key required.' };
+    if (!reason) return { success: false, error: 'Reason is required to edit.' };
+    if (newAmount <= 0) return { success: false, error: 'New amount must be greater than zero.' };
+    if (newRate <= 0) return { success: false, error: 'New rate must be greater than zero.' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var found = _toolsStudentFindLedgerRowByTxId_(ss, txId);
+    if (!found) return { success: false, error: 'Transaction not found: ' + txId };
+
+    var headers = found.headers;
+    var row = found.row;
+    var rowIndex = found.rowIndex;
+    var txTypeIdx = _toolsHeaderIndexFromCandidates_(headers, ['TX_TYPE']);
+    var statusIdx = _toolsHeaderIndexFromCandidates_(headers, ['STATUS']);
+    var amountIdx = _toolsHeaderIndexFromCandidates_(headers, ['AMOUNT_BRL']);
+    var rateIdx = _toolsHeaderIndexFromCandidates_(headers, ['RATE_BRL_HOUR']);
+    var studentNameIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_NAME']);
+    var studentEmailIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_EMAIL']);
+    var studentRowIdx = _toolsHeaderIndexFromCandidates_(headers, ['STUDENT_ROW_NUMBER']);
+
+    var txType = txTypeIdx >= 0 ? String(row[txTypeIdx] || '').trim().toUpperCase() : '';
+    var currentStatus = statusIdx >= 0 ? String(row[statusIdx] || '').trim().toUpperCase() : '';
+    if (txType !== 'CREDIT') return { success: false, error: 'Only CREDIT entries can be edited.' };
+    if (currentStatus === 'VOIDED') return { success: false, error: 'Cannot edit a voided entry.' };
+    if (currentStatus === 'AMENDED') return { success: false, error: 'Already amended. Edit the replacement credit instead.' };
+
+    var oldAmount = Math.abs(amountIdx >= 0 ? Number(row[amountIdx] || 0) : 0);
+    var oldRate = rateIdx >= 0 ? Number(row[rateIdx] || 0) : 0;
+    var studentName = studentNameIdx >= 0 ? String(row[studentNameIdx] || '').trim() : '';
+    var studentEmail = studentEmailIdx >= 0 ? String(row[studentEmailIdx] || '').trim() : '';
+    var studentRowNumber = studentRowIdx >= 0 ? Number(row[studentRowIdx] || 0) : 0;
+
+    var nowIso = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd HH:mm:ss');
+    var currentBalance = _toolsStudentCurrentBalanceFromLedger_(ss, studentKey, 0);
+    var balAfterReversal = _toolsRoundMoney_(currentBalance - oldAmount);
+    var newBalance = _toolsRoundMoney_(balAfterReversal + newAmount);
+
+    _toolsAppendStudentLedgerEntry_(ss, {
+      studentKey: studentKey,
+      studentRowNumber: studentRowNumber,
+      studentName: studentName,
+      studentEmail: studentEmail,
+      txDate: nowIso,
+      txType: 'EDIT_REVERSAL',
+      amountBrl: -oldAmount,
+      rateBrlHour: oldRate,
+      balanceAfterBrl: balAfterReversal,
+      notes: 'Edit reversal of ' + txId + '. Reason: ' + reason,
+      referenceType: 'EDIT_REVERSAL',
+      referenceId: txId,
+      createdBy: actor
+    });
+    var newTxId = _toolsAppendStudentLedgerEntry_(ss, {
+      studentKey: studentKey,
+      studentRowNumber: studentRowNumber,
+      studentName: studentName,
+      studentEmail: studentEmail,
+      txDate: nowIso,
+      txType: 'CREDIT',
+      amountBrl: newAmount,
+      rateBrlHour: newRate,
+      balanceAfterBrl: newBalance,
+      notes: newNote,
+      referenceType: 'AMENDED_CREDIT',
+      referenceId: txId,
+      createdBy: actor
+    });
+    _toolsStudentMarkLedgerRowStatus_(ss, rowIndex, headers, row, 'AMENDED',
+      'Amended ' + nowIso + ' by ' + actor + '. Old: R$' + oldAmount.toFixed(2) + ' @R$' + oldRate.toFixed(2) + '/h. New TX: ' + newTxId + '. Reason: ' + reason);
+    _toolsStudentUpdatePilotBalance_(ss, studentRowNumber, newBalance);
+
+    return { success: true, newTxId: newTxId, newBalance: newBalance };
+  } catch (ex) {
+    return { success: false, error: ex && ex.message ? ex.message : String(ex) };
+  }
+}
+
 function saveToolsStaffProfile(payload) {
   try {
     var body = (payload && typeof payload === 'object') ? payload : {};
@@ -17049,6 +18145,8 @@ function saveToolsStaffProfile(payload) {
       EMAIL: email,
       PILOT_NAME: staffName,
       PILOT: staffName,
+      PERSON_TYPE: 'STAFF',
+      FUNDS_RATE_BRL_HOUR: 0,
       PRIMARY_ROLE: String(body.primaryRole || '').trim(),
       ACTIVE: _toolsTruthyFlag_(body.active) ? 'Y' : 'N',
       CAN_EDIT_DISCREPANCIES: _toolsTruthyFlag_(body.canEditDiscrepancies) ? 'Y' : 'N',
@@ -17684,7 +18782,7 @@ function ingestLessonPlanFromPdf(payload) {
     };
     var scriptProps = PropertiesService.getScriptProperties();
     var configuredModel = String(scriptProps.getProperty('GEMINI_MODEL') || '').trim();
-    var primaryModel = configuredModel || 'gemini-2.0-flash';
+    var primaryModel = configuredModel || 'gemini-2.5-flash';
 
     function _geminiGenerateWithModel_(modelId, bodyToSend) {
       var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelId) + ':generateContent?key=' + apiKey;
@@ -17703,7 +18801,7 @@ function ingestLessonPlanFromPdf(payload) {
 
     // If the configured/default model is unavailable, retry with known supported flash models.
     if (httpCode === 404) {
-      var fallbackModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      var fallbackModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
       for (var fm = 0; fm < fallbackModels.length; fm++) {
         var candidate = fallbackModels[fm];
         if (candidate === usedModel) continue;
@@ -17845,7 +18943,7 @@ function ingestLessonPlanFromPdf(payload) {
     if (!isFinite(minExpectedItems) || minExpectedItems < 1) minExpectedItems = 12;
 
     function _selectBestFallbackFlatItems_(currentModel) {
-      var candidates = [currentModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      var candidates = [currentModel, 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
       var uniq = {};
       var best = null;
       var bestCount = 0;
@@ -19089,6 +20187,1202 @@ function commitDonationBatch(batchId) {
     }
 
     return { success: true, committed: committed, duplicates: duplicates, ignored: ignored };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _histFlightNormHeader_(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+}
+
+function _histFlightDigest_(value) {
+  var raw = String(value == null ? '' : value);
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw, Utilities.Charset.UTF_8);
+  return bytes.map(function(b) {
+    var v = (b < 0 ? b + 256 : b).toString(16);
+    return v.length === 1 ? '0' + v : v;
+  }).join('');
+}
+
+function _histFlightBatchId_() {
+  var d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd');
+  return 'HIST_' + d + '_' + Utilities.getUuid().slice(0, 8).toUpperCase();
+}
+
+function _histFlightImportsRootFolder_() {
+  var props = PropertiesService.getScriptProperties();
+  var existingId = String(props.getProperty('HIST_FLIGHT_IMPORTS_FOLDER_ID') || '').trim();
+  if (existingId) {
+    try { return DriveApp.getFolderById(existingId); } catch (e) {}
+  }
+  var folderName = 'MBA_Historical_Flight_Imports';
+  var iter = DriveApp.getFoldersByName(folderName);
+  var folder = iter.hasNext() ? iter.next() : DriveApp.createFolder(folderName);
+  props.setProperty('HIST_FLIGHT_IMPORTS_FOLDER_ID', folder.getId());
+  return folder;
+}
+
+function _histFlightEnsureImportSheets_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var batchHeaders = [
+    'BATCH_ID',
+    'SOURCE_FILENAME',
+    'SOURCE_FILE_TYPE',
+    'SOURCE_FILE_ID',
+    'SOURCE_FILE_URL',
+    'SOURCE_FILE_HASH',
+    'IMPORTED_AT',
+    'IMPORTED_BY',
+    'SOURCE_LABEL',
+    'DOCUMENT_COUNT',
+    'ROW_COUNT',
+    'STATUS',
+    'NOTES'
+  ];
+  var stagingHeaders = [
+    'BATCH_ID',
+    'ROW_NO',
+    'SOURCE_FLIGHT_ID',
+    'FLIGHT_DATE',
+    'PILOT',
+    'ACFT',
+    'FROM_ICAO',
+    'TO_ICAO',
+    'TOTAL_TIME_H',
+    'NUMBER_LDGS',
+    'NUMBER_TOUCH_AND_GOS',
+    'SOURCE_NOTE',
+    'SOURCE_FILE_ID',
+    'SOURCE_FILE_URL',
+    'SOURCE_FILE_NAME',
+    'SOURCE_MIME_TYPE',
+    'EXTRACTION_MODEL',
+    'EXTRACTION_CONFIDENCE',
+    'EXTRACTION_RAW_JSON',
+    'FINGERPRINT_STRICT',
+    'FINGERPRINT_FUZZY',
+    'MATCH_STATUS',
+    'MATCH_REASON',
+    'MATCHED_FLIGHT_ID',
+    'REVIEW_DECISION',
+    'REVIEWED_BY',
+    'REVIEWED_AT',
+    'COMMIT_FLIGHT_ID',
+    'COMMIT_ROW_NO',
+    'NOTES'
+  ];
+  var batchRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.HIST_FLIGHT_IMPORT_BATCHES, batchHeaders);
+  var stageRes = _schemaEnsureSheetHeaders_(ss, APP_SHEETS.HIST_FLIGHT_STAGING, stagingHeaders);
+  return { success: true, batch: batchRes, staging: stageRes };
+}
+
+function setupHistoricalFlightImportSchema() {
+  try {
+    return _histFlightEnsureImportSheets_();
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getHistoricalFlightImportBatches(limit) {
+  try {
+    _histFlightEnsureImportSheets_();
+    var maxRows = Number(limit || 30);
+    if (!isFinite(maxRows) || maxRows < 1) maxRows = 30;
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var batchSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_IMPORT_BATCHES, 'getHistoricalFlightImportBatches');
+    var data = batchSheet.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: true, rows: [] };
+
+    var headers = data[0].map(_histFlightNormHeader_);
+    function get(row, key) {
+      var idx = headers.indexOf(key);
+      return idx >= 0 ? row[idx] : '';
+    }
+
+    var rows = data.slice(1).map(function(row) {
+      return {
+        batchId: String(get(row, 'BATCH_ID') || '').trim(),
+        sourceFileName: String(get(row, 'SOURCE_FILENAME') || '').trim(),
+        sourceFileUrl: String(get(row, 'SOURCE_FILE_URL') || '').trim(),
+        sourceFileType: String(get(row, 'SOURCE_FILE_TYPE') || '').trim(),
+        importedAt: get(row, 'IMPORTED_AT'),
+        importedBy: String(get(row, 'IMPORTED_BY') || '').trim(),
+        sourceLabel: String(get(row, 'SOURCE_LABEL') || '').trim(),
+        documentCount: Number(get(row, 'DOCUMENT_COUNT') || 0),
+        rowCount: Number(get(row, 'ROW_COUNT') || 0),
+        status: String(get(row, 'STATUS') || '').trim(),
+        notes: String(get(row, 'NOTES') || '').trim()
+      };
+    }).filter(function(r) { return r.batchId; });
+
+    rows.sort(function(a, b) {
+      var da = String(a.importedAt || '');
+      var db = String(b.importedAt || '');
+      return da > db ? -1 : da < db ? 1 : 0;
+    });
+
+    return { success: true, rows: rows.slice(0, maxRows) };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e), rows: [] };
+  }
+}
+
+function _histFlightSuggestedMap_(headers) {
+  var list = (headers || []).map(function(h) { return String(h || '').trim(); });
+  var normalized = list.map(_histFlightNormHeader_);
+  function find(candidates) {
+    for (var i = 0; i < candidates.length; i++) {
+      var idx = normalized.indexOf(_histFlightNormHeader_(candidates[i]));
+      if (idx >= 0) return list[idx];
+    }
+    return '';
+  }
+  return {
+    flightId: find(['FLIGHT_ID', 'LEG_ID', 'ID_VOO', 'ID', 'VOO_ID']),
+    date: find(['DATE', 'DATA', 'FLIGHT_DATE', 'DIA']),
+    pilot: find(['PILOT', 'ALUNO', 'PILOTO', 'NOME_ALUNO', 'STUDENT']),
+    acft: find(['ACFT', 'AIRCRAFT', 'AERONAVE', 'REGISTRATION', 'MATRICULA']),
+    from: find(['FROM', 'ORIGIN', 'ORIGEM', 'DEP', 'DEPARTURE']),
+    to: find(['TO', 'DESTINATION', 'DESTINO', 'ARR', 'ARRIVAL']),
+    route: find(['ROUTE', 'ROTA', 'PERCURSO']),
+    totalTime: find(['TOTAL_TIME', 'FLIGHT_TIME', 'TEMPO_TOTAL', 'HORAS', 'TIME_H']),
+    numberLdgs: find(['NUMBER_LDGS', 'NUM_LDGS', 'LANDINGS', 'POUSOS']),
+    touchAndGos: find(['NUMBER_TOUCH_AND_GOS', 'TOUCH_AND_GOS', 'TGL', 'TNG']),
+    sourceNote: find(['NOTES', 'OBS', 'OBSERVACOES', 'DESCRIPTION', 'DESCRICAO'])
+  };
+}
+
+function _histFlightParseHours_(value) {
+  if (value == null || value === '') return '';
+  if (typeof value === 'number' && isFinite(value)) return value;
+  var raw = String(value || '').trim();
+  if (!raw) return '';
+  var n = parseFloat(raw.replace(',', '.'));
+  if (isFinite(n) && /^[0-9]+([\.,][0-9]+)?$/.test(raw)) return n;
+  var hm = raw.match(/^(\d{1,3})\s*:\s*(\d{1,2})$/);
+  if (hm) {
+    var hh = Number(hm[1]);
+    var mm = Number(hm[2]);
+    if (isFinite(hh) && isFinite(mm)) return hh + (mm / 60);
+  }
+  return '';
+}
+
+function _histFlightParseInt_(value) {
+  if (value == null || value === '') return '';
+  var n = parseInt(String(value).replace(/[^0-9-]/g, ''), 10);
+  return isFinite(n) ? n : '';
+}
+
+function _histFlightResolveFromTo_(fromRaw, toRaw, routeRaw) {
+  var from = String(fromRaw || '').trim().toUpperCase();
+  var to = String(toRaw || '').trim().toUpperCase();
+  if (from && to) return { from: from, to: to };
+  var split = splitRoute_(routeRaw || '');
+  if (!from) from = String(split.from || '').trim().toUpperCase();
+  if (!to) to = String(split.to || '').trim().toUpperCase();
+  return { from: from, to: to };
+}
+
+function _histFlightMakeStrictKey_(obj) {
+  var hours = obj.totalTimeH === '' ? '' : Number(obj.totalTimeH || 0).toFixed(2);
+  return _histFlightDigest_([
+    String(obj.date || ''),
+    String(obj.pilot || '').toUpperCase(),
+    String(obj.acft || '').toUpperCase(),
+    String(obj.from || '').toUpperCase(),
+    String(obj.to || '').toUpperCase(),
+    hours
+  ].join('|'));
+}
+
+function _histFlightMakeFuzzyKey_(obj) {
+  return _histFlightDigest_([
+    String(obj.date || ''),
+    String(obj.pilot || '').toUpperCase(),
+    String(obj.acft || '').toUpperCase()
+  ].join('|'));
+}
+
+function _histFlightParseTimeToken_(value) {
+  var raw = String(value || '').trim();
+  if (!raw) return '';
+  var m = raw.match(/^(\d{1,2})\s*[:hH]\s*(\d{2})$/);
+  if (!m) return '';
+  var hh = Number(m[1]);
+  var mm = Number(m[2]);
+  if (!isFinite(hh) || !isFinite(mm)) return '';
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return '';
+  return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+}
+
+function _histFlightFormatNumber_(value) {
+  if (value == null || value === '') return '';
+  var n = Number(String(value).replace(',', '.'));
+  if (!isFinite(n)) return '';
+  return String(n);
+}
+
+function _histFlightBuildStructuredTags_(src) {
+  var out = [];
+  function add(key, value, formatter) {
+    var v = formatter ? formatter(value) : String(value || '').trim();
+    if (!v) return;
+    out.push(String(key || '').trim().toUpperCase() + '=' + String(v).trim());
+  }
+  add('INSTR_INIT', src && src.instructorInitials);
+  add('MISSION_CODE', src && src.missionTrainingCode);
+  add('AIRCRAFT_TYPE_RAW', src && src.aircraftTypeRaw);
+  add('FUEL_GAL_START', src && src.fuelGallonsStart, _histFlightFormatNumber_);
+  add('FUEL_GAL_END', src && src.fuelGallonsEnd, _histFlightFormatNumber_);
+  add('TACH_START', src && src.tachStart, _histFlightFormatNumber_);
+  add('TACH_END', src && src.tachEnd, _histFlightFormatNumber_);
+  add('BRAKES_RELEASE', src && src.brakesRelease, _histFlightParseTimeToken_);
+  add('BRAKES_APPLIED', src && src.brakesApplied, _histFlightParseTimeToken_);
+  add('AIRBORNE', src && src.airborne, _histFlightParseTimeToken_);
+  add('LANDED', src && src.landed, _histFlightParseTimeToken_);
+  return out;
+}
+
+function _histFlightMergeSourceNote_(baseNote, src) {
+  var note = String(baseNote || '').trim();
+  var tags = _histFlightBuildStructuredTags_(src);
+  if (!tags.length) return note;
+  var block = '[HIST:' + tags.join(';') + ']';
+  if (!note) return block;
+  if (note.indexOf('[HIST:') >= 0) return note;
+  return note + ' ' + block;
+}
+
+function _histFlightReadStructuredTags_(sourceNote) {
+  var out = {};
+  var raw = String(sourceNote || '');
+  var m = raw.match(/\[HIST:([^\]]+)\]/i);
+  if (!m || !m[1]) return out;
+  var pairs = String(m[1] || '').split(';');
+  for (var i = 0; i < pairs.length; i++) {
+    var part = String(pairs[i] || '').trim();
+    if (!part) continue;
+    var eq = part.indexOf('=');
+    if (eq < 0) continue;
+    var key = String(part.slice(0, eq) || '').trim().toUpperCase();
+    var val = String(part.slice(eq + 1) || '').trim();
+    if (!key) continue;
+    out[key] = val;
+  }
+  return out;
+}
+
+function _histFlightInstructorNameFromInitials_(initials) {
+  var key = String(initials || '').trim().toUpperCase();
+  var map = {
+    AD: 'Augusto Diego',
+    LS: 'Leandro Siqueira',
+    VS: 'Victor Scaparro'
+  };
+  return map[key] || '';
+}
+
+function _histFlightAircraftTypeLookup_() {
+  var out = { reg: {}, alias: {} };
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(APP_SHEETS.AIRCRAFT);
+  if (!sh) return out;
+  var data = sh.getDataRange().getValues();
+  if (!data || data.length < 2) return out;
+
+  var headers = data[0].map(_histFlightNormHeader_);
+  var regIdx = _histFlightHeaderIndex_(headers, ['REGISTRATION', 'REG', 'TAIL', 'TAIL_NUMBER', 'AIRCRAFT_REGISTRATION', 'MATRICULA']);
+  var typeIdx = _histFlightHeaderIndex_(headers, ['TYPE_FOR_PERFORMANCE', 'AIRCRAFT_TYPE', 'TYPE', 'MODEL']);
+  var altTypeIdx = _histFlightHeaderIndex_(headers, ['AIRCRAFT_TYPE', 'TYPE', 'MODEL']);
+
+  function norm(v) { return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function setAlias(raw, typeVal) {
+    var k = norm(raw);
+    var t = String(typeVal || '').trim();
+    if (!k || !t) return;
+    if (!out.alias[k]) out.alias[k] = t;
+  }
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var reg = regIdx >= 0 ? String(row[regIdx] || '').trim().toUpperCase() : '';
+    var typePrimary = typeIdx >= 0 ? String(row[typeIdx] || '').trim() : '';
+    var typeAlt = altTypeIdx >= 0 ? String(row[altTypeIdx] || '').trim() : '';
+    var finalType = typePrimary || typeAlt;
+    if (!finalType) continue;
+
+    if (reg) {
+      out.reg[norm(reg)] = finalType;
+      setAlias(reg, finalType);
+    }
+    setAlias(typePrimary, finalType);
+    setAlias(typeAlt, finalType);
+  }
+  return out;
+}
+
+function _histFlightResolveAircraftType_(lookup, acftValue, rawType) {
+  function norm(v) { return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  var lk = lookup || { reg: {}, alias: {} };
+  var byReg = lk.reg[norm(acftValue)] || '';
+  if (byReg) return byReg;
+  var byRaw = lk.alias[norm(rawType)] || '';
+  if (byRaw) return byRaw;
+  var byAcft = lk.alias[norm(acftValue)] || '';
+  if (byAcft) return byAcft;
+  return String(rawType || acftValue || '').trim();
+}
+
+function inspectHistoricalFlightImportFile(payload) {
+  try {
+    var fileName = String(payload && payload.fileName || '').trim();
+    var mimeType = String(payload && payload.mimeType || '').trim().toLowerCase();
+    var base64Data = String(payload && payload.base64Data || '').trim();
+    if (!fileName || !base64Data) return { success: false, error: 'File data missing' };
+
+    var ext = fileName.split('.').pop().toLowerCase();
+    if (ext === 'pdf' || mimeType.indexOf('pdf') >= 0) {
+      return {
+        success: true,
+        fileType: 'pdf',
+        canStage: false,
+        error: 'PDF parsing is not enabled in this phase. Convert to CSV before staging.'
+      };
+    }
+
+    var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType || 'text/csv', fileName);
+    var text = blob.getDataAsString('UTF-8').replace(/^\uFEFF/, '');
+    var rows = Utilities.parseCsv(text);
+    if (!rows || rows.length < 2) return { success: false, error: 'CSV appears empty or has no data rows' };
+
+    var headers = rows[0].map(function(h) { return String(h || '').trim(); });
+    var sampleRows = rows.slice(1, 6).map(function(row) {
+      var obj = {};
+      headers.forEach(function(header, idx) { obj[header] = idx < row.length ? row[idx] : ''; });
+      return obj;
+    });
+    return {
+      success: true,
+      fileType: 'csv',
+      canStage: true,
+      headers: headers,
+      suggestedMap: _histFlightSuggestedMap_(headers),
+      sampleRows: sampleRows
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _histFlightReadExistingLogKeys_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = getRequiredSheet_(ss, APP_SHEETS.LOG_FLIGHTS, '_histFlightReadExistingLogKeys_');
+  var data = sh.getDataRange().getValues();
+  var out = { ids: {}, strict: {}, fuzzy: {}, rowCount: Math.max(data.length - 1, 0) };
+  if (!data || data.length < 2) return out;
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var flightId = String(row[LOG_FLIGHT_COL.FLIGHT_ID] || '').trim();
+    if (flightId) out.ids[flightId] = true;
+    var obj = {
+      date: safeDateYmd_(row[LOG_FLIGHT_COL.DATE]),
+      pilot: String(row[LOG_FLIGHT_COL.PILOT] || '').trim(),
+      acft: String(row[LOG_FLIGHT_COL.ACFT] || '').trim(),
+      from: String(row[LOG_FLIGHT_COL.FROM] || '').trim(),
+      to: String(row[LOG_FLIGHT_COL.TO] || '').trim(),
+      totalTimeH: _histFlightParseHours_(row[LOG_FLIGHT_COL.TOTAL_TIME])
+    };
+    out.strict[_histFlightMakeStrictKey_(obj)] = flightId || ('ROW_' + (i + 1));
+    out.fuzzy[_histFlightMakeFuzzyKey_(obj)] = flightId || ('ROW_' + (i + 1));
+  }
+  return out;
+}
+
+function _histFlightNormalizeText_(value) {
+  var raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    raw = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  } catch (e) {}
+  return raw.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function _histFlightNormalizeReg_(value) {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function _histFlightHeaderIndex_(headers, candidates) {
+  var list = Array.isArray(headers) ? headers : [];
+  var cand = Array.isArray(candidates) ? candidates : [];
+  for (var i = 0; i < cand.length; i++) {
+    var idx = list.indexOf(_histFlightNormHeader_(cand[i]));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+function _histFlightBuildReferenceLookup_() {
+  var refs = {
+    peopleExact: {},
+    peopleEntries: [],
+    aircraftExact: {},
+    airportExact: {}
+  };
+
+  function addPerson(name, role, source) {
+    var display = String(name || '').trim();
+    if (!display) return;
+    var key = _histFlightNormalizeText_(display);
+    if (!key) return;
+    var entry = { key: key, name: display, role: String(role || ''), source: String(source || '') };
+    refs.peopleEntries.push(entry);
+    if (!refs.peopleExact[key]) refs.peopleExact[key] = [];
+    refs.peopleExact[key].push(entry);
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var pilotsSh = ss.getSheetByName(APP_SHEETS.PILOTS);
+  if (pilotsSh) {
+    var pilotsData = pilotsSh.getDataRange().getValues();
+    if (pilotsData && pilotsData.length > 1) {
+      var pHeaders = pilotsData[0].map(_histFlightNormHeader_);
+      var pNameIdx = _histFlightHeaderIndex_(pHeaders, ['PILOT_NAME', 'NAME', 'STAFF_NAME', 'NOME']);
+      for (var p = 1; p < pilotsData.length; p++) {
+        if (pNameIdx < 0) break;
+        addPerson(pilotsData[p][pNameIdx], 'INSTRUCTOR', 'DB_Pilots');
+      }
+    }
+  }
+
+  var acftSh = ss.getSheetByName(APP_SHEETS.AIRCRAFT);
+  if (acftSh) {
+    var acftData = acftSh.getDataRange().getValues();
+    if (acftData && acftData.length > 1) {
+      var aHeaders = acftData[0].map(_histFlightNormHeader_);
+      var regIdx = _histFlightHeaderIndex_(aHeaders, ['REGISTRATION', 'REG', 'TAIL', 'TAIL_NUMBER', 'AIRCRAFT_REGISTRATION', 'MATRICULA']);
+      for (var a = 1; a < acftData.length; a++) {
+        if (regIdx < 0) break;
+        var reg = String(acftData[a][regIdx] || '').trim().toUpperCase();
+        var regKey = _histFlightNormalizeReg_(reg);
+        if (!regKey) continue;
+        refs.aircraftExact[regKey] = reg;
+      }
+    }
+  }
+
+  var airSh = ss.getSheetByName(APP_SHEETS.AIRPORTS);
+  if (airSh) {
+    var airData = airSh.getDataRange().getValues();
+    if (airData && airData.length > 1) {
+      var iHeaders = airData[0].map(_histFlightNormHeader_);
+      var icaoIdx = _histFlightHeaderIndex_(iHeaders, ['ICAO', 'AIRPORT_ICAO', 'CODE']);
+      var nameIdx = _histFlightHeaderIndex_(iHeaders, ['NOME', 'NAME', 'AIRPORT_NAME']);
+      for (var i = 1; i < airData.length; i++) {
+        if (icaoIdx < 0) break;
+        var icao = String(airData[i][icaoIdx] || '').trim().toUpperCase();
+        if (!icao) continue;
+        refs.airportExact[icao] = {
+          icao: icao,
+          name: nameIdx >= 0 ? String(airData[i][nameIdx] || '').trim() : ''
+        };
+      }
+    }
+  }
+
+  return refs;
+}
+
+function _histFlightResolvePersonMatch_(candidate, refs) {
+  var input = String(candidate || '').trim();
+  if (!input) {
+    return { input: '', status: 'MISSING', matchedName: '', matchedSource: '', matchedRole: '' };
+  }
+
+  var byInitials = _histFlightInstructorNameFromInitials_(input);
+  if (byInitials) {
+    return {
+      input: input,
+      status: 'CONFIRMED',
+      matchedName: byInitials,
+      matchedSource: 'INSTRUCTOR_INITIALS_MAP',
+      matchedRole: 'INSTRUCTOR'
+    };
+  }
+
+  var key = _histFlightNormalizeText_(input);
+  var exact = refs && refs.peopleExact ? refs.peopleExact[key] : null;
+  if (exact && exact.length === 1) {
+    return {
+      input: input,
+      status: 'CONFIRMED',
+      matchedName: String(exact[0].name || ''),
+      matchedSource: String(exact[0].source || ''),
+      matchedRole: String(exact[0].role || '')
+    };
+  }
+  if (exact && exact.length > 1) {
+    return {
+      input: input,
+      status: 'POSSIBLE_AMBIGUOUS',
+      matchedName: String(exact[0].name || ''),
+      matchedSource: String(exact[0].source || ''),
+      matchedRole: String(exact[0].role || '')
+    };
+  }
+
+  var entries = refs && Array.isArray(refs.peopleEntries) ? refs.peopleEntries : [];
+  var fuzzy = [];
+  for (var i = 0; i < entries.length; i++) {
+    var ek = String(entries[i].key || '');
+    if (!ek) continue;
+    if (ek.indexOf(key) >= 0 || key.indexOf(ek) >= 0) fuzzy.push(entries[i]);
+    if (fuzzy.length >= 4) break;
+  }
+
+  if (fuzzy.length === 1) {
+    return {
+      input: input,
+      status: 'POSSIBLE',
+      matchedName: String(fuzzy[0].name || ''),
+      matchedSource: String(fuzzy[0].source || ''),
+      matchedRole: String(fuzzy[0].role || '')
+    };
+  }
+  if (fuzzy.length > 1) {
+    return {
+      input: input,
+      status: 'POSSIBLE_AMBIGUOUS',
+      matchedName: String(fuzzy[0].name || ''),
+      matchedSource: String(fuzzy[0].source || ''),
+      matchedRole: String(fuzzy[0].role || '')
+    };
+  }
+
+  return { input: input, status: 'NOT_FOUND', matchedName: '', matchedSource: '', matchedRole: '' };
+}
+
+function _histFlightResolveAircraftMatch_(acft, refs) {
+  var input = String(acft || '').trim().toUpperCase();
+  if (!input) return { input: '', status: 'MISSING', matchedRegistration: '' };
+  var key = _histFlightNormalizeReg_(input);
+  var reg = refs && refs.aircraftExact ? refs.aircraftExact[key] : '';
+  if (reg) return { input: input, status: 'CONFIRMED', matchedRegistration: String(reg || '') };
+  return { input: input, status: 'NOT_FOUND', matchedRegistration: '' };
+}
+
+function _histFlightResolveAirportMatch_(icao, refs) {
+  var input = String(icao || '').trim().toUpperCase();
+  if (!input) return { input: '', status: 'MISSING', matchedIcao: '', matchedName: '' };
+  var hit = refs && refs.airportExact ? refs.airportExact[input] : null;
+  if (hit) {
+    return {
+      input: input,
+      status: 'CONFIRMED',
+      matchedIcao: String(hit.icao || input),
+      matchedName: String(hit.name || '')
+    };
+  }
+  return { input: input, status: 'NOT_FOUND', matchedIcao: '', matchedName: '' };
+}
+
+function _histFlightExtractCrewCandidates_(pilot, sourceNote) {
+  var note = String(sourceNote || '');
+  function pick(labels) {
+    for (var i = 0; i < labels.length; i++) {
+      var rx = new RegExp(labels[i] + '\\s*[:=-]\\s*([^|;,\\n\\r]+)', 'i');
+      var m = note.match(rx);
+      if (m && m[1]) return String(m[1] || '').trim();
+    }
+    return '';
+  }
+
+  var student = pick(['aluno', 'student', 'estudante']);
+  var instructor = pick(['instrutor', 'instructor', 'cfi']);
+  var pilotName = String(pilot || '').trim();
+  if (!student && pilotName) student = pilotName;
+
+  return {
+    student: student,
+    instructor: instructor,
+    pilot: pilotName
+  };
+}
+
+function _histFlightBuildRowValidation_(row, refs) {
+  var crew = _histFlightExtractCrewCandidates_(row && row.pilot, row && row.sourceNote);
+  var studentMatch = _histFlightResolvePersonMatch_(crew.student, refs);
+  var instructorMatch = _histFlightResolvePersonMatch_(crew.instructor, refs);
+  var pilotMatch = _histFlightResolvePersonMatch_(crew.pilot, refs);
+  var aircraftMatch = _histFlightResolveAircraftMatch_(row && row.acft, refs);
+  var fromAirport = _histFlightResolveAirportMatch_(row && row.from, refs);
+  var toAirport = _histFlightResolveAirportMatch_(row && row.to, refs);
+
+  var issues = [];
+  function pushIssue(label, matchObj, allowMissing) {
+    var st = String(matchObj && matchObj.status || '');
+    if (st === 'CONFIRMED') return;
+    if (allowMissing && st === 'MISSING') return;
+    issues.push(label + ': ' + st);
+  }
+
+  pushIssue('Student', studentMatch, false);
+  pushIssue('Instructor', instructorMatch, true);
+  pushIssue('Aircraft', aircraftMatch, false);
+  pushIssue('From airport', fromAirport, false);
+  pushIssue('To airport', toAirport, false);
+
+  return {
+    overallStatus: issues.length ? 'REVIEW_REQUIRED' : 'OK',
+    issues: issues,
+    student: studentMatch,
+    instructor: instructorMatch,
+    pilot: pilotMatch,
+    aircraft: aircraftMatch,
+    fromAirport: fromAirport,
+    toAirport: toAirport
+  };
+}
+
+function _histFlightBuildLogPreviewFromStageObject_(stageObj, batchId, existingIds, logHeaders) {
+  var sourceFlightId = String((stageObj && stageObj.SOURCE_FLIGHT_ID) || '').trim();
+  var rowNo = Number((stageObj && stageObj.ROW_NO) || 0);
+  var sourceNote = String((stageObj && stageObj.SOURCE_NOTE) || '').trim();
+  var tags = _histFlightReadStructuredTags_(sourceNote);
+  var aircraftTypeLookup = _histFlightAircraftTypeLookup_();
+  var instructorInitials = String(tags.INSTR_INIT || '').trim().toUpperCase();
+  var instructorName = _histFlightInstructorNameFromInitials_(instructorInitials);
+  var resolvedAircraftType = _histFlightResolveAircraftType_(aircraftTypeLookup, stageObj && stageObj.ACFT, tags.AIRCRAFT_TYPE_RAW);
+  var fuelGalStart = Number(String(tags.FUEL_GAL_START || '').replace(',', '.'));
+  var fuelGalEnd = Number(String(tags.FUEL_GAL_END || '').replace(',', '.'));
+  var fuelStartL = isFinite(fuelGalStart) ? Math.round(fuelGalStart * 3.78541 * 10) / 10 : '';
+  var fuelEndL = isFinite(fuelGalEnd) ? Math.round(fuelGalEnd * 3.78541 * 10) / 10 : '';
+  var computedFlightId = sourceFlightId;
+  if (!computedFlightId || (existingIds && existingIds[computedFlightId])) {
+    computedFlightId = String(batchId || '') + '-' + ('000' + rowNo).slice(-4);
+  }
+
+  var out = new Array(LOG_FLIGHT_COL.NUM_TOUCH_AND_GOS + 1).fill('');
+  out[LOG_FLIGHT_COL.FLIGHT_ID] = computedFlightId;
+  out[LOG_FLIGHT_COL.DATE] = String((stageObj && stageObj.FLIGHT_DATE) || '').trim();
+  out[LOG_FLIGHT_COL.PILOT] = String((stageObj && stageObj.PILOT) || '').trim();
+  out[LOG_FLIGHT_COL.ACFT] = String((stageObj && stageObj.ACFT) || '').trim().toUpperCase();
+  out[LOG_FLIGHT_COL.FROM] = String((stageObj && stageObj.FROM_ICAO) || '').trim().toUpperCase();
+  out[LOG_FLIGHT_COL.TO] = String((stageObj && stageObj.TO_ICAO) || '').trim().toUpperCase();
+  out[LOG_FLIGHT_COL.TOTAL_TIME] = stageObj && stageObj.TOTAL_TIME_H;
+  out[LOG_FLIGHT_COL.START_TACH] = tags.TACH_START || '';
+  out[LOG_FLIGHT_COL.END_TACH] = tags.TACH_END || '';
+  out[LOG_FLIGHT_COL.FUEL_START] = fuelStartL;
+  out[LOG_FLIGHT_COL.FUEL_END] = fuelEndL;
+  out[LOG_FLIGHT_COL.BLOCK_OUT] = tags.BRAKES_RELEASE || '';
+  out[LOG_FLIGHT_COL.OFF] = tags.AIRBORNE || '';
+  out[LOG_FLIGHT_COL.ON] = tags.LANDED || '';
+  out[LOG_FLIGHT_COL.BLOCK_IN] = tags.BRAKES_APPLIED || '';
+  out[LOG_FLIGHT_COL.NUM_LDGS] = stageObj && stageObj.NUMBER_LDGS;
+  out[LOG_FLIGHT_COL.NUM_TOUCH_AND_GOS] = stageObj && stageObj.NUMBER_TOUCH_AND_GOS;
+  out[LOG_FLIGHT_COL.SQUAWKS] = sourceNote;
+  out[LOG_FLIGHT_COL.ACTUAL_LOAD_JSON] = JSON.stringify({
+    entryKind: 'HIST_IMPORT_PREVIEW',
+    batchId: String(batchId || ''),
+    sourceFlightId: sourceFlightId,
+    sourceFileId: String((stageObj && stageObj.SOURCE_FILE_ID) || ''),
+    sourceFileUrl: String((stageObj && stageObj.SOURCE_FILE_URL) || ''),
+    sourceFileName: String((stageObj && stageObj.SOURCE_FILE_NAME) || ''),
+    sourceMimeType: String((stageObj && stageObj.SOURCE_MIME_TYPE) || ''),
+    extractionModel: String((stageObj && stageObj.EXTRACTION_MODEL) || ''),
+    extractionConfidence: stageObj && stageObj.EXTRACTION_CONFIDENCE,
+    trainingCode: String(tags.MISSION_CODE || '').trim(),
+    instructorInitials: instructorInitials,
+    instructorName: instructorName,
+    aircraftType: resolvedAircraftType
+  });
+
+  var cols = [];
+  for (var i = 0; i < out.length; i++) {
+    var colName = (logHeaders && logHeaders[i]) ? String(logHeaders[i]) : ('COL_' + (i + 1));
+    cols.push({
+      index: i,
+      column: colName,
+      value: out[i]
+    });
+  }
+
+  return {
+    flightId: computedFlightId,
+    columns: cols
+  };
+}
+
+function stageHistoricalFlightImport(payload) {
+  try {
+    var ensureRes = _histFlightEnsureImportSheets_();
+    if (!ensureRes || !ensureRes.success) return { success: false, error: 'Could not ensure import sheets' };
+
+    var fileName = String(payload && payload.fileName || '').trim();
+    var mimeType = String(payload && payload.mimeType || '').trim().toLowerCase();
+    var base64Data = String(payload && payload.base64Data || '').trim();
+    var importedBy = String(payload && payload.importedBy || Session.getActiveUser().getEmail() || 'Admin').trim();
+    var sourceLabel = String(payload && payload.sourceLabel || 'HISTORICAL_IMPORT').trim();
+    var map = payload && payload.columnMap ? payload.columnMap : {};
+    if (!fileName || !base64Data) return { success: false, error: 'File data missing' };
+
+    var ext = fileName.split('.').pop().toLowerCase();
+    if (ext === 'pdf' || mimeType.indexOf('pdf') >= 0) {
+      return { success: false, error: 'PDF parsing is not enabled in this phase. Convert to CSV before staging.' };
+    }
+
+    var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType || 'text/csv', fileName);
+    var text = blob.getDataAsString('UTF-8').replace(/^\uFEFF/, '');
+    var rows = Utilities.parseCsv(text);
+    if (!rows || rows.length < 2) return { success: false, error: 'CSV appears empty or has no data rows' };
+
+    var headers = rows[0].map(function(h) { return String(h || '').trim(); });
+    var headerIndex = {};
+    headers.forEach(function(header, idx) { headerIndex[_histFlightNormHeader_(header)] = idx; });
+    function idxFor(headerName) {
+      var idx = headerIndex[_histFlightNormHeader_(headerName)];
+      return typeof idx === 'number' ? idx : -1;
+    }
+
+    var dateIdx = idxFor(map.date);
+    var pilotIdx = idxFor(map.pilot);
+    var acftIdx = idxFor(map.acft);
+    var fromIdx = idxFor(map.from);
+    var toIdx = idxFor(map.to);
+    var routeIdx = idxFor(map.route);
+    var totalTimeIdx = idxFor(map.totalTime);
+    var numberLdgsIdx = idxFor(map.numberLdgs);
+    var touchAndGosIdx = idxFor(map.touchAndGos);
+    var flightIdIdx = idxFor(map.flightId);
+    var sourceNoteIdx = idxFor(map.sourceNote);
+
+    if (dateIdx < 0 || pilotIdx < 0 || acftIdx < 0 || totalTimeIdx < 0) {
+      return { success: false, error: 'Column mapping incomplete. Date, Pilot, Aircraft, and Total Time are required.' };
+    }
+
+    var batchId = _histFlightBatchId_();
+    var rootFolder = _histFlightImportsRootFolder_();
+    var subfolder = rootFolder.createFolder(batchId);
+    var file = subfolder.createFile(blob);
+    var fileHash = _histFlightDigest_(text);
+
+    var existing = _histFlightReadExistingLogKeys_();
+    var staging = [];
+    var minDate = '';
+    var maxDate = '';
+
+    for (var i = 1; i < rows.length; i++) {
+      var row = rows[i];
+      var sourceFlightId = flightIdIdx >= 0 ? String(row[flightIdIdx] || '').trim() : '';
+      var flightDate = safeDateYmd_(row[dateIdx]);
+      var pilot = String(row[pilotIdx] || '').trim();
+      var acft = String(row[acftIdx] || '').trim().toUpperCase();
+      var fromTo = _histFlightResolveFromTo_(fromIdx >= 0 ? row[fromIdx] : '', toIdx >= 0 ? row[toIdx] : '', routeIdx >= 0 ? row[routeIdx] : '');
+      var totalTimeH = _histFlightParseHours_(row[totalTimeIdx]);
+      var numberLdgs = numberLdgsIdx >= 0 ? _histFlightParseInt_(row[numberLdgsIdx]) : '';
+      var touchAndGos = touchAndGosIdx >= 0 ? _histFlightParseInt_(row[touchAndGosIdx]) : '';
+      var sourceNote = sourceNoteIdx >= 0 ? String(row[sourceNoteIdx] || '').trim() : '';
+
+      if (flightDate) {
+        if (!minDate || flightDate < minDate) minDate = flightDate;
+        if (!maxDate || flightDate > maxDate) maxDate = flightDate;
+      }
+
+      var strictKey = _histFlightMakeStrictKey_({
+        date: flightDate,
+        pilot: pilot,
+        acft: acft,
+        from: fromTo.from,
+        to: fromTo.to,
+        totalTimeH: totalTimeH
+      });
+      var fuzzyKey = _histFlightMakeFuzzyKey_({ date: flightDate, pilot: pilot, acft: acft });
+
+      var matchStatus = 'NEW';
+      var matchReason = '';
+      var matchedFlightId = '';
+
+      if (!flightDate || !pilot || !acft || totalTimeH === '') {
+        matchStatus = 'INVALID';
+        matchReason = 'Missing date, pilot, aircraft, or total time';
+      } else if (sourceFlightId && existing.ids[sourceFlightId]) {
+        matchStatus = 'LIKELY_DUPLICATE';
+        matchReason = 'Flight ID already exists in LOG_Flights';
+        matchedFlightId = sourceFlightId;
+      } else if (existing.strict[strictKey]) {
+        matchStatus = 'LIKELY_DUPLICATE';
+        matchReason = 'Exact historical fingerprint already exists';
+        matchedFlightId = existing.strict[strictKey];
+      } else if (existing.fuzzy[fuzzyKey]) {
+        matchStatus = 'POSSIBLE_DUPLICATE';
+        matchReason = 'Potential duplicate by date/pilot/aircraft';
+        matchedFlightId = existing.fuzzy[fuzzyKey];
+      }
+
+      staging.push([
+        batchId,
+        i,
+        sourceFlightId,
+        flightDate,
+        pilot,
+        acft,
+        fromTo.from,
+        fromTo.to,
+        totalTimeH,
+        numberLdgs,
+        touchAndGos,
+        sourceNote,
+        file.getId(),
+        file.getUrl(),
+        file.getName(),
+        mimeType || 'text/csv',
+        'CSV_IMPORT',
+        '',
+        '',
+        strictKey,
+        fuzzyKey,
+        matchStatus,
+        matchReason,
+        matchedFlightId,
+        '',
+        '',
+        '',
+        '',
+        '',
+        ''
+      ]);
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var batchSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_IMPORT_BATCHES, 'stageHistoricalFlightImport');
+    var stageSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_STAGING, 'stageHistoricalFlightImport');
+    batchSheet.appendRow([
+      batchId,
+      file.getName(),
+      'CSV',
+      file.getId(),
+      file.getUrl(),
+      fileHash,
+      new Date().toISOString(),
+      importedBy,
+      sourceLabel,
+      1,
+      staging.length,
+      'UNDER_REVIEW',
+      'Date range: ' + (minDate || '?') + ' to ' + (maxDate || '?')
+    ]);
+    if (staging.length) {
+      stageSheet.getRange(stageSheet.getLastRow() + 1, 1, staging.length, staging[0].length).setValues(staging);
+    }
+    return { success: true, batchId: batchId, rowCount: staging.length, fileUrl: file.getUrl() };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function getHistoricalFlightBatchReview(batchId) {
+  try {
+    var target = String(batchId || '').trim();
+    if (!target) return { success: false, error: 'batchId required' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var batchSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_IMPORT_BATCHES, 'getHistoricalFlightBatchReview');
+    var stageSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_STAGING, 'getHistoricalFlightBatchReview');
+
+    var batchData = batchSheet.getDataRange().getValues();
+    var stageData = stageSheet.getDataRange().getValues();
+    if (!batchData || !batchData.length) return { success: false, error: 'Import batch sheet has no headers' };
+    if (!stageData || !stageData.length) return { success: false, error: 'Staging sheet has no headers' };
+
+    var batchHeaders = batchData[0].map(_histFlightNormHeader_);
+    var stageHeaders = stageData[0].map(_histFlightNormHeader_);
+    var batchIdx = batchHeaders.indexOf('BATCH_ID');
+    var rowBatch = null;
+    for (var i = 1; i < batchData.length; i++) {
+      if (String(batchData[i][batchIdx] || '').trim() === target) { rowBatch = batchData[i]; break; }
+    }
+    if (!rowBatch) return { success: false, error: 'Batch not found: ' + target };
+
+    var refs = _histFlightBuildReferenceLookup_();
+    var existing = _histFlightReadExistingLogKeys_();
+    var logSheet = getRequiredSheet_(ss, APP_SHEETS.LOG_FLIGHTS, 'getHistoricalFlightBatchReview/logPreview');
+    var logHeaderRow = logSheet.getLastColumn() > 0 ? logSheet.getRange(1, 1, 1, logSheet.getLastColumn()).getValues()[0] : [];
+
+    function rowToObj(headers, row) {
+      var obj = {};
+      headers.forEach(function(h, idx) { obj[h] = row[idx]; });
+      return obj;
+    }
+
+    var batch = rowToObj(batchHeaders, rowBatch);
+    var rows = stageData.slice(1)
+      .filter(function(row) { return String(row[stageHeaders.indexOf('BATCH_ID')] || '').trim() === target; })
+      .map(function(row) {
+        var obj = rowToObj(stageHeaders, row);
+        var item = {
+          rowNo: Number(obj.ROW_NO || 0),
+          sourceFlightId: String(obj.SOURCE_FLIGHT_ID || ''),
+          date: String(obj.FLIGHT_DATE || ''),
+          pilot: String(obj.PILOT || ''),
+          acft: String(obj.ACFT || ''),
+          from: String(obj.FROM_ICAO || ''),
+          to: String(obj.TO_ICAO || ''),
+          totalTimeH: obj.TOTAL_TIME_H,
+          numberLdgs: obj.NUMBER_LDGS,
+          touchAndGos: obj.NUMBER_TOUCH_AND_GOS,
+          sourceNote: String(obj.SOURCE_NOTE || ''),
+          sourceFileId: String(obj.SOURCE_FILE_ID || ''),
+          sourceFileUrl: String(obj.SOURCE_FILE_URL || ''),
+          sourceFileName: String(obj.SOURCE_FILE_NAME || ''),
+          sourceMimeType: String(obj.SOURCE_MIME_TYPE || ''),
+          extractionModel: String(obj.EXTRACTION_MODEL || ''),
+          extractionConfidence: obj.EXTRACTION_CONFIDENCE,
+          matchStatus: String(obj.MATCH_STATUS || ''),
+          matchReason: String(obj.MATCH_REASON || ''),
+          matchedFlightId: String(obj.MATCHED_FLIGHT_ID || ''),
+          reviewDecision: String(obj.REVIEW_DECISION || ''),
+          commitFlightId: String(obj.COMMIT_FLIGHT_ID || ''),
+          commitRowNo: obj.COMMIT_ROW_NO,
+          notes: String(obj.NOTES || '')
+        };
+        item.validation = _histFlightBuildRowValidation_(item, refs);
+        item.logPreview = _histFlightBuildLogPreviewFromStageObject_(obj, target, existing.ids, logHeaderRow);
+        return item;
+      })
+      .sort(function(a, b) { return a.rowNo - b.rowNo; });
+
+    var unresolved = rows.filter(function(r) { return !String(r.reviewDecision || '').trim(); }).length;
+    var counts = { NEW: 0, POSSIBLE_DUPLICATE: 0, LIKELY_DUPLICATE: 0, INVALID: 0 };
+    rows.forEach(function(r) { counts[r.matchStatus] = (counts[r.matchStatus] || 0) + 1; });
+
+    return {
+      success: true,
+      batch: {
+        batchId: String(batch.BATCH_ID || ''),
+        fileName: String(batch.SOURCE_FILENAME || ''),
+        fileUrl: String(batch.SOURCE_FILE_URL || ''),
+        sourceLabel: String(batch.SOURCE_LABEL || ''),
+        documentCount: Number(batch.DOCUMENT_COUNT || 0),
+        status: String(batch.STATUS || ''),
+        rowCount: Number(batch.ROW_COUNT || rows.length || 0),
+        unresolvedCount: unresolved,
+        counts: counts
+      },
+      rows: rows
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function reviewHistoricalFlightStagingRow(batchId, rowNo, decision, notes) {
+  try {
+    var target = String(batchId || '').trim();
+    var rowNumber = Number(rowNo || 0);
+    var nextDecision = String(decision || '').trim().toUpperCase();
+    var noteText = String(notes || '').trim();
+    if (!target || !rowNumber) return { success: false, error: 'batchId and rowNo required' };
+    if (['COMMIT', 'DUPLICATE', 'IGNORE'].indexOf(nextDecision) === -1) return { success: false, error: 'Invalid decision' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var stageSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_STAGING, 'reviewHistoricalFlightStagingRow');
+    var data = stageSheet.getDataRange().getValues();
+    if (!data || !data.length) return { success: false, error: 'Staging sheet has no headers' };
+    var headers = data[0].map(_histFlightNormHeader_);
+    var batchIdx = headers.indexOf('BATCH_ID');
+    var rowIdx = headers.indexOf('ROW_NO');
+    var decisionIdx = headers.indexOf('REVIEW_DECISION');
+    var reviewedByIdx = headers.indexOf('REVIEWED_BY');
+    var reviewedAtIdx = headers.indexOf('REVIEWED_AT');
+    var notesIdx = headers.indexOf('NOTES');
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][batchIdx] || '').trim() === target && Number(data[i][rowIdx] || 0) === rowNumber) {
+        stageSheet.getRange(i + 1, decisionIdx + 1).setValue(nextDecision);
+        if (reviewedByIdx >= 0) stageSheet.getRange(i + 1, reviewedByIdx + 1).setValue(Session.getActiveUser().getEmail() || 'Admin');
+        if (reviewedAtIdx >= 0) stageSheet.getRange(i + 1, reviewedAtIdx + 1).setValue(new Date().toISOString());
+        if (notesIdx >= 0 && noteText) stageSheet.getRange(i + 1, notesIdx + 1).setValue(noteText);
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'Staging row not found' };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function commitHistoricalFlightBatch(batchId) {
+  try {
+    var target = String(batchId || '').trim();
+    if (!target) return { success: false, error: 'batchId required' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var batchSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_IMPORT_BATCHES, 'commitHistoricalFlightBatch');
+    var stageSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_STAGING, 'commitHistoricalFlightBatch');
+    var logSheet = getRequiredSheet_(ss, APP_SHEETS.LOG_FLIGHTS, 'commitHistoricalFlightBatch');
+
+    var stageData = stageSheet.getDataRange().getValues();
+    if (!stageData || stageData.length < 2) return { success: false, error: 'No staging rows found' };
+    var headers = stageData[0].map(_histFlightNormHeader_);
+    var rows = stageData.slice(1).filter(function(row) { return String(row[headers.indexOf('BATCH_ID')] || '').trim() === target; });
+    if (!rows.length) return { success: false, error: 'No staging rows found for batch ' + target };
+
+    var unresolved = rows.filter(function(row) { return !String(row[headers.indexOf('REVIEW_DECISION')] || '').trim(); });
+    if (unresolved.length) return { success: false, error: 'Batch is blocked until all rows are reviewed' };
+
+    var existing = _histFlightReadExistingLogKeys_();
+    var aircraftTypeLookup = _histFlightAircraftTypeLookup_();
+    var committed = 0;
+    var ignored = 0;
+    var duplicates = 0;
+    var invalid = 0;
+
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var decision = String(row[headers.indexOf('REVIEW_DECISION')] || '').trim().toUpperCase();
+      if (decision !== 'COMMIT') {
+        if (decision === 'DUPLICATE') duplicates++;
+        else ignored++;
+        continue;
+      }
+
+      var flightDate = String(row[headers.indexOf('FLIGHT_DATE')] || '').trim();
+      var pilot = String(row[headers.indexOf('PILOT')] || '').trim();
+      var acft = String(row[headers.indexOf('ACFT')] || '').trim().toUpperCase();
+      var from = String(row[headers.indexOf('FROM_ICAO')] || '').trim().toUpperCase();
+      var to = String(row[headers.indexOf('TO_ICAO')] || '').trim().toUpperCase();
+      var totalTimeH = row[headers.indexOf('TOTAL_TIME_H')];
+      var numberLdgs = row[headers.indexOf('NUMBER_LDGS')];
+      var touchAndGos = row[headers.indexOf('NUMBER_TOUCH_AND_GOS')];
+      var sourceFlightId = String(row[headers.indexOf('SOURCE_FLIGHT_ID')] || '').trim();
+      var sourceNote = String(row[headers.indexOf('SOURCE_NOTE')] || '').trim();
+      var sourceFileId = String(row[headers.indexOf('SOURCE_FILE_ID')] || '').trim();
+      var sourceFileUrl = String(row[headers.indexOf('SOURCE_FILE_URL')] || '').trim();
+      var sourceFileName = String(row[headers.indexOf('SOURCE_FILE_NAME')] || '').trim();
+      var sourceMimeType = String(row[headers.indexOf('SOURCE_MIME_TYPE')] || '').trim();
+      var extractionModel = String(row[headers.indexOf('EXTRACTION_MODEL')] || '').trim();
+      var extractionConfidence = row[headers.indexOf('EXTRACTION_CONFIDENCE')];
+      var strictKey = String(row[headers.indexOf('FINGERPRINT_STRICT')] || '').trim();
+      var tags = _histFlightReadStructuredTags_(sourceNote);
+      var instructorInitials = String(tags.INSTR_INIT || '').trim().toUpperCase();
+      var instructorName = _histFlightInstructorNameFromInitials_(instructorInitials);
+      var resolvedAircraftType = _histFlightResolveAircraftType_(aircraftTypeLookup, acft, tags.AIRCRAFT_TYPE_RAW);
+      var fuelGalStart = Number(String(tags.FUEL_GAL_START || '').replace(',', '.'));
+      var fuelGalEnd = Number(String(tags.FUEL_GAL_END || '').replace(',', '.'));
+      var fuelStartL = isFinite(fuelGalStart) ? Math.round(fuelGalStart * 3.78541 * 10) / 10 : '';
+      var fuelEndL = isFinite(fuelGalEnd) ? Math.round(fuelGalEnd * 3.78541 * 10) / 10 : '';
+
+      if (!flightDate || !pilot || !acft || totalTimeH === '' || !strictKey) {
+        invalid++;
+        continue;
+      }
+      if (existing.strict[strictKey] || (sourceFlightId && existing.ids[sourceFlightId])) {
+        duplicates++;
+        continue;
+      }
+
+      var importFlightId = sourceFlightId;
+      if (!importFlightId || existing.ids[importFlightId]) {
+        var rowNo = Number(row[headers.indexOf('ROW_NO')] || 0);
+        importFlightId = target + '-' + ('000' + rowNo).slice(-4);
+      }
+
+      var out = new Array(LOG_FLIGHT_COL.NUM_TOUCH_AND_GOS + 1).fill('');
+      out[LOG_FLIGHT_COL.FLIGHT_ID] = importFlightId;
+      out[LOG_FLIGHT_COL.DATE] = flightDate;
+      out[LOG_FLIGHT_COL.PILOT] = pilot;
+      out[LOG_FLIGHT_COL.ACFT] = acft;
+      out[LOG_FLIGHT_COL.FROM] = from;
+      out[LOG_FLIGHT_COL.TO] = to;
+      out[LOG_FLIGHT_COL.TOTAL_TIME] = totalTimeH;
+      out[LOG_FLIGHT_COL.START_TACH] = tags.TACH_START || '';
+      out[LOG_FLIGHT_COL.END_TACH] = tags.TACH_END || '';
+      out[LOG_FLIGHT_COL.FUEL_START] = fuelStartL;
+      out[LOG_FLIGHT_COL.FUEL_END] = fuelEndL;
+      out[LOG_FLIGHT_COL.BLOCK_OUT] = tags.BRAKES_RELEASE || '';
+      out[LOG_FLIGHT_COL.OFF] = tags.AIRBORNE || '';
+      out[LOG_FLIGHT_COL.ON] = tags.LANDED || '';
+      out[LOG_FLIGHT_COL.BLOCK_IN] = tags.BRAKES_APPLIED || '';
+      out[LOG_FLIGHT_COL.NUM_LDGS] = numberLdgs;
+      out[LOG_FLIGHT_COL.NUM_TOUCH_AND_GOS] = touchAndGos;
+      out[LOG_FLIGHT_COL.SQUAWKS] = sourceNote;
+      out[LOG_FLIGHT_COL.ACTUAL_LOAD_JSON] = JSON.stringify({
+        entryKind: 'HIST_IMPORT',
+        batchId: target,
+        sourceFlightId: sourceFlightId,
+        importedAt: new Date().toISOString(),
+        sourceNote: sourceNote,
+        sourceFileId: sourceFileId,
+        sourceFileUrl: sourceFileUrl,
+        sourceFileName: sourceFileName,
+        sourceMimeType: sourceMimeType,
+        extractionModel: extractionModel,
+        extractionConfidence: extractionConfidence,
+        trainingCode: String(tags.MISSION_CODE || '').trim(),
+        instructorInitials: instructorInitials,
+        instructorName: instructorName,
+        aircraftType: resolvedAircraftType
+      });
+
+      logSheet.appendRow(out);
+      var logRowNo = logSheet.getLastRow();
+      committed++;
+
+      var absRow = 2;
+      for (var s = 1; s < stageData.length; s++) {
+        if (String(stageData[s][headers.indexOf('BATCH_ID')] || '').trim() === target && Number(stageData[s][headers.indexOf('ROW_NO')] || 0) === Number(row[headers.indexOf('ROW_NO')] || 0)) {
+          absRow = s + 1;
+          break;
+        }
+      }
+      var commitFlightIdIdx = headers.indexOf('COMMIT_FLIGHT_ID');
+      var commitRowNoIdx = headers.indexOf('COMMIT_ROW_NO');
+      if (commitFlightIdIdx >= 0) stageSheet.getRange(absRow, commitFlightIdIdx + 1).setValue(importFlightId);
+      if (commitRowNoIdx >= 0) stageSheet.getRange(absRow, commitRowNoIdx + 1).setValue(logRowNo);
+
+      existing.ids[importFlightId] = true;
+      existing.strict[strictKey] = importFlightId;
+      existing.fuzzy[String(row[headers.indexOf('FINGERPRINT_FUZZY')] || '').trim()] = importFlightId;
+    }
+
+    var batchData = batchSheet.getDataRange().getValues();
+    if (batchData && batchData.length) {
+      var batchHeaders = batchData[0].map(_histFlightNormHeader_);
+      var batchIdx = batchHeaders.indexOf('BATCH_ID');
+      var statusIdx = batchHeaders.indexOf('STATUS');
+      var notesIdx = batchHeaders.indexOf('NOTES');
+      for (var bi = 1; bi < batchData.length; bi++) {
+        if (String(batchData[bi][batchIdx] || '').trim() === target) {
+          if (statusIdx >= 0) batchSheet.getRange(bi + 1, statusIdx + 1).setValue('COMMITTED');
+          if (notesIdx >= 0) {
+            batchSheet.getRange(bi + 1, notesIdx + 1).setValue(
+              'Committed: ' + committed + ', Duplicate: ' + duplicates + ', Ignored: ' + ignored + ', Invalid: ' + invalid
+            );
+          }
+          break;
+        }
+      }
+    }
+
+    var actor = Session.getActiveUser().getEmail() || 'Admin';
+    var audit = ss.getSheetByName(APP_SHEETS.AUDIT);
+    if (audit) {
+      audit.appendRow([
+        new Date(),
+        actor,
+        target,
+        'HIST_FLIGHT_IMPORT_COMMIT',
+        'UNDER_REVIEW',
+        'COMMITTED',
+        'Committed: ' + committed + ', Duplicate: ' + duplicates + ', Ignored: ' + ignored + ', Invalid: ' + invalid
+      ]);
+    }
+
+    return { success: true, committed: committed, duplicates: duplicates, ignored: ignored, invalid: invalid };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }
@@ -21449,6 +23743,903 @@ function getDutyFlightVisibilityDiagnostics(payload) {
     };
 
     return report;
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _histFlightFindBatchRow_(sheet, batchId) {
+  var target = String(batchId || '').trim();
+  if (!target) return null;
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) return null;
+  var headers = data[0].map(_histFlightNormHeader_);
+  var batchIdx = headers.indexOf('BATCH_ID');
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][batchIdx] || '').trim() === target) {
+      return { rowNumber: i + 1, headers: headers, row: data[i] };
+    }
+  }
+  return null;
+}
+
+function _histFlightJsonFromModelText_(txt) {
+  function stripCodeFence(s) {
+    return String(s || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+  }
+  function extractJsonEnvelope(s) {
+    var raw = String(s || '');
+    var start = raw.indexOf('{');
+    var end = raw.lastIndexOf('}');
+    if (start >= 0 && end > start) return raw.slice(start, end + 1).trim();
+    return raw.trim();
+  }
+  var attempts = [];
+  var t0 = String(txt || '').trim();
+  var t1 = stripCodeFence(t0);
+  var t2 = extractJsonEnvelope(t1);
+  if (t0) attempts.push(t0);
+  if (t1 && t1 !== t0) attempts.push(t1);
+  if (t2 && t2 !== t1) attempts.push(t2);
+  var lastErr = null;
+  for (var i = 0; i < attempts.length; i++) {
+    try {
+      return { ok: true, value: JSON.parse(attempts[i]), rawText: attempts[i] };
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  return { ok: false, error: lastErr, rawText: t2 || t1 || t0 };
+}
+
+function _histFlightGeminiExtractFromDocument_(base64Data, mimeType, fileName) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!apiKey) {
+    return { success: false, error: 'GEMINI_API_KEY not configured. Add it in GAS Project Settings > Script Properties.' };
+  }
+
+  var prompt = [
+    'You are extracting historical flight records from a scanned flight sheet.',
+    'Read the full image/PDF and extract every flight row you can identify.',
+    'Return ONLY valid JSON with this exact shape:',
+    '{',
+    '  "flights": [',
+    '    {',
+    '      "sourceFlightId": "",',
+    '      "date": "YYYY-MM-DD or empty",',
+    '      "pilot": "",',
+    '      "acft": "",',
+    '      "from": "",',
+    '      "to": "",',
+    '      "route": "",',
+    '      "missionTrainingCode": "",',
+    '      "instructorInitials": "",',
+    '      "aircraftTypeRaw": "",',
+    '      "tachStart": "number or empty",',
+    '      "tachEnd": "number or empty",',
+    '      "fuelGallonsStart": "number or empty",',
+    '      "fuelGallonsEnd": "number or empty",',
+    '      "brakesRelease": "HH:MM or empty",',
+    '      "airborne": "HH:MM or empty",',
+    '      "landed": "HH:MM or empty",',
+    '      "brakesApplied": "HH:MM or empty",',
+    '      "totalTimeH": "number or HH:MM or empty",',
+    '      "numberLdgs": "integer or empty",',
+    '      "numberTouchAndGos": "integer or empty",',
+    '      "sourceNote": "include uncertainties or remarks",',
+    '      "confidence": "0-100"',
+    '    }',
+    '  ],',
+    '  "documentSummary": "short summary of page content"',
+    '}',
+    'Rules:',
+    '- Keep one object per detected flight entry.',
+    '- If a field is unreadable, return empty string and mention uncertainty in sourceNote.',
+    '- Do not invent values.',
+    '- Preserve Portuguese names exactly when possible.'
+  ].join('\n');
+
+  var reqBody = {
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inlineData: { mimeType: String(mimeType || 'application/pdf'), data: String(base64Data || '') } }
+      ]
+    }],
+    generationConfig: { temperature: 0.1, responseMimeType: 'application/json', maxOutputTokens: 8192 }
+  };
+
+  var scriptProps = PropertiesService.getScriptProperties();
+  var configuredModel = String(scriptProps.getProperty('GEMINI_MODEL') || '').trim();
+  var usedModel = configuredModel || 'gemini-2.5-flash';
+
+  function geminiGenerate(modelId, bodyToSend) {
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelId) + ':generateContent?key=' + apiKey;
+    return UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(bodyToSend || reqBody),
+      muteHttpExceptions: true
+    });
+  }
+
+  var resp = geminiGenerate(usedModel, reqBody);
+  var code = resp.getResponseCode();
+  var text = resp.getContentText();
+  if (code === 404) {
+    var fallbackModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+    for (var i = 0; i < fallbackModels.length; i++) {
+      var candidate = fallbackModels[i];
+      if (candidate === usedModel) continue;
+      var retry = geminiGenerate(candidate, reqBody);
+      if (retry.getResponseCode() === 200) {
+        usedModel = candidate;
+        resp = retry;
+        code = 200;
+        text = retry.getContentText();
+        break;
+      }
+    }
+  }
+  if (code !== 200) {
+    var errObj = {};
+    try { errObj = JSON.parse(text); } catch (e) {}
+    var msg = (errObj && errObj.error && errObj.error.message) ? errObj.error.message : String(text || '').slice(0, 350);
+    return { success: false, error: 'Gemini API error (' + code + ', model ' + usedModel + '): ' + msg };
+  }
+
+  var parsedResponse = JSON.parse(text);
+  var parts = parsedResponse && parsedResponse.candidates && parsedResponse.candidates[0] && parsedResponse.candidates[0].content && parsedResponse.candidates[0].content.parts;
+  if (!parts || !parts.length) {
+    return { success: false, error: 'No response content from Gemini.' };
+  }
+
+  var rawJson = String(parts.map(function(p) { return String((p && p.text) || ''); }).join('\n') || '').trim();
+  var parsed = _histFlightJsonFromModelText_(rawJson);
+  if (!parsed.ok) {
+    var parseMsg = parsed.error && parsed.error.message ? parsed.error.message : 'Unable to parse model JSON output.';
+    return { success: false, error: 'Gemini returned malformed JSON: ' + parseMsg, model: usedModel, raw: rawJson };
+  }
+
+  var out = parsed.value || {};
+  var flights = Array.isArray(out.flights) ? out.flights : [];
+  return {
+    success: true,
+    model: usedModel,
+    rawJson: rawJson,
+    flights: flights,
+    documentSummary: String(out.documentSummary || '')
+  };
+}
+
+function _histFlightStageRecords_(args) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var batchSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_IMPORT_BATCHES, '_histFlightStageRecords_');
+  var stageSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_STAGING, '_histFlightStageRecords_');
+  var existing = _histFlightReadExistingLogKeys_();
+
+  var batchId = String(args.batchId || '').trim();
+  var sourceLabel = String(args.sourceLabel || 'HISTORICAL_IMPORT').trim();
+  var importedBy = String(args.importedBy || Session.getActiveUser().getEmail() || 'Admin').trim();
+  var file = args.file;
+  var fileHash = String(args.fileHash || '').trim();
+  var rowsIn = Array.isArray(args.rows) ? args.rows : [];
+
+  var stageData = stageSheet.getDataRange().getValues();
+  var nextRowNo = 1;
+  if (stageData && stageData.length > 1) {
+    var stageHeaders = stageData[0].map(_histFlightNormHeader_);
+    var bIdx = stageHeaders.indexOf('BATCH_ID');
+    var rIdx = stageHeaders.indexOf('ROW_NO');
+    for (var i = 1; i < stageData.length; i++) {
+      if (String(stageData[i][bIdx] || '').trim() !== batchId) continue;
+      var rv = Number(stageData[i][rIdx] || 0);
+      if (rv >= nextRowNo) nextRowNo = rv + 1;
+    }
+  }
+
+  var staging = [];
+  var minDate = '';
+  var maxDate = '';
+  for (var j = 0; j < rowsIn.length; j++) {
+    var src = rowsIn[j] || {};
+    var sourceFlightId = String(src.sourceFlightId || '').trim();
+    var flightDate = safeDateYmd_(src.date);
+    var pilot = String(src.pilot || '').trim();
+    var acft = String(src.acft || '').trim().toUpperCase();
+    var fromTo = _histFlightResolveFromTo_(src.from, src.to, src.route);
+    var totalTimeH = _histFlightParseHours_(src.totalTimeH);
+    var numberLdgs = _histFlightParseInt_(src.numberLdgs);
+    var touchAndGos = _histFlightParseInt_(src.numberTouchAndGos);
+    var sourceNote = String(src.sourceNote || '').trim();
+    sourceNote = _histFlightMergeSourceNote_(sourceNote, src);
+    var confidence = src.confidence == null ? '' : Number(src.confidence);
+    if (!isFinite(confidence)) confidence = '';
+
+    if (flightDate) {
+      if (!minDate || flightDate < minDate) minDate = flightDate;
+      if (!maxDate || flightDate > maxDate) maxDate = flightDate;
+    }
+
+    var strictKey = _histFlightMakeStrictKey_({
+      date: flightDate,
+      pilot: pilot,
+      acft: acft,
+      from: fromTo.from,
+      to: fromTo.to,
+      totalTimeH: totalTimeH
+    });
+    var fuzzyKey = _histFlightMakeFuzzyKey_({ date: flightDate, pilot: pilot, acft: acft });
+    var matchStatus = 'NEW';
+    var matchReason = '';
+    var matchedFlightId = '';
+
+    if (!flightDate || !pilot || !acft || totalTimeH === '') {
+      matchStatus = 'INVALID';
+      matchReason = 'Missing date, pilot, aircraft, or total time';
+    } else if (sourceFlightId && existing.ids[sourceFlightId]) {
+      matchStatus = 'LIKELY_DUPLICATE';
+      matchReason = 'Flight ID already exists in LOG_Flights';
+      matchedFlightId = sourceFlightId;
+    } else if (existing.strict[strictKey]) {
+      matchStatus = 'LIKELY_DUPLICATE';
+      matchReason = 'Exact historical fingerprint already exists';
+      matchedFlightId = existing.strict[strictKey];
+    } else if (existing.fuzzy[fuzzyKey]) {
+      matchStatus = 'POSSIBLE_DUPLICATE';
+      matchReason = 'Potential duplicate by date/pilot/aircraft';
+      matchedFlightId = existing.fuzzy[fuzzyKey];
+    }
+
+    staging.push([
+      batchId,
+      nextRowNo++,
+      sourceFlightId,
+      flightDate,
+      pilot,
+      acft,
+      fromTo.from,
+      fromTo.to,
+      totalTimeH,
+      numberLdgs,
+      touchAndGos,
+      sourceNote,
+      file ? file.getId() : '',
+      file ? file.getUrl() : '',
+      file ? file.getName() : '',
+      String(args.mimeType || ''),
+      String(args.extractionModel || ''),
+      confidence,
+      String(args.extractionRawJson || ''),
+      strictKey,
+      fuzzyKey,
+      matchStatus,
+      matchReason,
+      matchedFlightId,
+      '',
+      '',
+      '',
+      '',
+      '',
+      ''
+    ]);
+  }
+
+  if (staging.length) {
+    stageSheet.getRange(stageSheet.getLastRow() + 1, 1, staging.length, staging[0].length).setValues(staging);
+  }
+
+  var batchRow = _histFlightFindBatchRow_(batchSheet, batchId);
+  if (!batchRow) {
+    batchSheet.appendRow([
+      batchId,
+      file ? file.getName() : 'DOCUMENT_IMPORT',
+      String(args.fileType || 'DOCUMENT'),
+      file ? file.getId() : '',
+      file ? file.getUrl() : '',
+      fileHash,
+      new Date().toISOString(),
+      importedBy,
+      sourceLabel,
+      1,
+      staging.length,
+      'UNDER_REVIEW',
+      'Date range: ' + (minDate || '?') + ' to ' + (maxDate || '?')
+    ]);
+  } else {
+    var headers = batchRow.headers;
+    var rowNo = batchRow.rowNumber;
+    var docCountIdx = headers.indexOf('DOCUMENT_COUNT');
+    var rowCountIdx = headers.indexOf('ROW_COUNT');
+    var notesIdx = headers.indexOf('NOTES');
+    var sourceFileNameIdx = headers.indexOf('SOURCE_FILENAME');
+    if (docCountIdx >= 0) {
+      var prevDocCount = Number(batchRow.row[docCountIdx] || 0);
+      batchSheet.getRange(rowNo, docCountIdx + 1).setValue(prevDocCount + 1);
+    }
+    if (rowCountIdx >= 0) {
+      var prevRows = Number(batchRow.row[rowCountIdx] || 0);
+      batchSheet.getRange(rowNo, rowCountIdx + 1).setValue(prevRows + staging.length);
+    }
+    if (sourceFileNameIdx >= 0 && file && !String(batchRow.row[sourceFileNameIdx] || '').trim()) {
+      batchSheet.getRange(rowNo, sourceFileNameIdx + 1).setValue(file.getName());
+    }
+    if (notesIdx >= 0) {
+      var prevNotes = String(batchRow.row[notesIdx] || '').trim();
+      var nextNotes = 'Date range: ' + (minDate || '?') + ' to ' + (maxDate || '?');
+      batchSheet.getRange(rowNo, notesIdx + 1).setValue(prevNotes ? (prevNotes + ' | ' + nextNotes) : nextNotes);
+    }
+  }
+
+  return { success: true, batchId: batchId, rowCount: staging.length, minDate: minDate, maxDate: maxDate, sourceFileUrl: file ? file.getUrl() : '' };
+}
+
+function ingestHistoricalFlightDocument(payload) {
+  try {
+    var ensureRes = _histFlightEnsureImportSheets_();
+    if (!ensureRes || !ensureRes.success) return { success: false, error: 'Could not ensure import sheets' };
+
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var base64Data = String(body.base64Data || '').trim();
+    var fileName = String(body.fileName || '').trim() || ('historical_' + new Date().getTime() + '.pdf');
+    var mimeType = String(body.mimeType || 'application/pdf').trim();
+    var importedBy = String(body.importedBy || Session.getActiveUser().getEmail() || 'Admin').trim();
+    var sourceLabel = String(body.sourceLabel || 'HISTORICAL_PAPER_CAPTURE').trim();
+    var targetBatchId = String(body.batchId || '').trim() || _histFlightBatchId_();
+
+    if (!base64Data) return { success: false, error: 'No file data provided.' };
+
+    var bytes = Utilities.base64Decode(base64Data);
+    var safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, '_');
+    var blob = Utilities.newBlob(bytes, mimeType || 'application/octet-stream', safeName);
+    var rootFolder = _histFlightImportsRootFolder_();
+    var subfolders = rootFolder.getFoldersByName(targetBatchId);
+    var batchFolder = subfolders.hasNext() ? subfolders.next() : rootFolder.createFolder(targetBatchId);
+    var file = batchFolder.createFile(blob);
+
+    var extractRes = _histFlightGeminiExtractFromDocument_(base64Data, mimeType, safeName);
+    if (!extractRes || !extractRes.success) {
+      return { success: false, error: extractRes && extractRes.error ? extractRes.error : 'Gemini extraction failed', batchId: targetBatchId, sourceFileUrl: file.getUrl() };
+    }
+    var flights = Array.isArray(extractRes.flights) ? extractRes.flights : [];
+    if (!flights.length) {
+      return { success: false, error: 'No flight rows detected in document.', batchId: targetBatchId, sourceFileUrl: file.getUrl() };
+    }
+
+    var fileHash = _histFlightDigest_(base64Data);
+    var stageRes = _histFlightStageRecords_({
+      batchId: targetBatchId,
+      sourceLabel: sourceLabel,
+      importedBy: importedBy,
+      file: file,
+      fileHash: fileHash,
+      fileType: (mimeType.indexOf('pdf') >= 0 ? 'PDF' : 'IMAGE'),
+      mimeType: mimeType,
+      extractionModel: extractRes.model,
+      extractionRawJson: extractRes.rawJson,
+      rows: flights
+    });
+    if (!stageRes || !stageRes.success) return stageRes;
+
+    return {
+      success: true,
+      batchId: stageRes.batchId,
+      rowCount: stageRes.rowCount,
+      sourceFileUrl: file.getUrl(),
+      extractionModel: extractRes.model,
+      extractedRowsPreview: flights.slice(0, 5),
+      documentSummary: extractRes.documentSummary || ''
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function testHistoricalGeminiConnectivity() {
+  try {
+    var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+    if (!apiKey) {
+      return { success: false, error: 'GEMINI_API_KEY not configured.' };
+    }
+
+    var scriptProps = PropertiesService.getScriptProperties();
+    var configuredModel = String(scriptProps.getProperty('GEMINI_MODEL') || '').trim();
+    var primaryModel = configuredModel || 'gemini-2.5-flash';
+
+    var body = {
+      contents: [{ parts: [{ text: 'Reply with exactly: OK' }] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 8 }
+    };
+
+    function callModel(modelId) {
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelId) + ':generateContent?key=' + apiKey;
+      return UrlFetchApp.fetch(url, {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(body),
+        muteHttpExceptions: true
+      });
+    }
+
+    var tried = [];
+    var candidates = [primaryModel, 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+    var seen = {};
+    var lastCode = 0;
+    var lastText = '';
+    for (var i = 0; i < candidates.length; i++) {
+      var model = String(candidates[i] || '').trim();
+      if (!model || seen[model]) continue;
+      seen[model] = true;
+      tried.push(model);
+
+      var resp = callModel(model);
+      var code = Number(resp.getResponseCode() || 0);
+      var text = String(resp.getContentText() || '');
+      if (code === 200) {
+        return { success: true, model: model, httpCode: 200, triedModels: tried };
+      }
+      lastCode = code;
+      lastText = text;
+    }
+
+    var errObj = {};
+    try { errObj = JSON.parse(lastText); } catch (parseErr) {}
+    var msg = (errObj && errObj.error && errObj.error.message) ? errObj.error.message : String(lastText || '').slice(0, 280);
+    return {
+      success: false,
+      error: 'Gemini API error (' + lastCode + '): ' + msg,
+      model: primaryModel,
+      httpCode: lastCode,
+      triedModels: tried
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function doPost(e) {
+  var output = { success: false, error: 'Unsupported request' };
+  try {
+    var raw = String((e && e.postData && e.postData.contents) || '').trim();
+    if (!raw) {
+      output = { success: false, error: 'Empty POST body' };
+    } else {
+      var body = JSON.parse(raw);
+      var action = String((body && body.action) || '').trim();
+      if (action === 'ingestHistoricalFlightDocument') {
+        output = ingestHistoricalFlightDocument((body && body.payload) || {});
+      } else if (action === 'testHistoricalGeminiConnectivity') {
+        output = testHistoricalGeminiConnectivity();
+      } else {
+        output = { success: false, error: 'Unknown action: ' + action };
+      }
+    }
+  } catch (err) {
+    output = { success: false, error: err && err.message ? err.message : String(err) };
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify(output))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function _histChunkCache_() {
+  return CacheService.getUserCache();
+}
+
+function _histChunkKey_(uploadId, suffix) {
+  return 'HIST_CHUNK_' + String(uploadId || '') + '_' + String(suffix || '');
+}
+
+function initHistoricalFlightChunkUpload(meta) {
+  try {
+    var body = (meta && typeof meta === 'object') ? meta : {};
+    var totalChunks = Number(body.totalChunks || 0);
+    if (!isFinite(totalChunks) || totalChunks < 1) {
+      return { success: false, error: 'Invalid totalChunks' };
+    }
+
+    var uploadId = Utilities.getUuid().replace(/-/g, '').slice(0, 24);
+    var cache = _histChunkCache_();
+    var record = {
+      uploadId: uploadId,
+      createdAt: new Date().toISOString(),
+      totalChunks: totalChunks,
+      fileName: String(body.fileName || ''),
+      mimeType: String(body.mimeType || 'application/octet-stream'),
+      batchId: String(body.batchId || ''),
+      sourceLabel: String(body.sourceLabel || 'HISTORICAL_PAPER_CAPTURE'),
+      importedBy: String(body.importedBy || Session.getActiveUser().getEmail() || 'Admin')
+    };
+
+    cache.put(_histChunkKey_(uploadId, 'meta'), JSON.stringify(record), 1800);
+    return { success: true, uploadId: uploadId, totalChunks: totalChunks };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function appendHistoricalFlightChunk(uploadId, chunkIndex, chunkData) {
+  try {
+    var id = String(uploadId || '').trim();
+    if (!id) return { success: false, error: 'uploadId required' };
+
+    var idx = Number(chunkIndex || 0);
+    if (!isFinite(idx) || idx < 0) return { success: false, error: 'Invalid chunkIndex' };
+
+    var data = String(chunkData || '');
+    if (!data) return { success: false, error: 'Empty chunkData' };
+    if (data.length > 90000) return { success: false, error: 'Chunk too large' };
+
+    var cache = _histChunkCache_();
+    var metaRaw = cache.get(_histChunkKey_(id, 'meta'));
+    if (!metaRaw) return { success: false, error: 'Upload session expired. Start again.' };
+
+    cache.put(_histChunkKey_(id, 'c_' + idx), data, 1800);
+    return { success: true, uploadId: id, chunkIndex: idx };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function finalizeHistoricalFlightChunkUpload(uploadId) {
+  try {
+    var id = String(uploadId || '').trim();
+    if (!id) return { success: false, error: 'uploadId required' };
+
+    var cache = _histChunkCache_();
+    var metaRaw = cache.get(_histChunkKey_(id, 'meta'));
+    if (!metaRaw) return { success: false, error: 'Upload session expired. Start again.' };
+
+    var meta = JSON.parse(metaRaw);
+    var total = Number(meta.totalChunks || 0);
+    if (!isFinite(total) || total < 1) return { success: false, error: 'Invalid upload metadata' };
+
+    var missing = [];
+    var parts = [];
+    for (var i = 0; i < total; i++) {
+      var piece = cache.get(_histChunkKey_(id, 'c_' + i));
+      if (!piece) {
+        missing.push(i);
+      } else {
+        parts.push(piece);
+      }
+    }
+    if (missing.length) {
+      return { success: false, error: 'Missing chunks: ' + missing.slice(0, 8).join(',') + (missing.length > 8 ? '...' : '') };
+    }
+
+    var base64Data = parts.join('');
+    var mimeType = String(meta.mimeType || 'application/octet-stream');
+    var safeName = String(meta.fileName || ('historical_' + new Date().getTime() + '.jpg')).replace(/[^a-zA-Z0-9._-]+/g, '_');
+    var bytes = Utilities.base64Decode(base64Data);
+    var blob = Utilities.newBlob(bytes, mimeType, safeName);
+    var targetBatchId = String(meta.batchId || '').trim() || _histFlightBatchId_();
+    var rootFolder = _histFlightImportsRootFolder_();
+    var subfolders = rootFolder.getFoldersByName(targetBatchId);
+    var batchFolder = subfolders.hasNext() ? subfolders.next() : rootFolder.createFolder(targetBatchId);
+    var file = batchFolder.createFile(blob);
+
+    var queueSheet = _histFlightQueueSheet_();
+    var queueId = Utilities.getUuid().replace(/-/g, '').slice(0, 24);
+    queueSheet.appendRow([
+      queueId,
+      targetBatchId,
+      file.getId(),
+      file.getName(),
+      mimeType,
+      String(meta.sourceLabel || 'HISTORICAL_PAPER_CAPTURE'),
+      String(meta.importedBy || Session.getActiveUser().getEmail() || 'Admin'),
+      'PENDING',
+      new Date().toISOString(),
+      '',
+      '',
+      '',
+      0,
+      ''
+    ]);
+
+    _scheduleHistoricalFlightQueueWorker_();
+
+    var keys = [_histChunkKey_(id, 'meta')];
+    for (var k = 0; k < total; k++) keys.push(_histChunkKey_(id, 'c_' + k));
+    cache.removeAll(keys);
+
+    return {
+      success: true,
+      queued: true,
+      queueId: queueId,
+      batchId: targetBatchId,
+      sourceFileUrl: file.getUrl()
+    };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _histFlightQueueSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = 'HIST_FLIGHT_IMPORT_QUEUE';
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow([
+      'QUEUE_ID',
+      'BATCH_ID',
+      'FILE_ID',
+      'FILE_NAME',
+      'MIME_TYPE',
+      'SOURCE_LABEL',
+      'IMPORTED_BY',
+      'STATUS',
+      'CREATED_AT',
+      'STARTED_AT',
+      'FINISHED_AT',
+      'ERROR',
+      'ROW_COUNT',
+      'EXTRACTION_MODEL'
+    ]);
+  }
+  return sheet;
+}
+
+function _scheduleHistoricalFlightQueueWorker_() {
+  try {
+    var fn = 'processHistoricalFlightImportQueue';
+    var triggers = ScriptApp.getProjectTriggers();
+    for (var i = 0; i < triggers.length; i++) {
+      if (String(triggers[i].getHandlerFunction() || '') === fn) return;
+    }
+    ScriptApp.newTrigger(fn).timeBased().after(5000).create();
+  } catch (e) {}
+}
+
+function getHistoricalFlightImportQueueStatus(queueId) {
+  try {
+    var id = String(queueId || '').trim();
+    if (!id) return { success: false, error: 'queueId required' };
+
+    var sheet = _histFlightQueueSheet_();
+    var data = sheet.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: false, error: 'Queue empty' };
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (String(row[0] || '').trim() !== id) continue;
+      return {
+        success: true,
+        queueId: id,
+        status: String(row[7] || ''),
+        batchId: String(row[1] || ''),
+        rowCount: Number(row[12] || 0),
+        extractionModel: String(row[13] || ''),
+        error: String(row[11] || ''),
+        sourceFileId: String(row[2] || '')
+      };
+    }
+
+    return { success: false, error: 'Queue item not found: ' + id };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function processHistoricalFlightImportQueue() {
+  try {
+    var sheet = _histFlightQueueSheet_();
+    var data = sheet.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: true, processed: 0 };
+
+    var rowNo = -1;
+    for (var i = 1; i < data.length; i++) {
+      var st = String(data[i][7] || '').trim().toUpperCase();
+      if (st === 'PENDING') {
+        rowNo = i + 1;
+        break;
+      }
+    }
+    if (rowNo < 0) return { success: true, processed: 0 };
+
+    sheet.getRange(rowNo, 8).setValue('PROCESSING');
+    sheet.getRange(rowNo, 10).setValue(new Date().toISOString());
+
+    var row = sheet.getRange(rowNo, 1, 1, 14).getValues()[0];
+    var batchId = String(row[1] || '').trim() || _histFlightBatchId_();
+    var fileId = String(row[2] || '').trim();
+    var fileName = String(row[3] || '').trim();
+    var mimeType = String(row[4] || '').trim() || 'application/octet-stream';
+    var sourceLabel = String(row[5] || '').trim() || 'HISTORICAL_PAPER_CAPTURE';
+    var importedBy = String(row[6] || '').trim() || (Session.getActiveUser().getEmail() || 'Admin');
+
+    if (!fileId) {
+      sheet.getRange(rowNo, 8).setValue('ERROR');
+      sheet.getRange(rowNo, 11).setValue(new Date().toISOString());
+      sheet.getRange(rowNo, 12).setValue('Missing FILE_ID');
+      return { success: false, error: 'Missing FILE_ID' };
+    }
+
+    var file = DriveApp.getFileById(fileId);
+    var blob = file.getBlob();
+    var bytes = blob.getBytes();
+    var base64Data = Utilities.base64Encode(bytes);
+    var safeName = String(fileName || file.getName() || 'historical_upload').replace(/[^a-zA-Z0-9._-]+/g, '_');
+
+    var extractRes = _histFlightGeminiExtractFromDocument_(base64Data, mimeType, safeName);
+    if (!extractRes || !extractRes.success) {
+      sheet.getRange(rowNo, 8).setValue('ERROR');
+      sheet.getRange(rowNo, 11).setValue(new Date().toISOString());
+      sheet.getRange(rowNo, 12).setValue(extractRes && extractRes.error ? String(extractRes.error) : 'Gemini extraction failed');
+      return { success: false, error: extractRes && extractRes.error ? extractRes.error : 'Gemini extraction failed' };
+    }
+
+    var flights = Array.isArray(extractRes.flights) ? extractRes.flights : [];
+    if (!flights.length) {
+      sheet.getRange(rowNo, 8).setValue('ERROR');
+      sheet.getRange(rowNo, 11).setValue(new Date().toISOString());
+      sheet.getRange(rowNo, 12).setValue('No flight rows detected in document.');
+      return { success: false, error: 'No flight rows detected in document.' };
+    }
+
+    var stageRes = _histFlightStageRecords_({
+      batchId: batchId,
+      sourceLabel: sourceLabel,
+      importedBy: importedBy,
+      file: file,
+      fileHash: _histFlightDigest_(base64Data),
+      fileType: (mimeType.indexOf('pdf') >= 0 ? 'PDF' : 'IMAGE'),
+      mimeType: mimeType,
+      extractionModel: extractRes.model,
+      extractionRawJson: extractRes.rawJson,
+      rows: flights
+    });
+
+    if (!stageRes || !stageRes.success) {
+      sheet.getRange(rowNo, 8).setValue('ERROR');
+      sheet.getRange(rowNo, 11).setValue(new Date().toISOString());
+      sheet.getRange(rowNo, 12).setValue(stageRes && stageRes.error ? String(stageRes.error) : 'Stage failed');
+      return { success: false, error: stageRes && stageRes.error ? stageRes.error : 'Stage failed' };
+    }
+
+    sheet.getRange(rowNo, 8).setValue('DONE');
+    sheet.getRange(rowNo, 11).setValue(new Date().toISOString());
+    sheet.getRange(rowNo, 12).setValue('');
+    sheet.getRange(rowNo, 13).setValue(Number(stageRes.rowCount || 0));
+    sheet.getRange(rowNo, 14).setValue(String(extractRes.model || ''));
+
+    var hasMorePending = false;
+    var refresh = sheet.getDataRange().getValues();
+    for (var r = 1; r < refresh.length; r++) {
+      if (String(refresh[r][7] || '').trim().toUpperCase() === 'PENDING') {
+        hasMorePending = true;
+        break;
+      }
+    }
+    if (hasMorePending) _scheduleHistoricalFlightQueueWorker_();
+
+    return { success: true, processed: 1, queueId: String(row[0] || ''), batchId: batchId, rowCount: Number(stageRes.rowCount || 0) };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function updateHistoricalFlightStagingRow(batchId, rowNo, patch) {
+  try {
+    var target = String(batchId || '').trim();
+    var targetRowNo = Number(rowNo || 0);
+    var changes = (patch && typeof patch === 'object') ? patch : {};
+    if (!target || !(targetRowNo > 0)) return { success: false, error: 'batchId and rowNo are required' };
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var stageSheet = getRequiredSheet_(ss, APP_SHEETS.HIST_FLIGHT_STAGING, 'updateHistoricalFlightStagingRow');
+    var data = stageSheet.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: false, error: 'No staging data' };
+
+    var headers = data[0].map(_histFlightNormHeader_);
+    function hIdx(name) { return headers.indexOf(name); }
+
+    var batchIdx = hIdx('BATCH_ID');
+    var rowIdx = hIdx('ROW_NO');
+    var absRow = -1;
+    var current = null;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][batchIdx] || '').trim() === target && Number(data[i][rowIdx] || 0) === targetRowNo) {
+        absRow = i + 1;
+        current = data[i];
+        break;
+      }
+    }
+    if (absRow < 0 || !current) return { success: false, error: 'Staging row not found' };
+
+    function asText(v) { return String(v == null ? '' : v).trim(); }
+    function applyText(key, headerName, transform) {
+      if (!Object.prototype.hasOwnProperty.call(changes, key)) return;
+      var idx = hIdx(headerName);
+      if (idx < 0) return;
+      var raw = asText(changes[key]);
+      var val = transform ? transform(raw) : raw;
+      stageSheet.getRange(absRow, idx + 1).setValue(val);
+      current[idx] = val;
+    }
+
+    applyText('date', 'FLIGHT_DATE', function(v) { return safeDateYmd_(v); });
+    applyText('pilot', 'PILOT', function(v) { return v; });
+    applyText('acft', 'ACFT', function(v) { return v.toUpperCase(); });
+    applyText('from', 'FROM_ICAO', function(v) { return v.toUpperCase(); });
+    applyText('to', 'TO_ICAO', function(v) { return v.toUpperCase(); });
+    applyText('sourceFlightId', 'SOURCE_FLIGHT_ID', function(v) { return v; });
+    applyText('sourceNote', 'SOURCE_NOTE', function(v) { return v; });
+
+    if (Object.prototype.hasOwnProperty.call(changes, 'totalTimeH')) {
+      var tIdx = hIdx('TOTAL_TIME_H');
+      if (tIdx >= 0) {
+        var pHours = _histFlightParseHours_(changes.totalTimeH);
+        stageSheet.getRange(absRow, tIdx + 1).setValue(pHours === '' ? '' : pHours);
+        current[tIdx] = pHours === '' ? '' : pHours;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(changes, 'numberLdgs')) {
+      var lIdx = hIdx('NUMBER_LDGS');
+      if (lIdx >= 0) {
+        var pLdg = _histFlightParseInt_(changes.numberLdgs);
+        stageSheet.getRange(absRow, lIdx + 1).setValue(pLdg === '' ? '' : pLdg);
+        current[lIdx] = pLdg === '' ? '' : pLdg;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(changes, 'touchAndGos')) {
+      var gIdx = hIdx('NUMBER_TOUCH_AND_GOS');
+      if (gIdx >= 0) {
+        var pTg = _histFlightParseInt_(changes.touchAndGos);
+        stageSheet.getRange(absRow, gIdx + 1).setValue(pTg === '' ? '' : pTg);
+        current[gIdx] = pTg === '' ? '' : pTg;
+      }
+    }
+
+    var obj = {
+      date: String(current[hIdx('FLIGHT_DATE')] || ''),
+      pilot: String(current[hIdx('PILOT')] || '').trim(),
+      acft: String(current[hIdx('ACFT')] || '').trim().toUpperCase(),
+      from: String(current[hIdx('FROM_ICAO')] || '').trim().toUpperCase(),
+      to: String(current[hIdx('TO_ICAO')] || '').trim().toUpperCase(),
+      totalTimeH: current[hIdx('TOTAL_TIME_H')]
+    };
+
+    var strictKey = _histFlightMakeStrictKey_(obj);
+    var fuzzyKey = _histFlightMakeFuzzyKey_(obj);
+    var sourceFlightId = String(current[hIdx('SOURCE_FLIGHT_ID')] || '').trim();
+    var existing = _histFlightReadExistingLogKeys_();
+
+    var matchStatus = 'NEW';
+    var matchReason = '';
+    var matchedFlightId = '';
+    if (!obj.date || !obj.pilot || !obj.acft || obj.totalTimeH === '') {
+      matchStatus = 'INVALID';
+      matchReason = 'Missing date, pilot, aircraft, or total time';
+    } else if (sourceFlightId && existing.ids[sourceFlightId]) {
+      matchStatus = 'LIKELY_DUPLICATE';
+      matchReason = 'Flight ID already exists in LOG_Flights';
+      matchedFlightId = sourceFlightId;
+    } else if (existing.strict[strictKey]) {
+      matchStatus = 'LIKELY_DUPLICATE';
+      matchReason = 'Exact historical fingerprint already exists';
+      matchedFlightId = existing.strict[strictKey];
+    } else if (existing.fuzzy[fuzzyKey]) {
+      matchStatus = 'POSSIBLE_DUPLICATE';
+      matchReason = 'Potential duplicate by date/pilot/aircraft';
+      matchedFlightId = existing.fuzzy[fuzzyKey];
+    }
+
+    var strictIdx = hIdx('FINGERPRINT_STRICT');
+    var fuzzyIdx = hIdx('FINGERPRINT_FUZZY');
+    var msIdx = hIdx('MATCH_STATUS');
+    var mrIdx = hIdx('MATCH_REASON');
+    var mfIdx = hIdx('MATCHED_FLIGHT_ID');
+    if (strictIdx >= 0) stageSheet.getRange(absRow, strictIdx + 1).setValue(strictKey);
+    if (fuzzyIdx >= 0) stageSheet.getRange(absRow, fuzzyIdx + 1).setValue(fuzzyKey);
+    if (msIdx >= 0) stageSheet.getRange(absRow, msIdx + 1).setValue(matchStatus);
+    if (mrIdx >= 0) stageSheet.getRange(absRow, mrIdx + 1).setValue(matchReason);
+    if (mfIdx >= 0) stageSheet.getRange(absRow, mfIdx + 1).setValue(matchedFlightId);
+
+    return { success: true, matchStatus: matchStatus, matchReason: matchReason, matchedFlightId: matchedFlightId };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }

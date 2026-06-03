@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatorio Pos-Voo</title>
+  <style>
+    :root {
+      --bg: #f2f7fb;
+      --card: #ffffff;
+      --ink: #173042;
+      --muted: #607d8b;
+      --line: #d9e7f2;
+      --brand: #0b5394;
+      --ok: #2e7d32;
+      --warn: #e65100;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 92% -10%, rgba(11, 83, 148, 0.14), transparent 36%),
+        radial-gradient(circle at -8% 110%, rgba(46, 125, 50, 0.1), transparent 38%),
+        var(--bg);
+    }
+    .wrap { max-width: 1100px; margin: 20px auto 32px; padding: 0 14px; }
+    .hero {
+      background: linear-gradient(135deg, #0b5394, #1565c0);
+      color: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 14px 36px rgba(11, 83, 148, 0.25);
+    }
+    .hero h1 { margin: 0 0 6px 0; font-size: 1.45rem; letter-spacing: 0.02em; }
+    .hero p { margin: 0; opacity: 0.92; font-weight: 600; }
+    .toolbar {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .toolbar input {
+      height: 38px;
+      border: 1px solid #9fc1df;
+      border-radius: 10px;
+      padding: 0 10px;
+      min-width: 210px;
+      font-weight: 700;
+      color: #0a3d6e;
+    }
+    .btn {
+      border: none;
+      border-radius: 10px;
+      height: 38px;
+      padding: 0 14px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+    }
+    .btn.primary { background: #fff; color: #0b5394; }
+    .btn.secondary { background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35); }
+    .status { margin: 12px 2px 0; font-weight: 700; color: var(--muted); }
+    .grid {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(14, 55, 90, 0.06);
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--brand);
+    }
+    .kv {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+    }
+    .k {
+      border: 1px solid #e6eef5;
+      border-radius: 10px;
+      padding: 8px;
+      background: #fafdff;
+    }
+    .k span { display: block; font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+    .k strong { font-size: 0.88rem; color: #1e425a; }
+    .table-wrap { overflow: auto; border: 1px solid #dce7f1; border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { padding: 7px 8px; border-bottom: 1px solid #ecf2f8; text-align: left; white-space: nowrap; }
+    th { background: #eff6fc; color: #0b5394; font-weight: 800; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 800; }
+    .ok { background: #e8f5e9; color: var(--ok); }
+    .warn { background: #fff3e0; color: var(--warn); }
+    .empty { color: #8ea4b3; font-style: italic; }
+    .full { grid-column: 1 / -1; }
+    .muted { color: var(--muted); }
+    .wb-svg { width: 100%; height: 220px; border: 1px solid #dce7f1; border-radius: 10px; background: #fff; }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .toolbar input { min-width: 140px; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Relatorio Pos-Voo</h1>
+      <p>Resumo operacional completo: W&B, pousos, touch and go, plano de aula e fundo do aluno.</p>
+      <div class="toolbar">
+        <input id="flightIdInput" type="text" placeholder="Flight ID (ex: ADS26-001-01)">
+        <button class="btn primary" type="button" onclick="loadReport()">Carregar</button>
+        <button class="btn secondary" type="button" onclick="window.print()">Imprimir / PDF</button>
+      </div>
+    </section>
+
+    <div id="status" class="status">Pronto.</div>
+    <div id="content" class="grid"></div>
+  </div>
+
+  <script>
+    var initialFlightId = '<?= routeFlightId ?>';
+
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function money(v) {
+      var n = Number(v || 0);
+      if (!isFinite(n)) n = 0;
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function num(v, d) {
+      var n = Number(v);
+      if (!isFinite(n)) return '---';
+      return n.toFixed(d == null ? 2 : d);
+    }
+
+    function dt(v) {
+      if (!v) return '---';
+      var d = new Date(v);
+      if (isNaN(d.getTime())) return esc(v);
+      return d.toLocaleString('pt-BR');
+    }
+
+    function buildKv(rows) {
+      return '<div class="kv">' + rows.map(function(it) {
+        return '<div class="k"><span>' + esc(it.k) + '</span><strong>' + esc(it.v == null ? '---' : it.v) + '</strong></div>';
+      }).join('') + '</div>';
+    }
+
+    function buildWbSvg(graph) {
+      graph = graph || {};
+      var pts = Array.isArray(graph.envelopeData) ? graph.envelopeData.filter(function(p) {
+        return p && isFinite(Number(p.x)) && isFinite(Number(p.y));
+      }) : [];
+      var point = graph.point || {};
+      var hasPoint = isFinite(Number(point.x)) && isFinite(Number(point.y));
+      var width = 700;
+      var height = 250;
+      var pad = 30;
+      if (!pts.length) {
+        return '<svg class="wb-svg" viewBox="0 0 ' + width + ' ' + height + '"><text x="24" y="38" fill="#78909c" font-size="14">Sem envelope W&B salvo neste voo.</text></svg>';
+      }
+      var xs = pts.map(function(p) { return Number(p.x); });
+      var ys = pts.map(function(p) { return Number(p.y); });
+      if (hasPoint) { xs.push(Number(point.x)); ys.push(Number(point.y)); }
+      var minX = Math.min.apply(null, xs) - 1;
+      var maxX = Math.max.apply(null, xs) + 1;
+      var minY = Math.min.apply(null, ys) - 10;
+      var maxY = Math.max.apply(null, ys) + 10;
+      if (maxX - minX < 0.5) { maxX = minX + 1; }
+      if (maxY - minY < 1) { maxY = minY + 10; }
+      var plotW = width - (pad * 2);
+      var plotH = height - (pad * 2);
+      var xAt = function(x) { return pad + ((x - minX) / (maxX - minX)) * plotW; };
+      var yAt = function(y) { return pad + plotH - ((y - minY) / (maxY - minY)) * plotH; };
+      var poly = pts.map(function(p) { return xAt(Number(p.x)).toFixed(1) + ',' + yAt(Number(p.y)).toFixed(1); }).join(' ');
+      var dot = hasPoint
+        ? '<circle cx="' + xAt(Number(point.x)).toFixed(1) + '" cy="' + yAt(Number(point.y)).toFixed(1) + '" r="5" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"></circle>'
+        : '';
+      return '<svg class="wb-svg" viewBox="0 0 ' + width + ' ' + height + '">' +
+        '<rect x="0" y="0" width="' + width + '" height="' + height + '" fill="#fff"></rect>' +
+        '<rect x="' + pad + '" y="' + pad + '" width="' + plotW + '" height="' + plotH + '" fill="#f7fbff" stroke="#dbe7f3"></rect>' +
+        '<polygon points="' + poly + '" fill="rgba(11,83,148,0.12)" stroke="#0b5394" stroke-width="2"></polygon>' +
+        dot +
+        '<text x="' + (pad + 2) + '" y="20" font-size="11" fill="#607d8b">Envelope W&B</text>' +
+        '</svg>';
+    }
+
+    function renderReport(data) {
+      var status = document.getElementById('status');
+      var content = document.getElementById('content');
+      if (!data || !data.success) {
+        status.textContent = data && data.error ? data.error : 'Falha ao carregar relatório.';
+        content.innerHTML = '<section class="card full"><div class="empty">Nenhum dado para exibir.</div></section>';
+        return;
+      }
+
+      var summary = data.summary || {};
+      var log = data.log || {};
+      var wb = data.wb || {};
+      var lesson = data.lessonPlanSummary || {};
+      var funds = data.studentFunds || {};
+      var timeline = Array.isArray(data.landingTimeline) ? data.landingTimeline : [];
+      var tx = Array.isArray(funds.lastTransactions) ? funds.lastTransactions : [];
+
+      status.textContent = 'Voo ' + (data.flightId || '') + ' carregado em ' + dt(data.generatedAt) + '.';
+
+      var rowsTimeline = timeline.length
+        ? timeline.map(function(line, idx) {
+            return '<tr><td>' + (idx + 1) + '</td><td>' + esc(line) + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="2" class="empty">Sem eventos de pouso/toque registrados.</td></tr>';
+
+      var rowsTx = tx.length
+        ? tx.map(function(item) {
+            var receipt = item.receiptUrl
+              ? '<a href="' + esc(item.receiptUrl) + '" target="_blank" rel="noopener">abrir</a>'
+              : '---';
+            return '<tr>' +
+              '<td>' + dt(item.timestamp) + '</td>' +
+              '<td>' + esc(item.txType || '') + '</td>' +
+              '<td>' + money(item.amountBrl) + '</td>' +
+              '<td>' + (Number(item.rateBrlHour || 0) > 0 ? esc(num(item.rateBrlHour, 2)) : '---') + '</td>' +
+              '<td>' + money(item.balanceAfterBrl) + '</td>' +
+              '<td>' + esc(item.note || '') + '</td>' +
+              '<td>' + receipt + '</td>' +
+              '</tr>';
+          }).join('')
+        : '<tr><td colspan="7" class="empty">Sem transações recentes.</td></tr>';
+
+      content.innerHTML = '' +
+        '<section class="card">' +
+          '<h3>Resumo do Voo</h3>' +
+          buildKv([
+            { k: 'Flight ID', v: data.flightId || '---' },
+            { k: 'Data', v: summary.date || log.date || '---' },
+            { k: 'Aeronave', v: summary.aircraft || log.aircraft || '---' },
+            { k: 'Piloto', v: summary.pilot || log.pilot || '---' },
+            { k: 'Origem', v: summary.from || log.from || '---' },
+            { k: 'Destino', v: summary.to || log.to || '---' },
+            { k: 'Rota', v: summary.route || '---' },
+            { k: 'Tempo Total', v: log.totalTimeHours != null ? num(log.totalTimeHours, 2) + ' h' : (log.totalTime || '---') },
+            { k: 'Pousos', v: num(log.numLandings, 0) },
+            { k: 'Touch and Go', v: num(log.numTouchAndGos, 0) }
+          ]) +
+        '</section>' +
+
+        '<section class="card">' +
+          '<h3>Resumo do Plano de Aula</h3>' +
+          buildKv([
+            { k: 'Código Treinamento', v: lesson.trainingCode || '---' },
+            { k: 'Aula', v: lesson.lessonName || '---' },
+            { k: 'Aluno', v: lesson.traineeName || '---' },
+            { k: 'Instrutor', v: lesson.instructorName || '---' },
+            { k: 'Resultado', v: lesson.flightResult || '---' },
+            { k: 'Cheque de Pista', v: String(Number(lesson.runwayChecksPassed || 0)) + '/' + String(Number(lesson.runwayChecksTotal || 0)) },
+            { k: 'Avaliação', v: (lesson.evaluation && lesson.evaluation.result) ? lesson.evaluation.result : '---' },
+            { k: 'Média', v: (lesson.evaluation && lesson.evaluation.averageScore != null) ? String(lesson.evaluation.averageScore) : '---' }
+          ]) +
+        '</section>' +
+
+        '<section class="card">' +
+          '<h3>Weight and Balance (W&B)</h3>' +
+          buildKv([
+            { k: 'Peso Total (kg)', v: num(wb.grossWeight, 1) },
+            { k: 'CG', v: num(wb.cgPosition, 2) },
+            { k: 'Envelope', v: (wb.isSafe === true ? 'Dentro do envelope' : (wb.isSafe === false ? 'Fora do envelope' : 'Não informado')) },
+            { k: 'Combustível (kg)', v: num(wb.fuelKg, 1) },
+            { k: 'Salvo em', v: dt(wb.savedAt) }
+          ]) +
+          '<div style="margin-top:10px;">' + buildWbSvg(wb.graph || {}) + '</div>' +
+        '</section>' +
+
+        '<section class="card">' +
+          '<h3>Fundos do Aluno</h3>' +
+          buildKv([
+            { k: 'Aluno', v: funds.studentName || '---' },
+            { k: 'Saldo Atual', v: funds.balanceBrl == null ? '---' : money(funds.balanceBrl) }
+          ]) +
+          '<div style="margin-top:10px;" class="table-wrap"><table><thead><tr><th>Data/Hora</th><th>Tipo</th><th>Valor</th><th>Taxa</th><th>Saldo</th><th>Nota</th><th>Comprovante</th></tr></thead><tbody>' + rowsTx + '</tbody></table></div>' +
+        '</section>' +
+
+        '<section class="card full">' +
+          '<h3>Pousos e Touch and Go</h3>' +
+          '<div class="table-wrap"><table><thead><tr><th>#</th><th>Evento</th></tr></thead><tbody>' + rowsTimeline + '</tbody></table></div>' +
+        '</section>';
+    }
+
+    function loadReport() {
+      var input = document.getElementById('flightIdInput');
+      var status = document.getElementById('status');
+      var flightId = String((input && input.value) || '').trim();
+      if (!flightId) {
+        status.textContent = 'Informe o Flight ID.';
+        return;
+      }
+      status.textContent = 'Carregando voo ' + flightId + '...';
+      google.script.run
+        .withSuccessHandler(renderReport)
+        .withFailureHandler(function(err) {
+          renderReport({ success: false, error: (err && err.message ? err.message : String(err)) });
+        })
+        .getToolsFlightDetailReport({ flightId: flightId });
+    }
+
+    (function init() {
+      var input = document.getElementById('flightIdInput');
+      if (input && initialFlightId) {
+        input.value = initialFlightId;
+        loadReport();
+      }
+    })();
+  </script>
+</body>
+</html>

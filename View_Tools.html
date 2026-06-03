@@ -14,6 +14,32 @@
   .tools-field label  { display:block; margin-bottom:3px; font-size:0.76rem; color:#0b5394; font-weight:700; text-transform:uppercase; }
   .tools-field input, .tools-field select, .tools-field textarea { width:100%; box-sizing:border-box; border:1px solid #c8d3de; border-radius:6px; min-height:36px; padding:0 8px; font-size:0.92rem; background:#fff; font-family:inherit; }
   .tools-field textarea { padding:8px; resize:vertical; min-height:84px; }
+  .tools-student-ratings-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:6px; border:1px solid #dbe4ee; border-radius:8px; background:#fff; padding:8px; max-height:220px; overflow:auto; }
+  .tools-student-rating-row { display:flex; flex-direction:column; align-items:stretch; gap:6px; font-size:0.86rem; padding:6px 8px; border-radius:6px; cursor:pointer; border:1px solid #dbe4ee; background:#fafcff; user-select:none; }
+  .tools-student-rating-row:hover { background:#f3f8fc; }
+  .tools-student-rating-row.is-selected { background:#e8f1fb; border-color:#90b4d8; }
+  .tools-student-rating-main { display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
+  .tools-student-rating-label { overflow:visible; text-overflow:clip; white-space:normal; }
+  .tools-student-rating-expiry-wrap { display:none; align-items:center; gap:4px; flex:0 0 auto; margin-left:24px; }
+  .tools-student-rating-row.is-selected .tools-student-rating-expiry-wrap { display:flex; }
+  .tools-student-rating-expiry-label { font-size:0.68rem; color:#546e7a; font-weight:700; text-transform:uppercase; }
+  .tools-student-rating-expiry-input { width:112px; min-height:28px; height:28px; border:1px solid #c8d3de; border-radius:5px; padding:0 6px; font-size:0.78rem; background:#fff; }
+  .tools-student-rating-mark { width:16px; height:16px; border-radius:4px; border:1px solid #9fb5cb; background:#fff; position:relative; flex:0 0 16px; }
+  .tools-student-rating-row.is-selected .tools-student-rating-mark { background:#1565c0; border-color:#1565c0; }
+  .tools-student-rating-row.is-selected .tools-student-rating-mark::after { content:''; position:absolute; left:4px; top:1px; width:5px; height:9px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+  .tools-ledger-type { display:inline-block; border-radius:4px; padding:1px 6px; font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; margin-right:4px; }
+  .tools-ledger-type-credit { background:#e8f5e9; color:#2e7d32; }
+  .tools-ledger-type-debit { background:#fce4ec; color:#c62828; }
+  .tools-ledger-type-void { background:#f1f3f4; color:#78909c; }
+  .tools-ledger-type-amended { background:#e3f2fd; color:#1565c0; }
+  .tools-ledger-status-voided { background:#ffebee; color:#c62828; border-radius:4px; padding:1px 5px; font-size:0.67rem; font-weight:800; text-decoration:line-through; }
+  .tools-ledger-status-amended { background:#fff3e0; color:#e65100; border-radius:4px; padding:1px 5px; font-size:0.67rem; font-weight:800; }
+  .tools-ledger-action { border:none; border-radius:5px; padding:2px 8px; font-size:0.72rem; font-weight:800; cursor:pointer; margin-left:4px; }
+  .tools-ledger-edit-btn { background:#e3f2fd; color:#1565c0; }
+  .tools-ledger-void-btn { background:#ffebee; color:#c62828; }
+  .tools-deposit-edit-overlay { display:none; position:absolute; z-index:200; top:0; left:0; right:0; background:rgba(11,83,148,0.10); border-radius:10px; }
+  .tools-deposit-edit-overlay.open { display:block; }
+  .tools-deposit-edit-box { background:#fff; border:1px solid #90b4d8; border-radius:10px; padding:14px; margin:60px 16px 0; box-shadow:0 4px 18px rgba(0,0,0,0.14); }
   .tools-row { display:flex; gap:8px; }
   .tools-row > .tools-field { flex:1; }
   .tools-btn-row { display:flex; gap:8px; margin-top:12px; }
@@ -259,8 +285,7 @@
     <button class="tools-action-btn" onclick="toolsOpenReportsPanel()"><i class="material-icons">assessment</i><span>Reports</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDiscrepancyPanel()"><i class="material-icons">report_problem</i><span>Report Discrepancy</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('airports')"><i class="material-icons">add_business</i><span>Add Airport</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenStaffPanel()"><i class="material-icons">badge</i><span>Add/Edit Staff</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenStudentPanel()"><i class="material-icons">school</i><span>Add/Edit Student</span></button>
+    <button class="tools-action-btn" onclick="toolsOpenPersonalPanel()"><i class="material-icons">badge</i><span>Adicionar/Editar Pessoa</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPilotAuthPanel()"><i class="material-icons">verified_user</i><span>Pilot Authorizations</span></button>
     <button class="tools-action-btn" onclick="toolsOpenSavedRoutesPanel()"><i class="material-icons">route</i><span>Route Manager</span></button>
     <button class="tools-action-btn" onclick="toolsOpenTrainingModulePanel()"><i class="material-icons">school</i><span>Training Modules</span></button>
@@ -277,6 +302,7 @@
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('schedcompat')"><i class="material-icons">balance</i><span>Sched Compat Rules</span></button>
     <button class="tools-action-btn" onclick="toolsOpenAircraftDocsPanel()"><i class="material-icons">menu_book</i><span>Aircraft Docs</span></button>
     <button class="tools-action-btn" onclick="toolsOpenAircraftBuilder()"><i class="material-icons">flight_takeoff</i><span>Add Aircraft</span></button>
+    <button class="tools-action-btn" onclick="toolsOpenHistoricalImportsPanel()"><i class="material-icons">history</i><span>Review Imports</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDonationImport()"><i class="material-icons">upload_file</i><span>Import Donations</span></button>
   </div>
   <div id="tools-build-meta" class="tools-build-meta">Tools build: loading...</div>
@@ -489,19 +515,19 @@
       <div class="tools-report-intro">
         <div class="tools-report-intro-title">Report Families</div>
         <p class="tools-report-intro-copy">Use one shared date range, then switch between Finance, Flight Ops, Maintenance, Training, and Compliance. Finance and Flight Ops are live now; the other families are organized so the next reports can drop into the same panel without changing the workflow.</p>
-          <div id="tools-report-flightdetail-meta" class="tools-report-meta">Load one flight to view all saved fields, W&B, debrief, fuel/times, and passengers.</div>
+          <div id="tools-report-flightdetail-meta" class="tools-report-meta">Carregue um voo para ver o relatório pós-voo completo (W&B, pousos/toques, plano de aula e fundos).</div>
         </div>
         <div class="tools-flight-detail-search" style="margin-bottom:8px;">
           <div class="tools-field" style="margin-bottom:0;">
             <label for="tools-report-flight-id">Flight ID</label>
             <input id="tools-report-flight-id" type="text" placeholder="ADS26-001-01">
           </div>
-          <button class="btn-ta" type="button" onclick="toolsLoadFlightDetailReport_()">LOAD FLIGHT DETAIL</button>
+          <button class="btn-ta" type="button" onclick="toolsLoadFlightDetailReport_()">CARREGAR RELATÓRIO PÓS-VOO</button>
           <button class="btn-ta" type="button" onclick="toolsLoadFlightFollowingArchive_()">FLIGHT FOLLOWING INFO</button>
           <button class="btn-ts" type="button" onclick="(function(){ var el=document.getElementById('tools-report-flight-id'); if(el) el.value=''; _toolsFlightDetailData=null; toolsRenderFlightDetailReport_(null); })()">CLEAR</button>
         </div>
-        <div id="tools-report-flightdetail-body"><div class="tools-report-empty">Enter a Flight ID and click LOAD FLIGHT DETAIL.</div></div>
-        <div id="tools-report-ffarchive-body"><div class="tools-report-empty">Flight Following archive appears here after clicking FLIGHT FOLLOWING INFO.</div></div>
+        <div id="tools-report-flightdetail-body"><div class="tools-report-empty">Digite o Flight ID e clique em CARREGAR RELATÓRIO PÓS-VOO.</div></div>
+        <div id="tools-report-ffarchive-body"><div class="tools-report-empty">Arquivo de Flight Following aparecerá aqui após clicar em FLIGHT FOLLOWING INFO.</div></div>
       </div>
       <div class="tools-report-section">
         <div class="tools-report-section-head">
@@ -708,66 +734,26 @@
     </div>
   </div>
 
-  <div id="tools-panel-staff" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Add/Edit Staff</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('staff')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-staff-select">Selecionar Staff Existente</label>
-          <select id="tools-staff-select" class="browser-default" onchange="toolsStaffLoadSelected_()"></select>
-        </div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 130px;">
-          <button class="btn-ts" type="button" onclick="toolsStaffClearForm_()">NOVO</button>
-        </div>
-      </div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-staff-name">Nome</label><input id="tools-staff-name" type="text"></div>
-      <div class="tools-field"><label for="tools-staff-email">Email</label><input id="tools-staff-email" type="email"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-staff-id">Staff ID</label><input id="tools-staff-id" type="text"></div>
-      <div class="tools-field"><label for="tools-staff-role">Função Principal</label><select id="tools-staff-role" class="browser-default"></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-staff-active">Ativo</label><select id="tools-staff-active" class="browser-default"><option value="Y">Sim</option><option value="N">Não</option></select></div>
-      <div class="tools-field"><label for="tools-staff-notes">Notas</label><input id="tools-staff-notes" type="text"></div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:10px 0;">
-      <label><input type="checkbox" id="tools-staff-can-edit-disc"> Pode editar discrepâncias</label>
-      <label><input type="checkbox" id="tools-staff-can-approve-def"> Pode aprovar deferimentos</label>
-      <label><input type="checkbox" id="tools-staff-can-edit-mx"> Pode editar manutenção</label>
-      <label><input type="checkbox" id="tools-staff-can-follow"> Pode flight follow</label>
-      <label><input type="checkbox" id="tools-staff-can-coordinate"> Pode coordenar voos</label>
-      <label><input type="checkbox" id="tools-staff-can-stock"> Pode gerenciar estoque</label>
-      <label><input type="checkbox" id="tools-staff-can-instruct"> Pode instruir</label>
-      <label><input type="checkbox" id="tools-staff-can-inspect"> Pode inspecionar</label>
-    </div>
-    <div class="tools-btn-row">
-      <button class="btn-ts" type="button" onclick="toolsStaffClearForm_()">LIMPAR</button>
-      <button class="btn-tp" type="button" onclick="toolsStaffSave_()">SALVAR STAFF</button>
-    </div>
-  </div>
-
   <div id="tools-panel-students" class="tools-panel">
     <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Add/Edit Student</h3>
+      <h3 class="tools-panel-title">Adicionar/Editar Pessoa</h3>
       <button class="tools-panel-close" onclick="toolsClosePanel('students')">&times;</button>
     </div>
     <div class="tools-search-box">
       <div class="tools-row" style="align-items:flex-end;">
         <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-student-select">Selecionar Aluno Existente</label>
+          <label for="tools-student-select">Selecionar Pessoa Existente</label>
           <select id="tools-student-select" class="browser-default" onchange="toolsStudentLoadSelected_()"></select>
         </div>
         <div class="tools-field" style="margin-bottom:0; flex:0 0 130px;">
           <button class="btn-ts" type="button" onclick="toolsStudentClearForm_()">NOVO</button>
         </div>
       </div>
-      <div id="tools-student-meta" class="tools-report-meta" style="margin-top:8px;">Nenhum aluno carregado.</div>
+      <div id="tools-student-meta" class="tools-report-meta" style="margin-top:8px;">Nenhuma pessoa carregada.</div>
+    </div>
+
+    <div class="tools-row">
+      <div class="tools-field"><label for="tools-student-person-type">Tipo</label><select id="tools-student-person-type" class="browser-default" onchange="toolsStudentApplyPersonTypeUi_()"><option value="STUDENT">Aluno</option><option value="OPS_PILOT">Piloto Operacional</option><option value="STAFF">Equipe</option></select></div>
     </div>
 
     <div class="tools-row">
@@ -779,41 +765,60 @@
       <div class="tools-field"><label for="tools-student-canac">CANAC</label><input id="tools-student-canac" type="text"></div>
     </div>
     <div class="tools-row">
-      <div class="tools-field"><label for="tools-student-dob">Data de Nascimento</label><input id="tools-student-dob" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-student-dob')"></div>
-      <div class="tools-field"><label for="tools-student-medical-expiry">Validade CMA</label><input id="tools-student-medical-expiry" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-student-medical-expiry')"></div>
+      <div class="tools-field"><label for="tools-student-dob">Data de Nascimento</label><input id="tools-student-dob" type="text" class="tools-date-input" data-tools-date-format="pt-short" placeholder="DD-mmm-AAAA" readonly onclick="toolsOpenDatePicker_('tools-student-dob')"></div>
+      <div class="tools-field"><label for="tools-student-medical-expiry">Validade CMA</label><input id="tools-student-medical-expiry" type="text" class="tools-date-input" data-tools-date-format="pt-short" placeholder="DD-mmm-AAAA" readonly onclick="toolsOpenDatePicker_('tools-student-medical-expiry')"></div>
     </div>
     <div class="tools-row">
       <div class="tools-field"><label for="tools-student-medical-class">Classe CMA</label><select id="tools-student-medical-class" class="browser-default"><option value="">Selecione...</option><option value="1">Classe 1</option><option value="2">Classe 2</option><option value="3">Classe 3</option><option value="4">Classe 4</option></select></div>
-      <div class="tools-field"><label for="tools-student-rate">Taxa de Uso (R$/hora)</label><input id="tools-student-rate" type="number" min="0" step="0.01" placeholder="0.00"></div>
     </div>
 
     <div class="tools-field">
-      <label for="tools-student-ratings">Habilitações Atuais (ANAC)</label>
-      <select id="tools-student-ratings" class="browser-default" multiple size="8"></select>
-      <div class="tools-dbadd-help">Segure Ctrl (Windows) para selecionar múltiplas habilitações.</div>
+      <label>Habilitações Atuais (ANAC)</label>
+      <div id="tools-student-ratings" class="tools-student-ratings-list"></div>
+      <div class="tools-dbadd-help">Marque todas as habilitações que se aplicam.</div>
     </div>
 
-    <div style="border:1px solid #dbe4ee;border-radius:8px;background:#f8fbff;padding:10px;margin:8px 0;">
+    <div id="tools-student-funds-box" style="border:1px solid #dbe4ee;border-radius:8px;background:#f8fbff;padding:10px;margin:8px 0;">
       <div style="font-size:0.78rem;font-weight:800;color:#0b5394;text-transform:uppercase;margin-bottom:6px;">Fundos / Depósito</div>
       <div class="tools-row">
         <div class="tools-field"><label for="tools-student-balance">Saldo Atual (R$)</label><input id="tools-student-balance" type="number" step="0.01" readonly></div>
-        <div class="tools-field"><label for="tools-student-credit">Creditar Valor (R$)</label><input id="tools-student-credit" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="tools-field"><label for="tools-student-rate">Taxa de Uso (R$/hora)</label><input id="tools-student-rate" type="number" min="0" step="0.01" placeholder="0.00"></div>
       </div>
       <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-credit">Creditar Valor (R$)</label><input id="tools-student-credit" type="number" min="0" step="0.01" placeholder="0.00"></div>
         <div class="tools-field" style="flex:2;"><label for="tools-student-credit-note">Observação do Crédito</label><input id="tools-student-credit-note" type="text" placeholder="Pacote 10h, crédito avulso, ajuste, etc."></div>
-        <div class="tools-field" style="flex:1;"><label for="tools-student-deposit-file">Comprovante Depósito (PDF)</label><input id="tools-student-deposit-file" type="file" accept="application/pdf" onchange="toolsStudentOnReceiptSelected_()"></div>
       </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-deposit-file">Comprovante Depósito (PDF)</label><input id="tools-student-deposit-file" type="file" accept="application/pdf" onchange="toolsStudentOnReceiptSelected_()"></div>
+      </div>
+      <div class="tools-dbadd-help">Para inserir fundos: informe taxa (R$/hora), valor creditado e clique em Salvar Pessoa. Horas de voo sao debitadas automaticamente em missoes de treinamento aprovadas para alunos.</div>
       <div id="tools-student-receipt-meta" class="tools-dbadd-help">Nenhum comprovante selecionado.</div>
     </div>
 
-    <div class="tools-field">
-      <label>Histórico de Créditos</label>
-      <div id="tools-student-ledger" class="tools-search-results" style="max-height:220px;"></div>
+    <div class="tools-field" style="position:relative;">
+      <label>Histórico de Transações</label>
+      <div id="tools-student-ledger" class="tools-search-results" style="max-height:280px;"></div>
+      <!-- Deposit edit overlay -->
+      <div id="tools-deposit-edit-overlay" class="tools-deposit-edit-overlay">
+        <div class="tools-deposit-edit-box">
+          <div style="font-size:0.78rem;font-weight:800;color:#0b5394;margin-bottom:10px;">EDITAR DEPÓSITO <span id="tools-deposit-edit-txid" style="font-weight:400;color:#546e7a;"></span></div>
+          <div class="tools-row">
+            <div class="tools-field"><label>Valor (R$)</label><input id="tools-deposit-edit-amount" type="number" min="0.01" step="0.01"></div>
+            <div class="tools-field"><label>Taxa (R$/hora)</label><input id="tools-deposit-edit-rate" type="number" min="0.01" step="0.01"></div>
+          </div>
+          <div class="tools-field"><label>Observação</label><input id="tools-deposit-edit-note" type="text" placeholder="Descrição do depósito"></div>
+          <div class="tools-field"><label>Motivo da Alteração *</label><input id="tools-deposit-edit-reason" type="text" placeholder="Obrigatório: explique o motivo da edição"></div>
+          <div class="tools-btn-row">
+            <button class="btn-ts" type="button" onclick="toolsCloseDepositEdit_()">CANCELAR</button>
+            <button class="btn-ta" type="button" onclick="toolsConfirmDepositEdit_()">CONFIRMAR EDIÇÃO</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="tools-btn-row">
       <button class="btn-ts" type="button" onclick="toolsStudentClearForm_()">LIMPAR</button>
-      <button class="btn-tp" type="button" onclick="toolsStudentSave_()">SALVAR ALUNO</button>
+      <button class="btn-tp" type="button" onclick="toolsStudentSave_()">SALVAR PESSOA</button>
     </div>
   </div>
 
@@ -1231,6 +1236,30 @@
           <label for="tools-master-geofence-km">Geofence Radius (metros)</label>
           <input id="tools-master-geofence-km" type="number" inputmode="decimal" min="100" step="50" placeholder="8000">
         </div>
+        <div class="tools-field" style="grid-column:1/-1;">
+          <label for="tools-master-pax-statement-1">Passenger Statement 1</label>
+          <textarea id="tools-master-pax-statement-1" style="min-height:56px; font-size:0.84rem;"></textarea>
+        </div>
+        <div class="tools-field" style="grid-column:1/-1;">
+          <label for="tools-master-pax-statement-2">Passenger Statement 2</label>
+          <textarea id="tools-master-pax-statement-2" style="min-height:56px; font-size:0.84rem;"></textarea>
+        </div>
+        <div class="tools-field" style="grid-column:1/-1;">
+          <label for="tools-master-pax-statement-3">Passenger Statement 3</label>
+          <textarea id="tools-master-pax-statement-3" style="min-height:56px; font-size:0.84rem;"></textarea>
+        </div>
+        <div class="tools-field" style="grid-column:1/-1;">
+          <label for="tools-master-pax-statement-4">Passenger Statement 4</label>
+          <textarea id="tools-master-pax-statement-4" style="min-height:56px; font-size:0.84rem;"></textarea>
+        </div>
+        <div class="tools-field" style="grid-column:1/-1;">
+          <label for="tools-master-pax-qr-prompt">Passenger QR Prompt</label>
+          <input id="tools-master-pax-qr-prompt" type="text" placeholder="Vou escanear este QR Code para apoiar ou compartilhar este ministério.">
+        </div>
+        <div class="tools-field" style="grid-column:1/-1;">
+          <label for="tools-master-pax-qr-url">Passenger QR Destination URL</label>
+          <input id="tools-master-pax-qr-url" type="url" placeholder="https://...">
+        </div>
       </div>
       <div class="tools-btn-row">
         <button class="btn-ts" type="button" onclick="toolsLoadMasterConfig_()">RELOAD</button>
@@ -1584,6 +1613,27 @@
     </div>
   </div>
 
+  <div id="tools-panel-histimports" class="tools-panel">
+    <div class="tools-panel-header">
+      <h3 class="tools-panel-title">Historical Draft Worksheet</h3>
+      <button class="tools-panel-close" onclick="toolsClosePanel('histimports')">&times;</button>
+    </div>
+
+    <div class="tools-donation-box">
+      <div class="tools-donation-note" style="margin-bottom:8px;">Secretary workflow: review line-by-line draft, correct values, then set decision (Commit/Duplicate/Ignore).</div>
+      <div class="tools-btn-row" style="margin-top:8px;">
+        <button class="btn-ta" type="button" onclick="toolsLoadHistoricalImportBatches()">REFRESH WORKSHEET</button>
+        <button class="btn-ta" type="button" onclick="toolsToggleHistoricalCommitted()" id="tools-hist-toggle-committed">SHOW COMMITTED</button>
+        <button class="btn-tp" type="button" onclick="toolsCommitHistoricalBatch()">COMMIT REVIEWED ROWS</button>
+      </div>
+      <div id="tools-hist-review-meta" class="tools-donation-note" style="margin-top:8px;"></div>
+    </div>
+
+    <div id="tools-hist-review-box" class="tools-donation-box" style="display:none;">
+      <div id="tools-hist-review-list"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Contact overlay -->
@@ -1704,6 +1754,9 @@
   var _toolsDonationFilePayload = null;
   var _toolsDonationAnalysis = null;
   var _toolsDonationBatchId = '';
+  var _toolsHistBatchId = '';
+  var _toolsHistShowCommitted = false;
+  var _toolsHistReviewCache = null;
   var _toolsAircraftBuilderData = null;
   var _toolsAircraftMode = 'scratch';
   var _toolsAirportsDbRows = [];
@@ -1733,7 +1786,7 @@
   var _toolsSelectedModuleRow = 0;
   var _toolsAircraftDocsRows = [];
   var _toolsAircraftDocsFolderUrl = '';
-  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','students','pilotauth','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations'];
+  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','students','pilotauth','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations','histimports'];
 
   function toolsCurrentAdmin_() {
     var userEl = document.getElementById('userDisplay');
@@ -1910,20 +1963,33 @@
       if (input.dataset.toolsDateReady === '1') continue;
       input.dataset.toolsDateReady = '1';
       input.setAttribute('autocomplete', 'off');
-      input.setAttribute('placeholder', 'YYYY-MM-DD');
+      var mode = String(input.getAttribute('data-tools-date-format') || '').toLowerCase();
+      var isBr = mode === 'br';
+      var isPtShort = mode === 'pt-short';
+      input.setAttribute('placeholder', isPtShort ? 'DD-mmm-AAAA' : (isBr ? 'DD/MM/AAAA' : 'YYYY-MM-DD'));
       input.addEventListener('focus', function(evt) {
         toolsOpenDatePicker_(evt.target && evt.target.id);
       });
       if (window.M && M.Datepicker) {
         M.Datepicker.init(input, {
           autoClose: true,
-          format: 'yyyy-mm-dd',
+          format: isPtShort ? 'dd-mmm-yyyy' : (isBr ? 'dd/mm/yyyy' : 'yyyy-mm-dd'),
           defaultDate: toolsDateValueToDate_(input.value),
           setDefaultDate: !!toolsDateValueToDate_(input.value),
           yearRange: [1940, 2100],
+          i18n: {
+            cancel: 'Cancelar',
+            clear: 'Limpar',
+            done: 'Ok',
+            months: ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+            monthsShort: ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'],
+            weekdays: ['Domingo', 'Segunda-feira', 'Terca-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado'],
+            weekdaysShort: ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'],
+            weekdaysAbbrev: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+          },
           onSelect: function(date) {
             var el = this.el;
-            if (el) el.value = toolsDateToIso_(date);
+            if (el) el.value = toolsDateFormatForInput_(el, date);
           }
         });
       }
@@ -1932,17 +1998,33 @@
 
   function toolsDateValueToDate_(value) {
     var raw = String(value || '').trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
-    var parts = raw.split('-').map(function(part) { return parseInt(part, 10); });
-    return new Date(parts[0], parts[1] - 1, parts[2]);
-  }
-
-  function toolsDateToIso_(date) {
-    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
-    var yyyy = date.getFullYear();
-    var mm = String(date.getMonth() + 1).padStart(2, '0');
-    var dd = String(date.getDate()).padStart(2, '0');
-    return yyyy + '-' + mm + '-' + dd;
+    if (!raw) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      var parts = raw.split('-').map(function(part) { return parseInt(part, 10); });
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    var m = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (m) {
+      var dd = Number(m[1]);
+      var mm = Number(m[2]);
+      var yyyy = Number(m[3]);
+      var dt = new Date(yyyy, mm - 1, dd);
+      if (isNaN(dt.getTime()) || dt.getFullYear() !== yyyy || (dt.getMonth() + 1) !== mm || dt.getDate() !== dd) return null;
+      return dt;
+    }
+    var mShort = raw.toLowerCase().match(/^(\d{2})-([a-z]{3})-(\d{4})$/);
+    if (mShort) {
+      var dd2 = Number(mShort[1]);
+      var mon = mShort[2];
+      var yyyy2 = Number(mShort[3]);
+      var monthMap = { jan:1, fev:2, mar:3, abr:4, mai:5, jun:6, jul:7, ago:8, set:9, out:10, nov:11, dez:12 };
+      var mm2 = monthMap[mon] || 0;
+      if (!mm2) return null;
+      var dt2 = new Date(yyyy2, mm2 - 1, dd2);
+      if (isNaN(dt2.getTime()) || dt2.getFullYear() !== yyyy2 || (dt2.getMonth() + 1) !== mm2 || dt2.getDate() !== dd2) return null;
+      return dt2;
+    }
+    return null;
   }
 
   function toolsOpenDatePicker_(inputId) {
@@ -2871,6 +2953,252 @@
       .commitDonationBatch(_toolsDonationBatchId);
   }
 
+  function toolsOpenHistoricalImportsPanel() {
+    toolsOpenPanel('histimports');
+    _toolsHistShowCommitted = false;
+    _toolsHistReviewCache = null;
+    var toggleBtn = document.getElementById('tools-hist-toggle-committed');
+    if (toggleBtn) toggleBtn.textContent = 'SHOW COMMITTED';
+    toolsLoadHistoricalImportBatches();
+  }
+
+  function toolsToggleHistoricalCommitted() {
+    _toolsHistShowCommitted = !_toolsHistShowCommitted;
+    var toggleBtn = document.getElementById('tools-hist-toggle-committed');
+    if (toggleBtn) toggleBtn.textContent = _toolsHistShowCommitted ? 'HIDE COMMITTED' : 'SHOW COMMITTED';
+    if (_toolsHistReviewCache) toolsRenderHistoricalBatchReview_(_toolsHistReviewCache);
+  }
+
+  function toolsLoadHistoricalImportBatches() {
+    var metaEl = document.getElementById('tools-hist-review-meta');
+    if (metaEl) metaEl.textContent = 'Loading latest worksheet batch...';
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          var msg = (res && res.error) ? res.error : 'Could not load historical batches';
+          if (metaEl) metaEl.textContent = msg;
+          toolsToast_(msg, 'red');
+          return;
+        }
+        var rows = Array.isArray(res.rows) ? res.rows : [];
+        if (!rows.length) {
+          _toolsHistBatchId = '';
+          _toolsHistReviewCache = null;
+          if (metaEl) metaEl.textContent = 'No historical import batches found yet.';
+          var listEl = document.getElementById('tools-hist-review-list');
+          if (listEl) listEl.innerHTML = '<div class="tools-donation-note">No worksheet rows available yet.</div>';
+          return;
+        }
+
+        var exists = false;
+        for (var i = 0; i < rows.length; i++) {
+          if (String(rows[i].batchId || '') === _toolsHistBatchId) { exists = true; break; }
+        }
+        if (!_toolsHistBatchId || !exists) _toolsHistBatchId = String(rows[0].batchId || '');
+        if (metaEl) metaEl.textContent = 'Worksheet batch: ' + _toolsHistBatchId + ' (' + rows.length + ' recent batches available).';
+        toolsLoadHistoricalBatchReview(_toolsHistBatchId);
+      })
+      .withFailureHandler(function(err) {
+        var msg = 'Error: ' + (err && err.message ? err.message : String(err));
+        if (metaEl) metaEl.textContent = msg;
+        toolsToast_(msg, 'red');
+      })
+      .getHistoricalFlightImportBatches(40);
+  }
+
+  function toolsLoadHistoricalBatchReview(batchId) {
+    var target = String(batchId || _toolsHistBatchId || '').trim();
+    if (!target) { toolsToast_('Select or type a batch ID first.', 'orange'); return; }
+    _toolsHistBatchId = target;
+    var metaEl = document.getElementById('tools-hist-review-meta');
+    if (metaEl) metaEl.textContent = 'Loading worksheet lines...';
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          var msg = (res && res.error) ? res.error : 'Could not load batch review';
+          if (metaEl) metaEl.textContent = msg;
+          toolsToast_(msg, 'red');
+          return;
+        }
+        _toolsHistReviewCache = res;
+        toolsRenderHistoricalBatchReview_(res);
+      })
+      .withFailureHandler(function(err) {
+        var msg = 'Error: ' + (err && err.message ? err.message : String(err));
+        if (metaEl) metaEl.textContent = msg;
+        toolsToast_(msg, 'red');
+      })
+      .getHistoricalFlightBatchReview(target);
+  }
+
+  function toolsRenderHistoricalBatchReview_(res) {
+    var batch = res.batch || {};
+    var rows = Array.isArray(res.rows) ? res.rows : [];
+    var box = document.getElementById('tools-hist-review-box');
+    var listEl = document.getElementById('tools-hist-review-list');
+    var metaEl = document.getElementById('tools-hist-review-meta');
+    if (!box || !listEl || !metaEl) return;
+
+    metaEl.innerHTML = 'Worksheet batch: <b>' + String(batch.batchId || '') + '</b>'
+      + ' • Status: <b>' + String(batch.status || '') + '</b>'
+      + ' • Docs: <b>' + Number(batch.documentCount || 0) + '</b>'
+      + ' • Rows: <b>' + Number(batch.rowCount || rows.length) + '</b>'
+      + ' • Unresolved: <b>' + Number(batch.unresolvedCount || 0) + '</b>'
+      + (batch.fileUrl ? (' • <a href="' + batch.fileUrl + '" target="_blank" rel="noopener">Source File</a>') : '');
+
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function colorForRow(row) {
+      if (String(row.commitFlightId || '').trim()) return '#edf7ed';
+      var status = String(row.matchStatus || '').toUpperCase();
+      var v = row.validation || {};
+      var hasIssues = Array.isArray(v.issues) && v.issues.length;
+      if (status === 'INVALID') return '#fdecea';
+      if (status.indexOf('DUPLICATE') >= 0 || hasIssues || String(v.overallStatus || '') !== 'OK') return '#fff8e1';
+      return '#e8f5e9';
+    }
+
+    var visibleRows = rows.filter(function(r) {
+      return _toolsHistShowCommitted || !String(r.commitFlightId || '').trim();
+    });
+
+    if (!visibleRows.length) {
+      listEl.innerHTML = '<div class="tools-donation-note">No worksheet rows for current filters.</div>';
+      box.style.display = 'block';
+      return;
+    }
+
+    listEl.innerHTML = '<div style="overflow:auto; border:1px solid #d7e3f4; border-radius:10px;">'
+      + '<table style="width:100%; border-collapse:collapse; min-width:1200px; font-size:0.82rem;">'
+      + '<thead><tr style="background:#f0f6ff; color:#174a7a;">'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">Row</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">Date</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">Pilot/Student</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">ACFT</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">From</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">To</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">Time</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">LDG</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">T&G</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">Note</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">Quality</th>'
+      + '<th style="padding:8px; border-bottom:1px solid #d7e3f4; text-align:left;">Actions</th>'
+      + '</tr></thead>'
+      + '<tbody>'
+      + visibleRows.map(function(row) {
+          var rn = Number(row.rowNo || 0);
+          var decision = String(row.reviewDecision || '').trim() || 'PENDING';
+          var v = row.validation || {};
+          var issues = Array.isArray(v.issues) && v.issues.length ? v.issues.join(' ; ') : 'solid';
+          var quality = String(row.matchStatus || 'NEW') + ' | ' + issues;
+          var committed = String(row.commitFlightId || '').trim();
+          var preview = row.logPreview || {};
+          var previewCols = Array.isArray(preview.columns) ? preview.columns : [];
+          var previewHtml = '<details style="margin-top:6px;">'
+            + '<summary style="cursor:pointer; color:#0b5394; font-weight:700;">LOG_Flights preview (' + esc(preview.flightId || '-') + ')</summary>'
+            + '<div style="margin-top:6px; max-height:180px; overflow:auto; border:1px solid #d7e3f4; background:#f8fbff; border-radius:8px; padding:6px;">'
+            + '<table style="width:100%; border-collapse:collapse; font-size:0.76rem;">'
+            + '<thead><tr><th style="text-align:left; padding:4px; border-bottom:1px solid #d7e3f4;">Column</th><th style="text-align:left; padding:4px; border-bottom:1px solid #d7e3f4;">Value</th></tr></thead>'
+            + '<tbody>'
+            + previewCols.map(function(c) {
+                return '<tr>'
+                  + '<td style="padding:3px 4px; border-bottom:1px solid #edf3ff; font-family:monospace;">' + esc(c.column || '') + '</td>'
+                  + '<td style="padding:3px 4px; border-bottom:1px solid #edf3ff;">' + esc(c.value == null ? '' : c.value) + '</td>'
+                  + '</tr>';
+              }).join('')
+            + '</tbody></table></div></details>';
+          return '<tr style="background:' + colorForRow(row) + '; border-bottom:1px solid #dbe7f7;">'
+            + '<td style="padding:6px; vertical-align:top;"><b>#' + rn + '</b>' + (committed ? ('<div style="color:#2e7d32; font-size:0.75rem;">COMMITTED ' + esc(committed) + '</div>') : '') + '</td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-date-' + rn + '" type="text" value="' + esc(row.date || '') + '" style="width:120px;"></td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-pilot-' + rn + '" type="text" value="' + esc(row.pilot || '') + '" style="width:180px;"></td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-acft-' + rn + '" type="text" value="' + esc(row.acft || '') + '" style="width:100px;"></td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-from-' + rn + '" type="text" value="' + esc(row.from || '') + '" style="width:90px;"></td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-to-' + rn + '" type="text" value="' + esc(row.to || '') + '" style="width:90px;"></td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-time-' + rn + '" type="text" value="' + esc(row.totalTimeH || '') + '" style="width:70px;"></td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-ldg-' + rn + '" type="text" value="' + esc(row.numberLdgs || '') + '" style="width:56px;"></td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-tg-' + rn + '" type="text" value="' + esc(row.touchAndGos || '') + '" style="width:56px;"></td>'
+            + '<td style="padding:6px; vertical-align:top;"><input id="tools-hist-note-' + rn + '" type="text" value="' + esc(row.sourceNote || '') + '" style="width:220px;"></td>'
+            + '<td style="padding:6px; vertical-align:top; color:#37474f;">' + esc(quality) + (row.sourceFileUrl ? ('<div><a href="' + esc(row.sourceFileUrl) + '" target="_blank" rel="noopener">evidence</a></div>') : '') + previewHtml + '</td>'
+            + '<td style="padding:6px; vertical-align:top; min-width:220px;">'
+            + '<div style="display:flex; gap:6px; flex-wrap:wrap;">'
+            + '<button class="tools-mini-btn" type="button" onclick="toolsSaveHistoricalRow(' + rn + ')">Save</button>'
+            + '<button class="tools-mini-btn commit" type="button" onclick="toolsReviewHistoricalRow(' + rn + ', \'COMMIT\')">Commit</button>'
+            + '<button class="tools-mini-btn duplicate" type="button" onclick="toolsReviewHistoricalRow(' + rn + ', \'DUPLICATE\')">Duplicate</button>'
+            + '<button class="tools-mini-btn ignore" type="button" onclick="toolsReviewHistoricalRow(' + rn + ', \'IGNORE\')">Ignore</button>'
+            + '</div>'
+            + '<div class="tools-donation-note">Decision: ' + esc(decision) + '</div>'
+            + '</td>'
+            + '</tr>';
+        }).join('')
+      + '</tbody></table></div>';
+
+    box.style.display = 'block';
+  }
+
+  function toolsSaveHistoricalRow(rowNo) {
+    if (!_toolsHistBatchId) { toolsToast_('No worksheet batch loaded.', 'orange'); return; }
+    var rn = Number(rowNo || 0);
+    if (!(rn > 0)) { toolsToast_('Invalid row.', 'red'); return; }
+
+    function gv(id) {
+      var el = document.getElementById(id);
+      return el ? String(el.value || '').trim() : '';
+    }
+
+    var patch = {
+      date: gv('tools-hist-date-' + rn),
+      pilot: gv('tools-hist-pilot-' + rn),
+      acft: gv('tools-hist-acft-' + rn),
+      from: gv('tools-hist-from-' + rn),
+      to: gv('tools-hist-to-' + rn),
+      totalTimeH: gv('tools-hist-time-' + rn),
+      numberLdgs: gv('tools-hist-ldg-' + rn),
+      touchAndGos: gv('tools-hist-tg-' + rn),
+      sourceNote: gv('tools-hist-note-' + rn)
+    };
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) { toolsToast_((res && res.error) ? res.error : 'Save failed', 'red'); return; }
+        toolsToast_('Row ' + rn + ' saved.', 'green');
+        toolsLoadHistoricalBatchReview(_toolsHistBatchId);
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .updateHistoricalFlightStagingRow(_toolsHistBatchId, rn, patch);
+  }
+
+  function toolsReviewHistoricalRow(rowNo, decision) {
+    if (!_toolsHistBatchId) { toolsToast_('No historical batch selected.', 'orange'); return; }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) { toolsToast_((res && res.error) ? res.error : 'Review update failed', 'red'); return; }
+        toolsLoadHistoricalBatchReview();
+      })
+      .withFailureHandler(function(err) { toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red'); })
+      .reviewHistoricalFlightStagingRow(_toolsHistBatchId, rowNo, decision, 'Reviewed in Tools panel');
+  }
+
+  function toolsCommitHistoricalBatch() {
+    if (!_toolsHistBatchId) { toolsToast_('No historical batch selected.', 'orange'); return; }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) { toolsToast_((res && res.error) ? res.error : 'Commit failed', 'red'); return; }
+        toolsToast_('Committed ' + Number(res.committed || 0) + ' flights to LOG_Flights.', 'green');
+        toolsLoadHistoricalBatchReview();
+        toolsLoadHistoricalImportBatches();
+      })
+      .withFailureHandler(function(err) { toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red'); })
+      .commitHistoricalFlightBatch(_toolsHistBatchId);
+  }
+
   function toolsResetPassengerEditor() {
     _toolsPassengerEditRow = 0;
     var title = document.getElementById('tools-pax-panel-title');
@@ -3181,28 +3509,173 @@
     toolsInitDatePickers_(document.getElementById('tools-panel-students') || document);
   }
 
-  function toolsStudentRatingsOptionsHtml_(selectedRatings) {
+  function toolsOpenPersonalPanel() {
+    toolsOpenStudentPanel();
+  }
+
+  function toolsStudentApplyPersonTypeUi_() {
+    var typeEl = document.getElementById('tools-student-person-type');
+    var fundsBox = document.getElementById('tools-student-funds-box');
+    var selected = String((typeEl && typeEl.value) || 'STUDENT').trim().toUpperCase();
+    var showFunds = selected === 'STUDENT';
+    if (fundsBox) fundsBox.style.display = showFunds ? '' : 'none';
+    if (!showFunds) {
+      var creditEl = document.getElementById('tools-student-credit');
+      var creditNoteEl = document.getElementById('tools-student-credit-note');
+      var fileEl = document.getElementById('tools-student-deposit-file');
+      var receiptMetaEl = document.getElementById('tools-student-receipt-meta');
+      if (creditEl) creditEl.value = '';
+      if (creditNoteEl) creditNoteEl.value = '';
+      if (fileEl) fileEl.value = '';
+      _toolsPendingStudentReceipt = null;
+      if (receiptMetaEl) receiptMetaEl.textContent = 'Fundos indisponiveis para este tipo de pessoa.';
+    }
+  }
+
+  function toolsStudentPersonTypeLabel_(kind) {
+    var type = String(kind || '').trim().toUpperCase();
+    if (type === 'OPS_PILOT') return 'Piloto Operacional';
+    if (type === 'STAFF') return 'Equipe';
+    return 'Aluno';
+  }
+
+  function toolsStudentRatingExpiryInputId_(code) {
+    return 'tools-student-rating-expiry-' + String(code || '').replace(/[^A-Za-z0-9_-]/g, '_');
+  }
+
+  function toolsStudentRatingsOptionsHtml_(selectedRatings, ratingsExpiry) {
     var selectedMap = {};
     (Array.isArray(selectedRatings) ? selectedRatings : []).forEach(function(v) {
       var key = String(v || '').trim().toUpperCase();
       if (key) selectedMap[key] = true;
     });
+    var expiryMap = (ratingsExpiry && typeof ratingsExpiry === 'object') ? ratingsExpiry : {};
     var options = Array.isArray(_toolsStudentsData.ratingsOptions) ? _toolsStudentsData.ratingsOptions : [];
     return options.map(function(item) {
       var value = String(item && item.code || '').trim();
       var label = String(item && item.label || value).trim();
       if (!value) return '';
-      var selected = selectedMap[value.toUpperCase()] ? ' selected' : '';
-      return '<option value="' + toolsAircraftEscape_(value) + '"' + selected + '>' + toolsAircraftEscape_(label) + '</option>';
+      var selectedClass = selectedMap[value.toUpperCase()] ? ' is-selected' : '';
+      var safeValue = toolsAircraftEscape_(value);
+      var jsValue = String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      var expId = toolsStudentRatingExpiryInputId_(value);
+      var expIso = String(expiryMap[value] || '').trim();
+      var expDisplay = expIso ? toolsDateToPtShort_(toolsDateValueToDate_(expIso)) : '';
+      return '<div class="tools-student-rating-row' + selectedClass + '" data-rating-code="' + safeValue + '" onclick="toolsStudentToggleRating_(\'' + jsValue + '\', event)">'
+        + '<div class="tools-student-rating-main">'
+        + '<span class="tools-student-rating-mark" aria-hidden="true"></span>'
+        + '<span class="tools-student-rating-label">' + toolsAircraftEscape_(label) + '</span>'
+        + '</div>'
+        + '<div class="tools-student-rating-expiry-wrap">'
+        + '<span class="tools-student-rating-expiry-label">Val.</span>'
+        + '<input id="' + toolsAircraftEscape_(expId) + '" class="tools-student-rating-expiry-input tools-date-input" type="text" data-tools-date-format="pt-short" placeholder="DD-mmm-AAAA" value="' + toolsAircraftEscape_(expDisplay) + '" readonly onclick="toolsOpenDatePicker_(\'' + toolsAircraftEscape_(expId) + '\')">'
+        + '</div>'
+        + '</div>';
     }).join('');
   }
 
-  function toolsStudentReadSelectedRatings_() {
+  function toolsStudentToggleRating_(value, evt) {
+    if (evt && evt.preventDefault) evt.preventDefault();
+    if (evt && evt.stopPropagation) evt.stopPropagation();
+    var root = document.getElementById('tools-student-ratings');
+    if (!root) return;
+    var target = evt && evt.target ? evt.target : null;
+    if (target && (target.classList && target.classList.contains('tools-student-rating-expiry-input'))) return;
+    var selector = '.tools-student-rating-row[data-rating-code="' + String(value || '').replace(/"/g, '\\"') + '"]';
+    var row = root.querySelector(selector);
+    if (!row) return;
+    row.classList.toggle('is-selected');
+  }
+
+  function toolsStudentReadSelectedRatingsWithExpiry_() {
     var el = document.getElementById('tools-student-ratings');
     if (!el) return [];
-    return Array.prototype.slice.call(el.selectedOptions || [])
-      .map(function(opt) { return String(opt.value || '').trim(); })
+    return Array.prototype.slice.call(el.querySelectorAll('.tools-student-rating-row.is-selected') || [])
+      .map(function(opt) {
+        var code = String(opt.getAttribute('data-rating-code') || '').trim();
+        var expInput = el.querySelector('#' + toolsStudentRatingExpiryInputId_(code));
+        var rawExp = String(expInput && expInput.value || '').trim();
+        var isoExp = rawExp ? toolsNormalizeDateForSave_(rawExp) : '';
+        return { code: code, expiry: isoExp };
+      })
+      .filter(function(item) { return item && item.code; });
+  }
+
+  function toolsStudentReadSelectedRatings_() {
+    return toolsStudentReadSelectedRatingsWithExpiry_().map(function(item) { return item.code; })
       .filter(Boolean);
+  }
+
+  function toolsDateToIso_(date) {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+    var yyyy = date.getFullYear();
+    var mm = String(date.getMonth() + 1).padStart(2, '0');
+    var dd = String(date.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
+
+  function toolsDateToBr_(date) {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+    var dd = String(date.getDate()).padStart(2, '0');
+    var mm = String(date.getMonth() + 1).padStart(2, '0');
+    var yyyy = date.getFullYear();
+    return dd + '/' + mm + '/' + yyyy;
+  }
+
+  function toolsDateBrToIso_(value) {
+    var raw = String(value || '').trim();
+    var m = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return '';
+    var dd = Number(m[1]);
+    var mm = Number(m[2]);
+    var yyyy = Number(m[3]);
+    var dt = new Date(yyyy, mm - 1, dd);
+    if (isNaN(dt.getTime()) || dt.getFullYear() !== yyyy || (dt.getMonth() + 1) !== mm || dt.getDate() !== dd) return '';
+    return toolsDateToIso_(dt);
+  }
+
+  function toolsDateToPtShort_(date) {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+    var dd = String(date.getDate()).padStart(2, '0');
+    var yyyy = date.getFullYear();
+    var monthsShort = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    return dd + '-' + monthsShort[date.getMonth()] + '-' + yyyy;
+  }
+
+  function toolsDatePtShortToIso_(value) {
+    var raw = String(value || '').trim().toLowerCase();
+    var m = raw.match(/^(\d{2})-([a-z]{3})-(\d{4})$/);
+    if (!m) return '';
+    var dd = Number(m[1]);
+    var mon = m[2];
+    var yyyy = Number(m[3]);
+    var monthMap = { jan:1, fev:2, mar:3, abr:4, mai:5, jun:6, jul:7, ago:8, set:9, out:10, nov:11, dez:12 };
+    var mm = monthMap[mon] || 0;
+    if (!mm) return '';
+    var dt = new Date(yyyy, mm - 1, dd);
+    if (isNaN(dt.getTime()) || dt.getFullYear() !== yyyy || (dt.getMonth() + 1) !== mm || dt.getDate() !== dd) return '';
+    return toolsDateToIso_(dt);
+  }
+
+  function toolsDateFormatForInput_(input, date) {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+    var mode = String((input && input.getAttribute && input.getAttribute('data-tools-date-format')) || '').toLowerCase();
+    if (mode === 'pt-short') return toolsDateToPtShort_(date);
+    return mode === 'br' ? toolsDateToBr_(date) : toolsDateToIso_(date);
+  }
+
+  function toolsDisplayDateForInput_(input, value) {
+    var dt = toolsDateValueToDate_(value);
+    return dt ? toolsDateFormatForInput_(input, dt) : '';
+  }
+
+  function toolsNormalizeDateForSave_(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    if (/^\d{2}\/[0-9]{2}\/[0-9]{4}$/.test(raw)) return toolsDateBrToIso_(raw);
+    if (/^\d{2}-[a-zA-Z]{3}-\d{4}$/.test(raw)) return toolsDatePtShortToIso_(raw);
+    return toolsDateBrToIso_(raw);
   }
 
   function toolsStudentRenderLedger_(entries) {
@@ -3210,19 +3683,61 @@
     if (!listEl) return;
     var rows = Array.isArray(entries) ? entries.slice() : [];
     if (!rows.length) {
-      listEl.innerHTML = '<div class="tools-search-item"><div class="tools-search-meta">Sem créditos lançados para este aluno.</div></div>';
+      listEl.innerHTML = '<div class="tools-search-item"><div class="tools-search-meta">Sem transações lançadas para este aluno.</div></div>';
       return;
     }
+
+    var typeLabel = function(txType, refType) {
+      var t = String(txType || '').toUpperCase();
+      var r = String(refType || '').toUpperCase();
+      if (t === 'VOID_REVERSAL') return '<span class="tools-ledger-type tools-ledger-type-void">Estorno Void</span>';
+      if (t === 'EDIT_REVERSAL') return '<span class="tools-ledger-type tools-ledger-type-void">Estorno Edit</span>';
+      if (t === 'DEBIT' || t === 'FLIGHT_DEBIT_FIFO') return '<span class="tools-ledger-type tools-ledger-type-debit">Débito</span>';
+      if (r === 'AMENDED_CREDIT') return '<span class="tools-ledger-type tools-ledger-type-amended">Crédito Corrigido</span>';
+      if (r === 'FLIGHT_DEBIT_FIFO') return '<span class="tools-ledger-type tools-ledger-type-debit">Débito Missão</span>';
+      return '<span class="tools-ledger-type tools-ledger-type-credit">Depósito</span>';
+    };
+
     listEl.innerHTML = rows.slice().reverse().map(function(item) {
+      var txId = String(item && item.txId || '').trim();
+      var txType = String(item && item.txType || '').toUpperCase();
+      var refType = String(item && item.referenceType || '').toUpperCase();
+      var status = String(item && item.status || '').toUpperCase();
       var amount = Number(item && item.amount || 0);
       var rate = Number(item && item.rate || 0);
       var stamp = String(item && item.timestamp || '').trim();
       var note = String(item && item.note || '').trim();
       var url = String(item && item.receiptUrl || '').trim();
       var by = String(item && item.by || '').trim();
-      return '<div class="tools-search-item">'
-        + '<div class="tools-search-name">R$ ' + amount.toFixed(2) + ' · Taxa R$ ' + rate.toFixed(2) + '/h</div>'
-        + '<div class="tools-search-meta">' + toolsAircraftEscape_(stamp + (by ? (' · ' + by) : '')) + '</div>'
+      var balAfter = Number(item && item.balanceAfter || 0);
+
+      var isVoided = status === 'VOIDED';
+      var isAmended = status === 'AMENDED';
+      var isReversal = txType === 'VOID_REVERSAL' || txType === 'EDIT_REVERSAL';
+      var isDebit = txType === 'DEBIT' || txType === 'FLIGHT_DEBIT_FIFO' || amount < 0;
+      var canAction = txType === 'CREDIT' && !isVoided && !isAmended;
+
+      var amountStr = (amount < 0 ? '-' : '') + 'R$ ' + Math.abs(amount).toFixed(2);
+      var statusBadge = isVoided ? '<span class="tools-ledger-status-voided">ANULADO</span> ' :
+                        isAmended ? '<span class="tools-ledger-status-amended">EMENDADO</span> ' : '';
+
+      var actionBtns = '';
+      if (canAction) {
+        var escId = toolsAircraftEscape_(txId);
+        var escKey = toolsAircraftEscape_(String(item.studentKey || _toolsCurrentEditStudentKey_() || ''));
+        actionBtns = '<span style="float:right;">'
+          + '<button class="tools-ledger-action tools-ledger-edit-btn" onclick="(function(e){e.stopPropagation();toolsOpenDepositEdit_(\'' + escId + '\');})(event)">Editar</button>'
+          + '<button class="tools-ledger-action tools-ledger-void-btn" onclick="(function(e){e.stopPropagation();toolsVoidDeposit_(\'' + escId + '\',\'' + escKey + '\');})(event)">Anular</button>'
+          + '</span>';
+      }
+
+      var rowStyle = (isVoided || isReversal) ? 'opacity:0.55;' : '';
+      return '<div class="tools-search-item" style="' + rowStyle + '">'        + actionBtns
+        + '<div class="tools-search-name">' + typeLabel(txType, refType) + statusBadge
+        + amountStr + (rate > 0 ? ' · R$ ' + rate.toFixed(2) + '/h' : '')
+        + (balAfter ? ' <span style="color:#546e7a;font-size:0.78rem;">→ saldo R$ ' + balAfter.toFixed(2) + '</span>' : '')
+        + '</div>'
+        + '<div class="tools-search-meta">' + toolsAircraftEscape_(stamp + (by ? (' · ' + by) : '')) + (txId ? (' · ' + txId) : '') + '</div>'
         + (note ? ('<div class="tools-search-meta">' + toolsAircraftEscape_(note) + '</div>') : '')
         + (url ? ('<div class="tools-search-meta"><a href="' + toolsAircraftEscape_(url) + '" target="_blank" rel="noopener">Abrir comprovante</a></div>') : '')
         + '</div>';
@@ -3233,8 +3748,10 @@
     var sel = document.getElementById('tools-student-select');
     if (!sel) return;
     var rows = Array.isArray(_toolsStudentsData.rows) ? _toolsStudentsData.rows : [];
-    sel.innerHTML = '<option value="">Novo aluno...</option>' + rows.map(function(item) {
+    sel.innerHTML = '<option value="">Nova pessoa...</option>' + rows.map(function(item) {
       var label = String(item.name || 'Sem nome');
+      var kind = String(item.personType || '').trim().toUpperCase();
+      if (kind) label += ' · ' + toolsStudentPersonTypeLabel_(kind);
       if (item.canac) label += ' · CANAC ' + String(item.canac);
       if (item.cpf) label += ' · CPF ' + String(item.cpf);
       return '<option value="' + toolsAircraftEscape_(String(item.rowNumber || '')) + '">' + toolsAircraftEscape_(label) + '</option>';
@@ -3252,9 +3769,9 @@
         _toolsStudentsData.ratingsOptions = Array.isArray(res.ratingsOptions) ? res.ratingsOptions : [];
         toolsStudentRefreshSelect_();
         var ratingsEl = document.getElementById('tools-student-ratings');
-        if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_([]);
+        if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_([], {});
         var metaEl = document.getElementById('tools-student-meta');
-        if (metaEl) metaEl.textContent = _toolsStudentsData.rows.length + ' alunos carregados.';
+        if (metaEl) metaEl.textContent = _toolsStudentsData.rows.length + ' pessoas carregadas.';
       })
       .withFailureHandler(function(err) {
         toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
@@ -3274,10 +3791,14 @@
 
     document.getElementById('tools-student-name').value = String(item.name || '');
     document.getElementById('tools-student-email').value = String(item.email || '');
+    var typeEl = document.getElementById('tools-student-person-type');
+    if (typeEl) typeEl.value = String(item.personType || 'STUDENT').trim().toUpperCase();
     document.getElementById('tools-student-cpf').value = String(item.cpf || '');
     document.getElementById('tools-student-canac').value = String(item.canac || '');
-    document.getElementById('tools-student-dob').value = String(item.dob || '');
-    document.getElementById('tools-student-medical-expiry').value = String(item.medicalExpiry || '');
+    var dobEl = document.getElementById('tools-student-dob');
+    var medEl = document.getElementById('tools-student-medical-expiry');
+    if (dobEl) dobEl.value = toolsDisplayDateForInput_(dobEl, item.dob || '');
+    if (medEl) medEl.value = toolsDisplayDateForInput_(medEl, item.medicalExpiry || '');
     document.getElementById('tools-student-medical-class').value = String(item.medicalClass || '');
     document.getElementById('tools-student-rate').value = Number(item.rateBrlHour || 0).toFixed(2);
     document.getElementById('tools-student-balance').value = Number(item.balanceBrl || 0).toFixed(2);
@@ -3289,7 +3810,7 @@
     };
 
     var ratingsEl = document.getElementById('tools-student-ratings');
-    if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_(item.ratings || []);
+    if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_(item.ratings || [], item.ratingsExpiry || {});
 
     var receiptMetaEl = document.getElementById('tools-student-receipt-meta');
     if (receiptMetaEl) {
@@ -3301,8 +3822,9 @@
     }
 
     toolsStudentRenderLedger_(item.ledger || []);
+    toolsStudentApplyPersonTypeUi_();
     var metaEl = document.getElementById('tools-student-meta');
-    if (metaEl) metaEl.textContent = 'Editando aluno linha ' + rowNumber + '.';
+    if (metaEl) metaEl.textContent = 'Editando pessoa linha ' + rowNumber + '.';
   }
 
   function toolsStudentClearForm_() {
@@ -3310,6 +3832,8 @@
     _toolsPendingStudentReceipt = null;
     var sel = document.getElementById('tools-student-select');
     if (sel) sel.value = '';
+    var typeEl = document.getElementById('tools-student-person-type');
+    if (typeEl) typeEl.value = 'STUDENT';
     ['tools-student-name','tools-student-email','tools-student-cpf','tools-student-canac','tools-student-dob','tools-student-medical-expiry','tools-student-rate','tools-student-credit','tools-student-credit-note'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.value = '';
@@ -3319,14 +3843,15 @@
     var medClassEl = document.getElementById('tools-student-medical-class');
     if (medClassEl) medClassEl.value = '';
     var ratingsEl = document.getElementById('tools-student-ratings');
-    if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_([]);
+    if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_([], {});
     var fileEl = document.getElementById('tools-student-deposit-file');
     if (fileEl) fileEl.value = '';
     var receiptMetaEl = document.getElementById('tools-student-receipt-meta');
     if (receiptMetaEl) receiptMetaEl.textContent = 'Nenhum comprovante selecionado.';
     toolsStudentRenderLedger_([]);
+    toolsStudentApplyPersonTypeUi_();
     var metaEl = document.getElementById('tools-student-meta');
-    if (metaEl) metaEl.textContent = 'Novo aluno.';
+    if (metaEl) metaEl.textContent = 'Nova pessoa.';
   }
 
   function toolsStudentOnReceiptSelected_() {
@@ -3377,28 +3902,63 @@
   }
 
   function toolsStudentSave_() {
+    var ratingsWithExpiry = toolsStudentReadSelectedRatingsWithExpiry_();
+    var personType = String((document.getElementById('tools-student-person-type') || {}).value || 'STUDENT').trim().toUpperCase();
     var payload = {
       rowNumber: _toolsSelectedStudentRow,
+      personType: personType,
       name: String((document.getElementById('tools-student-name') || {}).value || '').trim(),
       email: String((document.getElementById('tools-student-email') || {}).value || '').trim(),
       cpf: String((document.getElementById('tools-student-cpf') || {}).value || '').trim(),
       canac: String((document.getElementById('tools-student-canac') || {}).value || '').trim(),
-      dob: String((document.getElementById('tools-student-dob') || {}).value || '').trim(),
-      medicalExpiry: String((document.getElementById('tools-student-medical-expiry') || {}).value || '').trim(),
+      dob: toolsNormalizeDateForSave_(String((document.getElementById('tools-student-dob') || {}).value || '').trim()),
+      medicalExpiry: toolsNormalizeDateForSave_(String((document.getElementById('tools-student-medical-expiry') || {}).value || '').trim()),
       medicalClass: String((document.getElementById('tools-student-medical-class') || {}).value || '').trim(),
-      ratings: toolsStudentReadSelectedRatings_(),
+      ratings: ratingsWithExpiry.map(function(r) { return r.code; }),
+      ratingsWithExpiry: ratingsWithExpiry,
       rateBrlHour: Number((document.getElementById('tools-student-rate') || {}).value || 0),
       creditAmountBrl: Number((document.getElementById('tools-student-credit') || {}).value || 0),
       creditNote: String((document.getElementById('tools-student-credit-note') || {}).value || '').trim(),
       updatedBy: toolsCurrentAdmin_()
     };
 
+    for (var ri = 0; ri < ratingsWithExpiry.length; ri++) {
+      var rr = ratingsWithExpiry[ri] || {};
+      var code = String(rr.code || '').trim();
+      var expInput = document.getElementById(toolsStudentRatingExpiryInputId_(code));
+      var rawExp = String(expInput && expInput.value || '').trim();
+      if (rawExp && !rr.expiry) {
+        toolsToast_('Validade invalida para ' + code + '. Use DD/MM/AAAA.', 'orange');
+        return;
+      }
+    }
+
+    if (String((document.getElementById('tools-student-dob') || {}).value || '').trim() && !payload.dob) {
+      toolsToast_('Data de nascimento invalida. Use DD/MM/AAAA.', 'orange');
+      return;
+    }
+    if (String((document.getElementById('tools-student-medical-expiry') || {}).value || '').trim() && !payload.medicalExpiry) {
+      toolsToast_('Validade CMA invalida. Use DD/MM/AAAA.', 'orange');
+      return;
+    }
+
     if (!payload.name) {
-      toolsToast_('Nome do aluno é obrigatório.', 'orange');
+      toolsToast_('Nome da pessoa é obrigatório.', 'orange');
       return;
     }
     if (!payload.email && !payload.cpf && !payload.canac) {
-      toolsToast_('Informe ao menos email, CPF ou CANAC para identificar o aluno.', 'orange');
+      toolsToast_('Informe ao menos email, CPF ou CANAC para identificar a pessoa.', 'orange');
+      return;
+    }
+    if (payload.personType === 'STAFF') {
+      payload.rateBrlHour = 0;
+      payload.creditAmountBrl = 0;
+      payload.creditNote = '';
+      payload.depositFileUrl = '';
+      payload.depositFileId = '';
+    }
+    if (Number(payload.creditAmountBrl || 0) > 0 && Number(payload.rateBrlHour || 0) <= 0) {
+      toolsToast_('Informe uma taxa (R$/hora) positiva para este deposito.', 'orange');
       return;
     }
 
@@ -3414,10 +3974,10 @@
       google.script.run
         .withSuccessHandler(function(res) {
           if (!res || !res.success) {
-            toolsToast_((res && res.error) ? res.error : 'Falha ao salvar aluno.', 'red');
+            toolsToast_((res && res.error) ? res.error : 'Falha ao salvar pessoa.', 'red');
             return;
           }
-          toolsToast_('Aluno salvo com sucesso.', 'green');
+          toolsToast_('Pessoa salva com sucesso.', 'green');
           _toolsSelectedStudentRow = Number(res.rowNumber || 0);
           toolsLoadStudentsData_(true);
           if (_toolsSelectedStudentRow >= 2) {
@@ -3438,7 +3998,7 @@
 
     var fileEl = document.getElementById('tools-student-deposit-file');
     var file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
-    if (file) {
+    if (payload.personType !== 'STAFF' && file && Number(payload.creditAmountBrl || 0) > 0) {
       if (String(file.type || '').toLowerCase() !== 'application/pdf') {
         toolsToast_('Comprovante deve ser PDF.', 'orange');
         return;
@@ -3450,6 +4010,77 @@
       return;
     }
     doSave(null);
+  }
+
+  // ---- Deposit Void / Edit ----
+  var _toolsDepositEditTxId_ = '';
+  function _toolsCurrentEditStudentKey_() {
+    var item = (_toolsStudentsData.rows || []).find(function(s) { return Number(s.rowNumber || 0) === _toolsSelectedStudentRow; });
+    return item ? String(item.studentKey || '') : '';
+  }
+
+  function toolsOpenDepositEdit_(txId) {
+    _toolsDepositEditTxId_ = txId;
+    var item = (_toolsStudentsData.rows || []).find(function(s) { return Number(s.rowNumber || 0) === _toolsSelectedStudentRow; });
+    var entry = item ? (item.ledger || []).find(function(e) { return e.txId === txId; }) : null;
+    document.getElementById('tools-deposit-edit-txid').textContent = txId;
+    document.getElementById('tools-deposit-edit-amount').value = entry ? Math.abs(Number(entry.amount || 0)).toFixed(2) : '';
+    document.getElementById('tools-deposit-edit-rate').value = entry ? Number(entry.rate || 0).toFixed(2) : '';
+    document.getElementById('tools-deposit-edit-note').value = entry ? String(entry.note || '') : '';
+    document.getElementById('tools-deposit-edit-reason').value = '';
+    document.getElementById('tools-deposit-edit-overlay').classList.add('open');
+  }
+
+  function toolsCloseDepositEdit_() {
+    _toolsDepositEditTxId_ = '';
+    document.getElementById('tools-deposit-edit-overlay').classList.remove('open');
+  }
+
+  function toolsConfirmDepositEdit_() {
+    var txId = _toolsDepositEditTxId_;
+    var studentKey = _toolsCurrentEditStudentKey_();
+    var newAmount = Number((document.getElementById('tools-deposit-edit-amount') || {}).value || 0);
+    var newRate = Number((document.getElementById('tools-deposit-edit-rate') || {}).value || 0);
+    var newNote = String((document.getElementById('tools-deposit-edit-note') || {}).value || '').trim();
+    var reason = String((document.getElementById('tools-deposit-edit-reason') || {}).value || '').trim();
+    if (!txId || !studentKey) { toolsToast_('Erro interno: ID ou aluno ausente.', 'red'); return; }
+    if (!reason) { toolsToast_('Motivo da alteração é obrigatório.', 'orange'); return; }
+    if (newAmount <= 0) { toolsToast_('Valor deve ser maior que zero.', 'orange'); return; }
+    if (newRate <= 0) { toolsToast_('Taxa deve ser maior que zero.', 'orange'); return; }
+    toolsCloseDepositEdit_();
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) { toolsToast_((res && res.error) ? res.error : 'Falha ao editar depósito.', 'red'); return; }
+        toolsToast_('Depósito editado. Novo saldo: R$ ' + Number(res.newBalance || 0).toFixed(2), 'green');
+        toolsLoadStudentsData_(true);
+        setTimeout(function() {
+          var sel = document.getElementById('tools-student-select');
+          if (sel && _toolsSelectedStudentRow >= 2) { sel.value = String(_toolsSelectedStudentRow); toolsStudentLoadSelected_(); }
+        }, 120);
+      })
+      .withFailureHandler(function(err) { toolsToast_('Erro: ' + (err && err.message ? err.message : String(err)), 'red'); })
+      .editStudentLedgerEntry({ txId: txId, studentKey: studentKey, newAmount: newAmount, newRate: newRate, newNote: newNote, reason: reason, actorEmail: toolsCurrentAdmin_() });
+  }
+
+  function toolsVoidDeposit_(txId, studentKey) {
+    if (!txId || !studentKey) { toolsToast_('Erro interno: ID ou aluno ausente.', 'red'); return; }
+    var reason = window.prompt('Motivo para anular o depósito ' + txId + ' (obrigatório):');
+    if (reason === null) return; // cancelled
+    reason = String(reason || '').trim();
+    if (!reason) { toolsToast_('Motivo é obrigatório para anular.', 'orange'); return; }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) { toolsToast_((res && res.error) ? res.error : 'Falha ao anular depósito.', 'red'); return; }
+        if (res.skipped) { toolsToast_('Depósito já estava anulado.', 'orange'); return; }
+        toolsToast_('Depósito anulado. Novo saldo: R$ ' + Number(res.newBalance || 0).toFixed(2), 'green');
+        toolsLoadStudentsData_(true);
+        setTimeout(function() {
+          var sel = document.getElementById('tools-student-select');
+          if (sel && _toolsSelectedStudentRow >= 2) { sel.value = String(_toolsSelectedStudentRow); toolsStudentLoadSelected_(); }
+        }, 120);
+      })
+      .withFailureHandler(function(err) { toolsToast_('Erro: ' + (err && err.message ? err.message : String(err)), 'red'); })
+      .voidStudentLedgerEntry({ txId: txId, studentKey: studentKey, reason: reason, actorEmail: toolsCurrentAdmin_() });
   }
 
   function toolsOpenPilotAuthPanel() {
@@ -4956,7 +5587,13 @@
       DUTY_EVENING_ALERT_TIME: String((document.getElementById('tools-master-evening-time') || {}).value || '').trim(),
       DUTY_MORNING_WINDOW_MIN: String((document.getElementById('tools-master-morning-window') || {}).value || '').trim(),
       DUTY_EVENING_WINDOW_MIN: String((document.getElementById('tools-master-evening-window') || {}).value || '').trim(),
-      DUTY_GEOFENCE_RADIUS_KM: String((document.getElementById('tools-master-geofence-km') || {}).value || '').trim()  // stored as meters now
+      DUTY_GEOFENCE_RADIUS_KM: String((document.getElementById('tools-master-geofence-km') || {}).value || '').trim(),  // stored as meters now
+      PASSENGER_TERMS_STATEMENT_1: String((document.getElementById('tools-master-pax-statement-1') || {}).value || '').trim(),
+      PASSENGER_TERMS_STATEMENT_2: String((document.getElementById('tools-master-pax-statement-2') || {}).value || '').trim(),
+      PASSENGER_TERMS_STATEMENT_3: String((document.getElementById('tools-master-pax-statement-3') || {}).value || '').trim(),
+      PASSENGER_TERMS_STATEMENT_4: String((document.getElementById('tools-master-pax-statement-4') || {}).value || '').trim(),
+      PASSENGER_TERMS_QR_PROMPT: String((document.getElementById('tools-master-pax-qr-prompt') || {}).value || '').trim(),
+      PASSENGER_TERMS_QR_URL: String((document.getElementById('tools-master-pax-qr-url') || {}).value || '').trim()
     };
   }
 
@@ -4979,6 +5616,18 @@
     // If value <= 50 it's km (legacy); if > 50 it's already meters
     var radiusMeters = radiusRaw > 50 ? Math.round(radiusRaw) : Math.round(radiusRaw * 1000);
     document.getElementById('tools-master-geofence-km').value = radiusMeters || '';
+    var st1 = document.getElementById('tools-master-pax-statement-1');
+    var st2 = document.getElementById('tools-master-pax-statement-2');
+    var st3 = document.getElementById('tools-master-pax-statement-3');
+    var st4 = document.getElementById('tools-master-pax-statement-4');
+    var qrPrompt = document.getElementById('tools-master-pax-qr-prompt');
+    var qrUrl = document.getElementById('tools-master-pax-qr-url');
+    if (st1) st1.value = String(c.PASSENGER_TERMS_STATEMENT_1 || '');
+    if (st2) st2.value = String(c.PASSENGER_TERMS_STATEMENT_2 || '');
+    if (st3) st3.value = String(c.PASSENGER_TERMS_STATEMENT_3 || '');
+    if (st4) st4.value = String(c.PASSENGER_TERMS_STATEMENT_4 || '');
+    if (qrPrompt) qrPrompt.value = String(c.PASSENGER_TERMS_QR_PROMPT || '');
+    if (qrUrl) qrUrl.value = String(c.PASSENGER_TERMS_QR_URL || '');
     toolsMasterGeofencePreview_();
   }
 
@@ -7280,9 +7929,9 @@
     var ffArchiveEl = document.getElementById('tools-report-ffarchive-body');
     if (!bodyEl) return;
     if (!data || !data.success) {
-      if (metaEl) metaEl.textContent = 'Load one flight to view all saved fields, W&B, debrief, fuel/times, and passengers.';
-      bodyEl.innerHTML = '<div class="tools-report-empty">Enter a Flight ID and click LOAD FLIGHT DETAIL.</div>';
-      if (ffArchiveEl) ffArchiveEl.innerHTML = '<div class="tools-report-empty">Flight Following archive appears here after clicking FLIGHT FOLLOWING INFO.</div>';
+      if (metaEl) metaEl.textContent = 'Carregue um voo para ver o relatório pós-voo completo.';
+      bodyEl.innerHTML = '<div class="tools-report-empty">Digite o Flight ID e clique em CARREGAR RELATÓRIO PÓS-VOO.</div>';
+      if (ffArchiveEl) ffArchiveEl.innerHTML = '<div class="tools-report-empty">Arquivo de Flight Following aparecerá aqui após clicar em FLIGHT FOLLOWING INFO.</div>';
       return;
     }
 
@@ -7291,203 +7940,150 @@
     var wb = data.wb || {};
     var debrief = data.debrief || {};
     var tab8 = debrief.tab8 || {};
-    var landingLog = Array.isArray(tab8.landingLog) ? tab8.landingLog : [];
+    var lesson = data.lessonPlanSummary || {};
+    var funds = data.studentFunds || {};
     var landingTimeline = Array.isArray(data.landingTimeline) ? data.landingTimeline : [];
+    var landingLog = Array.isArray(tab8.landingLog) ? tab8.landingLog : [];
     var txPax = (data.passengers && Array.isArray(data.passengers.transactions)) ? data.passengers.transactions : [];
-    var wbPax = (data.passengers && Array.isArray(data.passengers.wbManifest)) ? data.passengers.wbManifest : [];
-    var rawFields = Array.isArray(data.rawFields) ? data.rawFields : [];
+
+    var externalUrl = data.appUrl
+      ? String(data.appUrl || '').replace(/\/$/, '') + '?view=flightreport&flightId=' + encodeURIComponent(String(data.flightId || ''))
+      : '';
 
     if (metaEl) {
-      var dbg = data.debug || {};
-      var debugBits = [];
-      if (dbg.responseBytes) debugBits.push('Bytes: ' + dbg.responseBytes);
-      if (dbg.rawFieldsReturned || dbg.rawFieldCount) debugBits.push('LOG fields: ' + String(dbg.rawFieldsReturned || 0) + '/' + String(dbg.rawFieldCount || 0));
-      if (data.ffArchive && data.ffArchive.archiveId) debugBits.push('FF archive: ' + String(data.ffArchive.archiveId));
-      metaEl.textContent = 'Flight ' + toolsAircraftEscape_(data.flightId || '') + ' loaded | Pax(TX): ' + txPax.length + ' | Pax(W&B): ' + wbPax.length + (debugBits.length ? ' | ' + debugBits.join(' | ') : '');
+      metaEl.textContent = 'Voo ' + String(data.flightId || '') + ' carregado | Pax(TX): ' + txPax.length + ' | Pousos registrados: ' + landingLog.length;
     }
 
-    var coreKv = toolsRenderDetailKv_([
+    var resumoVoo = toolsRenderDetailKv_([
       { label: 'Flight ID', value: data.flightId || '---' },
-      { label: 'Date', value: summary.date || log.date || '---' },
-      { label: 'Aircraft', value: summary.aircraft || log.aircraft || '---' },
-      { label: 'Pilot', value: summary.pilot || log.pilot || '---' },
-      { label: 'From', value: summary.from || log.from || '---' },
-      { label: 'To', value: summary.to || log.to || '---' },
-      { label: 'Route', value: summary.route || '---' },
-      { label: 'Type', value: summary.flightType || '---' },
+      { label: 'Data', value: summary.date || log.date || '---' },
+      { label: 'Aeronave', value: summary.aircraft || log.aircraft || '---' },
+      { label: 'Piloto', value: summary.pilot || log.pilot || '---' },
+      { label: 'Origem', value: summary.from || log.from || '---' },
+      { label: 'Destino', value: summary.to || log.to || '---' },
+      { label: 'Rota', value: summary.route || '---' },
+      { label: 'Tipo', value: summary.flightType || '---' },
       { label: 'Status', value: summary.status || '---' }
     ]);
 
-    var timesFuelKv = toolsRenderDetailKv_([
-      { label: 'Start Tach', value: log.startTach || '---' },
-      { label: 'End Tach', value: log.endTach || '---' },
-      { label: 'Tach Delta', value: toolsFmtTachDelta_(log.startTach, log.endTach) },
-      { label: 'Total Time', value: toolsFmtDurationAny_(log.totalTimeHours != null ? log.totalTimeHours : log.totalTime) },
+    var temposCombustivel = toolsRenderDetailKv_([
+      { label: 'Tach Inicial', value: log.startTach || '---' },
+      { label: 'Tach Final', value: log.endTach || '---' },
+      { label: 'Delta Tach', value: toolsFmtTachDelta_(log.startTach, log.endTach) },
+      { label: 'Tempo Total', value: toolsFmtDurationAny_(log.totalTimeHours != null ? log.totalTimeHours : log.totalTime) },
       { label: 'Brakes Release', value: toolsFmtDateTimeAny_(log.brakesRelease) },
       { label: 'Airborne', value: toolsFmtDateTimeAny_(log.airborne) },
       { label: 'Landed', value: toolsFmtDateTimeAny_(log.landed) },
-      { label: 'On Blocks/Brakes Applied', value: toolsFmtDateTimeAny_(log.onBlocks || log.brakesApplied) },
-      { label: 'Fuel Start (L)', value: toolsNumText_(log.fuelStart, 1) },
-      { label: 'Fuel End (L)', value: toolsNumText_(log.fuelEnd, 1) },
-      { label: 'Fuel Used (L)', value: toolsNumText_(log.fuelUsed, 1) },
-      { label: 'Oil Added', value: toolsNumText_(log.oilAdded, 1) },
-      { label: 'Battery Volts', value: toolsNumText_(log.batteryVolts, 1) },
-      { label: 'Landings', value: toolsNumText_(log.numLandings, 0) },
-      { label: 'Touch & Gos', value: toolsNumText_(log.numTouchAndGos, 0) },
-      { label: 'TO Risk Matrix', value: log.toRiskMatrix || '---' },
-      { label: 'Landing Risk Matrix', value: log.landingRiskMatrix || '---' }
+      { label: 'On Blocks', value: toolsFmtDateTimeAny_(log.onBlocks || log.brakesApplied) },
+      { label: 'Combustível Inicial (L)', value: toolsNumText_(log.fuelStart, 1) },
+      { label: 'Combustível Final (L)', value: toolsNumText_(log.fuelEnd, 1) },
+      { label: 'Combustível Consumido (L)', value: toolsNumText_(log.fuelUsed, 1) },
+      { label: 'Pousos', value: toolsNumText_(log.numLandings, 0) },
+      { label: 'Touch and Go', value: toolsNumText_(log.numTouchAndGos, 0) }
     ]);
 
-    var wbKv = toolsRenderDetailKv_([
-      { label: 'W&B Total Weight (kg)', value: toolsNumText_(wb.grossWeight, 1) },
-      { label: 'W&B CG', value: toolsNumText_(wb.cgPosition, 2) },
-      { label: 'W&B Envelope Status', value: (wb.isSafe === true ? 'Within Envelope' : (wb.isSafe === false ? 'Out of Envelope' : 'Unknown / not saved')) },
-      { label: 'W&B Fuel (kg)', value: toolsNumText_(wb.fuelKg, 1) },
-      { label: 'W&B Saved At', value: toolsFmtDateTimeAny_(wb.savedAt) }
+    var wbResumo = toolsRenderDetailKv_([
+      { label: 'Peso Total (kg)', value: toolsNumText_(wb.grossWeight, 1) },
+      { label: 'CG', value: toolsNumText_(wb.cgPosition, 2) },
+      { label: 'Status Envelope', value: (wb.isSafe === true ? 'Dentro do envelope' : (wb.isSafe === false ? 'Fora do envelope' : 'Não informado')) },
+      { label: 'Combustível no W&B (kg)', value: toolsNumText_(wb.fuelKg, 1) },
+      { label: 'W&B salvo em', value: toolsFmtDateTimeAny_(wb.savedAt) }
     ]);
 
-    var debriefKv = toolsRenderDetailKv_([
-      { label: 'Debrief Total Time', value: String(tab8.totalTime || '---') },
-      { label: 'Night Landings', value: toolsNumText_(tab8.nightLdgs, 0) },
-      { label: 'Night Hours', value: toolsNumText_(tab8.nightHrs, 1) },
-      { label: 'IFR Hours', value: toolsNumText_(tab8.ifrHrs, 1) },
-      { label: 'Archived Landing Events', value: toolsNumText_(landingLog.length, 0) },
-      { label: 'Debrief Timestamp', value: toolsFmtDateTimeAny_(tab8.debriefAt) },
-      { label: 'Training Debrief', value: toolsJsonDisplayText_(tab8.trainingDebrief) },
-      { label: 'Arrival JSON', value: toolsJsonDisplayText_(debrief.arrival) },
-      { label: 'Takeoff Roll JSON', value: toolsJsonDisplayText_(debrief.takeoffRoll) },
-      { label: 'Squawks', value: log.squawks || '---' }
+    var aulaResumo = toolsRenderDetailKv_([
+      { label: 'Código Treinamento', value: lesson.trainingCode || '---' },
+      { label: 'Aula', value: lesson.lessonName || '---' },
+      { label: 'Aluno', value: lesson.traineeName || '---' },
+      { label: 'Instrutor', value: lesson.instructorName || '---' },
+      { label: 'Resultado do Voo', value: lesson.flightResult || '---' },
+      { label: 'Cheque de Pista', value: String(Number(lesson.runwayChecksPassed || 0)) + '/' + String(Number(lesson.runwayChecksTotal || 0)) },
+      { label: 'Avaliação', value: (lesson.evaluation && lesson.evaluation.found) ? (String(lesson.evaluation.result || 'SUBMETIDA') + (lesson.evaluation.averageScore != null ? (' | média ' + lesson.evaluation.averageScore) : '')) : 'Sem avaliação encontrada' }
     ]);
 
-    var landingRows = landingLog.map(function(entry, idx) {
-      return {
-        seq: idx + 1,
-        time: String(entry && entry.timeZ || '').trim(),
-        type: String(entry && entry.type || '').trim().toUpperCase(),
-        icao: String(entry && entry.icao || '').trim().toUpperCase(),
-        name: String(entry && entry.name || '').trim(),
-        location: String(entry && entry.locDesc || '').trim()
-      };
+    var fundsResumo = toolsRenderDetailKv_([
+      { label: 'Aluno Financeiro', value: funds.studentName || '---' },
+      { label: 'Saldo Atual', value: (funds.balanceBrl == null ? '---' : toolsFmtMoney_(funds.balanceBrl)) }
+    ]);
+
+    var timelineRows = landingTimeline.map(function(line, idx) {
+      return { seq: idx + 1, evento: String(line || '').trim() };
     });
-
-    var landingTable = '<div class="tools-flight-detail-card"><h5>Archived Landing / T&amp;G Log</h5>'
+    var timelineTable = '<div class="tools-flight-detail-card"><h5>Pousos e Touch and Go</h5>'
       + toolsRenderReportTable_([
         { key: 'seq', label: '#' },
-        { key: 'time', label: 'Time Z' },
-        { key: 'type', label: 'Type' },
-        { key: 'icao', label: 'ICAO' },
-        { key: 'name', label: 'Name' },
-        { key: 'location', label: 'Location Detail' }
-      ], landingRows)
+        { key: 'evento', label: 'Evento' }
+      ], timelineRows)
       + '</div>';
 
-    var landingTimelineRows = landingTimeline.map(function(line, idx) {
+    var ultimasTx = Array.isArray(funds.lastTransactions) ? funds.lastTransactions : [];
+    var txRows = ultimasTx.map(function(tx) {
+      var receipt = String(tx && tx.receiptUrl || '').trim();
       return {
-        seq: String(idx + 1),
-        line: String(line || '').trim()
+        data: toolsFmtDateTimeAny_(tx.timestamp),
+        tipo: String(tx.txType || ''),
+        valor: toolsFmtMoney_(Number(tx.amountBrl || 0)),
+        taxa: Number(tx.rateBrlHour || 0) > 0 ? ('R$ ' + Number(tx.rateBrlHour || 0).toFixed(2) + '/h') : '---',
+        saldo: toolsFmtMoney_(Number(tx.balanceAfterBrl || 0)),
+        nota: String(tx.note || ''),
+        comprovante: receipt
+          ? ('<a href="' + toolsAircraftEscape_(receipt) + '" target="_blank" rel="noopener">Abrir</a>')
+          : '---'
       };
     });
-
-    var landingTimelineTable = '<div class="tools-flight-detail-card"><h5>Landing / Touch-and-go Timeline</h5>'
+    var txTable = '<div class="tools-flight-detail-card"><h5>Últimas 3 Transações do Fundo</h5>'
       + toolsRenderReportTable_([
-        { key: 'seq', label: '#' },
-        { key: 'line', label: 'Event' }
-      ], landingTimelineRows)
-      + '</div>';
-
-    var txRows = txPax.map(function(p) {
-      return {
-        name: p.name || '',
-        category: p.category || '',
-        weight: toolsNumText_(p.weightKg, 1),
-        fund: p.fund || '',
-        rate: p.chargeRate || '',
-        amount: toolsFmtMoney_(p.amount)
-      };
-    });
-    var wbRows = wbPax.map(function(p) {
-      return {
-        source: p.source || '',
-        seat: p.seat || '',
-        name: p.name || '',
-        weight: toolsNumText_(p.weightKg, 1),
-        cargo: toolsNumText_(p.cargoKg, 1),
-        fund: p.fund || ''
-      };
-    });
-    var rawRows = rawFields.map(function(f) {
-      return {
-        field: f.field || '',
-        value: f.value || ''
-      };
-    });
-
-    var paxTxTable = '<div class="tools-flight-detail-card"><h5>Passengers From Transactions</h5>'
-      + toolsRenderReportTable_([
-        { key: 'name', label: 'Name' },
-        { key: 'category', label: 'Category' },
-        { key: 'weight', label: 'Weight Kg' },
-        { key: 'fund', label: 'Fund' },
-        { key: 'rate', label: 'Rate' },
-        { key: 'amount', label: 'Amount' }
+        { key: 'data', label: 'Data/Hora' },
+        { key: 'tipo', label: 'Tipo' },
+        { key: 'valor', label: 'Valor' },
+        { key: 'taxa', label: 'Taxa' },
+        { key: 'saldo', label: 'Saldo' },
+        { key: 'nota', label: 'Nota' },
+        { key: 'comprovante', label: 'Comprovante', render: function(v) { return v || '---'; } }
       ], txRows)
       + '</div>';
 
-    var paxWbTable = '<div class="tools-flight-detail-card"><h5>Passengers From W&B Manifest</h5>'
-      + toolsRenderReportTable_([
-        { key: 'source', label: 'Source' },
-        { key: 'seat', label: 'Seat' },
-        { key: 'name', label: 'Name' },
-        { key: 'weight', label: 'Weight Kg' },
-        { key: 'cargo', label: 'Cargo Kg' },
-        { key: 'fund', label: 'Fund' }
-      ], wbRows)
-      + '</div>';
-
-    var rawTable = '<div class="tools-flight-detail-card"><h5>All Saved LOG_Flights Fields</h5>'
-      + toolsRenderReportTable_([
-        { key: 'field', label: 'Field' },
-        { key: 'value', label: 'Saved Value' }
-      ], rawRows)
-      + '</div>';
-
-    var wbLink = data.appUrl
-      ? '<div class="tools-report-meta" style="margin-top:8px;"><a href="' + toolsAircraftEscape_(String(data.appUrl || '') + '?view=dev_pilot') + '" target="_blank" rel="noopener">Open Tab 3 W&B View</a> (pilot app; then select this flight)</div>'
+    var linkShare = externalUrl
+      ? ('<div class="tools-flight-detail-card"><h5>Link Externo do Relatório</h5>'
+          + '<div class="tools-dbadd-help" style="margin-bottom:8px;">Use este link para compartilhar o pós-voo com usuário externo (somente leitura).</div>'
+          + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
+          + '<a class="btn-ts" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;" href="' + toolsAircraftEscape_(externalUrl) + '" target="_blank" rel="noopener">ABRIR LINK EXTERNO</a>'
+          + '<button class="btn-ta" type="button" onclick="(function(url){ if(navigator&&navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ toolsToast_(\'Link externo copiado.\',\'green\'); }).catch(function(){ toolsToast_(\'Não foi possível copiar o link.\',\'orange\'); }); } else { toolsToast_(\'Clipboard indisponível neste navegador.\',\'orange\'); } })(' + JSON.stringify(externalUrl) + ')">COPIAR LINK</button>'
+          + '</div>'
+          + '<div class="tools-report-meta" style="margin-top:8px;word-break:break-all;">' + toolsAircraftEscape_(externalUrl) + '</div>'
+          + '</div>')
       : '';
 
-    var wbGraph = '<div class="tools-flight-detail-card"><h5>W&B Graph Snapshot</h5><div class="tools-flight-detail-graph-wrap">'
+    var wbGraph = '<div class="tools-flight-detail-card"><h5>Gráfico W&B</h5><div class="tools-flight-detail-graph-wrap">'
       + toolsBuildWbGraphSvg_(wb.graph || {})
-      + '<div class="tools-flight-detail-graph-meta">Total Weight: ' + toolsAircraftEscape_(toolsNumText_(wb.grossWeight, 1))
+      + '<div class="tools-flight-detail-graph-meta">Peso: ' + toolsAircraftEscape_(toolsNumText_(wb.grossWeight, 1))
       + ' kg | CG: ' + toolsAircraftEscape_(toolsNumText_(wb.cgPosition, 2))
-      + ' | Source: Tab 3 saved W&B payload</div>'
-      + wbLink
+      + '</div>'
       + '</div></div>';
 
     bodyEl.innerHTML = '<div class="tools-flight-detail-layout">'
       + '<div class="tools-flight-detail-col">'
-      + '<div class="tools-flight-detail-card"><h5>Core Flight Snapshot</h5>' + coreKv + '</div>'
-      + '<div class="tools-flight-detail-card"><h5>Times, Fuel, Risks</h5>' + timesFuelKv + '</div>'
-      + paxTxTable
-      + paxWbTable
-      + rawTable
+      + '<div class="tools-flight-detail-card"><h5>Resumo do Voo</h5>' + resumoVoo + '</div>'
+      + '<div class="tools-flight-detail-card"><h5>Tempos, Combustível e Operação</h5>' + temposCombustivel + '</div>'
+      + '<div class="tools-flight-detail-card"><h5>Resumo do Plano de Aula</h5>' + aulaResumo + '</div>'
+      + '<div class="tools-flight-detail-card"><h5>Fundos do Aluno</h5>' + fundsResumo + '</div>'
+      + txTable
+      + linkShare
       + '</div>'
       + '<div class="tools-flight-detail-col">'
       + wbGraph
-      + '<div class="tools-flight-detail-card"><h5>W&B Summary</h5>' + wbKv + '</div>'
-      + '<div class="tools-flight-detail-card"><h5>Tab 8 / Debrief Data</h5>' + debriefKv + '</div>'
-      + landingTimelineTable
-        + landingTable
+      + '<div class="tools-flight-detail-card"><h5>Resumo W&B</h5>' + wbResumo + '</div>'
+      + timelineTable
       + '</div>'
       + '</div>';
 
     if (ffArchiveEl) {
       if (data.ffArchive && data.ffArchive.archiveId) {
-        ffArchiveEl.innerHTML = '<div class="tools-report-meta" style="margin:10px 0 6px;">Latest archive found for this flight: '
+        ffArchiveEl.innerHTML = '<div class="tools-report-meta" style="margin:10px 0 6px;">Arquivo FF disponível: '
           + toolsAircraftEscape_(String(data.ffArchive.archiveId || ''))
           + ' | ' + toolsAircraftEscape_(toolsFmtDateTimeAny_(data.ffArchive.archivedAt))
-          + ' | click FLIGHT FOLLOWING INFO to load full snapshot replica.</div>';
+          + ' | clique em FLIGHT FOLLOWING INFO para carregar.</div>';
       } else {
-        ffArchiveEl.innerHTML = '<div class="tools-report-empty">No Flight Following archive found for this flight yet.</div>';
+        ffArchiveEl.innerHTML = '<div class="tools-report-empty">Nenhum arquivo de Flight Following para este voo.</div>';
       }
     }
   }
@@ -7547,7 +8143,7 @@
     var inputEl = document.getElementById('tools-report-flight-id');
     var flightId = String(flightIdArg || (inputEl && inputEl.value) || '').trim();
     if (!flightId) {
-      if (!silent) toolsToast_('Enter a Flight ID first.', 'orange');
+      if (!silent) toolsToast_('Informe primeiro o Flight ID.', 'orange');
       return;
     }
     google.script.run
@@ -7573,10 +8169,10 @@
     var metaEl = document.getElementById('tools-report-flightdetail-meta');
     var flightId = String((inputEl && inputEl.value) || '').trim();
     if (!flightId) {
-      toolsToast_('Enter a Flight ID first.', 'orange');
+      toolsToast_('Informe primeiro o Flight ID.', 'orange');
       return;
     }
-    if (metaEl) metaEl.textContent = 'Loading flight ' + flightId + '...';
+    if (metaEl) metaEl.textContent = 'Carregando voo ' + flightId + '...';
     var reqId = ++_toolsDiagSeq;
     toolsSetDiag_('flight detail #' + reqId + ' started for ' + flightId, 'blue');
     google.script.run

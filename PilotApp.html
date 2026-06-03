@@ -116,23 +116,19 @@
     </div>
 
     <div class="action-grid" style="display: flex; gap: 10px; margin: 20px 0; justify-content: center;">
-      <div id="btn-new-flight" class="action-btn" onclick="tab1GuardedAction_('openNewFlightApp')">
-        <i class="material-icons">add_circle_outline</i>
-        <span>New Flight</span>
-      </div>
       <div id="btn-offline-flight" class="action-btn" onclick="tab1GuardedAction_('openOfflineFlightModal')">
         <i class="material-icons">cloud_off</i>
         <span>Offline Flight</span>
       </div>
-      <div class="action-btn" onclick="tab1GuardedAction_('openFuelModal')">
+      <div class="action-btn" data-online-bypass="1" onclick="tab1GuardedAction_('openFuelModal')">
         <i class="material-icons">local_gas_station</i>
         <span>Fuel Cache</span>
       </div>
-      <div class="action-btn" onclick="tab1GuardedAction_('openPaxModal')">
+      <div class="action-btn" data-online-bypass="1" onclick="tab1GuardedAction_('openPaxModal')">
         <i class="material-icons">person_add</i>
         <span>New Pax</span>
       </div>
-      <div class="action-btn" onclick="tab1GuardedAction_('openWaypointModal')">
+      <div class="action-btn" data-online-bypass="1" onclick="tab1GuardedAction_('openWaypointModal')">
         <i class="material-icons">place</i>
         <span>Add Waypoint</span>
       </div>
@@ -144,7 +140,7 @@
         <i class="material-icons">waves</i>
         <span>Water Survey</span>
       </div>
-      <div class="action-btn" onclick="tab1GuardedAction_('openTab1Inclinometer')">
+      <div class="action-btn" data-online-bypass="1" onclick="tab1GuardedAction_('openTab1Inclinometer')">
         <i class="material-icons">straighten</i>
         <span>Inclinometer</span>
       </div>
@@ -292,22 +288,57 @@
 
 <div id="modalPax" class="modal">
   <div class="modal-content">
-    <h5 style="color: #0b5394; font-weight: bold;">Add New Passenger</h5>
+    <h5 style="color: #0b5394; font-weight: bold;">Adicionar Novo Passageiro</h5>
     <div class="row">
-      <div class="input-field col s12"><input id="pax_name" type="text"><label>Passenger Name</label></div>
-      <div class="input-field col s6"><input id="pax_id_type" type="text" placeholder="CPF/Passport"><label>ID Type</label></div>
-      <div class="input-field col s6"><input id="pax_id_num" type="text"><label>ID Number</label></div>
-      <div class="input-field col s6"><input id="pax_weight" type="number" inputmode="decimal" step="0.1"><label>Weight (kg)</label></div>
-      <div class="input-field col s12"><input id="pax_dob" type="date"><label class="active">Date of Birth</label></div>
+      <div class="input-field col s12"><input id="pax_name" type="text"><label>Nome do Passageiro</label></div>
+      <div class="input-field col s6"><input id="pax_id_type" type="text" placeholder="CPF/Passaporte"><label>Tipo de Documento</label></div>
+      <div class="input-field col s6"><input id="pax_id_num" type="text"><label>Número do Documento</label></div>
+      <div class="input-field col s6"><input id="pax_weight" type="number" inputmode="decimal" step="0.1"><label>Peso (kg)</label></div>
+      <div class="input-field col s12"><input id="pax_dob" type="date"><label class="active">Data de Nascimento</label></div>
       <div class="input-field col s6">
         <select id="pax_gender" class="browser-default" style="margin-top: 5px; border: 1px solid #ddd;">
-          <option value="M">Male</option>
-          <option value="F">Female</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
         </select>
       </div>
-      <div class="input-field col s12"><input id="pax_phone" type="text"><label>Phone</label></div>
+      <div class="input-field col s12"><input id="pax_phone" type="text"><label>Telefone</label></div>
+      <div class="col s12" style="margin-top:8px; margin-bottom:8px; padding:10px 12px; border:1px solid #e3edf7; border-radius:8px; background:#f7fbff;">
+        <div style="font-size:0.78rem; font-weight:900; color:#0b5394; text-transform:uppercase; margin-bottom:6px;">Termos do Passageiro</div>
+        <ul style="margin:0 0 8px 16px; padding:0; color:#37474f; font-size:0.86rem; line-height: 1.6;">
+          <li id="pax-terms-line-1" style="margin-bottom:8px;"></li>
+          <li id="pax-terms-line-2" style="margin-bottom:8px;"></li>
+          <li id="pax-terms-line-3" style="margin-bottom:8px;"></li>
+          <li id="pax-terms-line-4" style="margin-bottom:8px;"></li>
+        </ul>
+        <label style="display:block; margin-bottom:6px; color:#263238; font-size:0.86rem; font-weight:700;">
+          <input id="pax_terms_ack" type="checkbox" style="margin-right:6px;">
+          <span>Li e concordo com os termos acima.</span>
+        </label>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <img id="pax-terms-qr-img" alt="QR Code" style="width:110px; height:110px; border:1px solid #d8e3ee; border-radius:8px; background:#fff; object-fit:contain; display:none;">
+          <div style="flex:1 1 220px; min-width:220px;">
+            <div id="pax-terms-qr-prompt" style="font-size:0.84rem; color:#455a64; font-weight:700;"></div>
+            <a id="pax-terms-qr-link" href="#" target="_blank" rel="noopener" style="display:none; margin-top:6px; font-size:0.82rem; font-weight:800; color:#1565c0;">Abrir link de suporte</a>
+          </div>
+        </div>
+      </div>
     </div>
-    <button class="btn blue darken-3 w-100 btn-large" onclick="saveNewPax()">Save Passenger</button>
+    <button class="btn blue darken-3 w-100 btn-large" onclick="_showPaxQRConfirmation()">Salvar Passageiro</button>
+  </div>
+</div>
+
+<div id="paxQRConfirmOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10050; align-items:center; justify-content:center; padding:16px;">
+  <div style="width:100%; max-width:420px; background:#fff; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,0.24); overflow:hidden;">
+    <div style="padding:16px 18px 10px 18px; border-bottom:1px solid #eef1f4;">
+      <div style="font-size:1rem; font-weight:900; color:#0b5394;">Confirmação</div>
+    </div>
+    <div style="padding:16px 18px 8px 18px;">
+      <div style="font-size:0.95rem; line-height:1.45; color:#37474f;">Você escaneou o código QR?</div>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; padding:14px 18px 18px 18px;">
+      <button type="button" class="btn-flat" style="font-weight:800; min-width:96px;" onclick="_paxQRConfirmNo()">Não</button>
+      <button type="button" class="btn blue darken-3" style="font-weight:800; min-width:96px;" onclick="_paxQRConfirmYes()">Sim</button>
+    </div>
   </div>
 </div>
 
@@ -2102,13 +2133,28 @@
       return s.missions === 'ok' && s.cg === 'ok' && s.unknown === 'ok';
     }
 
+    function _tab1ActionAllowsOnlineBypass_(actionName) {
+      const name = String(actionName || '').trim();
+      return name === 'openFuelModal'
+        || name === 'openPaxModal'
+        || name === 'openWaypointModal'
+        || name === 'openTab1Inclinometer';
+    }
+
     function _updateMissionReadyLockUI_() {
       const ready = _isMissionReadyForLock_();
+      const online = isServerAvailable();
       const actionButtons = document.querySelectorAll('#tab1 .action-grid .action-btn');
       actionButtons.forEach(function(btn) {
         if (!btn || btn.id === 'btn-acft-docs') return; // manuals always accessible
-        btn.classList.toggle('readiness-locked', !ready);
-        btn.title = ready ? 'Mission ready' : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.';
+        const allowOnlineBypass = String(btn.dataset.onlineBypass || '') === '1';
+        const unlocked = ready || (allowOnlineBypass && online);
+        btn.classList.toggle('readiness-locked', !unlocked);
+        btn.title = unlocked
+          ? ''
+          : (allowOnlineBypass
+            ? 'This tool works online without waiting for mission pack sync.'
+            : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.');
       });
 
       for (let i = 2; i <= 8; i++) {
@@ -2197,8 +2243,16 @@
     }
 
     function tab1GuardedAction_(actionName) {
-      if (!_isMissionReadyForLock_()) {
-        if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3500 });
+      const allowOnlineBypass = _tab1ActionAllowsOnlineBypass_(actionName);
+      const canRun = _isMissionReadyForLock_() || (allowOnlineBypass && isServerAvailable());
+      if (!canRun) {
+        if (window.M) M.toast({
+          html: allowOnlineBypass
+            ? 'This tool can open online now, or offline after the mission pack is ready.'
+            : 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.',
+          classes: 'orange',
+          displayLength: 3500
+        });
         return;
       }
       const fn = window[String(actionName || '').trim()];
@@ -4897,11 +4951,24 @@
           const cachedDropdown = (typeof cacheGet === 'function' && window.OFFLINE_CACHE_KEYS && window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA)
             ? (cacheGet(window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {})
             : {};
+          const cachedMissions = (typeof cacheGet === 'function' && window.OFFLINE_CACHE_KEYS && window.OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS)
+            ? (cacheGet(window.OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || [])
+            : [];
+          const missionSummary = Array.isArray(cachedMissions)
+            ? (cachedMissions.find(function(entry) {
+                return String(entry && entry.id || '').trim() === String(missionId || '').trim();
+              }) || null)
+            : null;
           console.log('appData.aircraft count:', liveAppData && liveAppData.aircraft ? liveAppData.aircraft.length : 0);
           const acftList = (liveAppData && Array.isArray(liveAppData.aircraft) && liveAppData.aircraft.length)
             ? liveAppData.aircraft
             : (Array.isArray(cachedDropdown.aircraft) ? cachedDropdown.aircraft : []);
-          const missionAcft = String((mission && mission.acft) || '').trim().toUpperCase();
+          const missionAcft = String(
+            (mission && mission.acft)
+            || (mission && mission.meta && mission.meta.acft)
+            || (missionSummary && missionSummary.acft)
+            || ''
+          ).trim().toUpperCase();
           if (!mission || !acftList.length || !missionAcft) {
             acftArea.innerHTML = `<div class="card-panel orange-text">Offline: mission or aircraft cache is incomplete. Re-sync when online.</div>`;
             return;
@@ -5204,10 +5271,133 @@
 
 
     // Passenger Logic
+    function _paxConsentDefaults_() {
+      return {
+        PASSENGER_TERMS_STATEMENT_1: 'Doações: Entendo que Asas de Socorro é uma organização sem fins lucrativos e depende de doações para realizar voos.',
+        PASSENGER_TERMS_STATEMENT_2: 'Segurança: A Asas de Socorro adota padrões de segurança, mas todo voo tem riscos inerentes.',
+        PASSENGER_TERMS_STATEMENT_3: 'Operação: Os voos são diurnos e podem sofrer atraso, desvio ou cancelamento por clima, segurança, motivo técnico ou logística.',
+        PASSENGER_TERMS_STATEMENT_4: 'Responsabilidade por atraso: Não há responsabilização por perdas decorrentes de atrasos.',
+        PASSENGER_TERMS_QR_PROMPT: 'Vou escanear este QR Code para apoiar ou compartilhar este ministério.',
+        PASSENGER_TERMS_QR_URL: ''
+      };
+    }
+
+    function _paxConsentConfig_() {
+      var defaults = _paxConsentDefaults_();
+      var cfg = (window.appData && window.appData.passengerConsentConfig && typeof window.appData.passengerConsentConfig === 'object')
+        ? window.appData.passengerConsentConfig
+        : {};
+      return Object.assign({}, defaults, cfg || {});
+    }
+
+    function _renderPaxTermsUi_() {
+      var cfg = _paxConsentConfig_();
+      var l1 = document.getElementById('pax-terms-line-1');
+      var l2 = document.getElementById('pax-terms-line-2');
+      var l3 = document.getElementById('pax-terms-line-3');
+      var l4 = document.getElementById('pax-terms-line-4');
+      
+      // Helper to bold the first word (title) of each statement
+      var formatStatement = function(text) {
+        var trimmed = String(text || '').trim();
+        var match = trimmed.match(/^([^:]+)(:.*)$/);
+        if (match) {
+          return '<strong>' + match[1] + '</strong>' + match[2];
+        }
+        return trimmed;
+      };
+      
+      if (l1) l1.innerHTML = formatStatement(cfg.PASSENGER_TERMS_STATEMENT_1 || '');
+      if (l2) l2.innerHTML = formatStatement(cfg.PASSENGER_TERMS_STATEMENT_2 || '');
+      if (l3) l3.innerHTML = formatStatement(cfg.PASSENGER_TERMS_STATEMENT_3 || '');
+      if (l4) l4.innerHTML = formatStatement(cfg.PASSENGER_TERMS_STATEMENT_4 || '');
+
+      var promptEl = document.getElementById('pax-terms-qr-prompt');
+      if (promptEl) promptEl.textContent = String(cfg.PASSENGER_TERMS_QR_PROMPT || '');
+      var qrUrl = String(cfg.PASSENGER_TERMS_QR_URL || '').trim();
+      var qrImgEl = document.getElementById('pax-terms-qr-img');
+      var qrLinkEl = document.getElementById('pax-terms-qr-link');
+      if (qrUrl) {
+        var qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(qrUrl);
+        if (qrImgEl) {
+          qrImgEl.src = qrSrc;
+          qrImgEl.style.display = 'block';
+        }
+        if (qrLinkEl) {
+          qrLinkEl.href = qrUrl;
+          qrLinkEl.style.display = 'inline-block';
+        }
+      } else {
+        if (qrImgEl) {
+          qrImgEl.removeAttribute('src');
+          qrImgEl.style.display = 'none';
+        }
+        if (qrLinkEl) {
+          qrLinkEl.removeAttribute('href');
+          qrLinkEl.style.display = 'none';
+        }
+      }
+    }
+
     function openPaxModal() {
-      const elem = document.getElementById('modalPax');
-      const instance = M.Modal.getInstance(elem) || M.Modal.init(elem);
-      instance.open();
+      // Fetch fresh config from server before opening modal
+      google.script.run.withSuccessHandler(function(freshConfig) {
+        if (freshConfig && typeof freshConfig === 'object') {
+          appData.passengerConsentConfig = freshConfig;
+        }
+        _renderPaxTermsUi_();
+        var ack = document.getElementById('pax_terms_ack');
+        if (ack) ack.checked = false;
+        const elem = document.getElementById('modalPax');
+        const instance = M.Modal.getInstance(elem) || M.Modal.init(elem);
+        instance.open();
+        
+        // Initialize date picker with Portuguese locale
+        var dobInput = document.getElementById('pax_dob');
+        if (dobInput && window.M && window.M.Datepicker) {
+          M.Datepicker.getInstance(dobInput) || M.Datepicker.init(dobInput, {
+            format: 'yyyy-mm-dd',
+            i18n: {
+              months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+              monthsShort: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+              weekdays: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
+              weekdaysShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
+              weekdaysAbbrev: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+            }
+          });
+        }
+      }).withFailureHandler(function(err) {
+        console.error('Failed to fetch passenger config:', err);
+        // Fall back to existing config if fresh fetch fails
+        _renderPaxTermsUi_();
+        var ack = document.getElementById('pax_terms_ack');
+        if (ack) ack.checked = false;
+        const elem = document.getElementById('modalPax');
+        const instance = M.Modal.getInstance(elem) || M.Modal.init(elem);
+        instance.open();
+      }).getPassengerConsentConfig();
+    }
+    
+    function _showPaxQRConfirmation() {
+      const overlay = document.getElementById('paxQRConfirmOverlay');
+      if (overlay) overlay.style.display = 'flex';
+    }
+    
+    function _hidePaxQRConfirmation() {
+      const overlay = document.getElementById('paxQRConfirmOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+    
+    function _paxQRConfirmYes() {
+      _hidePaxQRConfirmation();
+      saveNewPax();
+    }
+    
+    function _paxQRConfirmNo() {
+      _hidePaxQRConfirmation();
+      // Re-display the QR code by rendering terms UI again
+      _renderPaxTermsUi_();
+      M.toast({html: 'Por favor, escanear o código QR antes de continuar', classes: 'orange'});
     }
 
     function _parseCoordinate(str) {
@@ -5418,6 +5608,7 @@
     }
 
     function saveNewPax() {
+      const termsAck = !!((document.getElementById('pax_terms_ack') || {}).checked);
       const data = {
         name: document.getElementById('pax_name').value,
         id_type: document.getElementById('pax_id_type').value,
@@ -5425,11 +5616,18 @@
         dob: document.getElementById('pax_dob').value,
         weight: document.getElementById('pax_weight').value,
         gender: document.getElementById('pax_gender').value,
-        phone: document.getElementById('pax_phone').value
+        phone: document.getElementById('pax_phone').value,
+        termsAccepted: termsAck,
+        termsAcceptedAt: termsAck ? (new Date()).toISOString() : '',
+        termsSource: 'PILOT_APP_FAST_ADD'
       };
 
       if (!data.name || !data.weight) {
         M.toast({html: 'Name and Weight are required'});
+        return;
+      }
+      if (!termsAck) {
+        M.toast({html: 'Please confirm passenger terms before saving', classes: 'orange'});
         return;
       }
 
@@ -5444,10 +5642,14 @@
           if (!appData.passengers) appData.passengers = [];
           appData.passengers.push({
             name: data.name,
+            nameDisplay: data.name + ' ✓',
             weight: parseFloat(data.weight) || 80,
             gender: data.gender || 'U',
             dob: data.dob || '',
-            phone: data.phone || ''
+            phone: data.phone || '',
+            termsAccepted: true,
+            termsAcceptedAt: String(data.termsAcceptedAt || '').slice(0, 10),
+            termsAcceptedCurrent: true
           });
           appData.passengers.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
@@ -5466,6 +5668,8 @@
 
           // Clear all inputs and re-enable button
           document.querySelectorAll('#modalPax input').forEach(i => i.value = '');
+          var ack = document.getElementById('pax_terms_ack');
+          if (ack) ack.checked = false;
           if (btn) btn.disabled = false;
 
           // Snap back to the Mission Dashboard
