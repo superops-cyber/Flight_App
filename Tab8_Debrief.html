@@ -1481,8 +1481,6 @@ window.submitDebriefLog = function() {
         isTrainingFlight: true,
         trainingCode: trainingCode,
         flightResult: flightResult,
-        traineeName: String((window.debrief8 && window.debrief8.mission && window.debrief8.mission.meta && window.debrief8.mission.meta.training && window.debrief8.mission.meta.training.student) || (window.debrief8 && window.debrief8.mission && window.debrief8.mission.copilot) || '').trim(),
-        instructorName: String((window.debrief8 && window.debrief8.mission && window.debrief8.mission.meta && window.debrief8.mission.meta.training && window.debrief8.mission.meta.training.instructor) || (window.debrief8 && window.debrief8.mission && window.debrief8.mission.pilot) || '').trim(),
         runwayChecks: runwayChecks
       };
     }
@@ -1490,7 +1488,7 @@ window.submitDebriefLog = function() {
     const payload = {
       flightLegId: window.debrief8.flightLegId,
       missionId: String(window.debrief8 && window.debrief8.mission && window.debrief8.mission.id || ''),
-      pilotName: String((trainingDebrief && trainingDebrief.traineeName) || (window.debrief8 && window.debrief8.mission && window.debrief8.mission.pilot) || ''),
+      pilotName: String(window.debrief8 && window.debrief8.mission && window.debrief8.mission.pilot || ''),
       endTach: endTach,
       fuelEnd: fuelEnd,
       fuelUsed: fuelUsed,

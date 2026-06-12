@@ -421,43 +421,6 @@
     return raw.slice(0, 19).replace('T', ' ');
   }
 
-  function _releasePadlockToggle_(inputId, btnEl) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    input.disabled = !input.disabled;
-    if (btnEl) btnEl.textContent = input.disabled ? '🔒' : '🔓';
-    if (!input.disabled) {
-      input.focus();
-      if (typeof input.select === 'function') input.select();
-    }
-  }
-
-  function _releaseToggleCutdownSr_(checkboxEl) {
-    const cb = checkboxEl || document.getElementById('release5-cutdown-sr');
-    const input = document.getElementById('release5-cutdown');
-    if (!cb || !input) return;
-    if (cb.checked) {
-      input.value = '';
-      input.disabled = true;
-      return;
-    }
-    // Only re-enable manual numeric entry when SR is cleared.
-    input.disabled = false;
-  }
-
-  function _releaseGetRbcFallbackCutdown_() {
-    const rbc = window._rbcState && window._rbcState.card ? window._rbcState.card : null;
-    const v = Number(rbc && rbc.cutdownAreaM != null ? rbc.cutdownAreaM : NaN);
-    return isFinite(v) && v >= 0 ? Math.round(v) : null;
-  }
-
-  function _releaseGetRbcFallbackCutdownSr_() {
-    const rbc = window._rbcState && window._rbcState.card ? window._rbcState.card : null;
-    if (!rbc) return false;
-    const lbl = String(rbc.cutdownAreaLabel || '').trim();
-    return !!rbc.cutdownSemRestricao || /^SR\b/i.test(lbl) || /SEM\s*RESTR/i.test(lbl);
-  }
-
   function _releaseGetRunwayContext(mission, leg) {
     const perf = window.performanceTab4 || {};
     const activeLeg = leg || _releaseGetActiveLeg_(mission);
@@ -484,25 +447,12 @@
     const heading = String(Math.round(Number(selected && selected.headingDeg || 0))).padStart(3, '0');
     const cutdownFromDataRaw = Number(selected && (selected.cutdownAreaM || selected.cutdownArea || selected.clearway || selected.cutdown || 0) || 0);
     const cutdownFromData = cutdownFromDataRaw > 0 ? Math.round(cutdownFromDataRaw) : null;
-    const cutdownFromRbc = _releaseGetRbcFallbackCutdown_();
-    const cutdownFromDataLabel = String(selected && selected.cutdownAreaLabel || '').trim();
-    const cutdownFromDataSr = !!(selected && selected.cutdownSemRestricao)
-      || /^SR\b/i.test(cutdownFromDataLabel)
-      || /SEM\s*RESTR/i.test(cutdownFromDataLabel);
-    const cutdownFromRbcSr = _releaseGetRbcFallbackCutdownSr_();
-    const cutdownSrEl = document.getElementById('release5-cutdown-sr');
-    const cutdownSrChecked = !!(cutdownSrEl && cutdownSrEl.checked);
     const cutdownInputRaw = String(document.getElementById('release5-cutdown')?.value || '').trim();
     const cutdownInputNum = cutdownInputRaw === '' ? NaN : Number(cutdownInputRaw);
-    const cutdownSemRestricao = cutdownSrEl ? cutdownSrChecked : (cutdownFromDataSr || cutdownFromRbcSr);
-    const cutdownAreaM = cutdownSemRestricao
-      ? 0
-      : (isFinite(cutdownInputNum) && cutdownInputNum >= 0
-        ? Math.round(cutdownInputNum)
-        : (cutdownFromData != null ? cutdownFromData : cutdownFromRbc));
-    const cutdownAreaLabel = cutdownSemRestricao
-      ? 'SR - Sem restricao'
-      : ((cutdownAreaM == null || !isFinite(cutdownAreaM)) ? 'Unknown' : (String(cutdownAreaM) + ' m'));
+    const cutdownAreaM = isFinite(cutdownInputNum) && cutdownInputNum >= 0
+      ? Math.round(cutdownInputNum)
+      : cutdownFromData;
+    const cutdownAreaLabel = (cutdownAreaM == null || !isFinite(cutdownAreaM)) ? 'Unknown' : (String(cutdownAreaM) + ' m');
 
     const takeoffRollM = Math.round(Number(result.takeoffRollM || 0));
     const rollStopM = Math.round(Number(result.combinedRollM || 0));
@@ -556,20 +506,6 @@
       if (mtowVals.length) maxTakeoffWeight = Math.max.apply(null, mtowVals);
     }
 
-    const mtowInputRaw = String(document.getElementById('release5-mtow')?.value || '').trim();
-    const mtowInputNum = mtowInputRaw === '' ? NaN : Number(mtowInputRaw);
-    if (isFinite(mtowInputNum) && mtowInputNum > 0) {
-      maxTakeoffWeight = Math.round(mtowInputNum);
-    }
-    const mtowModelInputRaw = String(document.getElementById('release5-mtow-model')?.value || '').trim().toUpperCase();
-    if (mtowModelInputRaw) mtowModelKey = mtowModelInputRaw;
-    if (isFinite(maxTakeoffWeight) && maxTakeoffWeight > 0 && mtowModelKey) {
-      mtowByModel[mtowModelKey] = Math.round(maxTakeoffWeight);
-    }
-
-    const runwayClassInput = String(document.getElementById('release5-runway-class')?.value || '').trim();
-    const runwayClass = runwayClassInput || String((selected && selected.runwayClass) || '').trim();
-
     const pilotNotes = String((selected && selected.pilotNotes) || (aptObj && aptObj.pilotNotes) || '').trim();
     const airstripPhoto = String((selected && selected.airstripPhoto) || (aptObj && aptObj.airstripPhoto) || '').trim();
 
@@ -588,7 +524,6 @@
       slopePct: slopePct,
       cutdownAreaM: cutdownAreaM,
       cutdownAreaLabel: cutdownAreaLabel,
-      cutdownSemRestricao: !!cutdownSemRestricao,
       heading: heading,
       windDir: windDir,
       windSpd: windSpd,
@@ -609,9 +544,6 @@
       maxTakeoffWeight: maxTakeoffWeight,
       mtowModelKey: mtowModelKey,
       mtowByModel: mtowByModel,
-      runwayClass: runwayClass,
-      cutdownBaselineM: cutdownFromData != null ? cutdownFromData : cutdownFromRbc,
-      editSource: 'TAB5_RELEASE',
       pilotNotes: pilotNotes,
       airstripPhoto: airstripPhoto,
       fromIcao: fromIcaoResolved
@@ -651,80 +583,48 @@
     };
   }
 
-  function _releaseFormatHoursPt_(hours) {
-    const h = Number(hours || 0);
-    if (!isFinite(h) || h <= 0) return '--:--';
-    const totalMinutes = Math.round(h * 60);
-    const hh = Math.floor(totalMinutes / 60);
-    const mm = totalMinutes % 60;
-    return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
-  }
-
   function _releaseBuildMessage(mission, riskTotal, riskDetail, leg) {
     const activeLeg = leg || _releaseGetActiveLeg_(mission);
     const flightId = (activeLeg && (activeLeg.flightLegId || activeLeg.flight_id || activeLeg.id)) || mission.id || 'N/A';
     const route = _releaseFlightRoute(activeLeg);
     const flightPlan = _releaseResolveFlightPlan_(mission, activeLeg);
-    const pic = String(mission && mission.pilot || 'N/A').trim() || 'N/A';
-    const copilot = String((mission && mission.meta && mission.meta.copilot) || (mission && mission.copilot) || '').trim() || 'Sem copiloto/aluno';
-    const ete = _releaseFormatHoursPt_(activeLeg && activeLeg.time);
-    const fuelOnBoard = Math.round(Number((activeLeg && activeLeg.takeoffFuel) || (mission && mission.fuelL) || 0)) || 0;
     const pax = Array.isArray(activeLeg.pax)
       ? activeLeg.pax.filter(p => String(p.name || '').toUpperCase() !== 'FREIGHT')
       : [];
     const pob = 1 + (mission && mission.meta && mission.meta.copilot ? 1 : 0) + pax.length;
-    const paxCount = pax.length;
     const manifestLines = pax.length
-      ? pax.map((p, idx) => {
-          const paxName = String(p.name || 'Passageiro sem nome').trim();
-          const paxPhone = String(p.phone || '').trim() || 'Sem telefone';
-          const paxEmergency = String(p.emergencyContact || '').trim();
-          return `${idx + 1}. ${paxName} | Tel: ${paxPhone}${paxEmergency ? ' | Emerg: ' + paxEmergency : ''}`;
-        }).join('\n')
-      : 'Nenhum passageiro informado';
+      ? pax.map((p, idx) => `${idx + 1}. ${p.name || 'Unknown'} • ${p.phone || 'No phone'}`).join('\n')
+      : 'No passengers listed';
 
     const riskCategories = ['Pilot', 'Aircraft', 'Runway', 'Weather', 'Mission'];
-    const riskLabels = {
-      Pilot: 'Piloto',
-      Aircraft: 'Aeronave',
-      Runway: 'Pista',
-      Weather: 'Tempo',
-      Mission: 'Missão'
-    };
     const riskBreakdown = riskCategories.map(c =>
-      `${riskLabels[c] || c}: ${riskDetail && riskDetail[c] != null ? riskDetail[c] : '-'}`).join(' | ');
-    const scoreLabel = riskTotal >= 11 ? 'RISCO ALTO / NO-GO' : riskTotal >= 9 ? 'ATENÇÃO' : 'OPERAÇÃO PADRÃO';
+      `${c}: ${riskDetail && riskDetail[c] != null ? riskDetail[c] : '-'}`).join(' | ');
+    const scoreLabel = riskTotal >= 11 ? 'HIGH RISK / NO-GO' : riskTotal >= 9 ? 'CAUTION' : 'Standard Ops';
 
     const full = [
-      '🛫 MENSAGEM DE DESPACHO',
-      `ID do Voo: ${flightId}`,
-      `Aeronave: ${mission && mission.acft || 'N/A'}`,
-      `PIC: ${pic}`,
-      `Co-piloto/Aluno: ${copilot}`,
-      `Rota: ${route}`,
-      `ETE: ${ete}`,
-      `Combustível a bordo: ${fuelOnBoard > 0 ? (fuelOnBoard + ' L') : '--'}`,
-      `Plano de Voo: ${flightPlan.full}`,
-      `Passageiros: ${paxCount}`,
+      '🛫 DISPATCH RELEASE',
+      `Flight ID: ${flightId}`,
+      `Aircraft: ${mission && mission.acft || 'N/A'}`,
+      `PIC: ${mission && mission.pilot || 'N/A'}`,
+      `Route: ${route}`,
+      `Flight Plan: ${flightPlan.full}`,
       `POB: ${pob}`,
       '',
-      'Passageiros e contatos:',
+      'Manifest:',
       manifestLines,
       '',
-      `Score de Risco: ${riskTotal} – ${scoreLabel}`,
-      `Matriz: ${riskBreakdown}`
+      `Risk Score: ${riskTotal} – ${scoreLabel}`,
+      `Matrix: ${riskBreakdown}`
     ].join('\n');
 
     // Compact version for inReach (no emoji, condensed for satellite bandwidth)
     const compact = [
-      `DESPACHO ID:${flightId}`,
-      `AC:${mission && mission.acft || '?'} PIC:${pic}`,
-      `COPIL:${copilot.split(' ')[0] || 'SEM'}`,
-      `ROTA:${route} ETE:${ete}`,
-      `FUEL:${fuelOnBoard > 0 ? (fuelOnBoard + 'L') : '--'} PAX:${paxCount} POB:${pob}`,
-      `PV:${flightPlan.compact}`,
-      pax.length ? pax.map((p, i) => `${i + 1}.${(p.name || '?').split(' ')[0]}`).join(' ') : 'SEM_PAX',
-      `RISCO:${riskTotal}-${scoreLabel.toUpperCase().replace(/[ /]/g,'_')}`
+      `DISPATCH FLT:${flightId}`,
+      `AC:${mission && mission.acft || '?'} PIC:${mission && mission.pilot || '?'}`,
+      `ROUTE:${route} POB:${pob}`,
+      `FP:${flightPlan.compact}`,
+      pax.length ? pax.map((p, i) => `${i + 1}.${(p.name || '?').split(' ')[0]}`).join(' ') : 'NO PAX',
+      `RISK:${riskTotal}-${scoreLabel.toUpperCase().replace(/ /g,'_')}`
     ].join('\n');
 
     return { full, compact, flightId, pob, manifestLines };
@@ -808,23 +708,6 @@
     }
     const preview = _releaseBuildMessage(mission, 0, {}, activeLeg);
     const brief = _releaseGetRunwayContext(mission, activeLeg);
-    const displayLengthM = Number(brief.officialRunwayLengthM || brief.runwayLengthM || 0);
-    const displayWidthM = Number(brief.officialRunwayWidthM || brief.runwayWidthM || 0);
-    const internalLengthM = Number(brief.runwayLengthM || 0);
-    const internalWidthM = Number(brief.runwayWidthM || 0);
-    const hasInternalDiff = (
-      (displayLengthM > 0 && internalLengthM > 0 && Math.round(displayLengthM) !== Math.round(internalLengthM))
-      || (displayWidthM > 0 && internalWidthM > 0 && Math.round(displayWidthM) !== Math.round(internalWidthM))
-    );
-    const runwayDimsLine = (displayLengthM > 0 || displayWidthM > 0)
-      ? (Math.round(displayLengthM) + 'm × ' + Math.round(displayWidthM) + 'm')
-      : 'N/A';
-    const internalDimsLine = hasInternalDiff
-      ? (' • Internal ' + Math.round(internalLengthM) + 'm × ' + Math.round(internalWidthM) + 'm')
-      : '';
-    const internalDateLine = (hasInternalDiff && brief.internalUpdatedLabel)
-      ? ('<br><small style="color:#546e7a; font-weight:600;">Internal date: ' + brief.internalUpdatedLabel + '</small>')
-      : '';
 
     window.releaseTab5State = {
       missionId: mission.id || '',
@@ -848,8 +731,8 @@
           </button>
         </div>
         <div class="release5-grid">
-          <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • ${runwayDimsLine}${internalDimsLine}${internalDateLine}</div>
-          <div class="release5-chip"><b>Cutdown Area:</b> <button type="button" onclick="_releasePadlockToggle_('release5-cutdown', this)" style="height:24px; width:28px; margin-left:4px; border:1px solid #b0bec5; border-radius:4px; background:#fff; cursor:pointer;">🔒</button> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownSemRestricao ? '' : (brief.cutdownAreaM == null ? '' : brief.cutdownAreaM)}" placeholder="Unknown" disabled style="height:30px; width:110px; margin-left:6px;"> <label style="margin-left:8px; display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; color:#455a64; font-weight:700;"><input id="release5-cutdown-sr" type="checkbox" ${brief.cutdownSemRestricao ? 'checked' : ''} onchange="_releaseToggleCutdownSr_(this)">SR - Sem restricao</label> <small style="color:#666; font-weight:500;" title="Pilot edits are sent for supervisor review before any DB_Airports update.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>
+          <div class="release5-chip"><b>Runway:</b> ${brief.runwayIdent || 'N/A'} • <span title="Internal measured runway dimensions">Internal ${brief.runwayLengthM || 0}m × ${brief.runwayWidthM || 0}m</span> • <span title="Official DB_Airports runway dimensions">Official ${brief.officialRunwayLengthM || 0}m × ${brief.officialRunwayWidthM || 0}m</span><br><small style="color:#546e7a; font-weight:600;">Internal date: ${brief.internalUpdatedLabel || 'N/A'}</small></div>
+          <div class="release5-chip"><b>Cutdown Area:</b> <input id="release5-cutdown" type="number" inputmode="numeric" min="0" step="1" value="${brief.cutdownAreaM == null ? '' : brief.cutdownAreaM}" placeholder="Unknown" style="height:30px; width:110px; margin-left:6px;"> <small style="color:#666; font-weight:500;" title="This data is critical because runway widths can change rapidly in jungle areas. Data entered here is pushed to DB_Airports internal runway data after supervisor approval.">Baseline: ${brief.cutdownAreaLabel || 'Unknown'}</small></div>
           <div class="release5-chip"><b>Surface:</b> ${brief.surface || 'N/A'} • ${String(brief.surfaceCondition || 'DRY').toUpperCase()}</div>
           <div class="release5-chip"><b>Wind:</b> ${brief.windDir || 0}° / ${brief.windSpd || 0}kt • H/T ${brief.headTailKts || 0}kt • XW ${brief.crosswindKts || 0}kt</div>
           <div class="release5-chip"><b>Abort:</b> ${brief.abortPointM || 0}m • TO ${brief.takeoffRollM || 0}m • TO+Stop Roll ${brief.rollStopM || 0}m</div>
@@ -857,7 +740,6 @@
       </div>
 
       <div class="release5-card">
-    _releaseToggleCutdownSr_(document.getElementById('release5-cutdown-sr'));
         <div class="release5-subtitle" style="display: flex; align-items: center; justify-content: space-between;">
           <span>Safety Risk Matrix</span>
           <button class="info-btn" onclick="openSafetyMatrixInfo()" style="background: none; border: none; color: #1976d2; font-size: 1rem; cursor: pointer; padding: 0 4px; vertical-align: middle;">ⓘ Info</button>
@@ -940,7 +822,7 @@
       return;
     }
 
-    const subject = 'Mensagem de Despacho – Voo ' + (window.releaseTab5State.flightId || '');
+    const subject = 'Dispatch Release – Flight ' + (window.releaseTab5State.flightId || '');
     const recipients = ['acompanhamento@asasdesocorro.org.br', 'supervisor.voo@asasdesocorro.org.br'];
     const payload = { emails: recipients, subject: subject, message: msg.full };
 
@@ -1019,8 +901,6 @@
         lengthM: Number(runwayCtx.runwayLengthM || 0),
         widthM: Number(runwayCtx.runwayWidthM || 0),
         surface: String(runwayCtx.surface || '').trim(),
-        runwayClass: String(runwayCtx.runwayClass || '').trim(),
-        cutdownAreaM: Number(runwayCtx.cutdownAreaM || 0),
         headingDeg: Number(runwayCtx.heading || 0),
         maxTakeoffWeight: Number(runwayCtx.maxTakeoffWeight || 0),
         mtowModelKey: String(runwayCtx.mtowModelKey || ''),

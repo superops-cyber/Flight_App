@@ -159,7 +159,7 @@ function upgradeMaintenanceSystem() {
   let dashSheet = ss.getSheetByName("DB_Aircraft");
   if (dashSheet) {
     const lastCol = dashSheet.getLastColumn();
-    const headersToAdd = ["Current Tach", "Next Due (Tach)", "Hours to Insp", "Annual Due (CVA)", "Open Squawks", "Tech Status"];
+    const headersToAdd = ["Current Tach", "Next Due (Tach)", "Hours to Insp", "Annual Due_(CVA)", "Open Squawks", "Tech Status"];
     
     // Append headers to the first empty columns
     dashSheet.getRange(1, lastCol + 1, 1, headersToAdd.length)

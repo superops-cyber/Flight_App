@@ -25,18 +25,13 @@ const APP_SHEETS = {
   CONTACTS: 'DB_Contacts',
   DONATION_IMPORT_BATCHES: 'DB_Donation_Import_Batches',
   DONATION_STAGING: 'DB_Donation_Staging',
-  HIST_FLIGHT_IMPORT_BATCHES: 'DB_Historical_Flight_Import_Batches',
-  HIST_FLIGHT_STAGING: 'DB_Historical_Flight_Staging',
   DONATIONS_LEDGER: 'DB_Donations_Ledger',
   FUND_LEDGER: 'DB_Fund_Ledger',
-  STUDENT_FUNDS_LEDGER: 'DB_Student_Funds_Ledger',
   MISSION_FUNDING_ALLOCATIONS: 'DB_Mission_Funding_Allocations',
   STAFF_ROLES: 'REF_Staff_Roles',
   TRAINING_MODULES: 'REF_Training_Modules',
   STAFF_TRAINING: 'DB_Staff_Training_Records',
   STAFF_PRACTICALS: 'DB_Staff_Practical_Evaluations',
-  FLIGHT_LESSON_EVALS: 'DB_Flight_Lesson_Evals',
-  MANEUVERS: 'Ref_Maneuvers',
   MAINT_TEMPLATES: 'DB_Maint_Templates',
   MAINT_ASSIGNMENTS: 'DB_Maint_Assignments',
   MAINT_LOG: 'DB_Maint_Log',
@@ -59,8 +54,7 @@ const APP_SHEETS = {
   LIABILITY_RELEASES: 'DB_Liability_Releases',
   FORM_IMPORT_LOG: 'DB_Form_Import_Log',
   LIVE_TRACK: 'LIVE_Track',
-  FF_MESSAGES: 'DB_FF_Messages',
-  FF_ARCHIVE: 'DB_FF_Archive'
+  FF_MESSAGES: 'DB_FF_Messages'
 };
 
 const DISPATCH_COL = {

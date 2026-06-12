@@ -34,6 +34,27 @@
     .mx-kv b { display:block; color:#607d8b; font-size:0.68rem; text-transform:uppercase; margin-bottom:2px; }
     .mx-kv span { color:#0b5394; font-size:0.83rem; font-weight:800; }
     .mx-inline-form { border:1px dashed #cfd8dc; border-radius:8px; padding:10px; margin-top:10px; }
+    .mx-review-row { border:1px solid #dbe4ee; border-radius:8px; padding:10px; margin-bottom:8px; background:#fff; }
+    .mx-review-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+    .mx-review-title { font-size:0.92rem; font-weight:900; color:#263238; }
+    .mx-review-sub { font-size:0.76rem; color:#607d8b; font-weight:700; margin-top:2px; }
+    .mx-review-reason { margin-top:8px; padding:8px 10px; border-radius:6px; background:#f7fbff; border:1px solid #d0e3f7; color:#0b5394; font-size:0.82rem; line-height:1.4; }
+    .mx-review-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:6px; margin-top:8px; }
+    .mx-review-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+    .mx-review-btn { height:32px; border:none; border-radius:6px; padding:0 10px; font-size:0.75rem; font-weight:800; cursor:pointer; }
+    .mx-review-btn.approve { background:#2e7d32; color:#fff; }
+    .mx-review-btn.neutral { background:#eceff1; color:#455a64; }
+    .mx-trace { margin-top:8px; border:1px solid #d8e7f8; border-radius:8px; overflow:hidden; background:#f7fbff; }
+    .mx-trace summary { list-style:none; cursor:pointer; padding:8px 10px; color:#1565c0; font-size:0.8rem; font-weight:800; display:flex; align-items:center; gap:6px; }
+    .mx-trace summary::-webkit-details-marker { display:none; }
+    .mx-trace-arrow { display:inline-block; transition:transform .15s ease; color:#1e88e5; font-size:0.9rem; }
+    .mx-trace[open] .mx-trace-arrow { transform:rotate(90deg); }
+    .mx-trace-body { padding:0 10px 10px; }
+    .mx-trace-table { width:100%; border-collapse:collapse; font-size:0.76rem; }
+    .mx-trace-table td { padding:5px 0; border-top:1px solid #e4eef8; vertical-align:top; }
+    .mx-trace-label { width:36%; color:#546e7a; font-weight:800; padding-right:8px; }
+    .mx-trace-value { width:22%; color:#0b5394; font-weight:900; }
+    .mx-trace-source { color:#607d8b; }
   </style>
 
   <div class="mx-card" style="border-left:5px solid #1565c0;">
@@ -97,6 +118,22 @@
     </div>
     <div class="mx-body" style="padding-top:0;">
       <div style="font-size:0.82rem;color:#546e7a;">Source of truth: DB_Aircraft OPEN_SQUAWKS. Includes manual reports and debrief-ingested discrepancies.</div>
+    </div>
+  </div>
+
+  <div class="mx-card" style="border-left:5px solid #2e7d32;">
+    <div class="mx-head">
+      <h5 style="color:#1b5e20;">MX Approval Queue</h5>
+      <div id="mx-review-meta" style="font-size:0.76rem;color:#607d8b;font-weight:700;">Loading...</div>
+    </div>
+    <div class="mx-body">
+      <div class="mx-grid" style="margin-bottom:10px;">
+        <div class="mx-stat"><div class="mx-stat-label">Below 5 Hrs</div><div class="mx-stat-val" id="mx-review-critical">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Below 10 Hrs</div><div class="mx-stat-val" id="mx-review-soon">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Approved</div><div class="mx-stat-val" id="mx-review-approved">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Pending</div><div class="mx-stat-val" id="mx-review-pending">0</div></div>
+      </div>
+      <div id="mx-review-list"></div>
     </div>
   </div>
 
@@ -357,6 +394,171 @@
       .getMaintenanceScheduleData({aircraftReg:filter==='ALL'?'':filter});
   }
 
+  function mxEsc_(value){
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function mxLoadApprovalQueue_(){
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.success){
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Could not load MX approval queue',classes:'red'});
+          return;
+        }
+        mxRenderApprovalQueue_(Array.isArray(res.rows)?res.rows:[]);
+      })
+      .withFailureHandler(function(err){
+        if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});
+      })
+      .getMxApprovalQueue();
+  }
+
+  function mxRenderApprovalStats_(rows){
+    var critical=0,soon=0,approved=0,pending=0;
+    (rows||[]).forEach(function(r){
+      var review=r&&r.mxReview?r.mxReview:{};
+      var status=String(review.status||'PENDING').trim().toUpperCase();
+      var tier=String(review.projectedStatus||'').trim().toUpperCase();
+      if(status==='APPROVED') approved++; else pending++;
+      if(tier==='CRITICAL' || tier==='OVERDUE') critical++;
+      if(tier==='REVIEW_REQUIRED' || tier==='CRITICAL' || tier==='OVERDUE') soon++;
+    });
+    var criticalEl=document.getElementById('mx-review-critical'); if(criticalEl) criticalEl.textContent=String(critical);
+    var soonEl=document.getElementById('mx-review-soon'); if(soonEl) soonEl.textContent=String(soon);
+    var approvedEl=document.getElementById('mx-review-approved'); if(approvedEl) approvedEl.textContent=String(approved);
+    var pendingEl=document.getElementById('mx-review-pending'); if(pendingEl) pendingEl.textContent=String(pending);
+  }
+
+  function mxRenderApprovalQueue_(rows){
+    var box=document.getElementById('mx-review-list');
+    var meta=document.getElementById('mx-review-meta');
+    if(!box) return;
+    mxRenderApprovalStats_(rows);
+    if(meta) meta.textContent='Showing '+String((rows||[]).length)+' mission(s) that need MX review';
+    if(!rows||!rows.length){
+      box.innerHTML='<div class="mx-empty">No flights currently need maintenance supervisor approval.</div>';
+      return;
+    }
+
+    box.innerHTML=rows.map(function(r){
+      var review=r&&r.mxReview?r.mxReview:{};
+      var missionId=String(r.missionId||'').trim();
+      var status=String(review.status||'PENDING').trim().toUpperCase();
+      var tier=String(review.projectedStatus||'').trim().toUpperCase();
+      var tierLabel=tier==='OVERDUE' ? 'OVERDUE' : tier==='CRITICAL' ? '< 5 HRS' : tier==='REVIEW_REQUIRED' ? '< 10 HRS' : 'OK';
+      var tierClass=tier==='OVERDUE' || tier==='CRITICAL' ? 'red' : (tier==='REVIEW_REQUIRED' ? 'orange' : 'green');
+      var reason=String(review.reviewReason||'').trim();
+      if(!reason && tier==='OVERDUE') reason='Already below 0 hrs remaining after mission.';
+      if(!reason && tier==='CRITICAL') reason='Less than 5 hrs remaining after mission.';
+      if(!reason && tier==='REVIEW_REQUIRED') reason='Less than 10 hrs remaining after mission.';
+      var currentHours=review.currentHoursRemaining;
+      var projectedHours=review.projectedHoursRemaining;
+      var nextInspection=(review.nextInspection&&typeof review.nextInspection==='object')?review.nextInspection:null;
+      var missionHours=(r.missionFlightHours!=null&&r.missionFlightHours!=='')?Number(r.missionFlightHours):Number(review.missionFlightHours||0);
+      var approvalHtml=status==='APPROVED'
+        ? '<span class="mx-pill green">APPROVED</span>'
+        : '<button class="mx-review-btn approve" type="button" onclick="mxApproveMission_(\''+missionId.replace(/'/g,"\\'")+'\')">APPROVE</button>';
+      var nextInspectionText=nextInspection && nextInspection.taskName ? (nextInspection.taskName + (nextInspection.hoursRemaining!=='' && nextInspection.hoursRemaining!=null ? ' • ' + nextInspection.hoursRemaining + ' hrs' : '')) : 'No inspection loaded';
+      var aircraftTrace = mxFindAircraftTrace_(r.aircraft);
+      var traceRows = mxBuildApprovalTraceRows_(r, review, aircraftTrace);
+      return ''
+        + '<div class="mx-review-row">'
+          + '<div class="mx-review-head">'
+            + '<div>'
+              + '<div class="mx-review-title">'+mxEsc_(missionId)+' • '+mxEsc_(r.aircraft||'')+'</div>'
+              + '<div class="mx-review-sub">'+mxEsc_(r.date||'')+' • '+mxEsc_(r.pilot||'')+' • '+mxEsc_(r.route||'')+'</div>'
+            + '</div>'
+            + '<div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">'
+              + '<span class="mx-pill '+tierClass+'">'+tierLabel+'</span>'
+              + approvalHtml
+            + '</div>'
+          + '</div>'
+          + '<div class="mx-review-reason"><b>Why it needs approval:</b> '+mxEsc_(reason || 'This flight reduces the remaining maintenance margin enough to require review.')+'</div>'
+          + '<div class="mx-review-grid">'
+            + '<div class="mx-kv"><b>Current Remaining</b><span>'+(currentHours!=='' && currentHours!=null ? mxEsc_(currentHours) : '-')+'</span></div>'
+            + '<div class="mx-kv"><b>Projected Remaining</b><span>'+(projectedHours!=='' && projectedHours!=null ? mxEsc_(projectedHours) : '-')+'</span></div>'
+            + '<div class="mx-kv"><b>Mission Hours</b><span>'+(missionHours!=='' && isFinite(missionHours) ? missionHours.toFixed(1) : '-')+'</span></div>'
+            + '<div class="mx-kv"><b>Next Inspection</b><span>'+mxEsc_(nextInspectionText)+'</span></div>'
+          + '</div>'
+          + '<div class="mx-review-actions">'
+            + '<span class="mx-pill '+tierClass+'">'+mxEsc_(status==='APPROVED' ? 'APPROVED' : (review.projectedStatus || 'REVIEW'))+'</span>'
+            + '<span class="mx-pill '+tierClass+'">Threshold &lt; 10 hrs, critical &lt; 5 hrs</span>'
+            + (status==='APPROVED' ? '' : '<span class="mx-pill orange">Pending approval</span>')
+          + '</div>'
+          + '<details class="mx-trace">'
+            + '<summary><span class="mx-trace-arrow">▶</span><span>Calculation trace</span></summary>'
+            + '<div class="mx-trace-body">'
+              + '<table class="mx-trace-table">'
+                + traceRows.map(function(row){
+                    return '<tr>'
+                      + '<td class="mx-trace-label">'+mxEsc_(row.label)+'</td>'
+                      + '<td class="mx-trace-value">'+mxEsc_(row.value)+'</td>'
+                      + '<td class="mx-trace-source">'+mxEsc_(row.source)+'</td>'
+                    + '</tr>';
+                  }).join('')
+              + '</table>'
+            + '</div>'
+          + '</details>'
+        + '</div>';
+    }).join('');
+  }
+
+  function mxFindAircraftTrace_(aircraftReg){
+    var reg=String(aircraftReg||'').trim().toUpperCase();
+    var fleet=(window.appData&&Array.isArray(window.appData.aircraft)) ? window.appData.aircraft : [];
+    var acft=fleet.find(function(row){ return String(row && row.reg || '').trim().toUpperCase()===reg; }) || null;
+    return {
+      reg: reg,
+      currentTach: acft && acft.currentTach != null ? Number(acft.currentTach) : null,
+      nextDue: acft && acft.nextDue != null ? Number(acft.nextDue) : null,
+      hoursToInsp: acft && acft.hoursToInsp != null ? Number(acft.hoursToInsp) : null
+    };
+  }
+
+  function mxBuildApprovalTraceRows_(missionRow, review, aircraftTrace){
+    var currentRemaining=review && review.currentHoursRemaining;
+    var projectedRemaining=review && review.projectedHoursRemaining;
+    var missionHours=missionRow && missionRow.missionFlightHours != null ? Number(missionRow.missionFlightHours) : Number(review && review.missionFlightHours || 0);
+    var rows=[];
+    rows.push({ label:'DB_Aircraft hours to insp', value:(aircraftTrace && aircraftTrace.hoursToInsp != null && isFinite(aircraftTrace.hoursToInsp)) ? aircraftTrace.hoursToInsp.toFixed(1) : '-', source:'DB_Aircraft.HOURS_TO_INSPECTION from getDropdownData()' });
+    rows.push({ label:'DB_Aircraft current tach', value:(aircraftTrace && aircraftTrace.currentTach != null && isFinite(aircraftTrace.currentTach)) ? aircraftTrace.currentTach.toFixed(1) : '-', source:'DB_Aircraft.CURRENT_TACH from getDropdownData()' });
+    rows.push({ label:'Maintenance next due tach', value:(review && review.nextInspection && review.nextInspection.nextDueTach != null && review.nextInspection.nextDueTach !== '') ? String(review.nextInspection.nextDueTach) : '-', source:'Maintenance schedule nextDueTach from getMaintenanceScheduleData()' });
+    rows.push({ label:'Maintenance hours remaining', value:(currentRemaining != null && currentRemaining !== '' && isFinite(Number(currentRemaining))) ? Number(currentRemaining).toFixed(1) : '-', source:'nextDueTach - currentTach in getMaintenanceScheduleData()' });
+    rows.push({ label:'Mission flight hours', value:isFinite(missionHours) ? missionHours.toFixed(1) : '-', source:'Dispatch mission total used by _buildMissionMxReview_()' });
+    rows.push({ label:'Projected remaining after mission', value:(projectedRemaining != null && projectedRemaining !== '' && isFinite(Number(projectedRemaining))) ? Number(projectedRemaining).toFixed(1) : '-', source:'Maintenance hours remaining - mission flight hours' });
+    rows.push({ label:'Decision threshold', value:'< 10 hrs', source:'_buildMissionMxReview_ thresholdHours' });
+    rows.push({ label:'Critical band', value:'< 5 hrs', source:'_buildMissionMxReview_ criticalHours' });
+    return rows;
+  }
+
+  function mxApproveMission_(missionId){
+    var id=String(missionId||'').trim();
+    if(!id) return;
+    var password=window.prompt('Enter maintenance supervisor password to approve mission '+id+':');
+    if(!password) return;
+    var userEl=document.getElementById('userDisplay');
+    var approver=String((userEl&&userEl.innerText)||(window.user&&window.user.name)||'Maintenance Supervisor').trim() || 'Maintenance Supervisor';
+    var notes=window.prompt('Optional approval notes for '+id+':', '') || '';
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.success){
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Approval failed',classes:'red'});
+          return;
+        }
+        if(window.M&&M.toast)M.toast({html:res.message||('Mission '+id+' approved'),classes:'green'});
+        mxLoadApprovalQueue_();
+      })
+      .withFailureHandler(function(err){
+        if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});
+      })
+      .approveMissionMxReview(id, approver, notes, password);
+  }
+
   function mxCreateScheduleItem_(){
     var payload={
       taskCode:String((document.getElementById('mx-new-task-code')||{}).value||'').trim().toUpperCase(),
@@ -535,6 +737,7 @@
         mxRenderAircraftSelectors_(mxReadData_());
         mxLoadSchedule_();
         mxRenderDiscrepancies_();
+        mxLoadApprovalQueue_();
       })
       .withFailureHandler(function(){mxRenderDiscrepancies_();})
       .getDropdownData();

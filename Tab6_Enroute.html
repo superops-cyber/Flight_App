@@ -1,5 +1,5 @@
 <style>
-  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v132 ===== */
+  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v123 ===== */
 
   #enroute6-wrap {
     background:
@@ -439,7 +439,7 @@
     font-size: 0.72rem;
     font-weight: 900;
   }
-  .transfer-banner { font-size: 0.94rem; color: #ff6b6b; line-height: 1.2; }
+  .transfer-banner { font-size: 0.78rem; color: #ff6b6b; line-height: 1.2; }
   .transfer-banner.active {
     color: #ffe082;
     background: rgba(255, 193, 7, 0.15);
@@ -523,24 +523,31 @@
   .wp-table td.dist-cell {
     color: #ffffff;
     font-weight: 700;
-    font-size: 0.98rem;
     letter-spacing: 0.01em;
     font-variant-numeric: tabular-nums;
   }
   .wp-table th:nth-child(7),
   .wp-table td:nth-child(7) {
-    min-width: 252px;
-    width: 252px;
+    min-width: 216px;
+    width: 216px;
+  }
+  .wp-table th:nth-child(8),
+  .wp-table td:nth-child(8) {
+    min-width: 52px;
+    width: 52px;
+    max-width: 52px;
+    white-space: nowrap;
+    padding-left: 2px;
+    padding-right: 2px;
   }
   .wp-table th:last-child,
   .wp-table td:last-child {
-    width: 58px;
-    min-width: 58px;
-    max-width: 58px;
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
     text-align: center;
     padding-left: 2px;
     padding-right: 2px;
-    white-space: nowrap;
   }
   .wp-table tbody tr:nth-child(even) { background: #111111; }
   .wp-table tbody tr:nth-child(odd)  { background: #000000; }
@@ -561,17 +568,12 @@
   }
   .wp-pass-btn  { background: #1d2936; border: 1px solid #4f6380; }
   .wp-del-btn   { background: #3a1a1a; border: 1px solid #8a3a3a; }
-  .wp-del-btn {
-    width: 20px;
-    min-width: 20px;
-    padding: 0;
-  }
   .wp-direct-btn {
     background: #3a1a33;
     border: 1px solid #8a4a6a;
     font-size: 0.7rem;
-    width: 26px;
-    min-width: 26px;
+    width: 28px;
+    min-width: 28px;
     padding: 0;
     margin-right: 0;
     letter-spacing: 0.02em;
@@ -710,7 +712,7 @@
 <div id="enroute6-wrap">
   <div class="enroute6-panel">
     <span id="enroute-gs-badge" class="gs-badge"></span>
-    <div style="font-size:10px;color:#666;text-align:right;margin-bottom:2px;">Tab6 Build: v132</div>
+    <div style="font-size:10px;color:#666;text-align:right;margin-bottom:2px;">Tab6 Build: v122</div>
 
     <div class="enroute-card">
       <div class="roll-tool-row">
@@ -781,14 +783,13 @@
             <th>ETE</th>
             <th>ETA</th>
             <th>ATA</th>
-            <th>Launch: <span id="enroute-fuel-summary" style="margin-left:4px;color:#8ce26c;">-- L</span> | Used: <span id="enroute-fuel-used" style="color:#ffb74d;">0</span>L</th>
+            <th>Fuel <span id="enroute-fuel-summary" style="margin-left:4px;color:#8ce26c;">-- L</span></th>
+            <th>Fuel Used</th>
             <th></th>
           </tr>
         </thead>
-
         <tbody id="enroute-wp-body"></tbody>
       </table>
-      <div style="font-size:0.75rem; color:#999; text-align:center; margin-top:4px; padding:4px;">Times shown in UTC (Zulu)</div>
 
       <div class="wp-add-row">
         <input id="enroute-add-fix" placeholder="+ ADD waypoint (from DB_Airports / DB_Waypoints)">
@@ -800,13 +801,6 @@
         <input id="enroute-divert-fix" placeholder="DIRECT TO any ICAO / waypoint / airport name">
         <button class="mini-btn" onclick="directToTypedFix()">DIRECT TO</button>
         <div id="enroute-divert-suggest-list" class="suggest-list" style="display:none;"></div>
-      </div>
-
-      <div style="margin-top:12px; padding:8px; background:#2a2a2a; border-radius:6px;">
-        <button type="button" onclick="toggleFuelLog()" style="background:none; border:none; color:#f0a03b; font-weight:900; cursor:pointer; font-size:0.9rem;">▼ FUEL EVENT LOG</button>
-        <div id="enroute-fuel-log" style="margin-top:8px; display:block;">
-          <div id="enroute-fuel-events" style="font-size:0.75rem; color:#ccc; max-height:250px; overflow-y:auto;"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -873,8 +867,7 @@
       distanceAtVrNm: 0,
       saveSent: false
     }
-    ,diag: [],
-    fuelEvents: []
+    ,diag: []
   };
     window.enroute6.autoLog = { enabled: false, state: 'GROUND', prevGsKts: 0, aboveTs: 0, belowTs: 0, relaunchAboveTs: 0, brakesReleaseFired: false, airborneConfirmed: false, airborneTs: 0, airborneFfFired: false, promptShown: false, landedFired: false, touchAndGoCount: 0, airborneConfirmKts: 40, landedThresholdKts: 30, onBlocksPromptMs: 45000 };
     window.enroute6.autoLog.maxGsKtsSinceAirborne = 0;
@@ -908,10 +901,10 @@
     }
 
   function _enrouteFmtHhmm(dateObj) {
-    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '--:--';
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '--:--Z';
     const hh = String(dateObj.getUTCHours()).padStart(2, '0');
     const mm = String(dateObj.getUTCMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
+    return `${hh}:${mm}Z`;
   }
 
   function _enrouteFmtBsbHhmm_(dateObj) {
@@ -2590,9 +2583,15 @@
         fuelPopupLine = '<br>' + (anyFuel ? '⛽ Fuel: ' + (hasFuel ? aptRecord.fuelAvailable : 'Cache') : 'No fuel available');
         marker = window.L.marker([p.lat, p.lon], { icon: _enrouteAirportDivIcon(aptRecord.runwaySurfaceActual, anyFuel) });
       } else {
-        // Pure waypoint — render as triangle icon only.
-        marker = window.L.marker([p.lat, p.lon], { icon: _enrouteWpDbDivIcon() });
-        if (passed) marker.setOpacity(0.6);
+        // Pure waypoint — small circle
+        marker = window.L.circleMarker([p.lat, p.lon], {
+          radius: 5,
+          color: passed ? '#2e7d32' : '#0b5394',
+          fillColor: passed ? '#81c784' : '#42a5f5',
+          fillOpacity: 0.95,
+          weight: 2,
+          opacity: passed ? 0.6 : 1
+        });
       }
       const legDist = (p.distNm != null) ? Math.round(p.distNm) + ' nm' : '? nm';
       marker.bindPopup('<b>' + p.fix + '</b><br>ETA ' + p.eta + '<br>Leg ' + legDist + fuelPopupLine);
@@ -3298,13 +3297,6 @@
     return Math.min(nextIdx, wps.length - 1);
   }
 
-  function _enroutePastFuelWaypointIdx_() {
-    const wps = Array.isArray(window.enroute6.waypoints) ? window.enroute6.waypoints : [];
-    if (wps.length < 2) return 0;
-    const passed = Number(window.enroute6.passedIndex || -1);
-    return Math.max(0, passed);
-  }
-
   function _enrouteRecordFuelEvent_(payload) {
     const explicitIdx = Number(payload && payload.rowIdx);
     const idx = isFinite(explicitIdx)
@@ -3319,66 +3311,9 @@
     }
     const note = String(payload && payload.note || '').trim();
     if (note) wp.fuelNote = note;
-    const timestamp = _enrouteFmtHhmm(new Date());
-    wp.fuelEventAt = timestamp;
-    
-    // Log fuel event to history
-    const fuelEvent = {
-      ts: timestamp,
-      wpIdx: idx,
-      wpFix: wp.fix || '--',
-      used: usedLiters,
-      note: note
-    };
-    if (!Array.isArray(window.enroute6.fuelEvents)) window.enroute6.fuelEvents = [];
-    window.enroute6.fuelEvents.push(fuelEvent);
-    _enrouteRenderFuelLog_();
-    _enrouteUpdateFuelHeader_();
-    
+    wp.fuelEventAt = _enrouteFmtHhmm(new Date());
     return { idx: idx, wp: wp };
   }
-
-  function _enrouteRenderFuelLog_() {
-    const logEl = document.getElementById('enroute-fuel-events');
-    if (!logEl) return;
-    const events = Array.isArray(window.enroute6.fuelEvents) ? window.enroute6.fuelEvents : [];
-    if (!events.length) {
-      logEl.innerHTML = '<div style="color:#666; padding:4px;">No fuel events yet.</div>';
-      return;
-    }
-    let runningUsed = 0;
-    const html = events.map(e => {
-      const usedNow = Math.max(0, Number(e.used || 0));
-      runningUsed += usedNow;
-      const detail = String(e.note || '').trim() || 'Fuel event recorded';
-      return `<div style="margin-bottom:4px; padding:4px; border-left:2px solid #8ce26c; background:#1a2a1a;">`
-        + `<div><span style="color:#f0a03b; font-weight:bold;">${e.ts}</span> @ ${e.wpFix}</div>`
-        + `<div style="margin-top:2px; color:#d8e7d1;">${detail}</div>`
-        + `<div style="margin-top:3px; font-size:0.72rem; color:#a9c89a;">Used +${usedNow.toFixed(1)}L | Running ${runningUsed.toFixed(1)}L</div>`
-        + `</div>`;
-    }).join('');
-    logEl.innerHTML = html;
-  }
-
-  function _enrouteUpdateFuelHeader_() {
-    const usedEl = document.getElementById('enroute-fuel-used');
-    if (!usedEl) return;
-    const wps = Array.isArray(window.enroute6.waypoints) ? window.enroute6.waypoints : [];
-    let totalUsed = 0;
-    wps.forEach(wp => {
-      totalUsed += Number(wp.fuelUsedL || 0);
-    });
-    usedEl.textContent = Math.round(totalUsed);
-  }
-
-  window.toggleFuelLog = function() {
-    const logDiv = document.getElementById('enroute-fuel-log');
-    if (!logDiv) return;
-    const isVisible = logDiv.style.display !== 'none';
-    logDiv.style.display = isVisible ? 'none' : 'block';
-    const btn = logDiv.parentElement.querySelector('button');
-    if (btn) btn.textContent = (isVisible ? '▶' : '▼') + ' FUEL EVENT LOG';
-  };
 
   // -------- Auto Flight-Follow message on departure / landing --------
   function _enrouteAutoFFEvent_(eventType, icao, ts) {
@@ -3460,6 +3395,11 @@
       banner.textContent = `${active.tip} transfer running to ${active.main}. Tap ${active.tip} again to stop. ${mm}:${ss}`;
       return;
     }
+    if (window.enroute6.lastTransferMessage) {
+      banner.classList.add('complete');
+      banner.textContent = window.enroute6.lastTransferMessage;
+      return;
+    }
     banner.textContent = '';
   }
 
@@ -3481,6 +3421,7 @@
             return `<button class="fuel-chip-btn ${isActiveMain ? 'active-main' : ''} ${isTransferLive ? 'transfer-live' : ''}" onclick="tapFuelTank('${tank}')"><span>${tank}: ${Math.round(Number(f[tank] || 0))}</span></button>`;
           }).join('')}
         </div>
+        <div class="fuel-cell-hint">Tap other main to switch. Tap a tip to start or stop transfer.</div>
       </div>`;
   }
 
@@ -3626,7 +3567,6 @@
     const f = window.enroute6.fuel || {};
     const total = Number(f.LM || 0) + Number(f.RM || 0) + Number(f.LT || 0) + Number(f.RT || 0);
     el.textContent = `${Math.round(total)} L`;
-    _enrouteUpdateFuelHeader_();
   }
 
   window.recalcWaypointsFromGs = function() {
@@ -3779,7 +3719,7 @@
           return '<b>' + Number(wp.distNm || 0) + 'nm</b>';
         }
         // Active leg: show countdown
-        if (wp.remainingNm != null) return '<b style="color:#ffffff;">' + wp.remainingNm + 'nm</b>';
+        if (wp.remainingNm != null) return '<b style="color:#ffffff;">→ ' + wp.remainingNm + 'nm</b>';
         if (wp.distNm != null) return '<b>' + Number(wp.distNm || 0) + 'nm</b>';
         return '<span style="color:#d32f2f;font-weight:bold;">⚠ ?nm</span>';
       })();
@@ -3787,8 +3727,10 @@
         ? '<b style="color:#ffffff;">' + wp.eteMin + 'min</b>'
         : (wp.eteMin ? ('<b>' + wp.eteMin + 'm</b>') : '--');
       // ATA: origin never shows ATA; passed wps show passedAt; origin shows nothing
-      const ataDisplay = (idx === 0) ? '' : (wp.passedAt || wp.ata || wp.bypassedAt || '--:--');
-      const passedHtml = wp.bypassedAt ? ('<br><small style="color:#bbb;">Bypassed ' + wp.bypassedAt + '</small>') : '';
+      const ataDisplay = (idx === 0) ? '' : (wp.passedAt || wp.ata || wp.bypassedAt || '--:--Z');
+      const passedHtml = wp.passedAt
+        ? ('<br><small>Passed ' + wp.passedAt + '</small>')
+        : (wp.bypassedAt ? ('<br><small style="color:#bbb;">Bypassed ' + wp.bypassedAt + '</small>') : '');
       const passBtn = ''; // PASS button removed — auto-advance handles waypoint progression
       const delBtn = (canDelete && !passed && !bypassed) ? ('<button class="wp-del-btn" onclick="deleteWaypoint(' + idx + ')">x</button>') : '';
       const directBtn = ('<button class="wp-direct-btn" onclick="directToWaypoint(' + idx + ')">↗ D</button>');
@@ -3814,6 +3756,7 @@
         + '<td>' + (wp.eta || '--:--') + '</td>'
         + '<td>' + ataDisplay + '</td>'
         + '<td style="font-size:0.82rem;">' + _enrouteFuelCellHtml_(idx, isFuelRow) + '</td>'
+        + '<td>' + (wp.fuelUsedL ? ('<span class="fuel-used-badge">' + Math.round(Number(wp.fuelUsedL || 0)) + 'L</span>') : '--') + '</td>'
         + '<td>' + directBtn + passBtn + delBtn + '</td>'
         + '</tr>';
     }
@@ -3894,10 +3837,10 @@
     const f = window.enroute6.fuel;
     const from = f.activeMain;
     const to = targetTank === 'LM' || targetTank === 'RM' ? targetTank : (from === 'RM' ? 'LM' : 'RM');
-    const eventRowIdx = _enroutePastFuelWaypointIdx_();
+    const eventRowIdx = _enrouteActiveFuelWaypointIdx_();
     const ok = await window.flightAppConfirm(`Switch from ${from} to ${to}?`, { title: 'Main Tank Switch', okText: 'Switch Tank' });
     if (!ok) return;
-    const burnedRaw = await window.flightAppPrompt(`Enter fuel burned from ${from} (L):`, '', { title: 'Tank Switch', okText: 'Continue', inputType: 'number', inputMode: 'decimal', step: '1', min: '0' });
+    const burnedRaw = await window.flightAppPrompt(`Enter fuel burned from ${from} (L):`, '50', { title: 'Tank Switch', okText: 'Continue', inputType: 'number', inputMode: 'decimal', step: '1', min: '0' });
     if (burnedRaw == null) return;
 
     const burned = Math.max(0, Number(burnedRaw || 0));
@@ -3961,14 +3904,17 @@
   window.stopTipTransfer = async function() {
     const active = window.enroute6.transferActive || null;
     if (!active) return;
-    const eventRowIdx = _enroutePastFuelWaypointIdx_();
+    const eventRowIdx = _enrouteActiveFuelWaypointIdx_();
     if (window.enroute6.transferTimer) {
       clearInterval(window.enroute6.transferTimer);
       window.enroute6.transferTimer = null;
     }
 
     const f = window.enroute6.fuel;
-    const movedRaw = await window.flightAppPrompt(`How much fuel moved from ${active.tip} to ${active.main} (L)?`, '', { title: 'Stop Tip Transfer', okText: 'Apply Fuel', inputType: 'number', inputMode: 'decimal', step: '1', min: '0' });
+    const elapsedSeconds = Math.max(0, Number(window.enroute6.transferSecondsLeft || 0));
+    const suggested = Math.min(Number(active.qtyAtStart || 0), (elapsedSeconds / 60) * Math.max(0.1, Number(active.lpm || 0.8)));
+    const defaultLiters = String(Math.max(0, Math.round(suggested)));
+    const movedRaw = await window.flightAppPrompt(`How much fuel moved from ${active.tip} to ${active.main} (L)?`, defaultLiters, { title: 'Stop Tip Transfer', okText: 'Apply Fuel', inputType: 'number', inputMode: 'decimal', step: '1', min: '0' });
     if (movedRaw == null) {
       window.enroute6.transferTimer = setInterval(function() {
         const live = window.enroute6.transferActive;
@@ -3983,7 +3929,7 @@
     const moved = Math.min(maxTransfer, Math.max(0, Number(movedRaw || 0)));
     f[active.tip] = Math.max(0, Number(f[active.tip] || 0) - moved);
     f[active.main] = Math.max(0, Number(f[active.main] || 0) + moved);
-    _enrouteRecordFuelEvent_({ rowIdx: eventRowIdx, note: `Transferred ${Math.round(moved)}L ${active.tip} to ${active.main}` });
+    _enrouteRecordFuelEvent_({ rowIdx: eventRowIdx, note: `${active.tip} to ${active.main} transfer ${Math.round(moved)}L` });
     window.enroute6.lastTransferMessage = `${active.tip} transfer stopped. ${Math.round(moved)}L moved to ${active.main}.`;
     window.enroute6.transferActive = null;
     window.enroute6.transferSecondsLeft = 0;
@@ -4550,9 +4496,7 @@
           RM: mainStart,
           RT: tipCap,
           activeMain: 'RM'
-        })),
-        fuelEvents: [],
-        fuelEventsLegId: String(flightLegId || '')
+        }))
       };
 
       const endpointEl = document.getElementById('enroute-api-endpoint');
@@ -4607,7 +4551,6 @@
       }
 
       renderFuelStrip();
-      _enrouteRenderFuelLog_();
       recalcWaypointsFromGs();
       _updatePackStatus();
       _enrouteInitMap();

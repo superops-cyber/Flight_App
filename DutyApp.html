@@ -135,15 +135,30 @@
 
     .banner {
       display: none;
-      margin-bottom: 10px;
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translate(-50%, -12px) scale(0.98);
+      width: calc(100vw - 28px);
+      max-width: 560px;
+      margin: 0;
       border-radius: 10px;
       padding: 9px 10px;
       font-size: 0.84rem;
       font-weight: 700;
       border: 1px solid transparent;
+      z-index: 3000;
+      box-shadow: 0 12px 28px rgba(16, 43, 57, 0.18);
+      opacity: 0;
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
     }
 
-    .banner.show { display: block; }
+    .banner.show {
+      display: block;
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
     .banner.info { background: #e3f2fd; border-color: #bbdefb; color: var(--brand); }
     .banner.ok { background: #e8f5e9; border-color: #c8e6c9; color: var(--ok); }
     .banner.warn { background: #fff3e0; border-color: #ffe0b2; color: var(--warn); }
@@ -267,23 +282,55 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 22px;
-      height: 22px;
+      min-width: 28px;
+      width: 28px;
+      height: 28px;
       position: absolute;
-      right: 8px;
-      top: 36px;
-      font-size: 0.92rem;
+      right: 7px;
+      top: 34px;
       color: #455a64;
       cursor: pointer;
       user-select: none;
       -webkit-user-select: none;
       border: 1px solid #b0bec5;
       border-radius: 999px;
-      background: #eceff1;
-      font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      background: linear-gradient(180deg, #f7f9fb 0%, #e6edf2 100%);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset;
       z-index: 10;
       touch-action: auto;
       -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    }
+
+    .field-lock .lock-icon svg {
+      width: 18px;
+      height: 18px;
+      overflow: visible;
+      display: block;
+    }
+
+    .field-lock .lock-icon .lock-shackle {
+      transition: transform 160ms ease;
+      transform-origin: 12px 8px;
+    }
+
+    .field-lock .lock-icon.unlocked-override .lock-shackle {
+      transform: rotate(-44deg) translate(-1px, -1px);
+    }
+
+    .account-note {
+      margin-top: 5px;
+      font-size: 0.74rem;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .account-status {
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--brand);
     }
 
     .field-lock input {
@@ -299,8 +346,15 @@
     }
 
     .field-lock.locked .lock-icon {
-      background: #dfe5e8;
+      background: linear-gradient(180deg, #e8eef2 0%, #d9e2e8 100%);
       border-color: #90a4ae;
+      color: #37474f;
+    }
+
+    .field-lock.unlocked-override .lock-icon {
+      background: linear-gradient(180deg, #fff7e6 0%, #ffe0a6 100%);
+      border-color: #f0b44d;
+      color: #8a4b00;
     }
 
     .field-lock.unlocked-override input {
@@ -508,6 +562,19 @@
       </div>
       <div id="duty-geo-accuracy" style="font-size:0.7rem; font-weight:400; margin-top:3px; opacity:0.75;"></div>
     </div>
+
+    <section class="card">
+      <div class="field">
+        <label for="preferred-duty-email">Conta Google para registrar horas</label>
+        <input id="preferred-duty-email" type="email" autocomplete="email" placeholder="usuario@dominio.com">
+        <div class="account-note">Salvo neste navegador. Deixe em branco para usar a conta atual logada.</div>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="primary" type="button" onclick="dutySavePreferredEmail()">Salvar conta</button>
+        <button class="secondary" type="button" onclick="dutyUseCurrentEmail()">Usar conta logada</button>
+      </div>
+      <div id="preferred-duty-email-status" class="account-status" style="margin-top:6px;"></div>
+    </section>
 
     <section class="card">
       <div class="meta-grid">
@@ -738,9 +805,15 @@
       dutyConfig: {}
     };
 
+    let dutyBannerTimer = null;
+
     function dutySetBanner(text, tone) {
       const el = document.getElementById('duty-banner');
       if (!el) return;
+      if (dutyBannerTimer) {
+        clearTimeout(dutyBannerTimer);
+        dutyBannerTimer = null;
+      }
       const msg = String(text || '').trim();
       if (!msg) {
         el.className = 'banner';
@@ -749,6 +822,7 @@
       }
       el.className = 'banner show ' + String(tone || 'info');
       el.textContent = msg;
+      dutyBannerTimer = null;
     }
 
     function dutyNowBsb() {
@@ -794,12 +868,86 @@
       });
     }
 
+    function dutyNormalizePreferredEmail_(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function dutyPreferredEmailStorageKey_() {
+      return 'flight-app-duty-preferred-email';
+    }
+
+    function dutyReadPreferredEmail_() {
+      try {
+        return dutyNormalizePreferredEmail_(localStorage.getItem(dutyPreferredEmailStorageKey_()));
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function dutyWritePreferredEmail_(value) {
+      const email = dutyNormalizePreferredEmail_(value);
+      try {
+        if (email) localStorage.setItem(dutyPreferredEmailStorageKey_(), email);
+        else localStorage.removeItem(dutyPreferredEmailStorageKey_());
+      } catch (e) {}
+      dutyState.preferredDutyEmail = email;
+      return email;
+    }
+
+    function dutyPreferredEmailForRequest_() {
+      return dutyNormalizePreferredEmail_(dutyState.preferredDutyEmail || dutyReadPreferredEmail_());
+    }
+
+    function dutyRefreshPreferredEmailUi_() {
+      const input = document.getElementById('preferred-duty-email');
+      const status = document.getElementById('preferred-duty-email-status');
+      if (!input && !status) return;
+
+      const savedEmail = dutyReadPreferredEmail_();
+      const sessionEmail = String(dutyState.currentUser && dutyState.currentUser.sessionEmail || '').trim().toLowerCase();
+      const currentValue = savedEmail || sessionEmail || '';
+
+      if (input) {
+        input.value = currentValue;
+        input.placeholder = sessionEmail || 'usuario@dominio.com';
+      }
+      if (status) {
+        status.textContent = savedEmail
+          ? 'Usando conta salva: ' + savedEmail
+          : (sessionEmail ? 'Usando conta atual: ' + sessionEmail : 'Sem conta detectada.');
+      }
+
+      dutyState.preferredDutyEmail = savedEmail;
+    }
+
+    async function dutySavePreferredEmail() {
+      const input = document.getElementById('preferred-duty-email');
+      const email = dutyWritePreferredEmail_(input ? input.value : '');
+      dutyRefreshPreferredEmailUi_();
+      dutySetBanner(email ? 'Conta salva para registrar horas.' : 'Conta salva limpa. O app voltará a usar a conta logada.', 'ok');
+      await dutyLoadBootstrap('Atualizando conta de duty...');
+    }
+
+    async function dutyUseCurrentEmail() {
+      const sessionEmail = String(dutyState.currentUser && dutyState.currentUser.sessionEmail || '').trim().toLowerCase();
+      if (!sessionEmail) {
+        dutySetBanner('Nao foi possivel identificar a conta Google logada.', 'warn');
+        return;
+      }
+      const input = document.getElementById('preferred-duty-email');
+      if (input) input.value = sessionEmail;
+      await dutySavePreferredEmail();
+    }
+
     function dutyCallServer(methodName, payload) {
       return new Promise(function(resolve, reject) {
         if (!(window.google && google.script && google.script.run)) {
           reject(new Error('google.script.run indisponivel'));
           return;
         }
+        const requestPayload = (payload && typeof payload === 'object' && !Array.isArray(payload))
+          ? Object.assign({}, payload, { preferredDutyEmail: dutyPreferredEmailForRequest_() })
+          : payload;
         google.script.run
           .withSuccessHandler(function(res) {
             if (res == null) {
@@ -810,7 +958,7 @@
           })
           .withFailureHandler(function(err) {
             reject(err instanceof Error ? err : new Error(err && err.message ? err.message : String(err)));
-          })[methodName](payload);
+          })[methodName](requestPayload);
       });
     }
 
@@ -862,16 +1010,10 @@
 
     function dutyStatusTone(statusText) {
       const status = String(statusText || '').toUpperCase();
-      if (status.indexOf('CLOSE') >= 0 || status.indexOf('CLOSED') >= 0) return 'ok';
+      if (status.indexOf('CLOSE') >= 0) return 'ok';
       if (status.indexOf('OPEN') >= 0) return 'warn';
+      if (status.indexOf('IGNORE') >= 0) return 'bad';
       return 'warn';
-    }
-
-    function dutyStatusLabel(statusText, hasCompletedShift) {
-      if (hasCompletedShift === true) return 'CLOSED';
-      const status = String(statusText || '').toUpperCase();
-      if (status.indexOf('CLOSE') >= 0 || status.indexOf('CLOSED') >= 0) return 'CLOSED';
-      return 'OPEN';
     }
 
     function dutyApplyHeader() {
@@ -930,6 +1072,42 @@
       return dutyCleanNoFlightText(existingLine || autoLine);
     }
 
+    function dutyTrace_(stage, details) {
+      try {
+        console.log('[DutyApp][' + String(stage || 'trace') + ']', details || {});
+      } catch (e) {}
+    }
+
+    function dutyLockIconMarkup_(isLocked) {
+      if (isLocked) {
+        return ''
+          + '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+          + '  <path class="lock-shackle" d="M8.2 11V8.6a3.8 3.8 0 0 1 7.6 0V11" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>'
+          + '  <rect x="5.5" y="10.5" width="13" height="10" rx="2.1" ry="2.1" fill="none" stroke="currentColor" stroke-width="2"></rect>'
+          + '</svg>';
+      }
+
+      return ''
+        + '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+        + '  <path class="lock-shackle" d="M8.2 11V8.6a3.8 3.8 0 0 1 7.6 0V10.3" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>'
+        + '  <rect x="5.5" y="10.5" width="13" height="10" rx="2.1" ry="2.1" fill="none" stroke="currentColor" stroke-width="2"></rect>'
+        + '  <path d="M14.8 5.9c-1.5 0.1-2.6 1.3-2.6 2.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>'
+        + '  <path d="M16.5 6.2l2.6-2.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>'
+        + '</svg>';
+    }
+
+    function dutySelectedDepartment_(isEdit) {
+      const select = document.getElementById(isEdit ? 'edit-department' : 'department');
+      return String(select && select.value || '').trim();
+    }
+
+    function dutyRequireDepartment_(isEdit) {
+      const department = dutySelectedDepartment_(isEdit);
+      if (department) return department;
+      dutySetBanner('Selecione um departamento antes de salvar o dia.', 'warn');
+      return '';
+    }
+
     function dutyBuildFieldLockHtml(scope, index, kind, value, locked, unlocked) {
       const inputId = scope + '-shift-' + index + '-' + kind;
       const lockId = scope + '-shift-' + index + '-lock-' + kind;
@@ -937,32 +1115,13 @@
       if (locked && !unlocked) lockClass += ' locked';
       if (unlocked) lockClass += ' unlocked-override';
       const isLockedNow = !!locked && !unlocked;
-      return ''
-        + '<div class="field ' + lockClass + '" id="' + scope + '-field-' + index + '-' + kind + '">'
-        + '  <label>' + (kind === 'start' ? 'Inicio' : 'Fim') + ' <span style="font-size:0.68rem;font-weight:400;opacity:0.65;">(BSB)</span></label>'
-        + '  <input id="' + inputId + '" type="text" inputmode="numeric" placeholder="08:00, 8, 1pm" oninput="dutyFormatTimeOnInput(this)" onblur="dutyHandleTimeBlur(\'' + scope + '\',' + index + ',\'' + kind + '\')" value="' + dutyEscape(value || '') + '" ' + (isLockedNow ? 'readonly' : '') + '>'
-        + '  <span class="lock-icon" id="' + lockId + '" title="Toque para bloquear/desbloquear." onclick="dutyToggleLock(\'' + scope + '\',' + index + ',\'' + kind + '\')" style="pointer-events:auto;">' + (isLockedNow ? '🔒' : '🔓') + '</span>'
-        + '</div>';
-    }
-
-    function dutyFormatTimeOnInput(inputEl) {
-      if (!inputEl) return;
-      let val = String(inputEl.value || '').trim();
-      if (!val) return;
-
-      // Auto-format only after enough digits to avoid blocking normal typing.
-      // Examples: "900" -> "09:00", "1000" -> "10:00".
-      const digitMatch = val.match(/^(\d{3,4})$/);
-      if (digitMatch) {
-        const digits = String(digitMatch[1]);
-        const h = digits.length === 3 ? digits.substring(0, 1) : digits.substring(0, 2);
-        const m = digits.length === 3 ? digits.substring(1, 3) : digits.substring(2, 4);
-        const hNum = Number(h);
-        const mNum = Number(m);
-        if (hNum >= 0 && hNum <= 23 && mNum >= 0 && mNum <= 59) {
-          inputEl.value = String(hNum).padStart(2, '0') + ':' + m;
-        }
-      }
+      return [
+        '<div class="field ' + lockClass + '" id="' + scope + '-field-' + index + '-' + kind + '">',
+        '  <label>' + (kind === 'start' ? 'Inicio' : 'Fim') + ' <span style="font-size:0.68rem;font-weight:400;opacity:0.65;">(BSB)</span></label>',
+        '  <input id="' + inputId + '" type="text" inputmode="numeric" placeholder="08:00, 8, 1pm" oninput="dutyFormatTimeOnInput(this)" onblur="dutyHandleTimeBlur(\'' + scope + '\',' + index + ',\'' + kind + '\')" value="' + dutyEscape(value || '') + '" ' + (isLockedNow ? 'readonly' : '') + '>',
+        '  <span class="lock-icon ' + (isLockedNow ? 'locked' : 'unlocked-override') + '" id="' + lockId + '" role="button" aria-label="' + (isLockedNow ? 'Bloqueado' : 'Desbloqueado') + '" title="Toque para bloquear/desbloquear." onclick="dutyToggleLock(\'' + scope + '\',' + index + ',\'' + kind + '\')" style="pointer-events:auto;">' + dutyLockIconMarkup_(isLockedNow) + '</span>',
+        '</div>'
+      ].join('');
     }
 
     function dutyNormalizeTimeInput(raw) {
@@ -1017,6 +1176,24 @@
       }
     }
 
+    function dutyFormatTimeOnInput(inputEl) {
+      if (!inputEl) return;
+      let val = String(inputEl.value || '').trim();
+      if (!val) return;
+
+      const digitMatch = val.match(/^(\d{3,4})$/);
+      if (digitMatch) {
+        const digits = String(digitMatch[1]);
+        const h = digits.length === 3 ? digits.substring(0, 1) : digits.substring(0, 2);
+        const m = digits.length === 3 ? digits.substring(1, 3) : digits.substring(2, 4);
+        const hNum = Number(h);
+        const mNum = Number(m);
+        if (hNum >= 0 && hNum <= 23 && mNum >= 0 && mNum <= 59) {
+          inputEl.value = String(hNum).padStart(2, '0') + ':' + m;
+        }
+      }
+    }
+
     function dutyRenderShiftList(isEdit) {
       const scope = isEdit ? 'edit' : 'main';
       const list = isEdit ? dutyState.editingShifts : dutyState.shifts;
@@ -1045,13 +1222,14 @@
 
     async function dutyPersistMainShiftLock_(index, kind, valueLabel) {
       try {
+        const department = dutyRequireDepartment_(false);
+        if (!department) return;
         dutySetLoading(true);
         const shifts = dutyReadShiftList(false);
         const shift = shifts[index];
         if (!shift) return;
 
         const description = String(document.getElementById('description') && document.getElementById('description').value || '').trim();
-        const department = String(document.getElementById('department') && document.getElementById('department').value || '').trim();
         const payload = dutyPayloadForShift(shift, description, department, false);
         const res = await dutySaveShiftPayload(payload);
         if (!res || res.success !== true) {
@@ -1059,7 +1237,7 @@
         }
 
         dutySetBanner((kind === 'start' ? 'Inicio' : 'Fim') + ' bloqueado em ' + valueLabel + '.', 'ok');
-        await dutyLoadBootstrap();
+        await dutyLoadBootstrap('Atualizando após bloquear ' + (kind === 'start' ? 'inicio' : 'fim') + '...');
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1124,7 +1302,7 @@
           rowNumber: Number(shift.rowNumber || 0),
           startTime: startVal,
           endTime: endVal,
-          status: String(shift.status || '').trim()
+          status: String(shift.status || (endVal ? 'DUTY_CLOSED' : 'DUTY_OPEN') || '').trim(),
         };
       }).filter(function(shift) {
         return !!shift.startTime || !!shift.endTime;
@@ -1152,7 +1330,42 @@
         dutySetBanner('Mantenha pelo menos um shift.', 'warn');
         return;
       }
+      const shift = list[index] || {};
+      if (Number(shift.rowNumber || 0) >= 2) {
+        dutySetLoading(true);
+        dutySetBanner('Removendo shift...', 'info');
+        dutyTrace_('remove-shift-request', {
+          rowNumber: Number(shift.rowNumber || 0),
+          isEdit: !!isEdit,
+          pilotName: dutyState.selectedPilotName,
+          dateYmd: isEdit ? dutyState.editingDateYmd : dutyState.selectedDateYmd
+        });
+        dutyCallServer('deleteDutyAppEntry', {
+          rowNumber: Number(shift.rowNumber || 0),
+          pilotName: dutyState.selectedPilotName,
+          dateYmd: isEdit ? dutyState.editingDateYmd : dutyState.selectedDateYmd
+        }).then(function(res) {
+          if (!res || res.success !== true) {
+            throw new Error(res && res.error ? res.error : 'Falha ao remover shift');
+          }
+          dutyTrace_('remove-shift-success', res);
+          return dutyLoadBootstrap('Atualizando após remover shift...');
+        }).then(function() {
+          dutySetBanner('Shift removido.', 'ok');
+        }).catch(function(err) {
+          dutySetBanner(err && err.message ? err.message : String(err), 'bad');
+        }).finally(function() {
+          dutySetLoading(false);
+        });
+        return;
+      }
+
       list.splice(index, 1);
+      dutyTrace_('remove-shift-local', {
+        index: index,
+        isEdit: !!isEdit,
+        remaining: list.length
+      });
       dutyRenderShiftList(!!isEdit);
     }
 
@@ -1204,13 +1417,10 @@
         });
         const topRow = dayRows[dayRows.length - 1];
         const isExpanded = String(dutyState.expandedRegistryDateYmd || '') === String(dateKey);
+        const topStatus = String(topRow.status || '').trim();
+        const tone = dutyStatusTone(topStatus);
         const start = String(dayRows[0].startTime || '--');
         const end = String(topRow.endTime || '--');
-        const hasCompletedShift = dayRows.some(function(r) {
-          return !!String(r.startTime || '').trim() && !!String(r.endTime || '').trim();
-        });
-        const topStatus = dutyStatusLabel(topRow.status, hasCompletedShift);
-        const tone = dutyStatusTone(topStatus);
 
         // Compute duty duration
         let dutyHrsStr = '';
@@ -1271,8 +1481,7 @@
         const shiftsHtml = dayRows.map(function(r, idx) {
           const s = dutyEscape(String(r.startTime || '--'));
           const e = dutyEscape(String(r.endTime || '--'));
-          const rowCompleted = !!String(r.startTime || '').trim() && !!String(r.endTime || '').trim();
-          const st = dutyEscape(dutyStatusLabel(r.status, rowCompleted));
+          const st = dutyEscape(String(r.status || '--'));
           return '<div class="registry-detail-row">Shift ' + (idx + 1) + ': ' + s + ' → ' + e + ' (' + st + ')</div>';
         }).join('');
         const detailsHtml = isExpanded
@@ -1343,10 +1552,10 @@
       dutyRenderShiftList(false);
     }
 
-    async function dutyLoadBootstrap() {
+    async function dutyLoadBootstrap(statusText) {
       try {
         dutySetLoading(true);
-        dutySetBanner('Carregando registro de horas...', 'info');
+        dutySetBanner(String(statusText || 'Carregando jornada...').trim(), 'info');
         const res = await dutyCallServer('getDutyAppBootstrap', {
           pilotName: dutyState.selectedPilotName,
           dateYmd: dutyState.selectedDateYmd
@@ -1395,6 +1604,7 @@
         status: status,
         startTime: shift.startTime,
         endTime: shift.endTime,
+        department: String(department || '').trim(),
         summaryText: mergedDescription,
         description: mergedDescription,
         flightHours: (function() {
@@ -1453,6 +1663,8 @@
 
     async function dutySaveStartNow() {
       try {
+        const department = dutyRequireDepartment_(false);
+        if (!department) return;
         dutySetLoading(true);
 
         let shifts = dutyReadShiftList(false);
@@ -1467,8 +1679,8 @@
         if (!shift.startTime) shift.startTime = now;
 
         const description = String(document.getElementById('description') && document.getElementById('description').value || '').trim();
-        const department = String(document.getElementById('department') && document.getElementById('department').value || '').trim();
         const payload = dutyPayloadForShift(shift, description, department, false);
+        dutyTrace_('save-start-payload', payload);
 
         const res = await dutySaveShiftPayload(payload);
         if (!res || res.success !== true) {
@@ -1476,7 +1688,7 @@
         }
 
         dutySetBanner('Inicio registrado as ' + dutyEscape(shift.startTime) + '.', 'ok');
-        await dutyLoadBootstrap();
+        await dutyLoadBootstrap('Atualizando após registrar inicio...');
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1486,6 +1698,8 @@
 
     async function dutySaveEndNow() {
       try {
+        const department = dutyRequireDepartment_(false);
+        if (!department) return;
         dutySetLoading(true);
 
         const shifts = dutyReadShiftList(false);
@@ -1500,8 +1714,8 @@
         if (!shift.endTime) shift.endTime = now;
 
         const description = String(document.getElementById('description') && document.getElementById('description').value || '').trim();
-        const department = String(document.getElementById('department') && document.getElementById('department').value || '').trim();
         const payload = dutyPayloadForShift(shift, description, department, false);
+        dutyTrace_('save-end-payload', payload);
 
         const res = await dutySaveShiftPayload(payload);
         if (!res || res.success !== true) {
@@ -1509,7 +1723,7 @@
         }
 
         dutySetBanner('Fim registrado as ' + dutyEscape(shift.endTime) + '.', 'ok');
-        await dutyLoadBootstrap();
+        await dutyLoadBootstrap('Atualizando após registrar fim...');
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1519,8 +1733,25 @@
 
     async function dutyFinalizeDay(isEdit) {
       try {
+        const department = dutyRequireDepartment_(!!isEdit);
+        if (!department) return;
         dutySetLoading(true);
+        dutySetBanner(isEdit ? 'Salvando edicao...' : 'Fechando dia...', 'info');
         const shifts = dutyReadShiftList(!!isEdit);
+        if (!isEdit) {
+          const openIdx = dutyFindOpenShiftIndex(shifts);
+          if (openIdx >= 0) {
+            const now = dutyNowBsb().hhmm;
+            if (!shifts[openIdx].endTime) shifts[openIdx].endTime = now;
+            shifts[openIdx].status = 'DUTY_CLOSED';
+            dutyTrace_('finalize-main-autoclose', { openIdx: openIdx, endTime: now });
+          }
+        }
+        dutyTrace_('finalize-day-shifts', {
+          isEdit: !!isEdit,
+          count: shifts.length,
+          shifts: shifts
+        });
         const err = dutyValidateShifts(shifts);
         if (err) {
           dutySetBanner(err, 'warn');
@@ -1528,9 +1759,7 @@
         }
 
         const descriptionEl = document.getElementById(isEdit ? 'edit-description' : 'description');
-        const departmentEl = document.getElementById(isEdit ? 'edit-department' : 'department');
         const description = String(descriptionEl && descriptionEl.value || '').trim();
-        const department = String(departmentEl && departmentEl.value || '').trim();
 
         for (let i = 0; i < shifts.length; i++) {
           const payload = dutyPayloadForShift(shifts[i], description, department, !!isEdit);
@@ -1542,7 +1771,7 @@
 
         dutySetBanner(isEdit ? 'Edicao salva.' : 'Dia encerrado e salvo.', 'ok');
         if (isEdit) dutyCloseEditModal();
-        await dutyLoadBootstrap();
+        await dutyLoadBootstrap(isEdit ? 'Recarregando edicao salva...' : 'Recarregando jornada fechada...');
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1579,7 +1808,7 @@
       dutyHideAddDay();
       dutyState.selectedDateYmd = dateVal;
       dutyApplyHeader();
-      await dutyLoadBootstrap();
+      await dutyLoadBootstrap('Atualizando dia ' + dutyFormatDatePt(dateVal) + '...');
       dutySetBanner('Dia ' + dutyFormatDatePt(dateVal) + ' carregado para edição.', 'ok');
     }
 
@@ -1630,6 +1859,18 @@
       dutyState.editingShifts = [];
     }
 
+    function dutyCanAutoRefresh_() {
+      const todayYmd = dutyNowBsb().ymd;
+      const overlay = document.getElementById('edit-overlay');
+      const editOpen = !!(overlay && overlay.style.display === 'flex');
+      return !editOpen && String(dutyState.selectedDateYmd || '') === String(todayYmd);
+    }
+
+    function dutyRefreshIfCurrentDay_() {
+      if (!dutyCanAutoRefresh_()) return;
+      dutyLoadBootstrap('Atualizando jornada atual...');
+    }
+
     function dutyOpenMobileHelp_() {
       dutyRenderMobileHelpLocations_();
       const overlay = document.getElementById('mobile-help-overlay');
@@ -1641,18 +1882,6 @@
       if (overlay) overlay.style.display = 'none';
     }
 
-    function dutyCanAutoRefresh_() {
-      const todayYmd = dutyNowBsb().ymd;
-      const overlay = document.getElementById('edit-overlay');
-      const editOpen = !!(overlay && overlay.style.display === 'flex');
-      return !editOpen && String(dutyState.selectedDateYmd || '') === String(todayYmd);
-    }
-
-    function dutyRefreshIfCurrentDay_() {
-      if (!dutyCanAutoRefresh_()) return;
-      dutyLoadBootstrap();
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
       dutyState.selectedDateYmd = dutyNowBsb().ymd;
 
@@ -1660,11 +1889,11 @@
       if (pilotSelect) {
         pilotSelect.addEventListener('change', function() {
           dutyState.selectedPilotName = String(this.value || '').trim();
-          dutyLoadBootstrap();
+          dutyLoadBootstrap('Atualizando jornada após abrir edição...');
         });
       }
 
-      dutyLoadBootstrap();
+      dutyLoadBootstrap('Carregando jornada inicial...');
       dutyGeoInit_();
 
       window.addEventListener('focus', dutyRefreshIfCurrentDay_);

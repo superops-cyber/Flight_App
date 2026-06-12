@@ -386,13 +386,38 @@
       <h3 class="tools-panel-title">Waypoint Admin</h3>
       <button class="tools-panel-close" onclick="toolsClosePanel('waypoint')">&times;</button>
     </div>
+    <div id="tools-wp-kind-chooser" style="display:flex; gap:8px; margin-bottom:10px;">
+      <button type="button" class="btn-ta" style="flex:1;" onclick="toolsChooseWaypointKind_('FIX')">FIX</button>
+      <button type="button" class="btn-ta" style="flex:1; background:#00695c;" onclick="toolsChooseWaypointKind_('WATER')">WATER</button>
+    </div>
+    <div id="tools-wp-type-banner" style="display:none; margin:0 0 8px 0; padding:6px 10px; border-radius:8px; background:#e3f2fd; color:#0b5394; font-size:0.78rem; font-weight:900;">Type: FIX</div>
     <p style="margin:0 0 10px 0;font-size:0.78rem;color:#555;">Accepts decimal <code>-2.1234</code>, DMS <code>S 06 05 22</code>, or decimal-minutes <code>S 6 5.383</code></p>
+    <div id="tools-wp-fix-fields">
     <div class="tools-field"><label for="tools-wp-id">Waypoint ID</label><input id="tools-wp-id" type="text" placeholder="WP_NORTH01"></div>
     <div class="tools-row">
       <div class="tools-field"><label for="tools-wp-lat">Latitude</label><input id="tools-wp-lat" type="text" placeholder="e.g. S 06 05 22" oninput="toolsUpdateWaypointPreview()"></div>
       <div class="tools-field"><label for="tools-wp-lon">Longitude</label><input id="tools-wp-lon" type="text" placeholder="e.g. W 060 12 34" oninput="toolsUpdateWaypointPreview()"></div>
     </div>
-    <div class="tools-field"><label for="tools-wp-type">Type</label><select id="tools-wp-type" class="browser-default"><option value="FIX">FIX</option></select></div>
+    </div>
+    <div id="tools-wp-water-fields" style="display:none;">
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-wp-water-icao">Airport ICAO</label><input id="tools-wp-water-icao" type="text" placeholder="e.g. SWNK"></div>
+        <div class="tools-field"><label for="tools-wp-water-pair">Runway Pair</label><input id="tools-wp-water-pair" type="text" placeholder="e.g. 01/19"></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-wp-water-name">Water Name</label><input id="tools-wp-water-name" type="text" placeholder="e.g. Araca"></div>
+        <div class="tools-field"><label for="tools-wp-water-community">Community</label><input id="tools-wp-water-community" type="text" placeholder="Optional"></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-wp-water-elev">Elevation (ft)</label><input id="tools-wp-water-elev" type="number" inputmode="numeric" min="0" placeholder="e.g. 1200"></div>
+        <div class="tools-field"><label for="tools-wp-water-length">Runway Length (m)</label><input id="tools-wp-water-length" type="number" inputmode="decimal" min="1" placeholder="Optional"></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-wp-water-lat">Midpoint Latitude</label><input id="tools-wp-water-lat" type="text" placeholder="e.g. S 06 05 22" oninput="toolsUpdateWaypointPreview()"></div>
+        <div class="tools-field"><label for="tools-wp-water-lon">Midpoint Longitude</label><input id="tools-wp-water-lon" type="text" placeholder="e.g. W 060 12 34" oninput="toolsUpdateWaypointPreview()"></div>
+      </div>
+      <div class="tools-field"><label for="tools-wp-water-width">Runway Width (m)</label><input id="tools-wp-water-width" type="number" inputmode="decimal" min="1" placeholder="Optional"></div>
+    </div>
     <div id="tools-wp-preview-map"></div>
     <div id="tools-wp-preview-coords"></div>
     <div class="tools-btn-row">
@@ -1775,6 +1800,7 @@
   var _toolsPermRows = [];
   var _toolsPermCanManage = false;
   var _toolsBuildTag = 'dev-2026-04-17.11';
+  var _toolsWaypointMode = '';
   var _toolsDiagSeq = 0;
   var _toolsDiscrepancyRows = [];
   var _toolsStaffData = { currentUser: {}, staff: [], roles: [], modules: [], pilotAuthorizations: [], authorizationConfig: {} };
@@ -7558,19 +7584,30 @@
   function toolsSetBuildMeta_() {
     var el = document.getElementById('tools-build-meta');
     var versionBadge = document.getElementById('tools-build-version');
-    
-    google.script.run
-      .withSuccessHandler(function(buildInfo) {
-        var version = buildInfo || _toolsBuildTag;
-        if (el) el.textContent = 'Tools build: ' + version;
-        if (versionBadge) versionBadge.textContent = 'Build: ' + version;
-      })
-      .withFailureHandler(function(err) {
-        var fallback = _toolsBuildTag;
-        if (el) el.textContent = 'Tools build: ' + fallback;
-        if (versionBadge) versionBadge.textContent = 'Build: ' + fallback;
-      })
-      .getToolsBuildVersion();
+
+    var fallback = _toolsBuildTag;
+    if (!(typeof google === 'object' && google && google.script && google.script.run)) {
+      if (el) el.textContent = 'Tools build: ' + fallback;
+      if (versionBadge) versionBadge.textContent = 'Build: ' + fallback;
+      return;
+    }
+
+    try {
+      google.script.run
+        .withSuccessHandler(function(buildInfo) {
+          var version = buildInfo || _toolsBuildTag;
+          if (el) el.textContent = 'Tools build: ' + version;
+          if (versionBadge) versionBadge.textContent = 'Build: ' + version;
+        })
+        .withFailureHandler(function() {
+          if (el) el.textContent = 'Tools build: ' + fallback;
+          if (versionBadge) versionBadge.textContent = 'Build: ' + fallback;
+        })
+        .getToolsBuildVersion();
+    } catch (e) {
+      if (el) el.textContent = 'Tools build: ' + fallback;
+      if (versionBadge) versionBadge.textContent = 'Build: ' + fallback;
+    }
   }
 
   function toolsSetDiag_(message, tone) {
@@ -9408,7 +9445,10 @@
       }
     }, 0);
     if(id==='fuel')toolsRenderFuelList();
-    if(id==='waypoint'&&_toolsWpPreviewMap)setTimeout(function(){_toolsWpPreviewMap.invalidateSize();},50);
+    if(id==='waypoint'){
+      toolsPrepareWaypointPanel_();
+      if(_toolsWpPreviewMap)setTimeout(function(){_toolsWpPreviewMap.invalidateSize();},50);
+    }
     if(id==='airports'){
       var i=document.getElementById('tools-airport-search-input');
       if(i)i.value='';
@@ -9597,8 +9637,11 @@
     var script=document.createElement('script');script.id='tools-wp-leaflet-js';script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.onload=cb;document.head.appendChild(script);
   }
   function toolsUpdateWaypointPreview(){
-    var lat=toolsParseCoordinate_(((document.getElementById('tools-wp-lat')||{}).value||''));
-    var lon=toolsParseCoordinate_(((document.getElementById('tools-wp-lon')||{}).value||''));
+    var mode=String(_toolsWaypointMode||'').toUpperCase();
+    var latId=mode==='WATER'?'tools-wp-water-lat':'tools-wp-lat';
+    var lonId=mode==='WATER'?'tools-wp-water-lon':'tools-wp-lon';
+    var lat=toolsParseCoordinate_(((document.getElementById(latId)||{}).value||''));
+    var lon=toolsParseCoordinate_(((document.getElementById(lonId)||{}).value||''));
     var mapEl=document.getElementById('tools-wp-preview-map'),crdEl=document.getElementById('tools-wp-preview-coords');
     if(!mapEl||!crdEl)return;
     if(isNaN(lat)||isNaN(lon)||lat<-90||lat>90||lon<-180||lon>180){mapEl.style.display='none';crdEl.style.display='none';return;}
@@ -9610,8 +9653,63 @@
       setTimeout(function(){if(_toolsWpPreviewMap)_toolsWpPreviewMap.invalidateSize();},40);
     });
   }
-  function toolsClearWaypointForm(){['tools-wp-id','tools-wp-lat','tools-wp-lon'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});var t=document.getElementById('tools-wp-type');if(t)t.value='FIX';var mp=document.getElementById('tools-wp-preview-map');if(mp)mp.style.display='none';var c=document.getElementById('tools-wp-preview-coords');if(c)c.style.display='none';}
+  function toolsChooseWaypointKind_(kind){
+    var mode=String(kind||'FIX').toUpperCase()==='WATER'?'WATER':'FIX';
+    _toolsWaypointMode=mode;
+    var chooser=document.getElementById('tools-wp-kind-chooser');
+    var banner=document.getElementById('tools-wp-type-banner');
+    var fixWrap=document.getElementById('tools-wp-fix-fields');
+    var waterWrap=document.getElementById('tools-wp-water-fields');
+    if(chooser)chooser.style.display='none';
+    if(banner){banner.style.display='block';banner.textContent='Type: '+(mode==='WATER'?'WATER RUNWAY':'FIX');}
+    if(fixWrap)fixWrap.style.display=mode==='FIX'?'':'none';
+    if(waterWrap)waterWrap.style.display=mode==='WATER'?'':'none';
+    toolsUpdateWaypointPreview();
+  }
+  function toolsPrepareWaypointPanel_(){
+    _toolsWaypointMode='';
+    var chooser=document.getElementById('tools-wp-kind-chooser');
+    var banner=document.getElementById('tools-wp-type-banner');
+    var fixWrap=document.getElementById('tools-wp-fix-fields');
+    var waterWrap=document.getElementById('tools-wp-water-fields');
+    if(chooser)chooser.style.display='flex';
+    if(banner)banner.style.display='none';
+    if(fixWrap)fixWrap.style.display='none';
+    if(waterWrap)waterWrap.style.display='none';
+    var mp=document.getElementById('tools-wp-preview-map');if(mp)mp.style.display='none';
+    var c=document.getElementById('tools-wp-preview-coords');if(c)c.style.display='none';
+  }
+  function toolsClearWaypointForm(){
+    ['tools-wp-id','tools-wp-lat','tools-wp-lon','tools-wp-water-icao','tools-wp-water-pair','tools-wp-water-name','tools-wp-water-community','tools-wp-water-elev','tools-wp-water-lat','tools-wp-water-lon','tools-wp-water-length','tools-wp-water-width'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    toolsPrepareWaypointPanel_();
+  }
   function toolsSaveWaypoint(){
+    var mode=String(_toolsWaypointMode||'').toUpperCase();
+    if(mode!=='FIX'&&mode!=='WATER'){if(window.M)M.toast({html:'Choose FIX or WATER first.',classes:'orange'});return;}
+    if(mode==='WATER'){
+      var waterPayload={
+        icao:String(((document.getElementById('tools-wp-water-icao')||{}).value||'')).trim().toUpperCase(),
+        runwayPair:String(((document.getElementById('tools-wp-water-pair')||{}).value||'')).trim().toUpperCase(),
+        waterName:String(((document.getElementById('tools-wp-water-name')||{}).value||'')).trim(),
+        communityName:String(((document.getElementById('tools-wp-water-community')||{}).value||'')).trim(),
+        elevationFt:Number(((document.getElementById('tools-wp-water-elev')||{}).value||NaN)),
+        midpointLat:toolsParseCoordinate_(((document.getElementById('tools-wp-water-lat')||{}).value||'')),
+        midpointLon:toolsParseCoordinate_(((document.getElementById('tools-wp-water-lon')||{}).value||'')),
+        runwayLengthM:Number(((document.getElementById('tools-wp-water-length')||{}).value||NaN)),
+        runwayWidthM:Number(((document.getElementById('tools-wp-water-width')||{}).value||NaN))
+      };
+      if(!waterPayload.icao){if(window.M)M.toast({html:'ICAO required',classes:'orange'});return;}
+      if(!/^\d{2}\/\d{2}$/.test(waterPayload.runwayPair)){if(window.M)M.toast({html:'Runway pair must be like 01/19',classes:'orange'});return;}
+      if(!waterPayload.waterName){if(window.M)M.toast({html:'Water name is required',classes:'orange'});return;}
+      if(!isFinite(waterPayload.elevationFt)){if(window.M)M.toast({html:'Elevation (ft) is required',classes:'orange'});return;}
+      if(isNaN(waterPayload.midpointLat)||waterPayload.midpointLat<-90||waterPayload.midpointLat>90){if(window.M)M.toast({html:'Invalid midpoint latitude',classes:'orange'});return;}
+      if(isNaN(waterPayload.midpointLon)||waterPayload.midpointLon<-180||waterPayload.midpointLon>180){if(window.M)M.toast({html:'Invalid midpoint longitude',classes:'orange'});return;}
+      google.script.run
+        .withSuccessHandler(function(res){if(res&&res.success){if(window.M)M.toast({html:'Water runway saved: '+waterPayload.icao+' '+waterPayload.runwayPair,classes:'green'});toolsClearWaypointForm();}else{if(window.M)M.toast({html:(res&&res.error)?res.error:'Failed to save water runway',classes:'red'});}})
+        .withFailureHandler(function(err){if(window.M)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});})
+        .addWaterRunwayToDatabase(waterPayload);
+      return;
+    }
     var wpId=String(((document.getElementById('tools-wp-id')||{}).value||'')).trim().toUpperCase();
     var lat=toolsParseCoordinate_(((document.getElementById('tools-wp-lat')||{}).value||''));
     var lon=toolsParseCoordinate_(((document.getElementById('tools-wp-lon')||{}).value||''));
@@ -10454,42 +10552,50 @@
   function toolsCloseContactOverlay(evt){if(evt&&evt.target&&evt.target!==document.getElementById('tools-contact-overlay'))return;var o=document.getElementById('tools-contact-overlay');if(o)o.classList.remove('open');}
 
   window.initToolsPage=function(){
-    _toolsPanelIds.forEach(function(p){var e=document.getElementById('tools-panel-'+p);if(e)e.classList.remove('open');});
-    var fuelAdjust = document.getElementById('tools-fuel-adjust-panel');
-    if (fuelAdjust) fuelAdjust.classList.remove('open');
-    var contactOverlay = document.getElementById('tools-contact-overlay');
-    if (contactOverlay) contactOverlay.classList.remove('open');
-    var rwyOverlay = document.getElementById('tools-rwy-overlay');
-    if (rwyOverlay) rwyOverlay.classList.remove('open');
-    var airportEditOverlay = document.getElementById('tools-airport-edit-overlay');
-    if (airportEditOverlay) airportEditOverlay.classList.remove('open');
+    try {
+      _toolsPanelIds.forEach(function(p){var e=document.getElementById('tools-panel-'+p);if(e)e.classList.remove('open');});
+      var fuelAdjust = document.getElementById('tools-fuel-adjust-panel');
+      if (fuelAdjust) fuelAdjust.classList.remove('open');
+      var contactOverlay = document.getElementById('tools-contact-overlay');
+      if (contactOverlay) contactOverlay.classList.remove('open');
+      var rwyOverlay = document.getElementById('tools-rwy-overlay');
+      if (rwyOverlay) rwyOverlay.classList.remove('open');
+      var airportEditOverlay = document.getElementById('tools-airport-edit-overlay');
+      if (airportEditOverlay) airportEditOverlay.classList.remove('open');
 
-    if(_toolsPageBootstrapped){
-      toolsSetBuildMeta_();
-      if(_toolsWpPreviewMap)setTimeout(function(){_toolsWpPreviewMap.invalidateSize();},50);
-      if(_toolsDbPreviewMap)setTimeout(function(){_toolsDbPreviewMap.invalidateSize();},50);
-      return;
-    }
-    _toolsPageBootstrapped=true;
-    toolsSetBuildMeta_();
-    toolsSetDiag_('idle', 'orange');
-    if (!window.appData || !Array.isArray(window.appData.airports) || !window.appData.airports.length) {
-      var data = toolsGetData_();
-      if (window.appData && typeof window.appData === 'object') {
-        if (!Array.isArray(window.appData.airports) || !window.appData.airports.length) window.appData.airports = data.airports || [];
-        if (!Array.isArray(window.appData.fuelCaches) || !window.appData.fuelCaches.length) window.appData.fuelCaches = data.fuelCaches || [];
-        if (!Array.isArray(window.appData.pilots) || !window.appData.pilots.length) window.appData.pilots = data.pilots || [];
-        if (!Array.isArray(window.appData.aircraft) || !window.appData.aircraft.length) window.appData.aircraft = data.aircraft || [];
-        if (!Array.isArray(window.appData.routes) || !window.appData.routes.length) window.appData.routes = data.routes || [];
-        if (!Array.isArray(window.appData.waypoints) || !window.appData.waypoints.length) window.appData.waypoints = data.waypoints || [];
-        if (!Array.isArray(window.appData.passengers) || !window.appData.passengers.length) window.appData.passengers = data.passengers || [];
+      if(_toolsPageBootstrapped){
+        toolsSetBuildMeta_();
+        if(_toolsWpPreviewMap)setTimeout(function(){_toolsWpPreviewMap.invalidateSize();},50);
+        if(_toolsDbPreviewMap)setTimeout(function(){_toolsDbPreviewMap.invalidateSize();},50);
+        return;
       }
+      _toolsPageBootstrapped=true;
+      toolsSetBuildMeta_();
+      toolsSetDiag_('idle', 'orange');
+      if (!window.appData || !Array.isArray(window.appData.airports) || !window.appData.airports.length) {
+        var data = toolsGetData_();
+        if (window.appData && typeof window.appData === 'object') {
+          if (!Array.isArray(window.appData.airports) || !window.appData.airports.length) window.appData.airports = data.airports || [];
+          if (!Array.isArray(window.appData.fuelCaches) || !window.appData.fuelCaches.length) window.appData.fuelCaches = data.fuelCaches || [];
+          if (!Array.isArray(window.appData.pilots) || !window.appData.pilots.length) window.appData.pilots = data.pilots || [];
+          if (!Array.isArray(window.appData.aircraft) || !window.appData.aircraft.length) window.appData.aircraft = data.aircraft || [];
+          if (!Array.isArray(window.appData.routes) || !window.appData.routes.length) window.appData.routes = data.routes || [];
+          if (!Array.isArray(window.appData.waypoints) || !window.appData.waypoints.length) window.appData.waypoints = data.waypoints || [];
+          if (!Array.isArray(window.appData.passengers) || !window.appData.passengers.length) window.appData.passengers = data.passengers || [];
+        }
+      }
+      toolsInitDatePickers_(document.getElementById('tools-container') || document);
+    } catch (e) {
+      try {
+        if (window.M && M.toast) M.toast({ html: 'Tools failed to initialize: ' + (e && e.message ? e.message : String(e)), classes: 'red' });
+      } catch (e2) {}
+      try { console.error('[TOOLS_INIT_ERROR]', e); } catch (e3) {}
     }
-    toolsInitDatePickers_(document.getElementById('tools-container') || document);
   };
   window.toolsDbRefreshPreview_ = toolsDbRefreshPreview_;
   window.toolsDbRefreshAirportPreview_ = toolsDbRefreshAirportPreview_;
   window.toolsLoadPassengerRecord_ = toolsLoadPassengerRecord_;
+  window.toolsFilterAirports = toolsFilterAirports;
   window.toolsUpdateWaypointPreview=toolsUpdateWaypointPreview;
   window.toolsClearWaypointForm=toolsClearWaypointForm;
   window.toolsSaveWaypoint=toolsSaveWaypoint;

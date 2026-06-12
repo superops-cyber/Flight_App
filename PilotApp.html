@@ -46,7 +46,7 @@
           <span id="readiness-overall-icon" style="font-size:0.72rem; line-height:1; color:#fff; background:#8d6e63; border:2px solid #5d4037; border-radius:999px; padding:6px 10px; font-weight:900; letter-spacing:0.04em; text-transform:uppercase;">Not Ready</span>
           <span id="readiness-overall-label" style="font-size:0.78rem; font-weight:900; color:#37474f; text-transform:uppercase; letter-spacing:0.03em;">Offline Pack</span>
         </div>
-        <button id="btn-refresh-offline-cache" class="btn blue darken-2" style="height:28px; line-height:28px; padding:0 10px; font-size:0.72rem; font-weight:800; border-radius:7px; margin:0; flex-shrink:0;" onclick="downloadOfflineCacheNow()">RELOAD MISSIONS</button>
+        <button id="btn-refresh-offline-cache" class="btn blue darken-2" style="height:28px; line-height:28px; padding:0 10px; font-size:0.72rem; font-weight:800; border-radius:7px; margin:0; flex-shrink:0;" onclick="downloadOfflineCacheNow()">REFRESH</button>
       </div>
       <div style="display:flex; flex-direction:column; gap:2px;">
         <div style="display:flex; align-items:center; gap:7px; font-size:0.78rem;">
@@ -101,7 +101,6 @@
           <div id="tab1-map-pack-text" style="font-size:0.7rem; color:#1565c0; margin-top:2px;">0 tiles</div>
         </div>
       </div>
-      <div id="offline-startup-diag" style="margin-top:6px; padding:6px 8px; border:1px solid #dbe6f3; border-radius:7px; background:#f5f8fb; color:#546e7a; font-size:0.72rem; font-weight:700; line-height:1.35;">Diag: waiting for startup checks...</div>
     </div>
 
     <div id="outbox-status" style="margin: 0 10px 10px 10px; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; background:#f9f9f9; border:1px solid #ececec; color:#555;">Outbox: 0 pending, 0 failed</div>
@@ -116,19 +115,23 @@
     </div>
 
     <div class="action-grid" style="display: flex; gap: 10px; margin: 20px 0; justify-content: center;">
+      <div id="btn-new-flight" class="action-btn" onclick="tab1GuardedAction_('openNewFlightApp')">
+        <i class="material-icons">add_circle_outline</i>
+        <span>New Flight</span>
+      </div>
       <div id="btn-offline-flight" class="action-btn" onclick="tab1GuardedAction_('openOfflineFlightModal')">
         <i class="material-icons">cloud_off</i>
         <span>Offline Flight</span>
       </div>
-      <div class="action-btn" data-online-bypass="1" onclick="tab1GuardedAction_('openFuelModal')">
+      <div class="action-btn" onclick="tab1GuardedAction_('openFuelModal')">
         <i class="material-icons">local_gas_station</i>
         <span>Fuel Cache</span>
       </div>
-      <div class="action-btn" data-online-bypass="1" onclick="tab1GuardedAction_('openPaxModal')">
+      <div class="action-btn" onclick="tab1GuardedAction_('openPaxModal')">
         <i class="material-icons">person_add</i>
         <span>New Pax</span>
       </div>
-      <div class="action-btn" data-online-bypass="1" onclick="tab1GuardedAction_('openWaypointModal')">
+      <div class="action-btn" onclick="tab1GuardedAction_('openWaypointModal')">
         <i class="material-icons">place</i>
         <span>Add Waypoint</span>
       </div>
@@ -140,7 +143,7 @@
         <i class="material-icons">waves</i>
         <span>Water Survey</span>
       </div>
-      <div class="action-btn" data-online-bypass="1" onclick="tab1GuardedAction_('openTab1Inclinometer')">
+      <div class="action-btn" onclick="tab1GuardedAction_('openTab1Inclinometer')">
         <i class="material-icons">straighten</i>
         <span>Inclinometer</span>
       </div>
@@ -150,7 +153,7 @@
       </div>
     </div>
     <div id="incl-cache-status" style="margin: -12px 10px 8px 10px; font-size: 0.72rem; font-weight: 700; color: #7d8b97; text-transform: uppercase;">Inclinometer offline cache: checking...</div>
-    <div id="tab1-version-board" class="tab1-version-board" style="display:none;">
+    <div id="tab1-version-board" class="tab1-version-board">
       <div class="tab1-version-board-title">Pilot App Tab Versions</div>
       <div id="tab1-version-list" class="tab1-version-list"></div>
     </div>
@@ -227,11 +230,7 @@
         <div style="font-size:1.02rem; font-weight:900; color:#0b5394;">Plano de Aula e Avaliação</div>
         <div id="lesson-plan-subtitle" style="font-size:0.76rem; color:#607d8b; font-weight:700;">Sem aula ativa.</div>
       </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <span id="lesson-plan-submit-status" style="font-size:0.72rem; color:#388e3c; font-weight:700; display:none;">&#10003; Submetido</span>
-        <button id="btn-lesson-submit" type="button" class="btn blue darken-2" style="height:34px; line-height:34px; padding:0 14px; font-size:0.8rem; font-weight:800;" onclick="commitLessonEvaluation_()">SUBMETER AVALIAÇÃO</button>
-        <button type="button" class="btn-flat" style="font-weight:900;" onclick="closeLessonPlanModal_()">FECHAR</button>
-      </div>
+      <button type="button" class="btn-flat" style="font-weight:900;" onclick="closeLessonPlanModal_()">FECHAR</button>
     </div>
     <div id="lesson-plan-content" style="padding:12px 14px 16px 14px;"></div>
   </div>
@@ -288,74 +287,45 @@
 
 <div id="modalPax" class="modal">
   <div class="modal-content">
-    <h5 style="color: #0b5394; font-weight: bold;">Adicionar Novo Passageiro</h5>
+    <h5 style="color: #0b5394; font-weight: bold;">Add New Passenger</h5>
     <div class="row">
-      <div class="input-field col s12"><input id="pax_name" type="text"><label>Nome do Passageiro</label></div>
-      <div class="input-field col s6"><input id="pax_id_type" type="text" placeholder="CPF/Passaporte"><label>Tipo de Documento</label></div>
-      <div class="input-field col s6"><input id="pax_id_num" type="text"><label>Número do Documento</label></div>
-      <div class="input-field col s6"><input id="pax_weight" type="number" inputmode="decimal" step="0.1"><label>Peso (kg)</label></div>
-      <div class="input-field col s12"><input id="pax_dob" type="date"><label class="active">Data de Nascimento</label></div>
+      <div class="input-field col s12"><input id="pax_name" type="text"><label>Passenger Name</label></div>
+      <div class="input-field col s6"><input id="pax_id_type" type="text" placeholder="CPF/Passport"><label>ID Type</label></div>
+      <div class="input-field col s6"><input id="pax_id_num" type="text"><label>ID Number</label></div>
+      <div class="input-field col s6"><input id="pax_weight" type="number" inputmode="decimal" step="0.1"><label>Weight (kg)</label></div>
+      <div class="input-field col s12"><input id="pax_dob" type="date"><label class="active">Date of Birth</label></div>
       <div class="input-field col s6">
         <select id="pax_gender" class="browser-default" style="margin-top: 5px; border: 1px solid #ddd;">
-          <option value="M">Masculino</option>
-          <option value="F">Feminino</option>
+          <option value="M">Male</option>
+          <option value="F">Female</option>
         </select>
       </div>
-      <div class="input-field col s12"><input id="pax_phone" type="text"><label>Telefone</label></div>
-      <div class="col s12" style="margin-top:8px; margin-bottom:8px; padding:10px 12px; border:1px solid #e3edf7; border-radius:8px; background:#f7fbff;">
-        <div style="font-size:0.78rem; font-weight:900; color:#0b5394; text-transform:uppercase; margin-bottom:6px;">Termos do Passageiro</div>
-        <ul style="margin:0 0 8px 16px; padding:0; color:#37474f; font-size:0.86rem; line-height: 1.6;">
-          <li id="pax-terms-line-1" style="margin-bottom:8px;"></li>
-          <li id="pax-terms-line-2" style="margin-bottom:8px;"></li>
-          <li id="pax-terms-line-3" style="margin-bottom:8px;"></li>
-          <li id="pax-terms-line-4" style="margin-bottom:8px;"></li>
-        </ul>
-        <label style="display:block; margin-bottom:6px; color:#263238; font-size:0.86rem; font-weight:700;">
-          <input id="pax_terms_ack" type="checkbox" style="margin-right:6px;">
-          <span>Li e concordo com os termos acima.</span>
-        </label>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <img id="pax-terms-qr-img" alt="QR Code" style="width:110px; height:110px; border:1px solid #d8e3ee; border-radius:8px; background:#fff; object-fit:contain; display:none;">
-          <div style="flex:1 1 220px; min-width:220px;">
-            <div id="pax-terms-qr-prompt" style="font-size:0.84rem; color:#455a64; font-weight:700;"></div>
-            <a id="pax-terms-qr-link" href="#" target="_blank" rel="noopener" style="display:none; margin-top:6px; font-size:0.82rem; font-weight:800; color:#1565c0;">Abrir link de suporte</a>
-          </div>
-        </div>
-      </div>
+      <div class="input-field col s12"><input id="pax_phone" type="text"><label>Phone</label></div>
     </div>
-    <button class="btn blue darken-3 w-100 btn-large" onclick="_showPaxQRConfirmation()">Salvar Passageiro</button>
-  </div>
-</div>
-
-<div id="paxQRConfirmOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10050; align-items:center; justify-content:center; padding:16px;">
-  <div style="width:100%; max-width:420px; background:#fff; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,0.24); overflow:hidden;">
-    <div style="padding:16px 18px 10px 18px; border-bottom:1px solid #eef1f4;">
-      <div style="font-size:1rem; font-weight:900; color:#0b5394;">Confirmação</div>
-    </div>
-    <div style="padding:16px 18px 8px 18px;">
-      <div style="font-size:0.95rem; line-height:1.45; color:#37474f;">Você escaneou o código QR?</div>
-    </div>
-    <div style="display:flex; gap:10px; justify-content:flex-end; padding:14px 18px 18px 18px;">
-      <button type="button" class="btn-flat" style="font-weight:800; min-width:96px;" onclick="_paxQRConfirmNo()">Não</button>
-      <button type="button" class="btn blue darken-3" style="font-weight:800; min-width:96px;" onclick="_paxQRConfirmYes()">Sim</button>
-    </div>
+    <button class="btn blue darken-3 w-100 btn-large" onclick="saveNewPax()">Save Passenger</button>
   </div>
 </div>
 
 <div id="modalWaypoint" class="modal" style="overflow-y:auto !important;">
   <div class="modal-content">
     <h5 style="color: #0b5394; font-weight: bold;">Add Waypoint</h5>
+    <div id="wp-type-banner" style="margin:0 0 8px 0; padding:6px 10px; border-radius:8px; background:#e3f2fd; color:#0b5394; font-size:0.78rem; font-weight:900;">Type: FIX</div>
     <p style="margin:0 0 10px 0; font-size: 0.78rem; color:#555;">Accepts decimal <code>-2.1234</code> or <code>-2,1234</code>, DMS <code>S 06 05 22</code>, decimal-minutes <code>S 6 5.383</code>, or <code>06°05'22"S</code></p>
-    <div class="row" style="margin-bottom:0;">
+    <div id="wp-fix-fields" class="row" style="margin-bottom:0;">
       <div class="input-field col s12"><input id="wp_id" type="text"><label>Waypoint ID</label></div>
       <div class="input-field col s6"><input id="wp_lat" type="text" inputmode="decimal" placeholder="e.g. S 06 05 22" oninput="_wpUpdatePreview()"><label class="active">Latitude</label></div>
       <div class="input-field col s6"><input id="wp_lon" type="text" inputmode="decimal" placeholder="e.g. W 060 12 34" oninput="_wpUpdatePreview()"><label class="active">Longitude</label></div>
-      <div class="input-field col s12">
-        <select id="wp_type" class="browser-default" style="margin-top: 5px; border: 1px solid #ddd;">
-          <option value="FIX">FIX</option>
-          <option value="WATER RUNWAY">WATER RUNWAY</option>
-        </select>
-      </div>
+    </div>
+    <div id="wp-water-fields" class="row" style="display:none; margin-bottom:0;">
+      <div class="input-field col s6"><input id="wp-water-icao" type="text" placeholder="e.g. SWNK"><label class="active">Airport ICAO</label></div>
+      <div class="input-field col s6"><input id="wp-water-pair" type="text" placeholder="e.g. 01/19"><label class="active">Runway Pair</label></div>
+      <div class="input-field col s6"><input id="wp-water-name" type="text" placeholder="e.g. Araca"><label class="active">Water Name</label></div>
+      <div class="input-field col s6"><input id="wp-water-community" type="text" placeholder="Optional"><label class="active">Community</label></div>
+      <div class="input-field col s6"><input id="wp-water-elev" type="number" inputmode="numeric" min="0" placeholder="e.g. 1200"><label class="active">Elevation (ft)</label></div>
+      <div class="input-field col s6"><input id="wp-water-lat" type="text" inputmode="decimal" placeholder="e.g. S 06 05 22" oninput="_wpUpdatePreview()"><label class="active">Midpoint Latitude</label></div>
+      <div class="input-field col s6"><input id="wp-water-lon" type="text" inputmode="decimal" placeholder="e.g. W 060 12 34" oninput="_wpUpdatePreview()"><label class="active">Midpoint Longitude</label></div>
+      <div class="input-field col s6"><input id="wp-water-length" type="number" inputmode="decimal" min="1" placeholder="Optional"><label class="active">Runway Length (m)</label></div>
+      <div class="input-field col s6"><input id="wp-water-width" type="number" inputmode="decimal" min="1" placeholder="Optional"><label class="active">Runway Width (m)</label></div>
     </div>
     <div id="wp-preview-map" style="height:200px; border-radius:6px; margin-bottom:4px; border:1px solid #d6e7ff; display:none;"></div>
     <div id="wp-preview-coords" style="font-size:0.72rem; font-weight:800; color:#0b5394; text-align:center; padding:2px 0 8px 0; display:none;"></div>
@@ -494,16 +464,13 @@
     let activeMission = null;
     let appData = {};
     let _activeLessonContext = null;
-    let _lessonEvalSaveTimer = null;
-    let _lessonEvalRestoreToken = 0;
-    let _lessonEvalTouchedAt = 0;
     const PILOT_TAB_VERSIONS = Object.freeze({
-      1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 106 }),
+      1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 105 }),
       2: Object.freeze({ shortLabel: 'Brief', fullLabel: 'Briefing', version: 180 }),
       3: Object.freeze({ shortLabel: 'W&B', fullLabel: 'Weight & Balance', version: 103 }),
       4: Object.freeze({ shortLabel: 'Perf', fullLabel: 'Performance', version: 104 }),
       5: Object.freeze({ shortLabel: 'Release', fullLabel: 'Release', version: 105 }),
-        6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 132 }),
+        6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 131 }),
       7: Object.freeze({ shortLabel: 'Arrv', fullLabel: 'Arrival', version: 108 }),
       8: Object.freeze({ shortLabel: 'Log', fullLabel: 'Debrief Log', version: 123 })
     });
@@ -574,15 +541,6 @@
       _pilotClockTimer = setInterval(_renderPilotDispatchClocks_, 15000);
     }
 
-    function escHtml_(v) {
-      return String(v == null ? '' : v)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
     function _pilotNormalizeScriptUrl_(raw) {
       try {
         const u = new URL(String(raw || ''));
@@ -616,12 +574,6 @@
         stops = plan.stops;
       } else if (row && row.plannedStopsJson) {
         stops = _lessonSafeParseJson_(row.plannedStopsJson, []);
-      } else if (training && training.runwayCheckout) {
-        // For runway check flights: use only the checkout runway(s), not the full route
-        stops = String(training.runwayCheckout || '').split(/[;,]/).map(function(s) {
-          var loc = String(s || '').trim().toUpperCase();
-          return loc ? { location: loc, landings: 1, touchAndGos: 0 } : null;
-        }).filter(Boolean);
       } else {
         stops = String(training && training.route || '').split(',').map(function(s) {
           var loc = String(s || '').trim().toUpperCase();
@@ -690,22 +642,10 @@
       return 'mba_lesson_eval_' + missionId + '_' + code;
     }
 
-    function lessonEvaluationPayload_() {
-      var ctx = _activeLessonContext || {};
-      var mission = ctx.mission || {};
-      var meta = mission.meta || {};
-      var training = meta.training || {};
-      var traineeName = String(training.student || meta.copilot || mission.copilot || meta.pilot || mission.pilot || '').trim();
-      var payload = {
-        missionId: String(mission.id || activeMission || '').trim(),
-        trainingCode: String(ctx.code || '').trim(),
-        pilot: traineeName,
-        aircraft: String(meta.acft || mission.acft || '').trim(),
-        missionDate: String(meta.date || mission.date || '').trim(),
-        sourceTab: 'PILOT_LESSON_MODAL',
-        scores: {},
-        notes: {}
-      };
+    function lessonCollectEvaluation_() {
+      var key = lessonStorageKey_();
+      if (!key) return;
+      var payload = { scores: {}, notes: {} };
       document.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
         var k = String(sel.getAttribute('data-lesson-score') || '');
         payload.scores[k] = String(sel.value || '');
@@ -717,13 +657,19 @@
         });
         payload.notes[String(idx)] = items;
       });
-      return payload;
+      try { localStorage.setItem(key, JSON.stringify(payload)); } catch (e) {}
     }
 
-    function _lessonApplyEvaluationPayload_(payload) {
-      if (!payload || typeof payload !== 'object') return;
-      var scores = payload.scores || {};
-      var notes = payload.notes || {};
+    function lessonRestoreEvaluation_() {
+      var key = lessonStorageKey_();
+      if (!key) return;
+      var raw = '';
+      try { raw = localStorage.getItem(key) || ''; } catch (e) { raw = ''; }
+      if (!raw) return;
+      var parsed = _lessonSafeParseJson_(raw, null);
+      if (!parsed || typeof parsed !== 'object') return;
+      var scores = parsed.scores || {};
+      var notes = parsed.notes || {};
       document.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
         var k = String(sel.getAttribute('data-lesson-score') || '');
         if (Object.prototype.hasOwnProperty.call(scores, k)) sel.value = String(scores[k] || '');
@@ -742,51 +688,6 @@
           wrap.appendChild(div);
         });
       });
-    }
-
-    function lessonCollectEvaluation_() {
-      var key = lessonStorageKey_();
-      if (!key) return;
-      var payload = lessonEvaluationPayload_();
-      _lessonEvalTouchedAt = Date.now();
-      try {
-        localStorage.setItem(key, JSON.stringify({ scores: payload.scores || {}, notes: payload.notes || {} }));
-      } catch (e) {}
-
-      if (!payload.missionId || !payload.trainingCode) return;
-      if (_lessonEvalSaveTimer) clearTimeout(_lessonEvalSaveTimer);
-      _lessonEvalSaveTimer = setTimeout(function() {
-        google.script.run
-          .withFailureHandler(function() {})
-          .savePilotLessonEvaluation(payload);
-      }, 260);
-    }
-
-    function lessonRestoreEvaluation_(restoreToken) {
-      var key = lessonStorageKey_();
-      if (!key) return;
-      var startedAt = Date.now();
-      var raw = '';
-      try { raw = localStorage.getItem(key) || ''; } catch (e) { raw = ''; }
-      if (raw) {
-        var parsed = _lessonSafeParseJson_(raw, null);
-        if (parsed && typeof parsed === 'object') _lessonApplyEvaluationPayload_(parsed);
-      }
-
-      var payload = lessonEvaluationPayload_();
-      if (!payload.missionId || !payload.trainingCode) return;
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (!res || !res.success || !res.found || !res.payload) return;
-          if (restoreToken !== _lessonEvalRestoreToken) return;
-          if (_lessonEvalTouchedAt > startedAt) return;
-          _lessonApplyEvaluationPayload_(res.payload);
-          try {
-            localStorage.setItem(key, JSON.stringify({ scores: res.payload.scores || {}, notes: res.payload.notes || {} }));
-          } catch (e) {}
-        })
-        .withFailureHandler(function() {})
-        .getPilotLessonEvaluation(payload.missionId, payload.trainingCode);
     }
 
     function _lessonRenderGradeRows_(items, kind) {
@@ -808,30 +709,7 @@
 
     function openLessonPlanModal_() {
       if (!_activeLessonContext) {
-        var fallbackModal = document.getElementById('lesson-plan-modal');
-        var fallbackSub = document.getElementById('lesson-plan-subtitle');
-        var fallbackContent = document.getElementById('lesson-plan-content');
-        var fallbackSubmitBtn = document.getElementById('btn-lesson-submit');
-        var fallbackSubmitStatus = document.getElementById('lesson-plan-submit-status');
-        if (fallbackSub) fallbackSub.textContent = 'Sem aula ativa.';
-        if (fallbackContent) {
-          fallbackContent.innerHTML = ''
-            + '<div style="font-size:0.82rem; line-height:1.65; color:#455a64;">'
-            + '<b>Nenhum plano de aula está vinculado a esta missão.</b><br>'
-            + 'Para abrir a avaliação, a missão precisa ter um código de treinamento no despacho.<br><br>'
-            + 'Se esta for uma aula regular, vincule um plano em <b>Supervisor/Dispatch</b> e tente novamente.'
-            + '</div>';
-        }
-        if (fallbackSubmitBtn) {
-          fallbackSubmitBtn.disabled = true;
-          fallbackSubmitBtn.textContent = 'SUBMETER AVALIAÇÃO';
-          fallbackSubmitBtn.style.background = '';
-        }
-        if (fallbackSubmitStatus) fallbackSubmitStatus.style.display = 'none';
-        if (fallbackModal) fallbackModal.style.display = 'flex';
-        if (window.M) {
-          M.toast({ html: 'Nenhum plano de aula ativo nesta missão.', classes: 'orange' });
-        }
+        if (window.M) M.toast({ html: 'Nenhum plano de aula ativo nesta missão.', classes: 'orange' });
         return;
       }
       var ctx = _activeLessonContext;
@@ -842,12 +720,11 @@
 
       var mission = ctx.mission || {};
       var meta = mission.meta || {};
-      var training = meta.training || {};
       var firstLeg = (mission.legs && mission.legs[0]) || {};
       sub.textContent = String(ctx.code || '') + ' • ' + String(ctx.title || 'Plano de Aula');
       content.innerHTML = ''
         + '<div style="font-size:0.8rem; line-height:1.6; color:#37474f; margin-bottom:10px;">'
-        + '<b>Data:</b> ' + String(meta.date || mission.date || '') + ' &nbsp; <b>Matrícula:</b> ' + String(meta.acft || mission.acft || '') + ' &nbsp; <b>Aluno:</b> ' + String(training.student || meta.copilot || mission.copilot || meta.pilot || mission.pilot || '') + ' &nbsp; <b>Instrutor:</b> ' + String(training.instructor || meta.pilot || mission.pilot || '')
+        + '<b>Data:</b> ' + String(meta.date || mission.date || '') + ' &nbsp; <b>Matrícula:</b> ' + String(meta.acft || mission.acft || '') + ' &nbsp; <b>Piloto:</b> ' + String(meta.pilot || mission.pilot || '') + ' &nbsp; <b>Instrutor:</b> ' + String(meta.copilot || '')
         + '<br><b>Rota:</b> ' + String(firstLeg.route || (ctx.stops || []).map(function(s){ return s.location; }).join(' -> '))
         + (ctx.externalLessonName ? ('<br><b>Ref. Externa:</b> ' + String(ctx.externalLessonName)) : '')
         + (ctx.routeCheckPrompt ? ('<br><b>Rota Check:</b> ' + String(ctx.routeCheckPrompt)) : '')
@@ -861,14 +738,7 @@
       content.querySelectorAll('[data-lesson-score]').forEach(function(sel) {
         sel.addEventListener('change', lessonCollectEvaluation_);
       });
-      _lessonEvalRestoreToken += 1;
-      lessonRestoreEvaluation_(_lessonEvalRestoreToken);
-
-      // reset submit button state
-      var submitBtn = document.getElementById('btn-lesson-submit');
-      var submitStatus = document.getElementById('lesson-plan-submit-status');
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'SUBMETER AVALIAÇÃO'; submitBtn.style.background = ''; }
-      if (submitStatus) submitStatus.style.display = 'none';
+      lessonRestoreEvaluation_();
 
       modal.style.display = 'flex';
     }
@@ -876,35 +746,6 @@
     function closeLessonPlanModal_() {
       var modal = document.getElementById('lesson-plan-modal');
       if (modal) modal.style.display = 'none';
-    }
-
-    function commitLessonEvaluation_() {
-      var payload = lessonEvaluationPayload_();
-      if (!payload.missionId || !payload.trainingCode) {
-        if (window.M) M.toast({ html: 'Missão ou código de aula não identificado.', classes: 'orange' });
-        return;
-      }
-      var btn = document.getElementById('btn-lesson-submit');
-      if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
-      payload.status = 'SUBMITTED';
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (btn) { btn.disabled = false; btn.textContent = 'SUBMETER AVALIAÇÃO'; }
-          if (!res || !res.success) {
-            if (window.M) M.toast({ html: 'Erro ao submeter: ' + ((res && res.error) || 'Falha'), classes: 'red' });
-            return;
-          }
-          var statusEl = document.getElementById('lesson-plan-submit-status');
-          if (statusEl) statusEl.style.display = '';
-          if (btn) { btn.style.background = '#388e3c'; btn.textContent = 'SUBMETIDO'; btn.disabled = true; }
-          if (window.M) M.toast({ html: 'Avaliação submetida com sucesso.', classes: 'green' });
-          try { localStorage.removeItem(lessonStorageKey_()); } catch (e) {}
-        })
-        .withFailureHandler(function(err) {
-          if (btn) { btn.disabled = false; btn.textContent = 'SUBMETER AVALIAÇÃO'; }
-          if (window.M) M.toast({ html: 'Erro: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
-        })
-        .commitPilotLessonEvaluation(payload);
     }
 
     function lessonAddInlineNote_(btn) {
@@ -2133,28 +1974,13 @@
       return s.missions === 'ok' && s.cg === 'ok' && s.unknown === 'ok';
     }
 
-    function _tab1ActionAllowsOnlineBypass_(actionName) {
-      const name = String(actionName || '').trim();
-      return name === 'openFuelModal'
-        || name === 'openPaxModal'
-        || name === 'openWaypointModal'
-        || name === 'openTab1Inclinometer';
-    }
-
     function _updateMissionReadyLockUI_() {
       const ready = _isMissionReadyForLock_();
-      const online = isServerAvailable();
       const actionButtons = document.querySelectorAll('#tab1 .action-grid .action-btn');
       actionButtons.forEach(function(btn) {
         if (!btn || btn.id === 'btn-acft-docs') return; // manuals always accessible
-        const allowOnlineBypass = String(btn.dataset.onlineBypass || '') === '1';
-        const unlocked = ready || (allowOnlineBypass && online);
-        btn.classList.toggle('readiness-locked', !unlocked);
-        btn.title = unlocked
-          ? ''
-          : (allowOnlineBypass
-            ? 'This tool works online without waiting for mission pack sync.'
-            : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.');
+        btn.classList.toggle('readiness-locked', !ready);
+        btn.title = ready ? 'Mission ready' : 'Offline pack not ready. Press DOWNLOAD and wait for Mission Ready.';
       });
 
       for (let i = 2; i <= 8; i++) {
@@ -2198,61 +2024,9 @@
       };
     }
 
-    function renderOfflineStartupDiag_(hint) {
-      const el = document.getElementById('offline-startup-diag');
-      if (!el) return;
-
-      const online = !!(navigator && navigator.onLine);
-      const server = isServerAvailable();
-      const missionsList = Number((cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || []).length || 0);
-      const missionDetails = Number(getCachedMissionCount() || 0);
-      const envelopes = Number(getCachedEnvelopeCount() || 0);
-      const unknown = _computeUnknownPackReadiness_();
-      const meta = cacheGet(OFFLINE_CACHE_KEYS.PREFETCH_META) || {};
-      const syncLabel = formatSyncTime(meta.syncedAt || '');
-      const diagArr = Array.isArray(window.__startupDiag) ? window.__startupDiag : [];
-      const lastDiag = diagArr.length ? diagArr[diagArr.length - 1] : null;
-      const startupStage = String(lastDiag && lastDiag.stage || 'n/a');
-
-      const blocked = [];
-      if (!online) blocked.push('device offline');
-      else if (!server) blocked.push('server unavailable');
-      if (envelopes <= 0) blocked.push('no envelopes');
-      if (!unknown.ready) blocked.push(String(unknown.label || 'core tables missing').replace(/^Missing:\s*/i, 'missing '));
-
-      let text = 'Diag: net ' + (online ? 'online' : 'offline')
-        + ' | server ' + (server ? 'ok' : 'no')
-        + ' | list ' + missionsList
-        + ' | details ' + missionDetails
-        + ' | env ' + envelopes
-        + ' | sync ' + syncLabel
-        + ' | startup ' + startupStage;
-      if (blocked.length) text += ' | blocked: ' + blocked.join('; ');
-      if (hint) text += ' | ' + String(hint);
-
-      el.textContent = text;
-      if (blocked.length) {
-        el.style.color = '#b71c1c';
-        el.style.background = '#fff5f5';
-        el.style.borderColor = '#ef9a9a';
-      } else {
-        el.style.color = '#546e7a';
-        el.style.background = '#f5f8fb';
-        el.style.borderColor = '#dbe6f3';
-      }
-    }
-
     function tab1GuardedAction_(actionName) {
-      const allowOnlineBypass = _tab1ActionAllowsOnlineBypass_(actionName);
-      const canRun = _isMissionReadyForLock_() || (allowOnlineBypass && isServerAvailable());
-      if (!canRun) {
-        if (window.M) M.toast({
-          html: allowOnlineBypass
-            ? 'This tool can open online now, or offline after the mission pack is ready.'
-            : 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.',
-          classes: 'orange',
-          displayLength: 3500
-        });
+      if (!_isMissionReadyForLock_()) {
+        if (window.M) M.toast({ html: 'Offline pack not ready. Press DOWNLOAD and wait for MISSION READY.', classes: 'orange', displayLength: 3500 });
         return;
       }
       const fn = window[String(actionName || '').trim()];
@@ -2348,7 +2122,6 @@
         if (progPct) progPct.textContent = pct + '%';
         _recomputeOverallReadiness_();
         updateOfflineFlightButtonState();
-        renderOfflineStartupDiag_(stageText || 'syncing');
         return;
       }
 
@@ -2391,7 +2164,6 @@
 
       _recomputeOverallReadiness_();
       updateOfflineFlightButtonState();
-      renderOfflineStartupDiag_('readiness refreshed');
     }
 
     function clearOfflineCacheNow() {
@@ -2414,23 +2186,17 @@
     }
 
     function ensureEnvelopeCacheOnStartup() {
-      renderOfflineStartupDiag_('startup envelope check');
       if (!isServerAvailable()) {
         updateOfflineCacheStatus();
         updateOfflineFlightButtonState();
-        renderOfflineStartupDiag_('startup skipped: offline');
         return;
       }
       if (!(window.google && google.script && google.script.run)) return;
 
-      const unknownPack = _computeUnknownPackReadiness_();
-      const hasEnvelopeCache = getCachedEnvelopeCount() > 0;
-
-      // Skip startup sync only when cache is fresh and readiness is already complete.
-      if (isOfflineCacheFresh_() && hasEnvelopeCache && unknownPack.ready) {
+      // Respect 24h freshness on cold start so reopen does not force a full sync.
+      if (isOfflineCacheFresh_()) {
         updateOfflineCacheStatus();
         updateOfflineFlightButtonState();
-        renderOfflineStartupDiag_('startup skipped: cache fresh + pack ready');
         return;
       }
 
@@ -2445,20 +2211,17 @@
           }
           if (!list.length) {
             updateOfflineCacheStatus();
-            renderOfflineStartupDiag_('startup sync: no scheduled missions');
             return;
           }
           prefetchScheduledMissionDetails(list, false);
           setTimeout(function() {
             updateOfflineCacheStatus();
             updateOfflineFlightButtonState();
-            renderOfflineStartupDiag_('startup sync complete');
           }, 1800);
         })
         .withFailureHandler(function() {
           updateOfflineCacheStatus();
           updateOfflineFlightButtonState();
-          renderOfflineStartupDiag_('startup sync failed: getScheduledMissions');
         })
         .getScheduledMissions();
     }
@@ -2806,60 +2569,7 @@
     }
 
     function downloadOfflineCacheNow() {
-      refreshMissionsOnlyNow();
-    }
-
-    function refreshMissionsOnlyNow() {
-      if (!isServerAvailable()) {
-        M.toast({ html: 'Offline: unable to refresh missions right now', classes: 'orange' });
-        return;
-      }
-
-      const btn = document.getElementById('btn-refresh-offline-cache');
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'DOWNLOADING...';
-      }
-
-      window._readinessState = window._readinessState || { missions: 'none', cg: 'none', unknown: 'none', mapdb: 'none' };
-      window._readinessState.missions = 'sync';
-      _setReadinessDot_('rdot-missions', 'sync');
-      const missionLabel = document.getElementById('rlabel-missions');
-      if (missionLabel) missionLabel.textContent = 'Refreshing mission list...';
-      if (typeof window._recomputeOverallReadiness_ === 'function') window._recomputeOverallReadiness_();
-
-      google.script.run
-        .withSuccessHandler(function(missions) {
-          const list = Array.isArray(missions) ? missions : [];
-          cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, list);
-
-          if (typeof renderMissionList === 'function') renderMissionList();
-          updateOfflineCacheStatus();
-
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'RELOAD MISSIONS';
-          }
-          if (window.M) {
-            M.toast({ html: 'Mission list refreshed', classes: 'green' });
-          }
-        })
-        .withFailureHandler(function(err) {
-          const msg = err && err.message ? err.message : String(err || 'unknown error');
-          window._readinessState = window._readinessState || { missions: 'none', cg: 'none', unknown: 'none', mapdb: 'none' };
-          window._readinessState.missions = 'bad';
-          _setReadinessDot_('rdot-missions', 'bad');
-          const missionLabel = document.getElementById('rlabel-missions');
-          if (missionLabel) missionLabel.textContent = 'Mission refresh failed';
-          if (typeof window._recomputeOverallReadiness_ === 'function') window._recomputeOverallReadiness_();
-
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'RELOAD MISSIONS';
-          }
-          M.toast({ html: `Mission refresh failed: ${msg}`, classes: 'red' });
-        })
-        .getScheduledMissions();
+      refreshOfflineCacheNow();
     }
 
     function refreshOfflineCacheNow() {
@@ -4181,9 +3891,6 @@
             details: details || {}
           });
           if (startupDiag.length > 40) startupDiag.splice(0, startupDiag.length - 40);
-          if (typeof renderOfflineStartupDiag_ === 'function') {
-            renderOfflineStartupDiag_('startup stage: ' + String(stage || ''));
-          }
         } catch (e) {}
       };
       const escHtml_ = function(v) {
@@ -4327,29 +4034,10 @@
 
       const cachedStartup = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA);
       const freshCache = isOfflineCacheFresh_();
-      const hasCoreStartupTables_ = function(data) {
-        const d = (data && typeof data === 'object') ? data : {};
-        const airports = Array.isArray(d.airports) ? d.airports.length : 0;
-        const waypoints = Array.isArray(d.waypoints) ? d.waypoints.length : 0;
-        const routes = Array.isArray(d.routes) ? d.routes.length : 0;
-        const aircraft = Array.isArray(d.aircraft) ? d.aircraft.length : 0;
-        const pilots = Array.isArray(d.pilots) ? d.pilots.length : 0;
-        return airports > 0 && waypoints > 0 && routes > 0 && aircraft > 0 && pilots > 0;
-      };
 
-      if (cachedStartup && freshCache && hasCoreStartupTables_(cachedStartup)) {
+      if (cachedStartup && freshCache) {
         applyDataAndStart(cachedStartup, true, { silentToast: true });
         return;
-      }
-
-      if (cachedStartup && freshCache && !hasCoreStartupTables_(cachedStartup)) {
-        pushStartupDiag_('cache-incomplete-core', {
-          airports: Array.isArray(cachedStartup.airports) ? cachedStartup.airports.length : 0,
-          waypoints: Array.isArray(cachedStartup.waypoints) ? cachedStartup.waypoints.length : 0,
-          routes: Array.isArray(cachedStartup.routes) ? cachedStartup.routes.length : 0,
-          aircraft: Array.isArray(cachedStartup.aircraft) ? cachedStartup.aircraft.length : 0,
-          pilots: Array.isArray(cachedStartup.pilots) ? cachedStartup.pilots.length : 0
-        });
       }
 
       if (isServerAvailable()) {
@@ -4654,13 +4342,6 @@
       document.getElementById('btnBack').style.visibility = (tabNum === 1) ? 'hidden' : 'visible';
       updateFooterButton(tabNum);
 
-      if (tabNum === 1) {
-        activeMission = null;
-        window.currentBriefingMission = null;
-        document.querySelectorAll('.mission-row').forEach(function(row) { row.classList.remove('selected'); });
-        renderTab1MissionCommunication_(null);
-      }
-
       // 2. TRIGGER BRIEFING RENDER: If switching to Tab 2, load the data
       if (tabNum === 2) {
         initiateBriefing(activeMission);
@@ -4803,11 +4484,6 @@
           const statusClass = isFlown
             ? 'text-flown'
             : ((isPartial || isInFlight) ? 'text-partial' : (isApproved ? 'text-approved' : 'text-pending'));
-          const crewNames = [m.pilot, m.copilot]
-            .map(n => String(n || '').trim())
-            .filter(Boolean)
-            .map(n => n.split(' ')[0]);
-          const crewLabel = crewNames.length ? crewNames.join(' / ') : 'N/A';
 
           return `
             <div class="mission-row" id="row-${m.id}" data-loadable="${isLoadable ? '1' : '0'}" data-status="${statusRaw}" onclick="selectMission('${m.id}')" style="${isLoadable ? '' : 'opacity:0.7;'}">
@@ -4816,7 +4492,7 @@
               <span class="m-acft">${m.acft}</span>
               <span class="m-route">${routeLabel}</span>
               <span class="m-status ${statusClass}">${statusText}</span>
-              <span class="m-pilot">${crewLabel}</span>
+              <span class="m-pilot">${m.pilot ? m.pilot.split(' ')[0] : 'N/A'}</span>
             </div>
           `;
         }).join('');
@@ -4945,30 +4621,15 @@
         try {
           renderTab1MissionCommunication_(mission);
           console.log('checkMissionLegality mission:', mission);
-          const liveAppData = (window.appData && typeof window.appData === 'object')
-            ? window.appData
-            : ((typeof appData !== 'undefined' && appData && typeof appData === 'object') ? appData : null);
-          const cachedDropdown = (typeof cacheGet === 'function' && window.OFFLINE_CACHE_KEYS && window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA)
-            ? (cacheGet(window.OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {})
+          const liveAppData = (window.appData && typeof window.appData === 'object') ? window.appData : appData;
+          const cachedDropdown = (typeof cacheGet === 'function' && window.OFFLINE_CACHE_KEYS && OFFLINE_CACHE_KEYS.DROPDOWN_DATA)
+            ? (cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {})
             : {};
-          const cachedMissions = (typeof cacheGet === 'function' && window.OFFLINE_CACHE_KEYS && window.OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS)
-            ? (cacheGet(window.OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) || [])
-            : [];
-          const missionSummary = Array.isArray(cachedMissions)
-            ? (cachedMissions.find(function(entry) {
-                return String(entry && entry.id || '').trim() === String(missionId || '').trim();
-              }) || null)
-            : null;
           console.log('appData.aircraft count:', liveAppData && liveAppData.aircraft ? liveAppData.aircraft.length : 0);
           const acftList = (liveAppData && Array.isArray(liveAppData.aircraft) && liveAppData.aircraft.length)
             ? liveAppData.aircraft
             : (Array.isArray(cachedDropdown.aircraft) ? cachedDropdown.aircraft : []);
-          const missionAcft = String(
-            (mission && mission.acft)
-            || (mission && mission.meta && mission.meta.acft)
-            || (missionSummary && missionSummary.acft)
-            || ''
-          ).trim().toUpperCase();
+          const missionAcft = String((mission && mission.acft) || '').trim().toUpperCase();
           if (!mission || !acftList.length || !missionAcft) {
             acftArea.innerHTML = `<div class="card-panel orange-text">Offline: mission or aircraft cache is incomplete. Re-sync when online.</div>`;
             return;
@@ -5011,7 +4672,7 @@
                 const dateLabel = (s && (s.reportDate || s.date)) ? (s.reportDate || s.date) : 'NEW';
                 return `
                   <div style="border-left: 3px solid #fbc02d; padding: 5px 10px; margin-bottom: 5px; background: #fffde7; font-size: 0.85rem;">
-                    <b>${dateLabel}:</b> ${s && s.description ? escHtml_(s.description) : ''} <i>(${statusLabel}${deferBits.length ? ' • ' + deferBits.join(' • ') : ''})</i>
+                    <b>${dateLabel}:</b> ${s && s.description ? s.description : ''} <i>(${statusLabel}${deferBits.length ? ' • ' + deferBits.join(' • ') : ''})</i>
                   </div>
                 `;
               }).join('');
@@ -5061,9 +4722,7 @@
         `;
         } catch (e) {
           console.error('checkMissionLegality render failed', e);
-          var diagMsg = (e && (e.message || e.toString)) ? String(e.message || e.toString()) : 'unknown parse error';
-          acftArea.innerHTML = `<div class="card-panel orange-text">Offline data parse issue. Continue with cached mission and re-sync when online.<br><small style="display:block;margin-top:6px;color:#6d4c41;">Diag: ${diagMsg}</small></div>`;
-          if (window.M) M.toast({ html: 'Tab1 diag: ' + diagMsg, classes: 'orange darken-2', displayLength: 7000 });
+          acftArea.innerHTML = `<div class="card-panel orange-text">Offline data parse issue. Continue with cached mission and re-sync when online.</div>`;
         }
         }, err => {
           console.error('getMissionById failed', err);
@@ -5271,133 +4930,10 @@
 
 
     // Passenger Logic
-    function _paxConsentDefaults_() {
-      return {
-        PASSENGER_TERMS_STATEMENT_1: 'Doações: Entendo que Asas de Socorro é uma organização sem fins lucrativos e depende de doações para realizar voos.',
-        PASSENGER_TERMS_STATEMENT_2: 'Segurança: A Asas de Socorro adota padrões de segurança, mas todo voo tem riscos inerentes.',
-        PASSENGER_TERMS_STATEMENT_3: 'Operação: Os voos são diurnos e podem sofrer atraso, desvio ou cancelamento por clima, segurança, motivo técnico ou logística.',
-        PASSENGER_TERMS_STATEMENT_4: 'Responsabilidade por atraso: Não há responsabilização por perdas decorrentes de atrasos.',
-        PASSENGER_TERMS_QR_PROMPT: 'Vou escanear este QR Code para apoiar ou compartilhar este ministério.',
-        PASSENGER_TERMS_QR_URL: ''
-      };
-    }
-
-    function _paxConsentConfig_() {
-      var defaults = _paxConsentDefaults_();
-      var cfg = (window.appData && window.appData.passengerConsentConfig && typeof window.appData.passengerConsentConfig === 'object')
-        ? window.appData.passengerConsentConfig
-        : {};
-      return Object.assign({}, defaults, cfg || {});
-    }
-
-    function _renderPaxTermsUi_() {
-      var cfg = _paxConsentConfig_();
-      var l1 = document.getElementById('pax-terms-line-1');
-      var l2 = document.getElementById('pax-terms-line-2');
-      var l3 = document.getElementById('pax-terms-line-3');
-      var l4 = document.getElementById('pax-terms-line-4');
-      
-      // Helper to bold the first word (title) of each statement
-      var formatStatement = function(text) {
-        var trimmed = String(text || '').trim();
-        var match = trimmed.match(/^([^:]+)(:.*)$/);
-        if (match) {
-          return '<strong>' + match[1] + '</strong>' + match[2];
-        }
-        return trimmed;
-      };
-      
-      if (l1) l1.innerHTML = formatStatement(cfg.PASSENGER_TERMS_STATEMENT_1 || '');
-      if (l2) l2.innerHTML = formatStatement(cfg.PASSENGER_TERMS_STATEMENT_2 || '');
-      if (l3) l3.innerHTML = formatStatement(cfg.PASSENGER_TERMS_STATEMENT_3 || '');
-      if (l4) l4.innerHTML = formatStatement(cfg.PASSENGER_TERMS_STATEMENT_4 || '');
-
-      var promptEl = document.getElementById('pax-terms-qr-prompt');
-      if (promptEl) promptEl.textContent = String(cfg.PASSENGER_TERMS_QR_PROMPT || '');
-      var qrUrl = String(cfg.PASSENGER_TERMS_QR_URL || '').trim();
-      var qrImgEl = document.getElementById('pax-terms-qr-img');
-      var qrLinkEl = document.getElementById('pax-terms-qr-link');
-      if (qrUrl) {
-        var qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(qrUrl);
-        if (qrImgEl) {
-          qrImgEl.src = qrSrc;
-          qrImgEl.style.display = 'block';
-        }
-        if (qrLinkEl) {
-          qrLinkEl.href = qrUrl;
-          qrLinkEl.style.display = 'inline-block';
-        }
-      } else {
-        if (qrImgEl) {
-          qrImgEl.removeAttribute('src');
-          qrImgEl.style.display = 'none';
-        }
-        if (qrLinkEl) {
-          qrLinkEl.removeAttribute('href');
-          qrLinkEl.style.display = 'none';
-        }
-      }
-    }
-
     function openPaxModal() {
-      // Fetch fresh config from server before opening modal
-      google.script.run.withSuccessHandler(function(freshConfig) {
-        if (freshConfig && typeof freshConfig === 'object') {
-          appData.passengerConsentConfig = freshConfig;
-        }
-        _renderPaxTermsUi_();
-        var ack = document.getElementById('pax_terms_ack');
-        if (ack) ack.checked = false;
-        const elem = document.getElementById('modalPax');
-        const instance = M.Modal.getInstance(elem) || M.Modal.init(elem);
-        instance.open();
-        
-        // Initialize date picker with Portuguese locale
-        var dobInput = document.getElementById('pax_dob');
-        if (dobInput && window.M && window.M.Datepicker) {
-          M.Datepicker.getInstance(dobInput) || M.Datepicker.init(dobInput, {
-            format: 'yyyy-mm-dd',
-            i18n: {
-              months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
-              monthsShort: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
-              weekdays: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
-              weekdaysShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
-              weekdaysAbbrev: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
-            }
-          });
-        }
-      }).withFailureHandler(function(err) {
-        console.error('Failed to fetch passenger config:', err);
-        // Fall back to existing config if fresh fetch fails
-        _renderPaxTermsUi_();
-        var ack = document.getElementById('pax_terms_ack');
-        if (ack) ack.checked = false;
-        const elem = document.getElementById('modalPax');
-        const instance = M.Modal.getInstance(elem) || M.Modal.init(elem);
-        instance.open();
-      }).getPassengerConsentConfig();
-    }
-    
-    function _showPaxQRConfirmation() {
-      const overlay = document.getElementById('paxQRConfirmOverlay');
-      if (overlay) overlay.style.display = 'flex';
-    }
-    
-    function _hidePaxQRConfirmation() {
-      const overlay = document.getElementById('paxQRConfirmOverlay');
-      if (overlay) overlay.style.display = 'none';
-    }
-    
-    function _paxQRConfirmYes() {
-      _hidePaxQRConfirmation();
-      saveNewPax();
-    }
-    
-    function _paxQRConfirmNo() {
-      _hidePaxQRConfirmation();
-      // Re-display the QR code by rendering terms UI again
-      _renderPaxTermsUi_();
-      M.toast({html: 'Por favor, escanear o código QR antes de continuar', classes: 'orange'});
+      const elem = document.getElementById('modalPax');
+      const instance = M.Modal.getInstance(elem) || M.Modal.init(elem);
+      instance.open();
     }
 
     function _parseCoordinate(str) {
@@ -5429,7 +4965,33 @@
       return isFinite(fallback) ? fallback : NaN;
     }
 
-    function openWaypointModal() {
+    function _setWaypointMode_(mode) {
+      const next = String(mode || 'FIX').toUpperCase() === 'WATER' ? 'WATER' : 'FIX';
+      window._wpMode = next;
+      const banner = document.getElementById('wp-type-banner');
+      const fixWrap = document.getElementById('wp-fix-fields');
+      const waterWrap = document.getElementById('wp-water-fields');
+      if (banner) banner.textContent = 'Type: ' + (next === 'WATER' ? 'WATER RUNWAY' : 'FIX');
+      if (fixWrap) fixWrap.style.display = next === 'FIX' ? '' : 'none';
+      if (waterWrap) waterWrap.style.display = next === 'WATER' ? '' : 'none';
+    }
+
+    async function openWaypointModal() {
+      let useWater = false;
+      try {
+        if (typeof window.flightAppConfirm === 'function') {
+          useWater = !!(await window.flightAppConfirm('Choose type.\nTap WATER to create a water runway entry in DB_Airports.\nTap FIX to create a waypoint in DB_Waypoints.', {
+            title: 'Waypoint Type',
+            okText: 'WATER',
+            cancelText: 'FIX'
+          }));
+        } else {
+          useWater = window.confirm('Waypoint type:\nOK = WATER\nCancel = FIX');
+        }
+      } catch (e) {
+        useWater = false;
+      }
+      _setWaypointMode_(useWater ? 'WATER' : 'FIX');
       const elem = document.getElementById('modalWaypoint');
       const instance = M.Modal.getInstance(elem) || M.Modal.init(elem);
       instance.open();
@@ -5463,8 +5025,11 @@
     }
 
     function _wpUpdatePreview() {
-      const lat = _parseCoordinate(((document.getElementById('wp_lat') || {}).value) || '');
-      const lon = _parseCoordinate(((document.getElementById('wp_lon') || {}).value) || '');
+      const mode = String(window._wpMode || 'FIX').toUpperCase();
+      const latInputId = mode === 'WATER' ? 'wp-water-lat' : 'wp_lat';
+      const lonInputId = mode === 'WATER' ? 'wp-water-lon' : 'wp_lon';
+      const lat = _parseCoordinate(((document.getElementById(latInputId) || {}).value) || '');
+      const lon = _parseCoordinate(((document.getElementById(lonInputId) || {}).value) || '');
       const mapDiv = document.getElementById('wp-preview-map');
       const coordsDiv = document.getElementById('wp-preview-coords');
       if (!mapDiv) return;
@@ -5524,80 +5089,90 @@
     }
 
     function saveNewWaypoint() {
-      const data = {
-        wp_id: String(document.getElementById('wp_id').value || '').trim().toUpperCase(),
-        latitude: _parseCoordinate(document.getElementById('wp_lat').value),
-        longitude: _parseCoordinate(document.getElementById('wp_lon').value),
-        type: String(document.getElementById('wp_type').value || 'FIX').trim().toUpperCase()
-      };
-
-      if (!data.wp_id) {
-        M.toast({ html: 'Waypoint ID is required' });
-        return;
-      }
-      if (isNaN(data.latitude) || data.latitude < -90 || data.latitude > 90) {
-        M.toast({ html: 'Latitude: unrecognized format or out of range (±90)' });
-        return;
-      }
-      if (isNaN(data.longitude) || data.longitude < -180 || data.longitude > 180) {
-        M.toast({ html: 'Longitude: unrecognized format or out of range (±180)' });
-        return;
-      }
-      if (data.type !== 'FIX' && data.type !== 'WATER RUNWAY') {
-        M.toast({ html: 'Type must be FIX or WATER RUNWAY' });
-        return;
-      }
+      const mode = String(window._wpMode || 'FIX').toUpperCase();
 
       const btn = document.querySelector('#modalWaypoint button');
       if (btn) btn.disabled = true;
 
+      if (mode === 'WATER') {
+        const waterData = {
+          icao: String((document.getElementById('wp-water-icao') || {}).value || '').trim().toUpperCase(),
+          runwayPair: String((document.getElementById('wp-water-pair') || {}).value || '').trim().toUpperCase(),
+          waterName: String((document.getElementById('wp-water-name') || {}).value || '').trim(),
+          communityName: String((document.getElementById('wp-water-community') || {}).value || '').trim(),
+          elevationFt: Number((document.getElementById('wp-water-elev') || {}).value || NaN),
+          midpointLat: _parseCoordinate(((document.getElementById('wp-water-lat') || {}).value || '')),
+          midpointLon: _parseCoordinate(((document.getElementById('wp-water-lon') || {}).value || '')),
+          runwayLengthM: Number((document.getElementById('wp-water-length') || {}).value || NaN),
+          runwayWidthM: Number((document.getElementById('wp-water-width') || {}).value || NaN)
+        };
+
+        if (!waterData.icao) { M.toast({ html: 'ICAO is required' }); if (btn) btn.disabled = false; return; }
+        if (!/^\d{2}\/\d{2}$/.test(waterData.runwayPair)) { M.toast({ html: 'Runway pair must be like 01/19' }); if (btn) btn.disabled = false; return; }
+        if (!waterData.waterName) { M.toast({ html: 'Water name is required' }); if (btn) btn.disabled = false; return; }
+        if (!isFinite(waterData.elevationFt)) { M.toast({ html: 'Elevation (ft) is required' }); if (btn) btn.disabled = false; return; }
+        if (isNaN(waterData.midpointLat) || waterData.midpointLat < -90 || waterData.midpointLat > 90) { M.toast({ html: 'Midpoint latitude invalid' }); if (btn) btn.disabled = false; return; }
+        if (isNaN(waterData.midpointLon) || waterData.midpointLon < -180 || waterData.midpointLon > 180) { M.toast({ html: 'Midpoint longitude invalid' }); if (btn) btn.disabled = false; return; }
+
+        const onWaterDone = function() {
+          M.toast({ html: 'Water runway saved: ' + waterData.icao + ' ' + waterData.runwayPair, classes: 'green' });
+          const modal = M.Modal.getInstance(document.getElementById('modalWaypoint'));
+          if (modal) modal.close();
+          ['wp-water-icao','wp-water-pair','wp-water-name','wp-water-community','wp-water-elev','wp-water-lat','wp-water-lon','wp-water-length','wp-water-width'].forEach(function(id){
+            const el = document.getElementById(id); if (el) el.value = '';
+          });
+          if (btn) btn.disabled = false;
+          switchTab(1);
+        };
+
+        window.runOrQueueServerAction({
+          method: 'addWaterRunwayToDatabase',
+          args: [waterData],
+          label: 'Water runway save'
+        }, {
+          onSuccess: function(res) {
+            if (res && res.success) onWaterDone();
+            else { M.toast({ html: 'Error: ' + ((res && res.error) || 'Failed to save water runway'), classes: 'red' }); if (btn) btn.disabled = false; }
+          },
+          onQueued: onWaterDone,
+          onFailure: function(err) {
+            M.toast({ html: 'Error: ' + (err && err.message ? err.message : String(err || 'unknown')), classes: 'red' });
+            if (btn) btn.disabled = false;
+          }
+        });
+        return;
+      }
+
+      const data = {
+        wp_id: String((document.getElementById('wp_id') || {}).value || '').trim().toUpperCase(),
+        latitude: _parseCoordinate(((document.getElementById('wp_lat') || {}).value || '')),
+        longitude: _parseCoordinate(((document.getElementById('wp_lon') || {}).value || '')),
+        type: 'FIX'
+      };
+
+      if (!data.wp_id) { M.toast({ html: 'Waypoint ID is required' }); if (btn) btn.disabled = false; return; }
+      if (isNaN(data.latitude) || data.latitude < -90 || data.latitude > 90) { M.toast({ html: 'Latitude: unrecognized format or out of range (±90)' }); if (btn) btn.disabled = false; return; }
+      if (isNaN(data.longitude) || data.longitude < -180 || data.longitude > 180) { M.toast({ html: 'Longitude: unrecognized format or out of range (±180)' }); if (btn) btn.disabled = false; return; }
+
       const onWaypointDone = function() {
         M.toast({ html: 'Waypoint saved: ' + data.wp_id, classes: 'green' });
-
         if (!appData.waypoints) appData.waypoints = [];
-        appData.waypoints.push({
-          wp_id: data.wp_id,
-          lat: Number(data.latitude),
-          lon: Number(data.longitude),
-          type: data.type
-        });
-
+        appData.waypoints.push({ wp_id: data.wp_id, lat: Number(data.latitude), lon: Number(data.longitude), type: data.type });
         try {
           const cached = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA);
-          if (cached) {
-            cached.waypoints = appData.waypoints;
-            cacheSet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA, cached);
-          }
-        } catch (e) { /* non-fatal */ }
-
+          if (cached) { cached.waypoints = appData.waypoints; cacheSet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA, cached); }
+        } catch (e) {}
         const modal = M.Modal.getInstance(document.getElementById('modalWaypoint'));
         if (modal) modal.close();
-
-        const idEl = document.getElementById('wp_id');
-        const latEl = document.getElementById('wp_lat');
-        const lonEl = document.getElementById('wp_lon');
-        const typeEl = document.getElementById('wp_type');
-        if (idEl) idEl.value = '';
-        if (latEl) latEl.value = '';
-        if (lonEl) lonEl.value = '';
-        if (typeEl) typeEl.value = 'FIX';
+        ['wp_id','wp_lat','wp_lon'].forEach(function(id){ const el = document.getElementById(id); if (el) el.value = ''; });
         if (btn) btn.disabled = false;
-
         switchTab(1);
       };
 
-      window.runOrQueueServerAction({
-        method: 'addWaypointToDatabase',
-        args: [data],
-        label: 'Waypoint save'
-      }, {
+      window.runOrQueueServerAction({ method: 'addWaypointToDatabase', args: [data], label: 'Waypoint save' }, {
         onSuccess: function(res) {
-          if (res && res.success) {
-            onWaypointDone();
-          } else {
-            M.toast({ html: 'Error saving waypoint' });
-            if (btn) btn.disabled = false;
-          }
+          if (res && res.success) onWaypointDone();
+          else { M.toast({ html: 'Error saving waypoint' }); if (btn) btn.disabled = false; }
         },
         onQueued: onWaypointDone,
         onFailure: function(err) {
@@ -5608,7 +5183,6 @@
     }
 
     function saveNewPax() {
-      const termsAck = !!((document.getElementById('pax_terms_ack') || {}).checked);
       const data = {
         name: document.getElementById('pax_name').value,
         id_type: document.getElementById('pax_id_type').value,
@@ -5616,18 +5190,11 @@
         dob: document.getElementById('pax_dob').value,
         weight: document.getElementById('pax_weight').value,
         gender: document.getElementById('pax_gender').value,
-        phone: document.getElementById('pax_phone').value,
-        termsAccepted: termsAck,
-        termsAcceptedAt: termsAck ? (new Date()).toISOString() : '',
-        termsSource: 'PILOT_APP_FAST_ADD'
+        phone: document.getElementById('pax_phone').value
       };
 
       if (!data.name || !data.weight) {
         M.toast({html: 'Name and Weight are required'});
-        return;
-      }
-      if (!termsAck) {
-        M.toast({html: 'Please confirm passenger terms before saving', classes: 'orange'});
         return;
       }
 
@@ -5642,14 +5209,10 @@
           if (!appData.passengers) appData.passengers = [];
           appData.passengers.push({
             name: data.name,
-            nameDisplay: data.name + ' ✓',
             weight: parseFloat(data.weight) || 80,
             gender: data.gender || 'U',
             dob: data.dob || '',
-            phone: data.phone || '',
-            termsAccepted: true,
-            termsAcceptedAt: String(data.termsAcceptedAt || '').slice(0, 10),
-            termsAcceptedCurrent: true
+            phone: data.phone || ''
           });
           appData.passengers.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
@@ -5668,8 +5231,6 @@
 
           // Clear all inputs and re-enable button
           document.querySelectorAll('#modalPax input').forEach(i => i.value = '');
-          var ack = document.getElementById('pax_terms_ack');
-          if (ack) ack.checked = false;
           if (btn) btn.disabled = false;
 
           // Snap back to the Mission Dashboard
@@ -6803,7 +6364,7 @@
     <div class="rwyhc-shell" style="max-width:980px; margin:10px auto; background:#fff; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.28); overflow:hidden;">
       <div class="rwyhc-header" style="background:#1565c0; color:#fff; padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
         <div>
-          <div class="rwyhc-title" style="font-size:1rem; font-weight:900; letter-spacing:1px;">RUNWAY SURVEY TOOL <span style="font-size:0.7rem; opacity:0.7; margin-left:6px;">v1.2</span></div>
+          <div class="rwyhc-title" style="font-size:1rem; font-weight:900; letter-spacing:1px;">RUNWAY SURVEY TOOL</div>
           <div class="rwyhc-sub" style="font-size:0.78rem; opacity:0.85;">Offline-ready GPS capture for supervisor approval</div>
         </div>
         <div class="rwyhc-header-actions">
@@ -6877,7 +6438,6 @@
             <div id="rwysurvey-photo-summary">Photos: 0</div>
           </div>
           <div id="rwysurvey-feature-list"></div>
-          <div id="rwysurvey-obstacle-list"></div>
           <div id="rwysurvey-photo-list"></div>
           <div id="rwysurvey-slope-list"></div>
           <div class="rwyhc-notes-submit">
@@ -6950,30 +6510,23 @@
       <div id="rwysurvey-obstacle-title" style="background:#ef6c00; color:#fff; padding:10px 12px; font-weight:800;">Obstacle Angles @ 50m from A</div>
       <div style="padding:12px; display:grid; gap:8px;">
         <div id="rwysurvey-obstacle-context" style="font-size:0.82rem; color:#6d4c41; font-weight:700;">Checkpoint instruction appears here.</div>
-        <select id="rwysurvey-obs-type-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-weight:700; color:#37474f;">
-          <option value="">Obstacle type (optional)</option>
-          <option value="tree">Tree</option>
-          <option value="rock">Rock</option>
-          <option value="hill">Hill</option>
-          <option value="building">Building</option>
-          <option value="powerline">Power Line</option>
-        </select>
-        <div id="rwysurvey-obs-manual-setup" style="display:none;">
+        <input id="rwysurvey-obs-type-popup" list="rwysurvey-obs-type-options" type="text" placeholder="Obstacle type (optional)" value="" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
+        <datalist id="rwysurvey-obs-type-options">
+          <option value="hill"></option>
+          <option value="tree"></option>
+          <option value="rock"></option>
+          <option value="building"></option>
+          <option value="powerline"></option>
+        </datalist>
+        <div id="rwysurvey-obs-manual-setup" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
           <div style="display:grid; gap:4px;">
             <div style="font-size:0.72rem; color:#607d8b; font-weight:700;">FROM THRESHOLD</div>
-            <div id="rwysurvey-obs-threshold-readonly" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px; background:#f5f7fa; font-weight:800; color:#37474f;">--</div>
-            <select id="rwysurvey-obs-threshold-popup" style="display:none;"></select>
+            <select id="rwysurvey-obs-threshold-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;"></select>
           </div>
           <div style="display:grid; gap:4px;">
             <div style="font-size:0.72rem; color:#607d8b; font-weight:700;">DISTANCE (M)</div>
             <input id="rwysurvey-obs-distance-popup" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 120" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
           </div>
-        </div>
-        <div id="rwysurvey-obs-operation-wrap" style="display:grid; gap:4px;">
-          <select id="rwysurvey-obs-operation-popup" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-weight:700; color:#37474f;">
-            <option value="landing">Landing angle</option>
-            <option value="takeoff">Takeoff angle</option>
-          </select>
         </div>
         <div id="rwysurvey-obs-auto-summary" style="display:none; font-size:0.78rem; color:#1565c0; background:#e3f2fd; border:1px solid #bbdefb; border-radius:6px; padding:8px 10px; font-weight:700;"></div>
         <input id="rwysurvey-obs-a-popup" type="number" step="0.1" inputmode="decimal" placeholder="Obstacle angle (°)" style="padding:8px 10px; border:1px solid #ddd; border-radius:6px;" />
@@ -9279,57 +8832,10 @@
     }
     const fixEl = document.getElementById('rwysurvey-feature-fix');
     if (fixEl) {
-      const ctx = _rwySurveyFeatureContextFromGps_(gps.current);
-      if (ctx) {
-        fixEl.textContent = 'Current fix: ±' + Math.round(Number(gps.current.acc || 0)) + 'm · segment ' + ctx.segmentLabel + ' · ' + ctx.distanceM + 'm from THR ' + ctx.fromThreshold;
-      } else {
-        fixEl.textContent = 'Current fix: ±' + Math.round(Number(gps.current.acc || 0)) + 'm';
-      }
+      fixEl.textContent = 'Current fix: ±' + Math.round(Number(gps.current.acc || 0)) + 'm';
     }
     const popup = document.getElementById('rwysurvey-feature-popup');
     if (popup) popup.style.display = 'block';
-  }
-
-  function _rwySurveyFeatureContextFromGps_(fix) {
-    if (!fix || !isFinite(Number(fix.lat)) || !isFinite(Number(fix.lon))) return null;
-    const state = runwaySurveyToolState;
-    const per = state.perimeter || {};
-    const marks = Array.isArray(per.cornerMarks) ? per.cornerMarks : [];
-    const origin = marks.length ? marks[0] : state.thresholdA;
-    if (!origin || !isFinite(Number(origin.lat)) || !isFinite(Number(origin.lon))) return null;
-
-    const derived = _rwySurveyDerivedDimensions_();
-    const runwayLengthM = Math.max(1, Math.round(Number(derived.lengthM || state.lengthM || 0) || 1));
-    const startThr = _rwySurveyGetActiveStartThreshold_() || state.rwyIdent || 'A';
-    let oppThr = _rwySurveyGetOppositeStartThreshold_() || _rwySurveyReciprocalIdent_(startThr);
-    if (String(oppThr || '').trim().toUpperCase() === String(startThr || '').trim().toUpperCase()) oppThr = _rwySurveyReciprocalIdent_(startThr);
-
-    let heading = Number(state.headingDeg || 0);
-    if (marks.length >= 2) {
-      const a = marks[0], b = marks[1];
-      const dy = Number(b.lat || 0) - Number(a.lat || 0);
-      const dx = Number(b.lon || 0) - Number(a.lon || 0);
-      heading = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
-    }
-
-    let along = _rwySurveyProjectAlongAxisM_(Number(fix.lat), Number(fix.lon), Number(origin.lat), Number(origin.lon), heading);
-    along = Math.max(0, Math.min(runwayLengthM, Number(along || 0)));
-
-    const likelyReciprocalSide = marks.length >= 3;
-    const reciprocal = likelyReciprocalSide || along > (runwayLengthM / 2);
-    const fromThreshold = reciprocal ? String(oppThr).trim().toUpperCase() : String(startThr).trim().toUpperCase();
-    const distanceM = reciprocal
-      ? Math.max(0, Math.round(runwayLengthM - along))
-      : Math.max(0, Math.round(along));
-    const segmentLabel = reciprocal ? 'C→D' : 'A→B';
-
-    return {
-      fromThreshold: fromThreshold,
-      distanceM: distanceM,
-      segmentLabel: segmentLabel,
-      runwayLengthM: runwayLengthM,
-      alongM: along
-    };
   }
 
   function closeRunwaySurveyFeaturePopup(cancelled) {
@@ -9402,12 +8908,10 @@
     const startThr = _rwySurveyGetActiveStartThreshold_() || state.rwyIdent || 'A';
     let oppThr = _rwySurveyGetOppositeStartThreshold_() || _rwySurveyReciprocalIdent_(startThr);
     if (String(oppThr || '').trim().toUpperCase() === String(startThr || '').trim().toUpperCase()) oppThr = _rwySurveyReciprocalIdent_(startThr);
-    const thresholdRaw = String(active.fromThreshold || startThr).trim().toUpperCase();
+    const thresholdRaw = String((document.getElementById('rwysurvey-obs-threshold-popup') || {}).value || active.fromThreshold || startThr).trim().toUpperCase();
     const distanceRaw = Number((document.getElementById('rwysurvey-obs-distance-popup') || {}).value);
     const distanceM = isFinite(distanceRaw) ? Math.max(1, Math.round(distanceRaw)) : Math.max(1, Math.round(Number(active.distanceM || 50)));
-    const operationSel = document.getElementById('rwysurvey-obs-operation-popup');
-    const operationRaw = String((operationSel && operationSel.value) || active.operation || '').trim().toLowerCase();
-    const operation = operationRaw === 'takeoff' ? 'takeoff' : 'landing';
+    const operation = distanceM >= 250 ? 'takeoff' : 'landing';
     const checkpointCorner = thresholdRaw === oppThr ? 'C' : 'A';
     const thresholdRef = thresholdRaw === oppThr ? oppThr : startThr;
     return {
@@ -9496,8 +9000,7 @@
       if (fix && origin) {
         along = Math.max(0, Math.min(runwayLengthM, _rwySurveyProjectAlongAxisM_(fix.lat, fix.lon, origin.lat, origin.lon, heading)));
       }
-      const likelyReciprocalSide = marks.length >= 3; // C was already marked, so walker is likely on C->D segment
-      if (likelyReciprocalSide || along > (runwayLengthM / 2)) {
+      if (along > (runwayLengthM / 2)) {
         corner = 'C';
         thresholdRef = oppThr;
         dist = Math.round(runwayLengthM - along);
@@ -9511,15 +9014,13 @@
     thresholdRef = String(thresholdRef || startThr).trim().toUpperCase();
     const autoMode = !!autoTriggered;
     const mode = dist >= 250 ? 'takeoff' : 'landing';
-    const segmentLabel = corner === 'C' ? 'C→D' : 'A→B';
     runwaySurveyToolState.ui.activeObstaclePrompt = {
       corner: corner,
       distanceM: dist,
       fromThreshold: thresholdRef,
       operation: mode,
       manual: manual,
-      autoTriggered: autoMode,
-      segmentLabel: segmentLabel
+      autoTriggered: autoMode
     };
     runwaySurveyToolState.ui.obstaclePhoto = null;
     runwaySurveyToolState.ui.pendingObstacleSaveAfterPhoto = false;
@@ -9534,47 +9035,48 @@
           ? 'LOOK AHEAD. Tap OPEN INCLINOMETER and save the 300m takeoff angle.'
           : 'TURN AROUND. Tap OPEN INCLINOMETER and save the 50m landing angle.';
       } else {
-        context.textContent = 'Walking segment ' + segmentLabel + ' · runway ' + thresholdRef + '. Choose takeoff or landing, then save angle.';
+        context.textContent = 'Manual capture: choose threshold, enter distance in meters, then save angle.';
       }
     }
     const inclBtn = document.getElementById('rwysurvey-open-inclinometer-btn');
     if (inclBtn) inclBtn.textContent = 'OPEN INCLINOMETER';
     const thresholdSel = document.getElementById('rwysurvey-obs-threshold-popup');
-    const thresholdReadonly = document.getElementById('rwysurvey-obs-threshold-readonly');
     if (thresholdSel) {
       const opts = '<option value="' + startThr + '">' + startThr + '</option><option value="' + oppThr + '">' + oppThr + '</option>';
       thresholdSel.innerHTML = opts;
       thresholdSel.value = thresholdRef === oppThr ? oppThr : startThr;
-      thresholdSel.disabled = true;
+      thresholdSel.disabled = autoMode;
     }
-    if (thresholdReadonly) thresholdReadonly.textContent = 'RWY ' + String(state.rwyIdent || '--') + ' ' + thresholdRef;
     const distInput = document.getElementById('rwysurvey-obs-distance-popup');
     if (distInput) {
       distInput.value = String(Math.max(1, Math.round(dist)));
-      distInput.readOnly = true;
+      distInput.readOnly = autoMode;
     }
     const opSel = document.getElementById('rwysurvey-obs-operation-popup');
-    const opWrap = document.getElementById('rwysurvey-obs-operation-wrap');
     const manualSetup = document.getElementById('rwysurvey-obs-manual-setup');
-    if (manualSetup) manualSetup.style.display = 'none';
-    if (opWrap) opWrap.style.display = 'block';
-    if (opSel) opSel.value = mode;
+    if (manualSetup) manualSetup.style.display = autoMode ? 'none' : 'grid';
+    if (opSel) opSel.style.display = 'none';
     const typeInput = document.getElementById('rwysurvey-obs-type-popup');
-    if (typeInput) typeInput.value = '';
+    if (typeInput) typeInput.style.display = autoMode ? 'none' : 'block';
+    const typeQuick = document.getElementById('rwysurvey-obs-type-quick-picks');
+    if (typeQuick) typeQuick.style.display = autoMode ? 'none' : 'flex';
     const autoSummary = document.getElementById('rwysurvey-obs-auto-summary');
     if (autoSummary) {
-      autoSummary.style.display = 'block';
-      autoSummary.textContent = 'Threshold RWY ' + String(state.rwyIdent || '--') + ' ' + thresholdRef + ' · distance ' + Math.max(1, Math.round(dist)) + 'm · segment ' + segmentLabel;
+      autoSummary.style.display = 'none';
+      autoSummary.textContent = '';
     }
     const angleInput = document.getElementById('rwysurvey-obs-a-popup');
-    if (angleInput) angleInput.style.display = 'block';
+    if (angleInput) angleInput.style.display = autoMode ? 'none' : 'block';
+    const photoRow = document.getElementById('rwysurvey-obs-photo-row');
+    if (photoRow) photoRow.style.display = 'none';
     const notesInput = document.getElementById('rwysurvey-obs-notes-popup');
-    if (notesInput) notesInput.style.display = 'block';
+    if (notesInput) notesInput.style.display = autoMode ? 'none' : 'block';
     const saveBtn = document.getElementById('rwysurvey-obs-save-btn');
     if (saveBtn) {
-      saveBtn.style.display = 'block';
+      saveBtn.style.display = autoMode ? 'none' : 'inline-block';
       saveBtn.textContent = 'SAVE ENTRY';
     }
+    if (document.getElementById('rwysurvey-obs-type-popup')) document.getElementById('rwysurvey-obs-type-popup').value = '';
     _rwySurveyObstaclePhotoStatusText_();
     const popup = document.getElementById('rwysurvey-obstacle-popup');
     if (popup) popup.style.display = 'block';
@@ -11318,32 +10820,33 @@
       return;
     }
 
-    const featureCtx = _rwySurveyFeatureContextFromGps_(fix);
-    if (!featureCtx) {
-      if (window.M) M.toast({ html: 'Unable to resolve runway segment context', classes: 'orange' });
-      return;
+    let heading = runwaySurveyToolState.headingDeg || 0;
+    if (marks.length >= 2) {
+      const a = marks[0], b = marks[1];
+      const dy = Number(b.lat || 0) - Number(a.lat || 0);
+      const dx = Number(b.lon || 0) - Number(a.lon || 0);
+      heading = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
     }
 
-    const storedSide = sideInput;
+    let along = _rwySurveyProjectAlongAxisM_(fix.lat, fix.lon, origin.lat, origin.lon, heading);
+    along = Math.max(0, Math.round(along));
+
+    const reverseLeg = marks.length >= 3 && !per.closed;
+    const storedSide = reverseLeg ? (sideInput === 'left' ? 'right' : 'left') : sideInput;
 
     runwaySurveyToolState.features.push({
       name: type.replace(/_/g, ' '),
       type: type,
-      distance: Number(featureCtx.distanceM || 0),
-      fromThreshold: String(featureCtx.fromThreshold || _rwySurveyGetActiveStartThreshold_() || 'A'),
-      segment: String(featureCtx.segmentLabel || ''),
+      distance: along,
+      fromThreshold: _rwySurveyGetActiveStartThreshold_() || 'A',
       side: storedSide,
       gps: { lat: fix.lat, lon: fix.lon, accuracyM: fix.acc, at: new Date(fix.ts).toISOString() }
     });
-    _rwySurveyLogEvent_('mark', 'Feature added: ' + type + ' @ ' + Number(featureCtx.distanceM || 0) + 'm from ' + featureCtx.fromThreshold, {
-      side: storedSide,
-      segment: featureCtx.segmentLabel,
-      acc: Number(fix.acc || 0)
-    });
+    _rwySurveyLogEvent_('mark', 'Feature added: ' + type + ' @ ' + along + 'm', { side: storedSide, sideInput: sideInput, reverseLeg: reverseLeg, acc: Number(fix.acc || 0) });
     closeRunwaySurveyFeaturePopup(false);
     renderRunwaySurveyFeatureList();
     renderRunwaySurveyTrace();
-    if (window.M) M.toast({ html: 'Feature added at ~' + Number(featureCtx.distanceM || 0) + 'm from THR ' + featureCtx.fromThreshold, classes: 'green' });
+    if (window.M) M.toast({ html: 'Feature added at ~' + along + 'm from ' + (_rwySurveyGetActiveStartThreshold_() || 'start threshold'), classes: 'green' });
   }
 
   function renderRunwaySurveyFeatureList() {
@@ -11358,10 +10861,8 @@
     }
     el.innerHTML = items.map(function(f, i) {
       const fromThr = String(f && f.fromThreshold || _rwySurveyGetActiveStartThreshold_() || 'A');
-      const seg = String(f && f.segment || '').trim();
-      const segText = seg ? (' · seg ' + seg) : '';
       return '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px; padding:5px 8px; border:1px solid #e0e0e0; border-radius:6px; font-size:0.82rem;">'
-        + '<span><b>' + f.name + '</b> · ' + f.distance + 'm from THR ' + fromThr + segText + ' · ' + f.side + ' · acc ' + Math.round(Number(f.gps && f.gps.accuracyM || 0)) + 'm</span>'
+        + '<span><b>' + f.name + '</b> · ' + f.distance + 'm from ' + fromThr + ' · ' + f.side + ' · acc ' + Math.round(Number(f.gps && f.gps.accuracyM || 0)) + 'm</span>'
         + '<button onclick="removeRunwaySurveyFeature(' + i + ')" style="border:none; background:none; color:#d32f2f; cursor:pointer;">✕</button></div>';
     }).join('');
   }
@@ -11420,28 +10921,8 @@
 
   function renderRunwaySurveyObstacleList() {
     const summary = document.getElementById('rwysurvey-obstacle-summary');
-    const el = document.getElementById('rwysurvey-obstacle-list');
     const items = runwaySurveyToolState.obstacleAngles50m;
     if (summary) summary.textContent = 'Obstacles: ' + items.length;
-    if (!el) return;
-    if (!items.length) {
-      el.innerHTML = '<div style="font-size:0.8rem; color:#999; margin-top:4px;">No obstacle angles yet.</div>';
-      return;
-    }
-
-    el.innerHTML = items.map(function(o, i) {
-      const fromThr = String(o && o.fromThreshold || _rwySurveyGetActiveStartThreshold_() || 'THR').trim().toUpperCase();
-      const distM = Math.max(0, Math.round(Number(o && o.checkpointDistanceM || 0)));
-      const op = String(o && o.operation || '').trim().toLowerCase() === 'takeoff' ? 'takeoff' : 'landing';
-      const angle = Number(o && o.angleDeg);
-      const angleText = isFinite(angle) ? angle.toFixed(1) + '°' : '--';
-      const typeText = String(o && o.type || 'obstacle').replace(/_/g, ' ');
-      const noteText = String(o && o.notes || '').trim();
-      const opColor = op === 'takeoff' ? '#1565c0' : '#ef6c00';
-      return '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px; padding:6px 8px; border:1px solid #ffe0b2; border-radius:6px; background:#fff8f0; font-size:0.82rem;">'
-        + '<span><b>' + typeText + '</b> · ' + distM + 'm from THR ' + fromThr + ' · <span style="color:' + opColor + '; font-weight:800;">' + op + '</span> · <b>' + angleText + '</b>' + (noteText ? (' · ' + noteText) : '') + '</span>'
-        + '<button onclick="removeRunwaySurveyObstacle(' + i + ')" style="border:none; background:none; color:#d32f2f; cursor:pointer;">✕</button></div>';
-    }).join('');
   }
 
   function removeRunwaySurveyObstacle(i) {
@@ -11824,7 +11305,7 @@
 
     const header = document.createElement('div');
     header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#0b5394; color:#fff;';
-    header.innerHTML = '<div><div style="font-size:1rem; font-weight:900;">RUNWAY PREVIEW <span style="font-size:0.7rem; opacity:0.7; margin-left:6px;">v1.2</span></div><div style="font-size:0.78rem; opacity:0.9;">' + state.icao + ' · RWY ' + state.rwyIdent + '</div></div><button onclick="closeRunwayDiagramPreview()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>';
+    header.innerHTML = '<div><div style="font-size:1rem; font-weight:900;">RUNWAY PREVIEW</div><div style="font-size:0.78rem; opacity:0.9;">' + state.icao + ' · RWY ' + state.rwyIdent + '</div></div><button onclick="closeRunwayDiagramPreview()" style="border:none; background:rgba(255,255,255,0.18); color:#fff; border-radius:6px; padding:6px 10px; font-size:1rem; cursor:pointer;">✕</button>';
 
     const body = document.createElement('div');
     body.style.cssText = 'padding:14px; display:grid; gap:10px;';
@@ -11873,8 +11354,8 @@
     if (isPaved) {
       svg.appendChild(makeEl('line', { x1: topX, y1: topY + (topH / 2), x2: topX + runwayPx, y2: topY + (topH / 2), stroke: '#f3f3f3', 'stroke-width': 3, 'stroke-dasharray': '18,10' }));
     }
-    svg.appendChild(makeEl('text', { x: topX + 10, y: topY + topH - 12, 'font-size': 18, fill: '#fff', 'font-weight': '800', 'transform': 'rotate(-90 ' + (topX + 10) + ' ' + (topY + topH - 12) + ')' }, String(state.rwyIdent || 'RWY')));
-    svg.appendChild(makeEl('text', { x: topX + runwayPx - 10, y: topY + topH - 12, 'font-size': 18, fill: '#fff', 'font-weight': '800', 'text-anchor': 'end', 'transform': 'rotate(-90 ' + (topX + runwayPx - 10) + ' ' + (topY + topH - 12) + ')' }, String(_rwySurveyReciprocalIdent_(state.rwyIdent) || '')));
+    svg.appendChild(makeEl('text', { x: topX + 10, y: topY + topH - 12, 'font-size': 18, fill: '#fff', 'font-weight': '800' }, String(state.rwyIdent || 'RWY')));
+    svg.appendChild(makeEl('text', { x: topX + runwayPx - 10, y: topY + topH - 12, 'font-size': 18, fill: '#fff', 'font-weight': '800', 'text-anchor': 'end' }, String(_rwySurveyReciprocalIdent_(state.rwyIdent) || '')));
     svg.appendChild(makeEl('text', { x: topX + (runwayPx / 2), y: topY + topH + 22, 'font-size': 12, fill: '#0b5394', 'font-weight': '700', 'text-anchor': 'middle' }, runwayLengthM + 'm × ' + runwayWidthM + 'm' + (surfaceValue ? ' • ' + surfaceValue : '')));
 
     const iconForFeature = function(name) {
@@ -11885,7 +11366,7 @@
       if (s.indexOf('WINDSOCK') >= 0) return '🎏';
       if (s.indexOf('TOWER') >= 0) return '🗼';
       if (s.indexOf('POWER') >= 0) return '⚡';
-      return '🏷️';
+      return '📍';
     };
 
     const iconForObstacle = function(type) {
@@ -11904,10 +11385,8 @@
       const side = String(feat && feat.side || 'right').toLowerCase() === 'left' ? 'left' : 'right';
       const iconY = side === 'left' ? topY - 14 : topY + topH + 26;
       const connectorY = side === 'left' ? topY : topY + topH;
-      const featName = String(feat && (feat.name || feat.type) || 'Feature').trim();
       svg.appendChild(makeEl('line', { x1: x, y1: connectorY, x2: x, y2: side === 'left' ? iconY + 6 : iconY - 10, stroke: '#fb8c00', 'stroke-width': 1.5 }));
-      svg.appendChild(makeEl('text', { x: x, y: iconY, 'font-size': 15, 'text-anchor': 'middle' }, iconForFeature(featName)));
-      svg.appendChild(makeEl('text', { x: x, y: side === 'left' ? iconY - 20 : iconY + 20, 'font-size': 11, fill: '#fb8c00', 'text-anchor': 'middle', 'font-weight': '700' }, featName));
+      svg.appendChild(makeEl('text', { x: x, y: iconY, 'font-size': 15, 'text-anchor': 'middle' }, iconForFeature(feat && (feat.name || feat.type))));
       svg.appendChild(makeEl('text', { x: x, y: side === 'left' ? iconY - 8 : iconY + 12, 'font-size': 9, fill: '#455a64', 'text-anchor': 'middle' }, Math.round(distM) + 'm'));
     });
 
@@ -12040,28 +11519,17 @@
       obsGroup.appendChild(makeEl('line', { x1: baseX, y1: baseY, x2: anchorX, y2: tipY, stroke: '#ef6c00', 'stroke-width': 2.2 }));
       obsGroup.appendChild(makeEl('circle', { cx: anchorX, cy: tipY, r: 1.7, fill: '#ef6c00' }));
       drawObstacleShape_(obs && obs.type, anchorX, anchorY, dir, obsGroup);
-      const obsTypeLabel = String(obs && obs.type || 'obstacle').replace(/_/g, ' ');
-      const angleLineMidX = (baseX + anchorX) / 2;
-      const angleLineMidY = (baseY + tipY) / 2;
       obsGroup.appendChild(makeEl('text', {
-        x: angleLineMidX,
-        y: angleLineMidY - 6,
-        'font-size': 9,
-        fill: '#ef6c00',
-        'text-anchor': 'middle',
-        'font-weight': '700'
-      }, rawAngle.toFixed(1) + '°'));
-      obsGroup.appendChild(makeEl('text', {
-        x: baseX,
-        y: sideY + sideH + 14,
+        x: anchorX,
+        y: anchorY + 18,
         'font-size': 8,
         fill: '#37474f',
         'text-anchor': 'middle',
         'font-weight': '700'
-      }, Math.round(distM) + 'm • ' + obsTypeLabel));
+      }, Math.round(distM) + 'm • ' + rawAngle.toFixed(1) + '°'));
       obsGroup.appendChild(makeEl('text', {
-        x: baseX,
-        y: sideY + sideH + 24,
+        x: anchorX,
+        y: anchorY + 28,
         'font-size': 7.5,
         fill: '#546e7a',
         'text-anchor': 'middle'
@@ -12071,8 +11539,8 @@
 
     normalizedProfile.forEach(function(seg) {
       const midX = sideX + (((seg.startDistanceM + seg.endDistanceM) / 2) * scale);
-      svg.appendChild(makeEl('text', { x: midX, y: sideY + sideH + 40, 'font-size': 9, fill: '#4b4b4b', 'text-anchor': 'middle' }, (seg.slope >= 0 ? '+' : '') + seg.slope.toFixed(1) + '% / ' + Math.round(seg.distance) + 'm'));
-      svg.appendChild(makeEl('text', { x: midX, y: sideY + sideH + 50, 'font-size': 8, fill: '#6b6b6b', 'text-anchor': 'middle' }, 'start ' + Math.round(seg.startDistanceM) + 'm'));
+      svg.appendChild(makeEl('text', { x: midX, y: sideY + sideH + 14, 'font-size': 9, fill: '#4b4b4b', 'text-anchor': 'middle' }, (seg.slope >= 0 ? '+' : '') + seg.slope.toFixed(1) + '% / ' + Math.round(seg.distance) + 'm'));
+      svg.appendChild(makeEl('text', { x: midX, y: sideY + sideH + 25, 'font-size': 8, fill: '#6b6b6b', 'text-anchor': 'middle' }, 'start ' + Math.round(seg.startDistanceM) + 'm'));
     });
 
     body.appendChild(summary);

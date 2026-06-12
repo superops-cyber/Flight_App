@@ -24,3 +24,5 @@ _*.js
 extracted_script.js
 extracted_scripts.js
 temp_script_check.js
+DocPackSync.js
+test_mission_data.js

@@ -480,15 +480,17 @@
         .filter(Boolean);
     }
 
-    function _supervisorAirportSurfaceColor_(surfaceActual) {
+    function _supervisorAirportSurfaceColor_(infrastructureType, surfaceActual) {
+      const infra = String(infrastructureType || '').toUpperCase();
+      if (/WATER|\u00C1GUA|AGUA|LAKE|LAGO|HIDRO|FLOAT|SEA/.test(infra)) return '#1565c0';
       const s = String(surfaceActual || '').toUpperCase();
       if (/GRASS|GRAMA|SOD|TURF|CAMPO|TERRA/.test(s)) return '#388e3c';
       if (/WATER|\u00C1GUA|AGUA|LAKE|LAGO|HIDRO|FLOAT|SEA/.test(s)) return '#1565c0';
       return '#212121';
     }
 
-    function _supervisorAirportDivIcon_(surfaceActual, hasAvgas) {
-      const color = _supervisorAirportSurfaceColor_(surfaceActual);
+    function _supervisorAirportDivIcon_(infrastructureType, surfaceActual, hasAvgas) {
+      const color = _supervisorAirportSurfaceColor_(infrastructureType, surfaceActual);
       const badge = hasAvgas
         ? '<circle cx="15.8" cy="4.2" r="5" fill="white" stroke="#111" stroke-width="1.3"/><text x="15.8" y="5.9" text-anchor="middle" font-size="6.5" fill="#111" font-family="sans-serif" font-weight="900">A</text>'
         : '';
@@ -520,6 +522,49 @@
       if (_supervisorMissionMap.nearbyAirportsLayer) _supervisorMissionMap.nearbyAirportsLayer.clearLayers();
     }
 
+    function _supervisorMapDestroy_() {
+      if (_supervisorMissionMap.map) {
+        try { _supervisorMissionMap.map.remove(); } catch (e) {}
+      }
+      _supervisorMissionMap.map = null;
+      _supervisorMissionMap.routeLayer = null;
+      _supervisorMissionMap.markersLayer = null;
+      _supervisorMissionMap.nearbyAirportsLayer = null;
+      _supervisorMissionMap.hasCentered = false;
+    }
+
+    function _supervisorPopulateNearbyAirports_(points, routeAirportSet, app) {
+      if (!_supervisorMissionMap.nearbyAirportsLayer) return;
+      _supervisorMissionMap.nearbyAirportsLayer.clearLayers();
+      if (!_supervisorMissionMap.showNearbyAirports || !Array.isArray(app && app.airports) || !points.length) return;
+
+      try {
+        const boundsForNearby = L.latLngBounds(points.map(function(p) { return [p.lat, p.lon]; })).pad(0.9);
+        app.airports.forEach(function(apt) {
+          try {
+            const icao = String((apt && apt.icao) || '').trim().toUpperCase();
+            if (!icao || routeAirportSet.has(icao)) return;
+            const lat = Number(_supervisorParseCoordinate_(apt && (apt.lat || apt.LAT || apt.latitude || apt.LATITUDE || '')));
+            const lon = Number(_supervisorParseCoordinate_(apt && (apt.lon || apt.LON || apt.lng || apt.LNG || apt.longitude || apt.LONGITUDE || '')));
+            if (!isFinite(lat) || !isFinite(lon)) return;
+            if (!boundsForNearby.contains([lat, lon])) return;
+            const fuelCtx = _supervisorAirportFuelState_(icao, apt);
+            const infrastructureType = String(apt && (apt.runwayInfrastructureType || apt.infrastructureType || apt.infrastructure) || '').trim();
+            const surface = String(apt && (apt.runwaySurfaceActual || apt.surface) || '').trim();
+            const marker = L.marker([lat, lon], {
+              icon: _supervisorAirportDivIcon_(infrastructureType, surface, fuelCtx.hasFuel),
+              zIndexOffset: -150
+            }).addTo(_supervisorMissionMap.nearbyAirportsLayer);
+            marker.bindTooltip('<b>' + icao + '</b><br>Nearby DB airport<br>Surface: ' + (surface || 'Unknown') + '<br>' + fuelCtx.label, { sticky: true });
+          } catch (aptErr) {
+            console.error('[supervisor nearby airport skipped]', aptErr, apt);
+          }
+        });
+      } catch (err) {
+        console.error('[supervisor nearby airports render failed]', err);
+      }
+    }
+
     function _supervisorMissionResolveLocation_(token) {
       const code = String(token || '').trim().toUpperCase();
       const app = window.appData || {};
@@ -542,6 +587,7 @@
             lat: lat,
             lon: lon,
             isAirport: true,
+            infrastructureType: String(ap.runwayInfrastructureType || ap.infrastructureType || ap.infrastructure || '').trim(),
             surface: String(ap.runwaySurfaceActual || ap.surface || '').trim(),
             airportRef: ap
           };
@@ -655,9 +701,16 @@
       _supervisorMissionMap.showNearbyAirports = !!(nearbyToggle && nearbyToggle.checked);
 
       const points = _supervisorMissionRoutePoints_(legs);
-      const sig = JSON.stringify(points.map(function(p) { return [p.key, p.lat, p.lon, p.isAirport ? 1 : 0]; })) + '|' + (_supervisorMissionMap.showNearbyAirports ? '1' : '0');
+      const routeAirportSet = new Set(
+        points
+          .filter(function(p) { return p && p.isAirport; })
+          .map(function(p) { return String(p.key || '').trim().toUpperCase(); })
+      );
+      const sig = JSON.stringify(points.map(function(p) { return [p.key, p.lat, p.lon, p.isAirport ? 1 : 0]; }))
+        + '|' + (_supervisorMissionMap.showNearbyAirports ? '1' : '0');
       const sameSignature = sig === _supervisorMissionMap.signature;
       if (sameSignature && _supervisorMissionMap.map) {
+        _supervisorPopulateNearbyAirports_(points, routeAirportSet, app);
         if (forceFit && points.length) {
           const existingBounds = L.latLngBounds(points.map(function(p) { return [p.lat, p.lon]; }));
           if (existingBounds.isValid()) _supervisorMissionMap.map.fitBounds(existingBounds, { padding: [28, 28] });
@@ -696,17 +749,11 @@
           L.polyline(latLngs, { color: '#0b5394', weight: 3, opacity: 0.9, dashArray: '8,5' }).addTo(_supervisorMissionMap.routeLayer);
         }
 
-        const routeAirportSet = new Set(
-          points
-            .filter(function(p) { return p && p.isAirport; })
-            .map(function(p) { return String(p.key || '').trim().toUpperCase(); })
-        );
-
         points.forEach(function(p, idx) {
           if (p.isAirport) {
             const fuel = _supervisorAirportFuelState_(p.key, p.airportRef);
             const surface = String(p.surface || 'Unknown');
-            const marker = L.marker([p.lat, p.lon], { icon: _supervisorAirportDivIcon_(surface, fuel.hasFuel) })
+              const marker = L.marker([p.lat, p.lon], { icon: _supervisorAirportDivIcon_(p.infrastructureType, surface, fuel.hasFuel) })
               .addTo(_supervisorMissionMap.markersLayer);
             marker.bindTooltip('<b>' + p.name + '</b><br>Surface: ' + surface + '<br>' + fuel.label + '<br>#' + (idx + 1), { sticky: true });
           } else {
@@ -716,24 +763,7 @@
           }
         });
 
-        if (_supervisorMissionMap.showNearbyAirports && Array.isArray(app.airports)) {
-          const boundsForNearby = L.latLngBounds(latLngs).pad(0.9);
-          app.airports.forEach(function(apt) {
-            const icao = String((apt && apt.icao) || '').trim().toUpperCase();
-            if (!icao || routeAirportSet.has(icao)) return;
-            const lat = Number(_supervisorParseCoordinate_(apt.lat || apt.LAT || apt.latitude || apt.LATITUDE || ''));
-            const lon = Number(_supervisorParseCoordinate_(apt.lon || apt.LON || apt.lng || apt.LNG || apt.longitude || apt.LONGITUDE || ''));
-            if (!isFinite(lat) || !isFinite(lon)) return;
-            if (!boundsForNearby.contains([lat, lon])) return;
-            const fuelCtx = _supervisorAirportFuelState_(icao, apt);
-            const surface = String(apt.runwaySurfaceActual || apt.surface || '').trim();
-            const marker = L.marker([lat, lon], {
-              icon: _supervisorAirportDivIcon_(surface, fuelCtx.hasFuel),
-              zIndexOffset: -150
-            }).addTo(_supervisorMissionMap.nearbyAirportsLayer);
-            marker.bindTooltip('<b>' + icao + '</b><br>Nearby DB airport<br>Surface: ' + (surface || 'Unknown') + '<br>' + fuelCtx.label, { sticky: true });
-          });
-        }
+        _supervisorPopulateNearbyAirports_(points, routeAirportSet, app);
 
         const bounds = L.latLngBounds(latLngs);
         if (bounds.isValid() && (forceFit || !_supervisorMissionMap.hasCentered)) {

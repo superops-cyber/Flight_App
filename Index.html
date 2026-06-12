@@ -416,7 +416,14 @@
 
     function switchTab(viewId) {
       document.querySelectorAll('.view-section').forEach(el => el.classList.remove('view-active'));
-      document.getElementById(viewId).classList.add('view-active');
+      const targetView = document.getElementById(viewId);
+      if (!targetView) {
+        if (typeof _reportPortalDiag_ === 'function') {
+          _reportPortalDiag_('tab-missing', { message: 'View not found: ' + String(viewId || '') });
+        }
+        return;
+      }
+      targetView.classList.add('view-active');
       document.querySelectorAll('nav li').forEach(li => li.classList.remove('active'));
       const navId = viewId.replace('view-', 'nav-');
       const navEl = document.getElementById(navId);
@@ -426,22 +433,48 @@
         if (histIndex < navHistory.length - 1) { navHistory = navHistory.slice(0, histIndex + 1); }
         if (navHistory[histIndex] !== viewId) { navHistory.push(viewId); histIndex++; }
       }
-      if(viewId === 'view-home') renderCalendar();
-      if (viewId === 'view-tools' && typeof window.initToolsPage === 'function') window.initToolsPage();
-      if (viewId === 'view-supervisor' && typeof window.onSupervisorTabShown === 'function') window.onSupervisorTabShown();
-      if (viewId !== 'view-supervisor' && typeof window.onSupervisorTabHidden === 'function') window.onSupervisorTabHidden();
-      if (viewId === 'view-flightfollow' && typeof window.onFlightFollowingShown === 'function') window.onFlightFollowingShown();
-      if (viewId === 'view-maintenance' && typeof window.onMaintenanceShown === 'function') window.onMaintenanceShown();
+      try {
+        if(viewId === 'view-home') renderCalendar();
+        if (viewId === 'view-tools' && typeof window.initToolsPage === 'function') {
+          setTimeout(function() {
+            try { window.initToolsPage(); }
+            catch (e) {
+              if (typeof _reportPortalDiag_ === 'function') {
+                _reportPortalDiag_('tools-init', { message: e && e.message ? e.message : String(e) });
+              }
+            }
+          }, 0);
+        }
+        if (viewId === 'view-supervisor' && typeof window.onSupervisorTabShown === 'function') window.onSupervisorTabShown();
+        if (viewId !== 'view-supervisor' && typeof window.onSupervisorTabHidden === 'function') window.onSupervisorTabHidden();
+        if (viewId === 'view-flightfollow' && typeof window.onFlightFollowingShown === 'function') window.onFlightFollowingShown();
+        if (viewId === 'view-maintenance' && typeof window.onMaintenanceShown === 'function') window.onMaintenanceShown();
+      } catch (e) {
+        if (typeof _reportPortalDiag_ === 'function') {
+          _reportPortalDiag_('switch-tab', { message: e && e.message ? e.message : String(e), viewId: String(viewId || '') });
+        }
+      }
+    }
+
+    function _portalTargetView_(viewId) {
+      const raw = String(viewId || '').trim();
+      if (raw && raw.indexOf('view-') === 0) return raw;
+      return raw ? ('view-' + raw) : 'view-home';
     }
 
     function openViewInNewTab(viewId) {
+      const targetView = _portalTargetView_(viewId);
       try {
         const url = new URL(_portalBaseUrl_());
-        url.hash = '#' + String(viewId || 'view-home');
+        url.hash = '#' + targetView;
         url.searchParams.set('view', 'portal');
+        try { sessionStorage.setItem('portal-open-view', targetView); } catch (e) {}
         window.open(url.toString(), '_blank', 'noopener');
       } catch (e) {
-        window.open(String(_portalBaseUrl_() || window.location.pathname || '') + '?view=portal#' + String(viewId || 'view-home'), '_blank', 'noopener');
+        const baseUrl = String(_portalBaseUrl_() || window.location.pathname || '');
+        const fallbackUrl = baseUrl + '?view=portal#' + targetView;
+        try { sessionStorage.setItem('portal-open-view', targetView); } catch (e) {}
+        window.open(fallbackUrl, '_blank', 'noopener');
       }
     }
 
@@ -506,17 +539,18 @@
         refreshPortalAfterMissionSave_();
       });
 
-      if (window.location.hash === '#view-dispatch') {
-        switchTab('view-dispatch');
-      } else if (window.location.hash === '#view-supervisor') {
-        switchTab('view-supervisor');
-      } else if (window.location.hash === '#view-tools') {
-        switchTab('view-tools');
-      } else if (window.location.hash === '#view-maintenance') {
-        switchTab('view-maintenance');
-      } else if (window.location.hash === '#view-flightfollow') {
-        switchTab('view-flightfollow');
-      }
+      const requestedView = (() => {
+        try {
+          const stored = String(sessionStorage.getItem('portal-open-view') || '').trim();
+          if (stored && stored.indexOf('view-') === 0) return stored;
+        } catch (e) {}
+
+        const hash = String(window.location.hash || '').replace(/^#/, '').trim();
+        return (hash && hash.indexOf('view-') === 0) ? hash : 'view-home';
+      })();
+
+      try { sessionStorage.removeItem('portal-open-view'); } catch (e) {}
+      switchTab(requestedView);
     });
 
     window.addEventListener('beforeunload', function() {

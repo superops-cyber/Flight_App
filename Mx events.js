@@ -26,7 +26,7 @@ function updateFleetAndAlert() {
   const url = "https://sistemas.anac.gov.br/dadosabertos/Aeronaves/RAB/dados_aeronaves.csv";
   
   const dashHeaders = dashSheet.getRange(1, 1, 1, dashSheet.getLastColumn()).getValues()[0];
-  const cvaColIdx = dashHeaders.indexOf("Annual Due (CVA)") + 1;
+  const cvaColIdx = dashHeaders.indexOf("Annual Due_(CVA)") + 1;
   const tailData = dashSheet.getRange(2, 1, dashSheet.getLastRow()-1, 1).getValues();
 
   try {
@@ -108,7 +108,7 @@ function nightlyMaintenanceSync() {
     curTach: dashHeaders.indexOf("Current Tach"),
     nextDue: dashHeaders.indexOf("Next Due (Tach)"),
     hrsLeft: dashHeaders.indexOf("Hours to Insp"),
-    cva: dashHeaders.indexOf("Annual Due (CVA)"),
+    cva: dashHeaders.indexOf("Annual Due_(CVA)"),
     status: dashHeaders.indexOf("Tech Status")
   };
 

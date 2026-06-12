@@ -250,7 +250,10 @@ font-weight: bold;
 <div class="nav-header">
 <span>FLIGHT DISPATCH TERMINAL V4.0</span>
 <button onclick="switchTab('view-flightfollow')" style="background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.45); color:white; border-radius:6px; padding:0 13px; height:28px; font-size:0.72rem; font-weight:900; cursor:pointer; letter-spacing:0.04em; text-transform:uppercase;">&#9992; FLIGHT FOLLOWING</button>
+<span style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
 <span id="missionIdDisp" style="background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:4px;">LOADING...</span>
+<span id="dispatchBuildStamp" style="font-size:0.68rem; font-weight:700; opacity:0.85; letter-spacing:0.03em;"><?!= buildStamp ?></span>
+</span>
 </div>
 <div class="main-layout">
 <div class="sidebar">
@@ -1018,6 +1021,7 @@ function _dispatchResolvePointMeta_(tokenRaw) {
       name: icao,
       lat: lat,
       lon: lon,
+      infrastructureType: String(airport.runwayInfrastructureType || airport.infrastructureType || airport.infrastructure || '').trim(),
       surface: String(airport.runwaySurfaceActual || airport.surface || '').trim(),
       fuelLabel: fuelCtx.fuelLabel,
       avgasQty: fuelCtx.avgasQty,
@@ -1051,7 +1055,9 @@ function _dispatchMapWaypointDivIcon_(label) {
   });
 }
 
-function _dispatchSurfaceColor_(surfaceActual) {
+function _dispatchSurfaceColor_(infrastructureType, surfaceActual) {
+  const infra = String(infrastructureType || '').toUpperCase();
+  if (/WATER|\u00C1GUA|AGUA|LAKE|LAGO|HIDRO|FLOAT|SEA/.test(infra)) return '#1565c0';
   const s = String(surfaceActual || '').toUpperCase();
   if (/GRASS|GRAMA|SOD|TURF|CAMPO|TERRA/.test(s)) return '#388e3c';
   if (/WATER|\u00C1GUA|AGUA|LAKE|LAGO|HIDRO|FLOAT|SEA/.test(s)) return '#1565c0';
@@ -1093,8 +1099,8 @@ function _dispatchAirportFuelContext_(icao, airportHint) {
   };
 }
 
-function _dispatchAirportDivIcon_(surfaceActual, hasAvgas) {
-  const color = _dispatchSurfaceColor_(surfaceActual);
+function _dispatchAirportDivIcon_(infrastructureType, surfaceActual, hasAvgas) {
+  const color = _dispatchSurfaceColor_(infrastructureType, surfaceActual);
   const badge = hasAvgas
     ? '<circle cx="15.8" cy="4.2" r="5" fill="white" stroke="#111" stroke-width="1.3"/><text x="15.8" y="5.9" text-anchor="middle" font-size="6.5" fill="#111" font-family="sans-serif" font-weight="900">A</text>'
     : '';
@@ -1104,6 +1110,31 @@ function _dispatchAirportDivIcon_(surfaceActual, hasAvgas) {
     + badge
     + '</svg>';
   return L.divIcon({ html: svg, className: '', iconSize: [20, 20], iconAnchor: [10, 10] });
+}
+
+function _dispatchPopulateNearbyAirports_(points, routeAirportSet) {
+  if (!_dispatchRouteMapState.nearbyAirportsLayer) return;
+  _dispatchRouteMapState.nearbyAirportsLayer.clearLayers();
+  if (!_dispatchRouteMapState.showNearbyAirports || !Array.isArray(appData && appData.airports) || !points.length) return;
+
+  const bounds = L.latLngBounds(points.map(function(p) { return [p.lat, p.lon]; })).pad(0.9);
+  appData.airports.forEach(function(apt) {
+    const icao = dispatchAirportIcao_(apt);
+    if (!icao || routeAirportSet.has(icao)) return;
+    const lat = Number(_parseCoordinate(apt.lat || apt.LAT || apt.latitude || apt.LATITUDE || ''));
+    const lon = Number(_parseCoordinate(apt.lon || apt.LON || apt.lng || apt.LNG || apt.longitude || apt.LONGITUDE || ''));
+    if (!isFinite(lat) || !isFinite(lon)) return;
+    if (!bounds.contains([lat, lon])) return;
+
+    const fuelCtx = _dispatchAirportFuelContext_(icao, apt);
+    const infrastructureType = String(apt.runwayInfrastructureType || apt.infrastructureType || apt.infrastructure || '').trim();
+    const surface = String(apt.runwaySurfaceActual || apt.surface || '').trim();
+    const m = L.marker([lat, lon], {
+      icon: _dispatchAirportDivIcon_(infrastructureType, surface, fuelCtx.hasAvgas),
+      zIndexOffset: -150
+    }).addTo(_dispatchRouteMapState.nearbyAirportsLayer);
+    m.bindTooltip('<b>' + icao + '</b><br>Nearby DB airport<br>Surface: ' + (surface || 'Unknown') + '<br>' + fuelCtx.fuelLabel, { sticky: true });
+  });
 }
 
 function dispatchToggleNearbyAirports_() {
@@ -1133,6 +1164,7 @@ function dispatchRenderMissionMap_(forceFit) {
   });
 
   const points = seq.map(_dispatchResolvePointMeta_).filter(Boolean);
+  const routeSignature = JSON.stringify(points.map(function(p) { return [p.name, p.lat, p.lon, p.kind === 'airport' ? 1 : 0]; }));
   card.style.display = '';
 
   _dispWpEnsureLeaflet(function() {
@@ -1144,16 +1176,34 @@ function dispatchRenderMissionMap_(forceFit) {
       _dispatchRouteMapState.nearbyAirportsLayer = L.layerGroup().addTo(_dispatchRouteMapState.map);
     }
 
+    const nearbyToggle = document.getElementById('dispatchMapNearbyToggle');
+    _dispatchRouteMapState.showNearbyAirports = !!(nearbyToggle && nearbyToggle.checked);
+
+    if (_dispatchRouteMapState.map && _dispatchRouteMapState.routeSignature === routeSignature) {
+      const routeAirportSet = new Set(
+        points
+          .filter(function(p) { return p && p.kind === 'airport'; })
+          .map(function(p) { return String(p.name || '').trim().toUpperCase(); })
+      );
+      _dispatchPopulateNearbyAirports_(points, routeAirportSet);
+      if (forceFit && points.length) {
+        const currentBounds = L.latLngBounds(points.map(function(p) { return [p.lat, p.lon]; }));
+        if (currentBounds.isValid()) {
+          _dispatchRouteMapState.map.fitBounds(currentBounds, { padding: [28, 28] });
+        }
+      }
+      setTimeout(function() { if (_dispatchRouteMapState.map) _dispatchRouteMapState.map.invalidateSize(); }, 40);
+      return;
+    }
+
     _dispatchRouteMapState.routeLayer.clearLayers();
     _dispatchRouteMapState.markersLayer.clearLayers();
     if (_dispatchRouteMapState.nearbyAirportsLayer) _dispatchRouteMapState.nearbyAirportsLayer.clearLayers();
 
-    const nearbyToggle = document.getElementById('dispatchMapNearbyToggle');
-    _dispatchRouteMapState.showNearbyAirports = !!(nearbyToggle && nearbyToggle.checked);
-
     if (!points.length) {
       empty.style.display = '';
       _dispatchRouteMapState.map.setView([-15.8, -47.9], 4);
+      _dispatchRouteMapState.routeSignature = routeSignature;
       setTimeout(function() { if (_dispatchRouteMapState.map) _dispatchRouteMapState.map.invalidateSize(); }, 40);
       return;
     }
@@ -1174,7 +1224,7 @@ function dispatchRenderMissionMap_(forceFit) {
     points.forEach(function(p, idx) {
       if (p.kind === 'airport') {
         const m = L.marker([p.lat, p.lon], {
-          icon: _dispatchAirportDivIcon_(p.surface, p.hasAvgas)
+          icon: _dispatchAirportDivIcon_(p.infrastructureType, p.surface, p.hasAvgas)
         }).addTo(_dispatchRouteMapState.markersLayer);
         const surfaceTxt = String(p.surface || 'Unknown');
         m.bindTooltip('<b>' + p.name + '</b><br>Surface: ' + surfaceTxt + '<br>' + p.fuelLabel + '<br>#' + (idx + 1), { sticky: true });
@@ -1184,25 +1234,7 @@ function dispatchRenderMissionMap_(forceFit) {
       }
     });
 
-    if (_dispatchRouteMapState.showNearbyAirports && Array.isArray(appData && appData.airports)) {
-      const bounds = L.latLngBounds(latLngs).pad(0.9);
-      appData.airports.forEach(function(apt) {
-        const icao = dispatchAirportIcao_(apt);
-        if (!icao || routeAirportSet.has(icao)) return;
-        const lat = Number(_parseCoordinate(apt.lat || apt.LAT || apt.latitude || apt.LATITUDE || ''));
-        const lon = Number(_parseCoordinate(apt.lon || apt.LON || apt.lng || apt.LNG || apt.longitude || apt.LONGITUDE || ''));
-        if (!isFinite(lat) || !isFinite(lon)) return;
-        if (!bounds.contains([lat, lon])) return;
-
-        const fuelCtx = _dispatchAirportFuelContext_(icao, apt);
-        const surface = String(apt.runwaySurfaceActual || apt.surface || '').trim();
-        const m = L.marker([lat, lon], {
-          icon: _dispatchAirportDivIcon_(surface, fuelCtx.hasAvgas),
-          zIndexOffset: -150
-        }).addTo(_dispatchRouteMapState.nearbyAirportsLayer);
-        m.bindTooltip('<b>' + icao + '</b><br>Nearby DB airport<br>Surface: ' + (surface || 'Unknown') + '<br>' + fuelCtx.fuelLabel, { sticky: true });
-      });
-    }
+    _dispatchPopulateNearbyAirports_(points, routeAirportSet);
 
     const bounds = L.latLngBounds(latLngs);
     if (bounds.isValid()) {
@@ -1211,6 +1243,7 @@ function dispatchRenderMissionMap_(forceFit) {
         _dispatchRouteMapState._hasCentered = true;
       }
     }
+    _dispatchRouteMapState.routeSignature = routeSignature;
     setTimeout(function() { if (_dispatchRouteMapState.map) _dispatchRouteMapState.map.invalidateSize(); }, 40);
   });
 }
