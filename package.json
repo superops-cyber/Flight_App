@@ -1,7 +1,7 @@
 {
   "scripts": {
     "dev:push": "clasp push -f",
-    "dev:webapp": "clasp open --webapp",
+    "dev:webapp": "node scripts/open-dev-webapp.js",
     "dev:loop": "clasp push -f && echo '\nPushed. Refresh your /dev page with Cmd+Shift+R.\n'",
     "release:list": "clasp deployments | head -20",
     "release:version": "clasp version",

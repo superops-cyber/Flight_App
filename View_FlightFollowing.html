@@ -983,6 +983,28 @@
     letter-spacing: 0.03em;
   }
   .ff-sat-meta .ff-wx-time { color: #fff; }
+  .leaflet-tooltip.ff-sat-route-label {
+    background: rgba(10, 27, 38, 0.88);
+    border: 1px solid rgba(144, 202, 249, 0.42);
+    color: #fff;
+    border-radius: 999px;
+    padding: 1px 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+  }
+  .ff-list-version-tag {
+    margin-top: 8px;
+    padding: 0 6px;
+    text-align: right;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.58);
+    text-transform: uppercase;
+  }
   .ff-sat-layer-btn {
     border: 1px solid rgba(255,255,255,0.4);
     background: rgba(10, 27, 38, 0.86);
@@ -1482,9 +1504,6 @@
   <div class="ff-toolbar">
     <label class="ff-toolbar-label">FLIGHT FOLLOW</label>
     <button class="ff-btn-primary" onclick="ffLoadFlights()">ATUALIZAR LISTA</button>
-    <button class="ff-btn-primary" onclick="ffToggleAllFlights()">LIMPAR SELECAO</button>
-    <button class="ff-btn-primary" onclick="ffStartImmersiveSplitMode()">SPLIT FULL</button>
-    <button class="ff-btn-muted" onclick="ffShowVersion()">VERSION</button>
   </div>
 
   <div class="ff-body">
@@ -1509,6 +1528,23 @@
       <button class="ff-modal-close" type="button" onclick="ffCloseMessageModal()">&times;</button>
     </div>
     <div class="ff-modal-body" id="ff-message-modal-body"></div>
+  </div>
+</div>
+
+<div class="ff-modal-backdrop" id="ff-archive-confirm-modal" onclick="ffCloseArchiveConfirmModal(event)" style="display:none;">
+  <div class="ff-modal-card" onclick="event.stopPropagation()" style="max-width:460px;">
+    <div class="ff-modal-head">
+      <div class="ff-modal-title">A Flight Ops está perguntando...</div>
+      <button class="ff-modal-close" type="button" onclick="ffCloseArchiveConfirmModal()">&times;</button>
+    </div>
+    <div class="ff-modal-body" style="display:block;">
+      <div style="font-size:0.95rem; font-weight:800; color:#102a43; margin-bottom:8px;">Arquivar este voo concluído?</div>
+      <div style="font-size:0.82rem; line-height:1.45; color:#455a64;">O voo será arquivado e removido da lista de voos ativos.</div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px;">
+        <button class="ff-btn-muted" type="button" onclick="ffConfirmArchiveFlight(false)">Não</button>
+        <button class="ff-btn-primary" type="button" onclick="ffConfirmArchiveFlight(true)">Sim, arquivar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1554,7 +1590,15 @@
     routeEditsByKey: {},    // key -> [{ fix, eta, ata, fl }]
     eteByKey: {},           // key -> normalized ETE input (HH:MMZ)
     archivePromptedByKey: {}, // key -> bool (prompt already shown)
-    archiveSavedByKey: {}     // key -> bool (snapshot archived)
+    archiveSavedByKey: {},    // key -> bool (snapshot archived)
+    archivedFlightIds: {},
+    archiveLookupDoneByFlightId: {},
+    archiveLookupPendingByFlightId: {},
+    pendingArchiveLookups: 0,
+    pendingArchiveConfirmKey: '',
+    pendingArchiveConfirmMission: null,
+    loadingFlights: true,
+    pendingMissionLoads: 0
   };
   var _ffPollTimer = null;
   var _ffMsgPollTimer = null;
@@ -1815,6 +1859,21 @@
     var mon = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
     if (!(month >= 1 && month <= 12) || !(day >= 1 && day <= 31) || year < 1900) return txt;
     return String(day) + '-' + mon[month - 1] + '-' + String(year);
+  }
+
+  function _ffAirportDisplayName_(icao) {
+    var token = String(icao || '').trim().toUpperCase();
+    if (!token) return '--';
+    for (var i = 0; i < state.airports.length; i++) {
+      var ap = state.airports[i] || {};
+      if (String(ap.icao || '').trim().toUpperCase() !== token) continue;
+      return String(ap.nome || ap.name || token).trim() || token;
+    }
+    return token;
+  }
+
+  function _ffRouteDisplayName_(icao) {
+    return _ffAirportDisplayName_(icao);
   }
 
   function _ffNormTimeDigits_(text) {
@@ -2399,9 +2458,7 @@
         state.archivePromptedByKey[key] = false;
         state.archiveSavedByKey[key] = false;
       }
-      if (_ffHasAtLeastFourDigits_(rows[idx].ata) && _ffZuluTimeLabel_(rows[idx].ata)) {
-        _ffMaybePromptArchive_(key, idx);
-      }
+      _ffMaybePromptArchiveFromAta_(key, idx, rows[idx].ata);
     } else if (field === 'fl') {
       rows[idx].fl = String(rawValue || '').trim().toUpperCase();
     }
@@ -2414,6 +2471,7 @@
     if (!normalized) return;
     inputEl.value = normalized;
     window.ffEditRouteCell(key, idx, field, normalized);
+    if (field === 'ata') _ffMaybePromptArchiveFromAta_(key, idx, normalized);
   };
 
   function _ffToast_(html, classes, ms) {
@@ -2528,15 +2586,21 @@
         if (!res || !res.success) {
           var msg = res && res.error ? String(res.error) : 'Erro ao arquivar voo.';
           _ffToast_(msg, 'red darken-2', 3600);
+          if (flightId) delete state.archivedFlightIds[flightId];
+          renderFlightList();
           state.archivePromptedByKey[key] = false;
           return;
         }
         state.archiveSavedByKey[key] = true;
+        if (flightId) state.archivedFlightIds[flightId] = true;
+        renderFlightList();
         _ffToast_('Voo arquivado com sucesso. ID: ' + esc(String(res.archiveId || '')), 'green darken-2', 2800);
       })
       .withFailureHandler(function(err) {
         var msg = err && err.message ? err.message : String(err);
         _ffToast_('Falha no arquivamento: ' + esc(msg), 'red darken-2', 3600);
+        if (flightId) delete state.archivedFlightIds[flightId];
+        renderFlightList();
         state.archivePromptedByKey[key] = false;
       })
       .archiveFlightFollowingSnapshot(payload);
@@ -2549,13 +2613,63 @@
     var mission = _ffMissionForKey_(key);
     if (!mission) return;
     state.archivePromptedByKey[key] = true;
-    var ok = window.confirm('Voo realizado. Deseja arquivar?');
-    if (!ok) {
-      state.archivePromptedByKey[key] = false;
+    ffOpenArchiveConfirmModal(key, mission);
+  }
+
+  function _ffMaybePromptArchiveFromAta_(key, idx, ataValue) {
+    if (!ataValue) return;
+    if (!_ffHasAtLeastFourDigits_(ataValue) && !_ffZuluTimeLabel_(ataValue)) return;
+    window.setTimeout(function() {
+      _ffMaybePromptArchive_(key, idx);
+    }, 0);
+  }
+
+  function ffOpenArchiveConfirmModal(key, mission) {
+    state.pendingArchiveConfirmKey = String(key || '').trim();
+    state.pendingArchiveConfirmMission = mission || null;
+    var modal = document.getElementById('ff-archive-confirm-modal');
+    if (!modal) return;
+    if (typeof _ffOpenModal_ === 'function') {
+      _ffOpenModal_(modal);
+      modal.style.setProperty('z-index', '2147483648', 'important');
       return;
     }
-    _ffArchiveFlightFollowingSnapshot_(key, mission);
+    modal.classList.add('open');
+    modal.style.setProperty('z-index', '2147483648', 'important');
+    modal.style.display = 'flex';
   }
+
+  window.ffCloseArchiveConfirmModal = function(event) {
+    if (event && event.target && event.target.id !== 'ff-archive-confirm-modal') return;
+    var key = String(state.pendingArchiveConfirmKey || '').trim();
+    if (key) state.archivePromptedByKey[key] = false;
+    state.pendingArchiveConfirmKey = '';
+    state.pendingArchiveConfirmMission = null;
+    var modal = document.getElementById('ff-archive-confirm-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.style.setProperty('display', 'none', 'important');
+  };
+
+  window.ffConfirmArchiveFlight = function(accept) {
+    var key = String(state.pendingArchiveConfirmKey || '').trim();
+    var mission = state.pendingArchiveConfirmMission || null;
+    if (!key) {
+      ffCloseArchiveConfirmModal();
+      return;
+    }
+    if (!accept) {
+      ffCloseArchiveConfirmModal();
+      return;
+    }
+    ffCloseArchiveConfirmModal();
+    var flightId = String((mission && (mission.flightLegId || mission.missionId)) || '').trim();
+    if (flightId) {
+      state.archivedFlightIds[flightId] = true;
+      renderFlightList();
+    }
+    _ffArchiveFlightFollowingSnapshot_(key, mission);
+  };
 
   function _ffEnsureLeaflet(cb) {
     if (window.L && typeof window.L.map === 'function') { cb(); return; }
@@ -2754,11 +2868,20 @@
         lon: wLon,
         kind: 'waypoint',
         type: String(wp.type || '').trim(),
+        name: String(wp.name || wp.label || wp.wp_id || '').trim(),
         surface: '',
         hasFuel: false
       };
     }
     return null;
+  }
+
+  function _ffRoutePointDisplayText_(point) {
+    var fix = String(point && point.fix || '').trim().toUpperCase();
+    var name = String(point && point.name || '').trim();
+    if (!name) return fix || 'PONTO';
+    if (!fix || name.toUpperCase() === fix) return name;
+    return name + ' (' + fix + ')';
   }
 
   function _ffBuildRoutePoints_(mission) {
@@ -2782,6 +2905,8 @@
         lat: lat,
         lon: lon,
         kind: kind,
+        name: String(w.name || w.label || (meta && meta.name) || fix || '').trim(),
+        label: String(w.label || w.name || fix || (meta && meta.name) || '').trim(),
         type: String(w.type || (meta && meta.type) || '').trim(),
         surface: String(w.surface || w.runwaySurfaceActual || (meta && meta.surface) || '').trim(),
         hasFuel: !!hasFuel,
@@ -2857,7 +2982,8 @@
         if ((isAsphalt && !filters.asphalt) || (!isAsphalt && !filters.grass)) return;
       }
       var icon = isAirport ? _ffAirportDivIcon(point.surface, point.hasFuel) : _ffWpDivIcon();
-      var popup = '<strong>' + esc(point.fix || 'PONTO') + '</strong>';
+      var routeLabel = _ffRoutePointDisplayText_(point);
+      var popup = '<strong>' + esc(routeLabel || point.fix || 'PONTO') + '</strong>';
       if (isAirport) {
         var airportTitle = String(point.name || '').trim();
         if (airportTitle) popup = '<strong>' + esc(airportTitle) + ' (' + esc(point.fix || 'PONTO') + ')</strong>';
@@ -3049,10 +3175,37 @@
       L.polyline(latlngs, { color: '#ffeb3b', weight: 3, opacity: 0.98, dashArray: '8 5' }).addTo(layer);
     }
 
-    var first = latlngs[0];
-    var last = latlngs[latlngs.length - 1];
-    L.circleMarker(first, { radius: 4, color: '#ffffff', weight: 2, fillColor: '#00e676', fillOpacity: 0.98 }).addTo(layer);
-    L.circleMarker(last, { radius: 4, color: '#ffffff', weight: 2, fillColor: '#ff5252', fillOpacity: 0.98 }).addTo(layer);
+    routePoints.forEach(function(point, idx) {
+      var lat = Number(point.lat);
+      var lon = Number(point.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+      var routeLabel = _ffRoutePointDisplayText_(point);
+      var isAirport = String(point.kind || '').trim().toLowerCase() === 'airport';
+      var icon = isAirport ? _ffAirportDivIcon(point.surface, point.hasFuel) : _ffWpDivIcon();
+      var marker = L.marker([lat, lon], { icon: icon, keyboard: false });
+      marker.bindTooltip(esc(routeLabel || point.fix || 'PONTO'), {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -8],
+        opacity: 1,
+        sticky: false,
+        className: 'ff-sat-route-label'
+      });
+      if (isAirport) {
+        var airportTitle = String(point.name || '').trim();
+        var satPopup = '<strong>' + esc(airportTitle || routeLabel || point.fix || 'PONTO') + '</strong>';
+        if (airportTitle) satPopup = '<strong>' + esc(airportTitle) + ' (' + esc(point.fix || 'PONTO') + ')</strong>';
+        satPopup += '<br>Surface: ' + esc(point.surface || 'N/D');
+        satPopup += '<br>Avgas: ' + (point.hasFuel ? 'SIM' : 'NAO');
+        marker.bindPopup(satPopup);
+      } else {
+        var satPopupWp = '<strong>' + esc(routeLabel || point.fix || 'PONTO') + '</strong>';
+        if (point.type) satPopupWp += '<br>Tipo: ' + esc(point.type);
+        if (idx > 0 && isFinite(point.distNm)) satPopupWp += '<br>Leg: ' + esc(String(Math.round(point.distNm))) + ' NM';
+        marker.bindPopup(satPopupWp);
+      }
+      marker.addTo(layer);
+    });
 
     layer.addTo(map);
     state.satRouteLayersByKey[key] = layer;
@@ -3279,6 +3432,10 @@
       _ffWarnGoogleMissing_();
       return;
     }
+    state.loadingFlights = true;
+    state.pendingMissionLoads = 0;
+    state.pendingArchiveLookups = 0;
+    renderFlightList();
     google.script.run
       .withSuccessHandler(function(data) {
         state.aircraft = Array.isArray(data && data.aircraft) ? data.aircraft : [];
@@ -3291,23 +3448,76 @@
         renderFlightList();
         renderSelectedFlight();
 
+        state.pendingMissionLoads = state.aircraft.length;
+        if (!state.pendingMissionLoads) {
+          state.loadingFlights = false;
+          renderFlightList();
+        }
+
         state.aircraft.forEach(function(acft) {
           google.script.run
             .withSuccessHandler(function(missions) {
-              state.missionsByReg[acft.reg] = Array.isArray(missions) ? missions : [];
+              var list = Array.isArray(missions) ? missions : [];
+              state.missionsByReg[acft.reg] = list;
+              state.pendingMissionLoads = Math.max(0, Number(state.pendingMissionLoads || 0) - 1);
+              _ffQueueArchivedFlightChecks_(list);
+              _ffSyncFlightListLoadingState_();
               renderFlightList();
             })
             .withFailureHandler(function() {
               state.missionsByReg[acft.reg] = [];
+              state.pendingMissionLoads = Math.max(0, Number(state.pendingMissionLoads || 0) - 1);
+              _ffSyncFlightListLoadingState_();
               renderFlightList();
             })
             .getFlightFollowMissionsForAcft(acft.reg);
         });
       })
       .withFailureHandler(function(err) {
+        state.loadingFlights = false;
         renderEmpty('Falha ao carregar voos: ' + esc(String((err && err.message) || err || 'erro desconhecido')));
       })
       .getFlightFollowInit();
+  }
+
+  function _ffSyncFlightListLoadingState_() {
+    state.loadingFlights = (Number(state.pendingMissionLoads || 0) + Number(state.pendingArchiveLookups || 0)) > 0;
+  }
+
+  function _ffQueueArchivedFlightChecks_(missions) {
+    var list = Array.isArray(missions) ? missions : [];
+    if (!list.length) return;
+    list.forEach(function(mission) {
+      var flightId = String((mission && (mission.flightLegId || mission.missionId)) || '').trim();
+      if (!flightId) return;
+      if (state.archiveLookupDoneByFlightId[flightId] || state.archiveLookupPendingByFlightId[flightId]) return;
+      state.archiveLookupPendingByFlightId[flightId] = true;
+      state.pendingArchiveLookups = Number(state.pendingArchiveLookups || 0) + 1;
+      _ffSyncFlightListLoadingState_();
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.success) state.archivedFlightIds[flightId] = true;
+          state.archiveLookupDoneByFlightId[flightId] = true;
+          delete state.archiveLookupPendingByFlightId[flightId];
+          state.pendingArchiveLookups = Math.max(0, Number(state.pendingArchiveLookups || 0) - 1);
+          _ffSyncFlightListLoadingState_();
+          renderFlightList();
+        })
+        .withFailureHandler(function() {
+          state.archiveLookupDoneByFlightId[flightId] = true;
+          delete state.archiveLookupPendingByFlightId[flightId];
+          state.pendingArchiveLookups = Math.max(0, Number(state.pendingArchiveLookups || 0) - 1);
+          _ffSyncFlightListLoadingState_();
+          renderFlightList();
+        })
+        .getToolsFlightFollowingArchive({ flightId: flightId });
+    });
+  }
+
+  function _ffIsArchivedFlight_(mission) {
+    var flightId = String(mission && (mission.flightLegId || mission.missionId) || '').trim();
+    if (!flightId) return false;
+    return !!state.archivedFlightIds[flightId];
   }
 
   function renderFlightList() {
@@ -3326,12 +3536,13 @@
       missions.forEach(function(mission) {
         var status = String((mission && (mission.status || mission.logStatus)) || '').trim().toUpperCase();
         if (status === 'FLOWN' || status === 'COMPLETE' || status === 'COMPLETED') return;
+        if (_ffIsArchivedFlight_(mission)) return;
         rows.push({
           key: flightKey(acft.reg, mission.flightLegId || mission.missionId),
           reg: acft.reg,
           missionId: mission.missionId,
           flightLegId: mission.flightLegId || '',
-          route: (mission.from || '--') + ' - ' + (mission.to || '--'),
+          route: _ffRouteDisplayName_(mission.from || '--') + ' - ' + _ffRouteDisplayName_(mission.to || '--'),
           pilot: ffPilotFirstName_(mission.pilot || '--'),
           date: mission.date || '--',
           dateLabel: _ffDateLabelPt_(mission.date || '--'),
@@ -3350,8 +3561,15 @@
       return String(a.missionId || '').localeCompare(String(b.missionId || ''));
     });
 
+    if (state.loadingFlights) {
+      host.innerHTML = '<div class="ff-empty-state" style="padding:26px 10px;">Carregando voos...</div>' +
+        '<div class="ff-list-version-tag">Page version 3</div>';
+      return;
+    }
+
     if (!rows.length) {
-      host.innerHTML = '<div class="ff-empty-state" style="padding:26px 10px;">Nenhum voo encontrado.</div>';
+      host.innerHTML = '<div class="ff-empty-state" style="padding:26px 10px;">Nenhum voo encontrado.</div>' +
+        '<div class="ff-list-version-tag">Page version 3</div>';
       return;
     }
 
@@ -3366,7 +3584,8 @@
           '<td>' + esc(r.pilot) + '</td>' +
         '</tr>';
       }).join('') +
-      '</tbody></table>';
+      '</tbody></table>' +
+      '<div class="ff-list-version-tag">Page version 3</div>';
 
     if (state.pendingOpenKey) {
       var found = rows.some(function(r) { return r.key === state.pendingOpenKey; });

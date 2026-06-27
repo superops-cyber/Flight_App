@@ -202,13 +202,17 @@
         <small id="userDisplay">Connecting...</small>
         <button type="button" onclick="refreshSupervisorDashboard(false)" style="border:none; border-radius:6px; background:#0b5394; color:#fff; padding:4px 8px; font-size:0.72rem; font-weight:800; cursor:pointer;">REFRESH</button>
       </div>
+      <div style="margin-top:6px; font-size:0.68rem; font-weight:800; letter-spacing:0.04em; color:#607d8b; text-transform:uppercase;">Version 5</div>
     </div>
     <div style="padding:20px; text-align:center; opacity:0.5;">Loading...</div>
   </div>
 
   <div class="main">
     <div class="top-bar">
-      <div><h5 id="mTitle" style="margin:0; font-weight:300;">Select a Mission</h5></div>
+      <div>
+        <h5 id="mTitle" style="margin:0; font-weight:300;">Select a Mission</h5>
+        <div style="font-size:0.7rem; color:#607d8b; font-weight:700; margin-top:2px;">Supervisor UI Version 5</div>
+      </div>
       <div style="display:flex; gap:8px; align-items:center;">
         <button id="btnSurveyReview" class="btn blue darken-2" onclick="openRunwaySurveyReview()">RUNWAY SURVEY REVIEWS</button>
         <button id="btnApprove" class="btn green" onclick="approveCurrent()" disabled>APPROVE MISSION</button>
@@ -397,6 +401,7 @@
     let lastLoadedData = null; // Store data to allow re-rendering without server call
     let supInstructors = [];
     let supervisorRunwayCheckCtx = null;
+    let supervisorShowNearbyAirports = false;
     let supervisorRefreshTimer = null;
     let supervisorTabActive = false;
     let supervisorPasswordPromptState = { resolve: null };
@@ -407,7 +412,8 @@
       nearbyAirportsLayer: null,
       signature: '',
       showNearbyAirports: false,
-      hasCentered: false
+      hasCentered: false,
+      hostEl: null
     };
 
     function _supervisorEnsureLeaflet_(onReady, onError) {
@@ -424,17 +430,11 @@
       }
       const existing = document.getElementById('supervisor-leaflet-js');
       if (existing) {
-        let attempts = 0;
         const t = setInterval(function() {
           if (window.L && typeof window.L.map === 'function') {
             clearInterval(t);
             onReady();
             return;
-          }
-          attempts += 1;
-          if (attempts > 120) {
-            clearInterval(t);
-            if (typeof onError === 'function') onError('Leaflet script did not initialize.');
           }
         }, 100);
         return;
@@ -531,6 +531,7 @@
       _supervisorMissionMap.markersLayer = null;
       _supervisorMissionMap.nearbyAirportsLayer = null;
       _supervisorMissionMap.hasCentered = false;
+      _supervisorMissionMap.hostEl = null;
     }
 
     function _supervisorPopulateNearbyAirports_(points, routeAirportSet, app) {
@@ -674,7 +675,12 @@
 
     function _supervisorToggleNearbyMapAirports_() {
       const cb = document.getElementById('supervisorMapNearbyToggle');
-      _supervisorMissionMap.showNearbyAirports = !!(cb && cb.checked);
+      supervisorShowNearbyAirports = !!(cb && cb.checked);
+      _supervisorMissionMap.showNearbyAirports = supervisorShowNearbyAirports;
+      if (lastLoadedData && lastLoadedData.mission) {
+        renderDetails(lastLoadedData);
+        return;
+      }
       const legs = _supervisorBuildMapLegsFromCurrent_();
       if (legs.length) renderSupervisorMissionMap_(legs, false);
     }
@@ -689,6 +695,12 @@
       const note = document.getElementById('supervisorMissionMapNote');
       const empty = document.getElementById('supervisorMissionMapEmpty');
       if (!host) return;
+
+      const hostChanged = _supervisorMissionMap.hostEl !== host;
+      if (hostChanged) {
+        _supervisorMapDestroy_();
+        _supervisorMissionMap.hostEl = host;
+      }
 
       const app = window.appData || {};
       if (!Array.isArray(app.airports) || !app.airports.length) {
@@ -707,9 +719,9 @@
           .map(function(p) { return String(p.key || '').trim().toUpperCase(); })
       );
       const sig = JSON.stringify(points.map(function(p) { return [p.key, p.lat, p.lon, p.isAirport ? 1 : 0]; }))
-        + '|' + (_supervisorMissionMap.showNearbyAirports ? '1' : '0');
+        ;
       const sameSignature = sig === _supervisorMissionMap.signature;
-      if (sameSignature && _supervisorMissionMap.map) {
+      if (sameSignature && _supervisorMissionMap.map && !hostChanged) {
         _supervisorPopulateNearbyAirports_(points, routeAirportSet, app);
         if (forceFit && points.length) {
           const existingBounds = L.latLngBounds(points.map(function(p) { return [p.lat, p.lon]; }));
@@ -952,7 +964,16 @@
       if(!data.missions) return;
 
       data.missions.forEach(m => {
-        const routeSummary = m.legs.map(leg => leg.split('(')[0].trim()).join(' ➝ ');
+        const routeSummary = (Array.isArray(m.legs) ? m.legs : []).map(function(leg) {
+          if (typeof leg === 'string') return leg.split('(')[0].trim();
+          if (leg && typeof leg === 'object') {
+            const from = String(leg.from || '').trim();
+            const to = String(leg.to || '').trim();
+            const via = String(leg.waypointsText || leg.waypoints || leg.routeStr || '').trim();
+            return via || [from, to].filter(Boolean).join(' ➝ ');
+          }
+          return String(leg || '').trim();
+        }).filter(Boolean).join(' ➝ ');
         const div = document.createElement('div');
         div.className = 'mission-item';
         div.setAttribute('data-mission-id', String(m.id || ''));
@@ -1003,9 +1024,37 @@
     }
     // --- DETAILS RENDERER ---
     function renderDetails(data) {
-      const m = data.mission;
-      const t = data.timeline;
-      supPilot = m.meta.pilot;
+      const t = Array.isArray(data && data.timeline) ? data.timeline : [];
+      const _parseLocalDate_ = function(v) {
+        const s = String(v || '').trim();
+        return /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s);
+      };
+      let missionDate = null;
+      let validTimeline = [];
+      const _summarizeDutyByDay_ = function(events) {
+        const acc = {};
+        events.forEach(function(ev) {
+          const key = String(ev.date || '').slice(0, 10);
+          if (!key) return;
+          const duty = Number(ev.dutyHrs || 0);
+          const flight = Number(ev.flightHrs || 0);
+          if (!acc[key]) acc[key] = { date: key, dutyHrs: 0, flightHrs: 0 };
+          if (isFinite(duty)) acc[key].dutyHrs += duty;
+          if (isFinite(flight)) acc[key].flightHrs += flight;
+        });
+        return Object.keys(acc).map(function(k) { return acc[k]; }).filter(function(row) {
+          return row.dutyHrs > 0;
+        });
+      };
+      const tl = document.getElementById('timelineContainer');
+      try {
+      const m = data && data.mission ? data.mission : {};
+      const meta = m.meta || {};
+      supPilot = meta.pilot || m.pilot || '';
+      missionDate = _parseLocalDate_(m && m.meta ? m.meta.date : '');
+      validTimeline = Array.isArray(t) ? t.filter(function(ev) {
+        return ev && ev.date && !isNaN(_parseLocalDate_(ev.date).getTime());
+      }) : [];
 
       const normalizedLegs = (Array.isArray(m.legs) ? m.legs : []).map(function(leg) {
         const safeLeg = leg || {};
@@ -1038,8 +1087,9 @@
         };
       });
       
-      document.getElementById('mTitle').innerText = `${m.id}: ${m.meta.pilot} (${m.meta.acft})`;
-      document.getElementById('btnApprove').disabled = false;
+      document.getElementById('mTitle').innerText = `${m.id || 'Mission'}: ${meta.pilot || m.pilot || ''} (${meta.acft || m.acft || ''})`;
+      const approveBtn = document.getElementById('btnApprove');
+      if (approveBtn) approveBtn.disabled = false;
       
       // 1. CALCULATE TOTALS
       let totalFlight = 0, totalFuel = 0, totalGround = 0;
@@ -1057,7 +1107,7 @@
       if (totalFlight > 8.0) warnings.push("Flight Time > 8h");
       if (totalDuty > 14.0) warnings.push("Duty Time > 14h");
       
-      const authRaw = data.authorizedAirports || "";
+      const authRaw = String(data && data.authorizedAirports || "");
       const authList = authRaw.split(',').map(s => s.trim()); 
       let unauthorizedLegs = false;
       normalizedLegs.forEach(leg => {
@@ -1075,9 +1125,9 @@
         return String(req && req.status || '').trim().toUpperCase() !== 'CLOSED';
       }).length;
       
-      if (unauthorizedLegs && !m.meta.copilot) warnings.push("Dest Check Needed");
+      if (unauthorizedLegs && !meta.copilot) warnings.push("Dest Check Needed");
       if (runwayGapLegs.length) warnings.push("Runway Internal Data Alert");
-      if (m.meta.notes) warnings.push(m.meta.notes);
+      if (meta.notes) warnings.push(meta.notes);
 
       const isOk = warnings.length === 0;
       const statusColor = isOk ? '#4caf50' : '#d32f2f';
@@ -1219,7 +1269,7 @@
             <div class="supervisor-mission-map-title">Mission Map</div>
             <div class="supervisor-mission-map-controls">
               <label class="supervisor-mission-map-toggle" title="Show nearby airports from DB">
-                <input type="checkbox" id="supervisorMapNearbyToggle" onchange="_supervisorToggleNearbyMapAirports_()">
+                <input type="checkbox" id="supervisorMapNearbyToggle" ${supervisorShowNearbyAirports ? 'checked' : ''} onchange="_supervisorToggleNearbyMapAirports_()">
                 Nearby DB airports
               </label>
               <button type="button" class="btn-small blue-grey darken-1" onclick="_supervisorCenterMissionMap_()" style="font-size:0.68rem; height:26px; line-height:26px;">CENTER</button>
@@ -1240,31 +1290,13 @@
       renderSupervisorMissionMap_(normalizedLegs, false);
 
       // 4. DUTY CONTEXT (simplified): logged before flight + planned before/after
-      const tl = document.getElementById('timelineContainer');
-      const _parseLocalDate_ = function(v) {
-        const s = String(v || '').trim();
-        return /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s);
-      };
-      const missionDate = _parseLocalDate_(m && m.meta ? m.meta.date : '');
-      const validTimeline = Array.isArray(t) ? t.filter(function(ev) {
-        return ev && ev.date && !isNaN(_parseLocalDate_(ev.date).getTime());
-      }) : [];
-
-      const _summarizeDutyByDay_ = function(events) {
-        const acc = {};
-        events.forEach(function(ev) {
-          const key = String(ev.date || '').slice(0, 10);
-          if (!key) return;
-          const duty = Number(ev.dutyHrs || 0);
-          const flight = Number(ev.flightHrs || 0);
-          if (!acc[key]) acc[key] = { date: key, dutyHrs: 0, flightHrs: 0 };
-          if (isFinite(duty)) acc[key].dutyHrs += duty;
-          if (isFinite(flight)) acc[key].flightHrs += flight;
-        });
-        return Object.keys(acc).map(function(k) { return acc[k]; }).filter(function(row) {
-          return row.dutyHrs > 0;
-        });
-      };
+      } catch (err) {
+        console.error('[SUPERVISOR][renderDetails] failed', err);
+        const note = document.getElementById('supervisorMissionMapNote');
+        if (note) note.textContent = 'Supervisor render failed: ' + (err && err.message ? err.message : String(err));
+        if (window.M) M.toast({ html: 'Supervisor render failed: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+        return;
+      }
 
       const _sortByDateAsc_ = function(a, b) {
         return _parseLocalDate_(a.date).getTime() - _parseLocalDate_(b.date).getTime();

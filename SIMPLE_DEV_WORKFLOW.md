@@ -16,6 +16,8 @@ npm run dev:push
 Cmd+Shift+R
 ```
 
+The `npm run dev:webapp` helper opens the current `@HEAD` deployment with the supported clasp command.
+
 5. Test. Repeat.
 
 ## Helpful Commands
