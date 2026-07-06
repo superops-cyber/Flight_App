@@ -566,7 +566,7 @@
     <section class="card">
       <div class="field">
         <label for="preferred-duty-email">Conta Google para registrar horas</label>
-        <input id="preferred-duty-email" type="email" autocomplete="email" placeholder="usuario@dominio.com">
+        <input id="preferred-duty-email" type="email" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="usuario@dominio.com">
         <div class="account-note">Salvo neste navegador. Deixe em branco para usar a conta atual logada.</div>
       </div>
       <div class="btn-row" style="margin-top:8px;">
@@ -1573,6 +1573,8 @@
         dutyState.logs = Array.isArray(res.logs) ? res.logs : [];
         dutyState.dutyConfig = res.dutyConfig || {};
 
+        dutyRefreshPreferredEmailUi_();
+
         dutyApplyHeader();
         dutyBindPilotSelector();
         dutyApplyMainFormFromBootstrap();
@@ -1884,6 +1886,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
       dutyState.selectedDateYmd = dutyNowBsb().ymd;
+      dutyRefreshPreferredEmailUi_();
 
       const pilotSelect = document.getElementById('pilot-select');
       if (pilotSelect) {

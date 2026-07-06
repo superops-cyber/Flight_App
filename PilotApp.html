@@ -468,7 +468,7 @@
       1: Object.freeze({ shortLabel: 'Gnd', fullLabel: 'Ground', version: 105 }),
       2: Object.freeze({ shortLabel: 'Brief', fullLabel: 'Briefing', version: 180 }),
       3: Object.freeze({ shortLabel: 'W&B', fullLabel: 'Weight & Balance', version: 103 }),
-      4: Object.freeze({ shortLabel: 'Perf', fullLabel: 'Performance', version: 104 }),
+      4: Object.freeze({ shortLabel: 'Perf', fullLabel: 'Performance', version: 105 }),
       5: Object.freeze({ shortLabel: 'Release', fullLabel: 'Release', version: 105 }),
         6: Object.freeze({ shortLabel: 'Enroute', fullLabel: 'Enroute', version: 131 }),
       7: Object.freeze({ shortLabel: 'Arrv', fullLabel: 'Arrival', version: 108 }),
@@ -2694,10 +2694,31 @@
         return;
       }
 
+      const normalizeMissionAircraftType_ = (mission) => {
+        if (!mission) return mission;
+        const acftReg = String(mission.acft || (mission.meta && mission.meta.acft) || '').trim().toUpperCase();
+        if (!acftReg) return mission;
+        const liveAircraft = (appData && Array.isArray(appData.aircraft)) ? appData.aircraft : [];
+        let cachedAircraft = [];
+        try {
+          const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
+          cachedAircraft = Array.isArray(cachedDropdown.aircraft) ? cachedDropdown.aircraft : [];
+        } catch (e) { cachedAircraft = []; }
+        const aircraftList = liveAircraft.length ? liveAircraft : cachedAircraft;
+        const acftObj = aircraftList.find(a => String(a.reg || '').trim().toUpperCase() === acftReg) || null;
+        const aircraftType = String((acftObj && acftObj.aircraftType) || '').trim();
+        if (!aircraftType) return mission;
+        mission.aircraftType = aircraftType;
+        if (!mission.meta || typeof mission.meta !== 'object') mission.meta = {};
+        mission.meta.aircraftType = aircraftType;
+        return mission;
+      };
+
       if (isServerAvailable()) {
         google.script.run
           .withSuccessHandler(mission => {
             if (mission) {
+              normalizeMissionAircraftType_(mission);
               cacheSet(missionCacheKey(id), mission);
               window.currentBriefingMission = mission;
               prefetchWbForMission(mission, false);
@@ -2711,6 +2732,7 @@
             const cachedMission = cacheGet(missionCacheKey(id));
             if (cachedMission) {
               M.toast({ html: 'Server unavailable. Loaded cached mission.', classes: 'orange' });
+              normalizeMissionAircraftType_(cachedMission);
               window.currentBriefingMission = cachedMission;
               _activeLessonContext = _buildLessonContextFromMission_(cachedMission);
               renderLessonLinkBar_();
@@ -2725,6 +2747,7 @@
 
       const cachedMission = cacheGet(missionCacheKey(id));
       if (cachedMission) {
+        normalizeMissionAircraftType_(cachedMission);
         window.currentBriefingMission = cachedMission;
         _activeLessonContext = _buildLessonContextFromMission_(cachedMission);
         renderLessonLinkBar_();
@@ -3414,7 +3437,7 @@
         const keys = Object.keys(map);
         if (!keys.length) return 9999;
         const acftRef = String(
-          (aircraft && (aircraft.typeForPerformance || aircraft.aircraftType || aircraft.reg)) || ''
+          (aircraft && (aircraft.aircraftType || aircraft.reg)) || ''
         ).toUpperCase().replace(/[^A-Z0-9]+/g, '_');
         if (acftRef) {
           const sorted = keys.slice().sort(function(a, b) { return String(b || '').length - String(a || '').length; });
@@ -4549,17 +4572,17 @@
       });
 
       const descHtml = description
-        ? `<div style="margin-bottom:8px; padding:8px 10px; border-left:3px solid #8d6e63; background:#fff8f2; border-radius:4px;"><div style="font-size:0.68rem; text-transform:uppercase; color:#6d4c41; font-weight:800;">Dispatch Description</div><div style="font-size:0.84rem; color:#4e342e; font-weight:700; margin-top:2px;">${escHtml_(description)}</div></div>`
+        ? `<div style="margin-bottom:8px; padding:8px 10px; border-left:3px solid #8d6e63; background:#fff8f2; border-radius:4px;"><div style="font-size:0.68rem; text-transform:uppercase; color:#6d4c41; font-weight:800;">Dispatch Description</div><div style="font-size:0.84rem; color:#4e342e; font-weight:700; margin-top:2px;">${_escHtml_(description)}</div></div>`
         : '';
 
       const reqHtml = openRequests.length
         ? openRequests.map(function(req) {
             const created = String(req && req.createdAt || '').trim();
-            const stamp = created ? ('<div style="font-size:0.68rem; color:#607d8b; margin-top:3px;">' + escHtml_(created) + '</div>') : '';
+            const stamp = created ? ('<div style="font-size:0.68rem; color:#607d8b; margin-top:3px;">' + _escHtml_(created) + '</div>') : '';
             const msg = String(req && req.message || '').trim() || 'Supervisor left a mission communication note.';
             return '<div style="margin-top:6px; padding:8px 10px; border-radius:6px; background:#e8f5e9; border:1px solid #b7dfbe; color:#1b5e20;">'
               + '<div style="font-size:0.68rem; text-transform:uppercase; font-weight:800; letter-spacing:0.03em;">Supervisor Request</div>'
-              + '<div style="font-size:0.82rem; margin-top:3px; font-weight:700;">' + escHtml_(msg) + '</div>'
+              + '<div style="font-size:0.82rem; margin-top:3px; font-weight:700;">' + _escHtml_(msg) + '</div>'
               + stamp
               + '</div>';
           }).join('')
@@ -5472,6 +5495,7 @@
         const grossWeight = wbWeight > 0 ? wbWeight : fallbackWeight;
 
         const acftReg = String(mission.acft || '').trim();
+        const missionAircraftType = String(mission.aircraftType || (mission.meta && mission.meta.aircraftType) || '').trim();
         const liveAircraft = (appData && Array.isArray(appData.aircraft)) ? appData.aircraft : [];
         let cachedAircraft = [];
         try {
@@ -5480,9 +5504,8 @@
         } catch (e) { cachedAircraft = []; }
         const aircraftList = liveAircraft.length ? liveAircraft : cachedAircraft;
         const acftObj = aircraftList.find(a => String(a.reg || '').trim().toUpperCase() === acftReg.toUpperCase()) || null;
-        // Use TYPE_FOR_PERFORMANCE if present, otherwise fall back to AIRCRAFT_TYPE
-        const typeForPerf = acftObj ? String(acftObj.typeForPerformance || '').trim() : '';
-        const aircraftType = typeForPerf || (acftObj ? String(acftObj.aircraftType || '') : '');
+        // Prefer mission-supplied aircraft type, then live/cached aircraft metadata.
+        const aircraftType = missionAircraftType || (acftObj ? String(acftObj.aircraftType || '') : '');
 
         if (typeof window.setupPerformanceTab === 'function') {
           window.setupPerformanceTab({

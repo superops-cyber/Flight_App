@@ -338,6 +338,7 @@ const wpData = getSheetData(APP_SHEETS.WAYPOINTS);
 const routeData = getSheetData(APP_SHEETS.ROUTES);
 const pilots = getSheetData(APP_SHEETS.PILOTS);
 const checks = getSheetData(APP_SHEETS.CHECKS);
+const mxMaintenance = getDispatchMaintenanceStatus({});
 
 // Diagnostics: log presence and header info for key sheets to help trace missing data
 try {
@@ -571,10 +572,20 @@ routes: routeData.vals.map((r, idx) => ({
        vrCols[normKey] = r[idx];
      }
    });
+   var reg = String(r[acft.headers.indexOf("REGISTRATION")] || '').trim().toUpperCase();
+   var currentHoursToInsp = parseFloat(r[acft.headers.indexOf("HOURS_TO_INSPECTION")]) || 0;
+   var maintenance = mxMaintenance && mxMaintenance.success && mxMaintenance.byAircraft ? mxMaintenance.byAircraft[reg] : null;
+   var nextInspectionDate = maintenance && maintenance.nextInspectionDate ? String(maintenance.nextInspectionDate || '').trim() : '';
+   var forecastHoursToInsp = _mxCurrentOrForecastHoursToInsp_({ reg: reg, hoursToInsp: currentHoursToInsp }, 3, nextInspectionDate);
+  var aircraftTypeRaw = String(r[acft.headers.indexOf("AIRCRAFT_TYPE")] || '').trim();
+  var typeForPerformanceRaw = String(r[acft.headers.indexOf("TYPE_FOR_PERFORMANCE")] || '').trim();
+  var aircraftTypeCanon = String(aircraftTypeRaw || typeForPerformanceRaw || '').trim();
    return Object.assign({
-     reg: r[acft.headers.indexOf("REGISTRATION")],
-     aircraftType: r[acft.headers.indexOf("AIRCRAFT_TYPE")] || "",
-     typeForPerformance: r[acft.headers.indexOf("TYPE_FOR_PERFORMANCE")] || "",
+     reg: reg,
+     aircraftType: aircraftTypeCanon,
+     aircraftTypeRaw: aircraftTypeRaw,
+    typeForPerformance: aircraftTypeCanon,
+    typeForPerformanceRaw: typeForPerformanceRaw,
      speed: parseFloat(r[acft.headers.indexOf("CRUISE_KTS")]) || 130,
      burn: parseFloat(r[acft.headers.indexOf("BURN_LPH")]) || 60,
      rate: parseFloat(r[acft.headers.indexOf("HOURLY_RATE")]) || 0,
@@ -599,7 +610,11 @@ routes: routeData.vals.map((r, idx) => ({
      })(),
      currentTach: parseFloat(r[acft.headers.indexOf("CURRENT_TACH")]) || 0,
      nextDue: parseFloat(r[acft.headers.indexOf("NEXT_DUE_TACH")]) || 0,
-     hoursToInsp: parseFloat(r[acft.headers.indexOf("HOURS_TO_INSPECTION")]) || 0,
+     hoursToInsp: currentHoursToInsp,
+     hoursToInspForecast: isFinite(Number(forecastHoursToInsp && forecastHoursToInsp.plannedHoursToInsp)) ? Number(forecastHoursToInsp.plannedHoursToInsp) : '',
+     plannedFlightHours3Months: isFinite(Number(forecastHoursToInsp && forecastHoursToInsp.plannedFlightHours)) ? Number(forecastHoursToInsp.plannedFlightHours) : 0,
+    nextMaintenanceInspectionDate: nextInspectionDate,
+     forecastSource: 'scheduled_flights_3_months',
      cvaExpiryDate: (function() {
        var idx = acft.headers.indexOf('ANNUAL_DUE_(CVA)');
        return idx >= 0 ? safeDateStr(r[idx]) : '';
@@ -1229,6 +1244,14 @@ Object.values(missions).forEach(m => {
    if (status === "FLOWN") color = "#1565c0"; // Blue
  if (status === "CANCELLED") color = "#b0bec5"; // Grey
 
+ const missionReg = String(m.acft || '').trim().toUpperCase();
+ const missionMaint = maintenanceByAircraft_[missionReg] && typeof maintenanceByAircraft_[missionReg] === 'object' ? maintenanceByAircraft_[missionReg] : null;
+ const missionNextInspection = missionMaint && missionMaint.nextInspection && typeof missionMaint.nextInspection === 'object'
+   ? missionMaint.nextInspection
+   : null;
+ const missionCurrentHoursToInsp = missionNextInspection ? Number(missionNextInspection.hoursRemaining) : null;
+ const missionProjectedHoursToInsp = isFinite(missionCurrentHoursToInsp) ? Number((missionCurrentHoursToInsp - totalFlt).toFixed(1)) : '';
+
 
 
 
@@ -1287,6 +1310,12 @@ Object.values(missions).forEach(m => {
      mxReview: (m.mxReview && typeof m.mxReview === 'object') ? m.mxReview : {},
      takeoff: "08:00",
      fltTime: totalFlt.toFixed(1),
+     flightHoursDisplay: totalFlt.toFixed(1),
+     flightHoursLabel: isFlown ? 'FLOWN' : 'EST',
+     isPastDate: dateObj.getTime() < (new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())).getTime(),
+     maintenanceCurrentHoursToInsp: isFinite(missionCurrentHoursToInsp) ? Number(missionCurrentHoursToInsp.toFixed(1)) : '',
+     maintenanceProjectedHoursToInsp: missionProjectedHoursToInsp,
+     maintenanceNextInspectionDate: missionNextInspection && missionNextInspection.nextDueDate ? String(missionNextInspection.nextDueDate || '') : '',
      dutyTime: (totalFlt + 1.5).toFixed(1)
    }
  });
@@ -1340,10 +1369,20 @@ try {
         color: ev.status === 'OVERDUE' ? '#d32f2f' : (ev.status === 'DUE_SOON' ? '#ef6c00' : '#1b5e20'),
         extendedProps: {
           type: 'maintenance',
+          assignmentId: String(ev.id || ev.assignmentId || '').trim(),
           status: ev.status || 'OK',
           aircraftReg: String(ev.aircraftReg || ''),
           taskName: String(ev.taskName || ''),
           taskCode: String(ev.taskCode || ''),
+          dueDate: String(ev.dueDate || ev.nextDueDate || ev.start || ''),
+          dueMode: String(ev.dueMode || ''),
+          intervalHours: ev.intervalHours,
+          intervalDays: ev.intervalDays,
+          intervalMonths: ev.intervalMonths,
+          intervalYears: ev.intervalYears,
+          lastPerformedDate: String(ev.lastPerformedDate || ''),
+          lastPerformedTach: ev.lastPerformedTach,
+          notes: String(ev.notes || ''),
           source: 'maintenance'
         }
       });
@@ -1741,6 +1780,19 @@ function saveMission(data) {
  const missionId = missionIdFromFlightLeg_(firstFlightId);
  if (!missionId) throw new Error("Invalid flight leg id format: " + firstFlightId);
 
+ const aircraftType = _supervisorAircraftTypeFromRegistration_(header.acft);
+ if (!aircraftType) {
+   throw new Error("Could not resolve aircraft type for registration: " + header.acft);
+ }
+
+ const pilotAuthorized = isPilotAuthorizedForAircraftRole_(null, header.pilot, aircraftType, 'Operational', header.date)
+   || isPilotAuthorizedForAircraftRole_(null, header.pilot, aircraftType, 'Instructor', header.date);
+ if (!pilotAuthorized) {
+   throw new Error(
+     "Pilot " + header.pilot + " is not authorized for aircraft type " + aircraftType + "."
+   );
+ }
+
   header.cvaPolicy = _enforceMissionCvaSchedulingPolicy_(ss, header, missionId, data);
 
 
@@ -1908,6 +1960,15 @@ function saveMission(data) {
  });
 
  invalidateScheduledMissionsCache_();
+
+ try {
+   var flightCalendarSync = _mxSyncFlightMissionCalendar_(missionId, header);
+   if (flightCalendarSync && flightCalendarSync.success === false) {
+     appLog_('Flight calendar sync failed for', missionId, flightCalendarSync.error || 'unknown error');
+   }
+ } catch (e) {
+   appLog_('Flight calendar sync exception for', missionId, e && e.message ? e.message : String(e));
+ }
 
 
  return "Success: " + missionId;
@@ -3702,6 +3763,17 @@ function _collectPilotDestinationChecksMap_(headers, rows) {
   return map;
 }
 
+function _pilotAuthMatchesPerson_(rec, targetEmail, targetName) {
+  var recEmail = String(rec && rec.pilotEmail || '').trim().toLowerCase();
+  var recName = String(rec && rec.pilotName || '').trim().toUpperCase();
+  var email = String(targetEmail || '').trim().toLowerCase();
+  var name = String(targetName || '').trim().toUpperCase();
+  if (!email && !name) return true;
+  if (email && recEmail && recEmail === email) return true;
+  if (name && recName && recName === name) return true;
+  return false;
+}
+
 function waiveDestinationCheck(pilot, icao, missionId, approvalPassword) {
 _verifySupervisorApprovalPassword_(approvalPassword);
 const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -3823,12 +3895,15 @@ function _supervisorAircraftTypeFromRegistration_(registration) {
     var values = sh.getDataRange().getValues();
     var headers = values[0] || [];
     var regIdx = _toolsHeaderIndexFromCandidates_(headers, ['REGISTRATION', 'REG', 'TAIL', 'TAIL_NUMBER']);
-    var typeIdx = _toolsHeaderIndexFromCandidates_(headers, ['AIRCRAFT_TYPE', 'TYPE_FOR_PERFORMANCE', 'TYPE']);
-    if (regIdx < 0 || typeIdx < 0) return '';
+    var perfTypeIdx = _toolsHeaderIndexFromCandidates_(headers, ['TYPE_FOR_PERFORMANCE']);
+    var typeIdx = _toolsHeaderIndexFromCandidates_(headers, ['AIRCRAFT_TYPE', 'TYPE']);
+    if (regIdx < 0) return '';
     for (var i = 1; i < values.length; i++) {
       var rowReg = String(values[i][regIdx] || '').trim().toUpperCase();
       if (rowReg !== reg) continue;
-      return String(values[i][typeIdx] || '').trim();
+      var aircraftType = typeIdx >= 0 ? String(values[i][typeIdx] || '').trim() : '';
+      var perfType = perfTypeIdx >= 0 ? String(values[i][perfTypeIdx] || '').trim() : '';
+      return String(aircraftType || perfType || '').trim();
     }
   } catch (e) {}
   return '';
@@ -5908,6 +5983,7 @@ function syncAllMissionStatuses() {
 
 function cancelMissionFromDatabase(missionId) {
  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  var calendarSync = null;
 
 
  // 1. REVERSE ALL FUEL FOR THIS MISSION
@@ -5924,6 +6000,15 @@ function cancelMissionFromDatabase(missionId) {
  );
  rewriteSheetData_(dbSheet, keptDispatchRows);
  invalidateScheduledMissionsCache_();
+
+  try {
+    calendarSync = _mxSyncFlightMissionCalendar_(missionId, { action: 'DELETE', deleteOnly: true });
+    if (calendarSync && calendarSync.success === false) {
+      appLog_('Flight calendar delete sync failed for', missionId, calendarSync.error || 'unknown error');
+    }
+  } catch (e) {
+    appLog_('Flight calendar delete sync exception for', missionId, e && e.message ? e.message : String(e));
+  }
 
 
  // 3. DELETE FROM DB_TRANSACTIONS
@@ -7237,6 +7322,10 @@ function _toolsFirstHeaderMatch_(headers, candidates) {
 function _toolsNormalizeKeyValue_(value) {
   return String(value || '').trim().toUpperCase();
 }
+function _toolsCanonicalAircraftType_(value) {
+  var text = String(value || '').trim();
+  return text ? text.replace(/\s+/g, ' ').trim() : '';
+}
 
 function _toolsNormalizeRouteWaypointList_(value) {
   var normalized = String(value || '')
@@ -7286,9 +7375,11 @@ function getToolsAircraftBuilderTemplate(sourceRegistration) {
       var row = aircraftData[i];
       var reg = regIdx >= 0 ? String(row[regIdx] || '').trim() : '';
       if (!reg) continue;
+      var aircraftTypeRaw = typeIdx >= 0 ? String(row[typeIdx] || '').trim() : '';
       aircraftOptions.push({
         registration: reg,
-        aircraftType: typeIdx >= 0 ? String(row[typeIdx] || '').trim() : ''
+        aircraftType: _toolsCanonicalAircraftType_(aircraftTypeRaw),
+        aircraftTypeRaw: aircraftTypeRaw
       });
     }
 
@@ -7311,8 +7402,12 @@ function getToolsAircraftBuilderTemplate(sourceRegistration) {
 
       if (sourceAircraftRow) {
         template.aircraftRow = _toolsRowPayloadFromHeaders_(aircraftHeaders, sourceAircraftRow);
-        var sourceType = '';
-        if (typeIdx >= 0) sourceType = String(sourceAircraftRow[typeIdx] || '').trim();
+        var sourceTypeRaw = '';
+        if (typeIdx >= 0) sourceTypeRaw = String(sourceAircraftRow[typeIdx] || '').trim();
+        var sourceType = _toolsCanonicalAircraftType_(sourceTypeRaw);
+        if (sourceType && typeIdx >= 0) {
+          template.aircraftRow[_toolsNormHeader_(aircraftHeaders[typeIdx])] = sourceType;
+        }
 
         var afTypeIdx = _toolsFirstHeaderMatch_(airframeHeaders, ['AIRCRAFT_TYPE']);
         var envTypeIdx = _toolsFirstHeaderMatch_(envelopeHeaders, ['AIRCRAFT_TYPE']);
@@ -7343,6 +7438,8 @@ function getToolsAircraftBuilderTemplate(sourceRegistration) {
 
     return {
       success: true,
+      sourceRegistration: sourceReg,
+      sourceAircraftType: sourceType,
       aircraftOptions: aircraftOptions,
       sections: {
         aircraft: aircraftHeadersForTool.map(function(h) { return { label: String(h || '').trim(), key: _toolsNormHeader_(h) }; }),
@@ -7364,6 +7461,8 @@ function saveToolsAircraftBundle(payload) {
     var airframeRows = Array.isArray(data.airframeRows) ? data.airframeRows : [];
     var envelopeRows = Array.isArray(data.envelopeRows) ? data.envelopeRows : [];
     var rollRows = Array.isArray(data.rollRows) ? data.rollRows : [];
+    var originalRegistration = String(data.originalRegistration || '').trim();
+    var originalAircraftType = String(data.originalAircraftType || '').trim();
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var aircraftSheet = getRequiredSheet_(ss, APP_SHEETS.AIRCRAFT, 'saveToolsAircraftBundle');
@@ -7410,18 +7509,28 @@ function saveToolsAircraftBundle(payload) {
     var regKeyIdx = _toolsFirstHeaderMatch_(aircraftHeaders, ['REGISTRATION', 'REG', 'TAIL', 'TAIL_NUMBER']);
     var typeKeyIdx = _toolsFirstHeaderMatch_(aircraftHeaders, ['AIRCRAFT_TYPE', 'TYPE_FOR_PERFORMANCE']);
     var registration = regKeyIdx >= 0 ? String(valueFor(aircraftHeaders[regKeyIdx], aircraftPayload) || '').trim() : '';
-    var aircraftType = typeKeyIdx >= 0 ? String(valueFor(aircraftHeaders[typeKeyIdx], aircraftPayload) || '').trim() : '';
+    var aircraftType = typeKeyIdx >= 0 ? _toolsCanonicalAircraftType_(valueFor(aircraftHeaders[typeKeyIdx], aircraftPayload) || '').trim() : '';
     if (!registration) return { success: false, error: 'Registration is required in DB_Aircraft section.' };
     if (!aircraftType) return { success: false, error: 'Aircraft Type is required in DB_Aircraft section.' };
 
     var existing = aircraftSheet.getDataRange().getValues();
+    var editingExisting = !!originalRegistration;
     if (regKeyIdx >= 0 && existing.length > 1) {
       var regNorm = _toolsNormalizeKeyValue_(registration);
+      var originalNorm = _toolsNormalizeKeyValue_(originalRegistration || registration);
+      var originalRowNumber = -1;
       for (var i = 1; i < existing.length; i++) {
         var existingReg = _toolsNormalizeKeyValue_(existing[i][regKeyIdx]);
+        if (editingExisting && existingReg && existingReg === originalNorm) {
+          originalRowNumber = i + 1;
+          continue;
+        }
         if (existingReg && existingReg === regNorm) {
           return { success: false, error: 'Registration already exists in DB_Aircraft: ' + registration };
         }
+      }
+      if (editingExisting && originalRowNumber < 0) {
+        return { success: false, error: 'Original aircraft not found in DB_Aircraft: ' + originalRegistration };
       }
     }
 
@@ -7429,7 +7538,7 @@ function saveToolsAircraftBundle(payload) {
       return headerRow.map(function(header) {
         var key = _toolsNormHeader_(header);
         var val = valueFor(header, rowObj);
-        if (key === 'AIRCRAFT_TYPE' && aircraftType) return val || aircraftType;
+        if ((key === 'AIRCRAFT_TYPE' || key === 'TYPE_FOR_PERFORMANCE') && aircraftType) return val || aircraftType;
         return val;
       });
     }
@@ -7455,8 +7564,20 @@ function saveToolsAircraftBundle(payload) {
     if (!envelopeData.length) return { success: false, error: 'Add at least one REF_Envelopes row.' };
     if (!rollData.length) return { success: false, error: 'Add at least one Aircraft_Roll_Numbers row.' };
 
-    aircraftSheet.appendRow(aircraftRow);
-    var aircraftRowNumber = aircraftSheet.getLastRow();
+    var aircraftRowNumber = -1;
+    if (editingExisting && regKeyIdx >= 0) {
+      for (var j = 1; j < existing.length; j++) {
+        if (_toolsNormalizeKeyValue_(existing[j][regKeyIdx]) === _toolsNormalizeKeyValue_(originalRegistration || registration)) {
+          aircraftRowNumber = j + 1;
+          aircraftSheet.getRange(aircraftRowNumber, 1, 1, aircraftRow.length).setValues([aircraftRow]);
+          break;
+        }
+      }
+    }
+    if (aircraftRowNumber < 0) {
+      aircraftSheet.appendRow(aircraftRow);
+      aircraftRowNumber = aircraftSheet.getLastRow();
+    }
 
     var aircraftFolderUrl = '';
     var aircraftFolderWarning = '';
@@ -7471,6 +7592,29 @@ function saveToolsAircraftBundle(payload) {
       aircraftFolderWarning = String(folderErr && folderErr.message ? folderErr.message : folderErr);
     }
 
+    function deleteMatchingRows_(sheet, headerRow, candidates, matchValue) {
+      var target = _toolsNormalizeKeyValue_(matchValue || '');
+      if (!target) return 0;
+      var matchIdx = _toolsFirstHeaderMatch_(headerRow, candidates);
+      if (matchIdx < 0) return 0;
+      var sheetData = sheet.getDataRange().getValues();
+      var rowsToDelete = [];
+      for (var rowIdx = sheetData.length - 1; rowIdx >= 1; rowIdx--) {
+        if (_toolsNormalizeKeyValue_(sheetData[rowIdx][matchIdx]) === target) rowsToDelete.push(rowIdx + 1);
+      }
+      rowsToDelete.forEach(function(rowNumber) { sheet.deleteRow(rowNumber); });
+      return rowsToDelete.length;
+    }
+
+    if (editingExisting) {
+      deleteMatchingRows_(airframesSheet, airframeHeaders, ['REGISTRATION', 'REG', 'TAIL', 'TAIL_NUMBER'], originalRegistration);
+      deleteMatchingRows_(airframesSheet, airframeHeaders, ['AIRCRAFT_TYPE', 'TYPE_FOR_PERFORMANCE'], originalAircraftType);
+      deleteMatchingRows_(envelopesSheet, envelopeHeaders, ['REGISTRATION', 'REG', 'TAIL', 'TAIL_NUMBER'], originalRegistration);
+      deleteMatchingRows_(envelopesSheet, envelopeHeaders, ['AIRCRAFT_TYPE', 'TYPE_FOR_PERFORMANCE'], originalAircraftType);
+      deleteMatchingRows_(rollSheet, rollHeaders, ['REGISTRATION', 'REG', 'TAIL', 'TAIL_NUMBER'], originalRegistration);
+      deleteMatchingRows_(rollSheet, rollHeaders, ['AIRCRAFT_TYPE', 'TYPE_FOR_PERFORMANCE'], originalAircraftType);
+    }
+
     airframesSheet.getRange(airframesSheet.getLastRow() + 1, 1, airframeData.length, airframeData[0].length).setValues(airframeData);
     envelopesSheet.getRange(envelopesSheet.getLastRow() + 1, 1, envelopeData.length, envelopeData[0].length).setValues(envelopeData);
     rollSheet.getRange(rollSheet.getLastRow() + 1, 1, rollData.length, rollData[0].length).setValues(rollData);
@@ -7478,6 +7622,7 @@ function saveToolsAircraftBundle(payload) {
     var out = {
       success: true,
       aircraftRowNumber: aircraftRowNumber,
+      edited: editingExisting,
       folderUrl: aircraftFolderUrl,
       counts: {
         aircraft: 1,
@@ -8153,6 +8298,8 @@ const resolveCrewName_ = function(raw) {
 };
 const resolvedPilot = resolveCrewName_(mainRow[DISPATCH_COL.PILOT]);
 const resolvedCopilot = resolveCrewName_(mainRow[DISPATCH_COL.COPILOT] || '');
+const aircraftReg = String(mainRow[DISPATCH_COL.AIRCRAFT] || '').trim().toUpperCase();
+const resolvedAircraftType = aircraftReg ? String(_supervisorAircraftTypeFromRegistration_(aircraftReg) || '').trim() : '';
 
 const missionFlightDescription = _extractMissionDescriptionFromRaw_(mainRow[DISPATCH_COL.RAW_DATA]);
 const missionCommunicationRequests = _extractMissionCommunicationsFromRaw_(mainRow[DISPATCH_COL.RAW_DATA]);
@@ -8169,12 +8316,14 @@ const missionDateObj = (rawDate instanceof Date) ? rawDate : new Date();
 const missionData = {
   id: mainRow[DISPATCH_COL.MISSION_ID],
   date: dateStr,
-  acft: String(mainRow[DISPATCH_COL.AIRCRAFT]),
+  acft: aircraftReg,
+  aircraftType: resolvedAircraftType,
   pilot: resolvedPilot,
   status: mainRow[DISPATCH_COL.STATUS] ? mainRow[DISPATCH_COL.STATUS].toString().toUpperCase() : "PENDING",
   meta: {
     date: dateStr,
-    acft: String(mainRow[DISPATCH_COL.AIRCRAFT]),
+    acft: aircraftReg,
+    aircraftType: resolvedAircraftType,
     pilot: resolvedPilot,
     copilot: resolvedCopilot,
     type: String(mainRow[DISPATCH_COL.TYPE] || ""),
@@ -10749,6 +10898,7 @@ function getFlightFollowInit() {
   if (data.length < 2) return { aircraft: [], airports: [], waypoints: [], fuelCaches: [], currentUserEmail: currentUserEmail };
   var headers = data[0].map(function(h) { return String(h || '').trim().toUpperCase(); });
   var regIdx  = headers.indexOf('REGISTRATION');
+  var perfTypeIdx = headers.indexOf('TYPE_FOR_PERFORMANCE');
   var typeIdx = headers.indexOf('AIRCRAFT_TYPE');
   var burnIdx = headers.indexOf('BURN_LPH');
   if (regIdx < 0) return { aircraft: [], currentUserEmail: currentUserEmail };
@@ -10757,10 +10907,17 @@ function getFlightFollowInit() {
     var reg = String(data[i][regIdx] || '').trim();
     if (!reg) continue;
     var burnVal = burnIdx >= 0 ? Number(data[i][burnIdx]) : NaN;
+    var aircraftTypeRaw = typeIdx >= 0 ? String(data[i][typeIdx] || '').trim() : '';
+    var typeForPerformanceRaw = perfTypeIdx >= 0 ? String(data[i][perfTypeIdx] || '').trim() : '';
+    var aircraftTypeCanon = String(aircraftTypeRaw || '').trim();
     aircraft.push({
-      reg:  reg,
-      type: typeIdx >= 0 ? String(data[i][typeIdx] || '').trim() : '',
-      burnLph: isFinite(burnVal) ? burnVal : 0
+      reg: reg,
+      aircraftType: aircraftTypeCanon,
+      aircraftTypeRaw: aircraftTypeRaw,
+      typeForPerformance: aircraftTypeCanon,
+      typeForPerformanceRaw: typeForPerformanceRaw || aircraftTypeRaw,
+      speed: 130,
+      burn: isFinite(burnVal) ? burnVal : 0
     });
   }
 
@@ -12097,7 +12254,7 @@ function initializeWB(flightId) {
   }
   if (!aircraftRow) throw new Error('initializeWB: aircraft not found in DB_Aircraft: ' + aircraftReg);
   const aircraftObj = rowToObj(aircraftTable.headers, aircraftRow);
-  const aircraftType = String(aircraftObj.AIRCRAFT_TYPE || aircraftObj.TYPE_FOR_PERFORMANCE || aircraftReg);
+  const aircraftType = String(aircraftObj.AIRCRAFT_TYPE || aircraftObj.TYPE_FOR_PERFORMANCE || aircraftReg).trim();
 
   const stationRows = airframesTable.rows
     .map(r => rowToObj(airframesTable.headers, r))
@@ -14498,11 +14655,11 @@ function _mxEnsureFrameworkSheets_() {
 
   ensure(APP_SHEETS.MAINT_TEMPLATES, [
     'TASK_CODE', 'TASK_NAME', 'AIRCRAFT_TYPE', 'CATEGORY', 'REFERENCE',
-    'INTERVAL_HOURS', 'INTERVAL_DAYS', 'ACTIVE', 'SOURCE', 'CAMO_KEY', 'NOTES', 'CREATED_AT', 'UPDATED_AT'
+    'DUE_MODE', 'INTERVAL_HOURS', 'INTERVAL_DAYS', 'INTERVAL_MONTHS', 'INTERVAL_YEARS', 'ACTIVE', 'SOURCE', 'CAMO_KEY', 'NOTES', 'CREATED_AT', 'UPDATED_AT'
   ]);
   ensure(APP_SHEETS.MAINT_ASSIGNMENTS, [
     'ASSIGNMENT_ID', 'AIRCRAFT_REG', 'TASK_CODE', 'TASK_NAME', 'CATEGORY', 'REFERENCE',
-    'INTERVAL_HOURS', 'INTERVAL_DAYS', 'START_TACH', 'START_DATE', 'DUE_DATE', 'ACTIVE', 'SOURCE', 'CAMO_KEY', 'NOTES', 'CREATED_AT', 'UPDATED_AT'
+    'DUE_MODE', 'INTERVAL_HOURS', 'INTERVAL_DAYS', 'INTERVAL_MONTHS', 'INTERVAL_YEARS', 'START_TACH', 'START_DATE', 'LAST_PERFORMED_TACH', 'LAST_PERFORMED_DATE', 'DUE_DATE', 'ACTIVE', 'SOURCE', 'CAMO_KEY', 'NOTES', 'CREATED_AT', 'UPDATED_AT'
   ]);
   ensure(APP_SHEETS.MAINT_LOG, [
     'LOG_ID', 'ASSIGNMENT_ID', 'AIRCRAFT_REG', 'COMPLETED_DATE', 'COMPLETED_TACH',
@@ -14511,7 +14668,7 @@ function _mxEnsureFrameworkSheets_() {
 
   ensureMissingHeaders_(ss.getSheetByName(APP_SHEETS.MAINT_ASSIGNMENTS), [
     'ASSIGNMENT_ID', 'AIRCRAFT_REG', 'TASK_CODE', 'TASK_NAME', 'CATEGORY', 'REFERENCE',
-    'INTERVAL_HOURS', 'INTERVAL_DAYS', 'START_TACH', 'START_DATE', 'DUE_DATE', 'ACTIVE', 'SOURCE', 'CAMO_KEY', 'NOTES', 'CREATED_AT', 'UPDATED_AT'
+    'DUE_MODE', 'INTERVAL_HOURS', 'INTERVAL_DAYS', 'INTERVAL_MONTHS', 'INTERVAL_YEARS', 'START_TACH', 'START_DATE', 'LAST_PERFORMED_TACH', 'LAST_PERFORMED_DATE', 'DUE_DATE', 'ACTIVE', 'SOURCE', 'CAMO_KEY', 'NOTES', 'CREATED_AT', 'UPDATED_AT'
   ]);
 }
 
@@ -14536,6 +14693,56 @@ function _mxIsoDate_(value) {
   return dt.getFullYear() + '-' + ('0' + (dt.getMonth() + 1)).slice(-2) + '-' + ('0' + dt.getDate()).slice(-2);
 }
 
+function _mxParseWholeNum_(value) {
+  var n = parseFloat(value);
+  return isFinite(n) ? n : '';
+}
+
+function _mxCalendarDueDate_(baseDate, intervalDays, intervalMonths, intervalYears) {
+  var dt = baseDate instanceof Date ? new Date(baseDate.getTime()) : new Date(baseDate);
+  if (!(dt instanceof Date) || isNaN(dt.getTime())) return '';
+  var years = _mxParseWholeNum_(intervalYears);
+  var months = _mxParseWholeNum_(intervalMonths);
+  var days = _mxParseWholeNum_(intervalDays);
+  if (years !== '') dt.setFullYear(dt.getFullYear() + Math.round(years));
+  if (months !== '') dt.setMonth(dt.getMonth() + Math.round(months));
+  if (days !== '') dt.setDate(dt.getDate() + Math.round(days));
+  return _mxIsoDate_(dt);
+}
+
+function _mxNormalizeDueMode_(value, hasHours, hasCalendar) {
+  var raw = String(value || '').trim().toUpperCase();
+  if (!raw) {
+    if (hasHours && hasCalendar) return 'AMBOS';
+    if (hasHours) return 'HORAS';
+    if (hasCalendar) return 'DATA';
+    return '';
+  }
+  if (raw === 'HORA' || raw === 'HORAS' || raw === 'HOURS' || raw === 'HOUR' || raw === 'TACH') return 'HORAS';
+  if (raw === 'TEMPO' || raw === 'DATA' || raw === 'TIME' || raw === 'DATE') return 'DATA';
+  if (raw === 'AMBOS' || raw === 'AMBAS' || raw === 'BOTH' || raw === 'WHICHEVER' || raw === 'WHICHEVER_FIRST') return 'AMBOS';
+  if (hasHours && hasCalendar) return 'AMBOS';
+  if (hasHours) return 'HORAS';
+  if (hasCalendar) return 'DATA';
+  return raw;
+}
+
+function _mxDueModeLabel_(mode) {
+  var key = String(mode || '').trim().toUpperCase();
+  if (key === 'HORAS') return 'Horas';
+  if (key === 'DATA') return 'Tempo';
+  if (key === 'AMBOS') return 'Horas ou tempo, o que vier primeiro';
+  return key || '-';
+}
+
+function _mxSingleDueState_(remaining, threshold) {
+  if (remaining === '' || remaining == null || !isFinite(Number(remaining))) return 'UNKNOWN';
+  var value = Number(remaining);
+  if (value <= 0) return 'OVERDUE';
+  if (threshold !== '' && value <= threshold) return 'DUE_SOON';
+  return 'OK';
+}
+
 function _mxAddDaysIso_(isoDate, days) {
   var dt = new Date(isoDate);
   if (isNaN(dt.getTime())) return '';
@@ -14550,6 +14757,125 @@ function _mxDaysRemaining_(isoDate) {
   var now = new Date();
   var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.floor((due - today) / 86400000);
+}
+
+function _mxAddMonthsIso_(isoDate, months) {
+  var dt = new Date(isoDate);
+  if (isNaN(dt.getTime())) return '';
+  dt.setMonth(dt.getMonth() + Math.round(Number(months) || 0));
+  return _mxIsoDate_(dt);
+}
+
+function _mxAddYearsIso_(isoDate, years) {
+  var dt = new Date(isoDate);
+  if (isNaN(dt.getTime())) return '';
+  dt.setFullYear(dt.getFullYear() + Math.round(Number(years) || 0));
+  return _mxIsoDate_(dt);
+}
+
+function _mxPlannedFlightHoursNextMonths_(aircraftReg, monthsAhead) {
+  var reg = String(aircraftReg || '').trim().toUpperCase();
+  var horizonMonths = Number(monthsAhead);
+  if (!reg || !isFinite(horizonMonths) || horizonMonths <= 0) return 0;
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getRequiredSheet_(ss, APP_SHEETS.DISPATCH, '_mxPlannedFlightHoursNextMonths_');
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) return 0;
+
+  var headers = data[0];
+  var idx = _mxNormHeaderMap_(headers);
+  var dateIdx = idx.DATE;
+  var aircraftIdx = idx.AIRCRAFT;
+  var statusIdx = idx.STATUS;
+  var flightTimeIdx = idx.FLIGHT_TIME;
+  if (!(dateIdx >= 0) || !(aircraftIdx >= 0) || !(flightTimeIdx >= 0)) return 0;
+
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var horizon = new Date(today.getTime());
+  horizon.setMonth(horizon.getMonth() + Math.round(horizonMonths));
+  horizon.setHours(23, 59, 59, 999);
+
+  var total = 0;
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (String(row[aircraftIdx] || '').trim().toUpperCase() !== reg) continue;
+    if (statusIdx >= 0) {
+      var status = String(row[statusIdx] || '').trim().toUpperCase();
+      if (status && status !== 'PENDING' && status !== 'APPROVED' && status !== 'SCHEDULED' && status !== 'DRAFT') continue;
+    }
+    var rawDate = row[dateIdx];
+    var rowDate = rawDate instanceof Date ? new Date(rawDate.getTime()) : new Date(rawDate);
+    if (isNaN(rowDate.getTime())) continue;
+    if (rowDate < today || rowDate > horizon) continue;
+    var hrs = Number(row[flightTimeIdx] || 0);
+    if (isFinite(hrs) && hrs > 0) total += hrs;
+  }
+  return Number(total.toFixed(1));
+}
+
+function _mxPlannedFlightHoursBetweenDates_(aircraftReg, startIsoDate, endIsoDate) {
+  var reg = String(aircraftReg || '').trim().toUpperCase();
+  var start = String(startIsoDate || '').trim();
+  var end = String(endIsoDate || '').trim();
+  if (!reg || !start || !end) return 0;
+
+  var startDate = new Date(start + 'T00:00:00');
+  var endDate = new Date(end + 'T23:59:59');
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate < startDate) return 0;
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getRequiredSheet_(ss, APP_SHEETS.DISPATCH, '_mxPlannedFlightHoursBetweenDates_');
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) return 0;
+
+  var headers = data[0];
+  var idx = _mxNormHeaderMap_(headers);
+  var dateIdx = idx.DATE;
+  var aircraftIdx = idx.AIRCRAFT;
+  var statusIdx = idx.STATUS;
+  var flightTimeIdx = idx.FLIGHT_TIME;
+  if (!(dateIdx >= 0) || !(aircraftIdx >= 0) || !(flightTimeIdx >= 0)) return 0;
+
+  var total = 0;
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (String(row[aircraftIdx] || '').trim().toUpperCase() !== reg) continue;
+    if (statusIdx >= 0) {
+      var status = String(row[statusIdx] || '').trim().toUpperCase();
+      if (status && status !== 'PENDING' && status !== 'APPROVED' && status !== 'SCHEDULED' && status !== 'DRAFT') continue;
+    }
+    var rawDate = row[dateIdx];
+    var rowDate = rawDate instanceof Date ? new Date(rawDate.getTime()) : new Date(rawDate);
+    if (isNaN(rowDate.getTime())) continue;
+    if (rowDate < startDate || rowDate > endDate) continue;
+    var hrs = Number(row[flightTimeIdx] || 0);
+    if (isFinite(hrs) && hrs > 0) total += hrs;
+  }
+  return Number(total.toFixed(1));
+}
+
+function _mxCurrentOrForecastHoursToInsp_(aircraftRow, monthsAhead, nextInspectionDate) {
+  var current = aircraftRow && isFinite(Number(aircraftRow.hoursToInsp)) ? Number(aircraftRow.hoursToInsp) : null;
+  var reg = aircraftRow && aircraftRow.reg ? String(aircraftRow.reg).trim().toUpperCase() : '';
+  var planned = 0;
+  var plannedRemaining = null;
+  var inspectionDate = String(nextInspectionDate || '').trim();
+  var todayIso = _mxIsoDate_(new Date());
+  if (inspectionDate) {
+    planned = _mxPlannedFlightHoursBetweenDates_(reg, todayIso, inspectionDate);
+  } else {
+    planned = _mxPlannedFlightHoursNextMonths_(reg, monthsAhead);
+  }
+  if (current !== null) plannedRemaining = Number((current - planned).toFixed(1));
+  return {
+    currentHoursToInsp: current,
+    plannedFlightHours: planned,
+    plannedHoursToInsp: plannedRemaining,
+    calendarHoursToInsp: plannedRemaining,
+    inspectionDate: inspectionDate
+  };
 }
 
 function _mxLooksLikeCvaMaintenance_(taskCode, taskName, category, reference, notes) {
@@ -14657,16 +14983,15 @@ function _mxLatestLogByAssignment_() {
   return out;
 }
 
-function _mxDueState_(hoursRemaining, daysRemaining, hasHours, hasDays, thresholdHours, thresholdDays) {
-  var hourOverdue = hasHours && hoursRemaining !== '' && hoursRemaining <= 0;
-  var dayOverdue = hasDays && daysRemaining !== '' && daysRemaining <= 0;
-  if (hourOverdue || dayOverdue) return 'OVERDUE';
-
-  var hourSoon = hasHours && hoursRemaining !== '' && hoursRemaining <= thresholdHours;
-  var daySoon = hasDays && daysRemaining !== '' && daysRemaining <= thresholdDays;
-  if (hourSoon || daySoon) return 'DUE_SOON';
-
-  if ((hasHours && hoursRemaining === '') || (hasDays && daysRemaining === '')) return 'UNKNOWN';
+function _mxDueState_(hoursRemaining, daysRemaining, dueMode, thresholdHours, thresholdDays) {
+  var mode = String(dueMode || '').trim().toUpperCase();
+  var hourState = _mxSingleDueState_(hoursRemaining, thresholdHours);
+  var dayState = _mxSingleDueState_(daysRemaining, thresholdDays);
+  if (mode === 'HORAS') return hourState;
+  if (mode === 'DATA') return dayState;
+  if (hourState === 'OVERDUE' || dayState === 'OVERDUE') return 'OVERDUE';
+  if (hourState === 'DUE_SOON' || dayState === 'DUE_SOON') return 'DUE_SOON';
+  if (hourState === 'UNKNOWN' && dayState === 'UNKNOWN') return 'UNKNOWN';
   return 'OK';
 }
 
@@ -14701,24 +15026,30 @@ function getMaintenanceScheduleData(payload) {
       if (filterReg && aircraftReg !== filterReg) continue;
 
       var assignmentId = String(row[idx.ASSIGNMENT_ID] || '').trim();
+      var dueMode = _mxNormalizeDueMode_(row[idx.DUE_MODE], false, false);
       var intervalHours = _mxParseNum_(row[idx.INTERVAL_HOURS]);
       var intervalDays = _mxParseNum_(row[idx.INTERVAL_DAYS]);
+      var intervalMonths = _mxParseNum_(row[idx.INTERVAL_MONTHS]);
+      var intervalYears = _mxParseNum_(row[idx.INTERVAL_YEARS]);
       var hasHours = intervalHours !== '' && intervalHours > 0;
-      var hasDays = intervalDays !== '' && intervalDays > 0;
-      if (!hasHours && !hasDays) continue;
+      var hasCalendar = (intervalDays !== '' && intervalDays > 0) || (intervalMonths !== '' && intervalMonths > 0) || (intervalYears !== '' && intervalYears > 0) || (idx.DUE_DATE != null && String(row[idx.DUE_DATE] || '').trim() !== '');
+      dueMode = _mxNormalizeDueMode_(dueMode, hasHours, hasCalendar);
+      if (!hasHours && !hasCalendar) continue;
 
       var startTach = _mxParseNum_(row[idx.START_TACH]);
       var startDate = _mxIsoDate_(row[idx.START_DATE]);
+      var lastPerformedTach = idx.LAST_PERFORMED_TACH != null ? _mxParseNum_(row[idx.LAST_PERFORMED_TACH]) : '';
+      var lastPerformedDate = idx.LAST_PERFORMED_DATE != null ? _mxIsoDate_(row[idx.LAST_PERFORMED_DATE]) : '';
       var dueDate = (idx.DUE_DATE != null) ? _mxIsoDate_(row[idx.DUE_DATE]) : '';
       var last = latestLog[assignmentId] || null;
-      var baseTach = (last && last.completedTach !== '') ? last.completedTach : startTach;
-      var baseDate = (last && last.completedDate) ? last.completedDate : startDate;
+      var baseTach = (last && last.completedTach !== '') ? last.completedTach : (lastPerformedTach !== '' ? lastPerformedTach : startTach);
+      var baseDate = (last && last.completedDate) ? last.completedDate : (lastPerformedDate || startDate);
 
       var nextDueTach = '';
       if (hasHours && baseTach !== '') nextDueTach = parseFloat((baseTach + intervalHours).toFixed(1));
       var nextDueDate = '';
       if (dueDate) nextDueDate = dueDate;
-      else if (hasDays && baseDate) nextDueDate = _mxAddDaysIso_(baseDate, intervalDays);
+      else if (hasCalendar && baseDate) nextDueDate = _mxCalendarDueDate_(baseDate, intervalDays, intervalMonths, intervalYears);
 
       var currentTach = tachByReg[aircraftReg];
       var hoursRemaining = '';
@@ -14727,7 +15058,7 @@ function getMaintenanceScheduleData(payload) {
       }
       var hasDateTrack = !!nextDueDate;
       var daysRemaining = hasDateTrack ? _mxDaysRemaining_(nextDueDate) : '';
-      var dueState = _mxDueState_(hoursRemaining, daysRemaining, hasHours, hasDays || hasDateTrack, thresholdHours, thresholdDays);
+      var dueState = _mxDueState_(hoursRemaining, daysRemaining, dueMode, thresholdHours, thresholdDays);
 
       rows.push({
         assignmentId: assignmentId,
@@ -14736,11 +15067,17 @@ function getMaintenanceScheduleData(payload) {
         taskName: String(row[idx.TASK_NAME] || '').trim(),
         category: String(row[idx.CATEGORY] || '').trim(),
         reference: String(row[idx.REFERENCE] || '').trim(),
+        dueMode: dueMode,
         intervalHours: hasHours ? intervalHours : '',
-        intervalDays: hasDays ? intervalDays : '',
+        intervalDays: intervalDays !== '' ? intervalDays : '',
+        intervalMonths: intervalMonths !== '' ? intervalMonths : '',
+        intervalYears: intervalYears !== '' ? intervalYears : '',
         startTach: startTach,
         startDate: startDate,
+        lastPerformedTach: idx.LAST_PERFORMED_TACH != null ? (lastPerformedTach !== '' ? lastPerformedTach : '') : '',
+        lastPerformedDate: idx.LAST_PERFORMED_DATE != null ? lastPerformedDate : '',
         dueDate: dueDate,
+        dueDateRaw: dueDate,
         currentTach: currentTach,
         lastCompletedDate: last ? last.completedDate : '',
         lastCompletedTach: last ? last.completedTach : '',
@@ -14770,6 +15107,7 @@ function getMaintenanceScheduleData(payload) {
           start: r.nextDueDate,
           allDay: true,
           type: 'maintenance',
+          dueMode: r.dueMode,
           status: r.dueState,
           aircraftReg: r.aircraftReg
         };
@@ -14800,8 +15138,11 @@ function saveMaintenanceTemplate(payload) {
 
     var intervalHours = _mxParseNum_(body.intervalHours);
     var intervalDays = _mxParseNum_(body.intervalDays);
+    var intervalMonths = _mxParseNum_(body.intervalMonths);
+    var intervalYears = _mxParseNum_(body.intervalYears);
+    var dueMode = _mxNormalizeDueMode_(body.dueMode, intervalHours !== '', (intervalDays !== '' || intervalMonths !== '' || intervalYears !== ''));
     var dueDate = _mxIsoDate_(body.dueDate);
-    if (intervalHours === '' && intervalDays === '' && !dueDate) return { success: false, error: 'Provide intervalHours, intervalDays, or dueDate.' };
+    if (intervalHours === '' && intervalDays === '' && intervalMonths === '' && intervalYears === '' && !dueDate) return { success: false, error: 'Provide at least one interval or a due date.' };
 
     var nowIso = _mxIsoDate_(new Date());
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -14824,8 +15165,11 @@ function saveMaintenanceTemplate(payload) {
     row[idx.AIRCRAFT_TYPE] = aircraftType;
     row[idx.CATEGORY] = String(body.category || '').trim();
     row[idx.REFERENCE] = String(body.reference || '').trim();
+    if (idx.DUE_MODE != null) row[idx.DUE_MODE] = dueMode;
     row[idx.INTERVAL_HOURS] = intervalHours === '' ? '' : intervalHours;
     row[idx.INTERVAL_DAYS] = intervalDays === '' ? '' : intervalDays;
+    if (idx.INTERVAL_MONTHS != null) row[idx.INTERVAL_MONTHS] = intervalMonths === '' ? '' : intervalMonths;
+    if (idx.INTERVAL_YEARS != null) row[idx.INTERVAL_YEARS] = intervalYears === '' ? '' : intervalYears;
     row[idx.ACTIVE] = String(body.active || 'Y').trim().toUpperCase() === 'N' ? 'N' : 'Y';
     row[idx.SOURCE] = String(body.source || 'operator').trim();
     row[idx.CAMO_KEY] = String(body.camoKey || '').trim();
@@ -14851,8 +15195,10 @@ function saveMaintenanceAssignment(payload) {
 
     var intervalHours = _mxParseNum_(body.intervalHours);
     var intervalDays = _mxParseNum_(body.intervalDays);
-    var dueDate = _mxIsoDate_(body.dueDate);
-    if (intervalHours === '' && intervalDays === '' && !dueDate) return { success: false, error: 'Provide intervalHours, intervalDays, or dueDate.' };
+    var intervalMonths = _mxParseNum_(body.intervalMonths);
+    var intervalYears = _mxParseNum_(body.intervalYears);
+    var dueMode = _mxNormalizeDueMode_(body.dueMode, intervalHours !== '', (intervalDays !== '' || intervalMonths !== '' || intervalYears !== ''));
+    if (intervalHours === '' && intervalDays === '' && intervalMonths === '' && intervalYears === '') return { success: false, error: 'Provide at least one interval.' };
 
     var nowIso = _mxIsoDate_(new Date());
     var assignmentId = _mxNextId_('MAINT_ASSIGNMENT_SEQ', 'MXA');
@@ -14869,10 +15215,17 @@ function saveMaintenanceAssignment(payload) {
     row[idx.TASK_NAME] = taskName;
     row[idx.CATEGORY] = String(body.category || '').trim();
     row[idx.REFERENCE] = String(body.reference || '').trim();
+    if (idx.DUE_MODE != null) row[idx.DUE_MODE] = dueMode;
     row[idx.INTERVAL_HOURS] = intervalHours === '' ? '' : intervalHours;
     row[idx.INTERVAL_DAYS] = intervalDays === '' ? '' : intervalDays;
-    row[idx.START_TACH] = _mxParseNum_(body.startTach);
-    row[idx.START_DATE] = _mxIsoDate_(body.startDate || new Date()) || _mxIsoDate_(new Date());
+    if (idx.INTERVAL_MONTHS != null) row[idx.INTERVAL_MONTHS] = intervalMonths === '' ? '' : intervalMonths;
+    if (idx.INTERVAL_YEARS != null) row[idx.INTERVAL_YEARS] = intervalYears === '' ? '' : intervalYears;
+    var lastPerformedTach = _mxParseNum_(body.lastPerformedTach !== undefined ? body.lastPerformedTach : body.startTach);
+    var lastPerformedDate = _mxIsoDate_(body.lastPerformedDate || body.startDate || new Date()) || _mxIsoDate_(new Date());
+    row[idx.START_TACH] = lastPerformedTach;
+    row[idx.START_DATE] = lastPerformedDate;
+    if (idx.LAST_PERFORMED_TACH != null) row[idx.LAST_PERFORMED_TACH] = lastPerformedTach === '' ? '' : lastPerformedTach;
+    if (idx.LAST_PERFORMED_DATE != null) row[idx.LAST_PERFORMED_DATE] = lastPerformedDate || '';
     if (idx.DUE_DATE != null) row[idx.DUE_DATE] = dueDate || '';
     row[idx.ACTIVE] = String(body.active || 'Y').trim().toUpperCase() === 'N' ? 'N' : 'Y';
     row[idx.SOURCE] = String(body.source || 'operator').trim();
@@ -14882,6 +15235,7 @@ function saveMaintenanceAssignment(payload) {
     row[idx.UPDATED_AT] = nowIso;
 
     var cvaSync = null;
+    var dueDate = idx.DUE_DATE != null ? String(row[idx.DUE_DATE] || '').trim() : '';
     if (dueDate && _mxLooksLikeCvaMaintenance_(taskCode, taskName, body.category, body.reference, body.notes)) {
       cvaSync = _mxSyncAircraftCvaExpiry_(aircraftReg, dueDate);
       if (cvaSync && cvaSync.success === false) {
@@ -14891,7 +15245,102 @@ function saveMaintenanceAssignment(payload) {
 
     sh.appendRow(row);
 
-    return { success: true, assignmentId: assignmentId, cvaSynced: !!(cvaSync && cvaSync.success) };
+    var calendarSync = _mxSyncMaintenanceAssignmentCalendar_(assignmentId, aircraftReg);
+    if (calendarSync && calendarSync.success === false) {
+      appLog_('Maintenance calendar sync failed for', assignmentId, calendarSync.error || 'unknown error');
+    }
+
+    return { success: true, assignmentId: assignmentId, cvaSynced: !!(cvaSync && cvaSync.success), calendarSynced: !!(calendarSync && calendarSync.success) };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function updateMaintenanceAssignment(payload) {
+  try {
+    _mxEnsureFrameworkSheets_();
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var assignmentId = String(body.assignmentId || '').trim();
+    if (!assignmentId) return { success: false, error: 'assignmentId is required.' };
+
+    var supervisorPassword = String(body.supervisorPassword || body.password || '').trim();
+    if (!supervisorPassword) return { success: false, error: 'Supervisor password is required.' };
+    _verifySupervisorApprovalPassword_(supervisorPassword);
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = getRequiredSheet_(ss, APP_SHEETS.MAINT_ASSIGNMENTS, 'updateMaintenanceAssignment');
+    var data = sh.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: false, error: 'Maintenance assignment not found.' };
+
+    var headers = data[0];
+    var idx = _mxNormHeaderMap_(headers);
+    var rowNumber = -1;
+    var currentRow = null;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idx.ASSIGNMENT_ID] || '').trim() !== assignmentId) continue;
+      rowNumber = i + 1;
+      currentRow = data[i];
+      break;
+    }
+    if (rowNumber < 0 || !currentRow) return { success: false, error: 'Maintenance assignment not found.' };
+
+    var aircraftReg = String(body.aircraftReg != null ? body.aircraftReg : currentRow[idx.AIRCRAFT_REG] || '').trim().toUpperCase();
+    var taskCode = String(body.taskCode != null ? body.taskCode : currentRow[idx.TASK_CODE] || '').trim().toUpperCase();
+    var taskName = String(body.taskName != null ? body.taskName : currentRow[idx.TASK_NAME] || '').trim();
+    if (!aircraftReg || !taskName) return { success: false, error: 'aircraftReg and taskName are required.' };
+
+    var intervalHours = body.intervalHours !== undefined ? _mxParseNum_(body.intervalHours) : _mxParseNum_(currentRow[idx.INTERVAL_HOURS]);
+    var intervalDays = body.intervalDays !== undefined ? _mxParseNum_(body.intervalDays) : _mxParseNum_(currentRow[idx.INTERVAL_DAYS]);
+    var intervalMonths = body.intervalMonths !== undefined && idx.INTERVAL_MONTHS != null ? _mxParseNum_(body.intervalMonths) : (idx.INTERVAL_MONTHS != null ? _mxParseNum_(currentRow[idx.INTERVAL_MONTHS]) : '');
+    var intervalYears = body.intervalYears !== undefined && idx.INTERVAL_YEARS != null ? _mxParseNum_(body.intervalYears) : (idx.INTERVAL_YEARS != null ? _mxParseNum_(currentRow[idx.INTERVAL_YEARS]) : '');
+    var dueMode = _mxNormalizeDueMode_(body.dueMode != null ? body.dueMode : currentRow[idx.DUE_MODE], intervalHours !== '', (intervalDays !== '' || intervalMonths !== '' || intervalYears !== ''));
+    var dueDate = body.dueDate !== undefined ? _mxIsoDate_(body.dueDate) : (idx.DUE_DATE != null ? _mxIsoDate_(currentRow[idx.DUE_DATE]) : '');
+    if (intervalHours === '' && intervalDays === '' && intervalMonths === '' && intervalYears === '' && !dueDate) return { success: false, error: 'Provide at least one interval or a due date.' };
+
+    var lastPerformedTach = body.lastPerformedTach !== undefined ? _mxParseNum_(body.lastPerformedTach) : _mxParseNum_(currentRow[idx.LAST_PERFORMED_TACH] != null ? currentRow[idx.LAST_PERFORMED_TACH] : currentRow[idx.START_TACH]);
+    var lastPerformedDate = body.lastPerformedDate !== undefined ? _mxIsoDate_(body.lastPerformedDate) : _mxIsoDate_(currentRow[idx.LAST_PERFORMED_DATE] != null ? currentRow[idx.LAST_PERFORMED_DATE] : currentRow[idx.START_DATE]);
+    var activeValue = body.active !== undefined ? String(body.active || 'Y').trim().toUpperCase() : String(currentRow[idx.ACTIVE] || 'Y').trim().toUpperCase();
+    var sourceValue = body.source !== undefined ? String(body.source || '').trim() : String(currentRow[idx.SOURCE] || '').trim();
+    var camoKeyValue = body.camoKey !== undefined ? String(body.camoKey || '').trim() : String(currentRow[idx.CAMO_KEY] || '').trim();
+    var notesValue = body.notes !== undefined ? String(body.notes || '').trim() : String(currentRow[idx.NOTES] || '').trim();
+    var categoryValue = body.category !== undefined ? String(body.category || '').trim() : String(currentRow[idx.CATEGORY] || '').trim();
+    var referenceValue = body.reference !== undefined ? String(body.reference || '').trim() : String(currentRow[idx.REFERENCE] || '').trim();
+
+    sh.getRange(rowNumber, idx.AIRCRAFT_REG + 1).setValue(aircraftReg);
+    sh.getRange(rowNumber, idx.TASK_CODE + 1).setValue(taskCode);
+    sh.getRange(rowNumber, idx.TASK_NAME + 1).setValue(taskName);
+    sh.getRange(rowNumber, idx.CATEGORY + 1).setValue(categoryValue);
+    sh.getRange(rowNumber, idx.REFERENCE + 1).setValue(referenceValue);
+    if (idx.DUE_MODE != null) sh.getRange(rowNumber, idx.DUE_MODE + 1).setValue(dueMode);
+    sh.getRange(rowNumber, idx.INTERVAL_HOURS + 1).setValue(intervalHours === '' ? '' : intervalHours);
+    sh.getRange(rowNumber, idx.INTERVAL_DAYS + 1).setValue(intervalDays === '' ? '' : intervalDays);
+    if (idx.INTERVAL_MONTHS != null) sh.getRange(rowNumber, idx.INTERVAL_MONTHS + 1).setValue(intervalMonths === '' ? '' : intervalMonths);
+    if (idx.INTERVAL_YEARS != null) sh.getRange(rowNumber, idx.INTERVAL_YEARS + 1).setValue(intervalYears === '' ? '' : intervalYears);
+    sh.getRange(rowNumber, idx.START_TACH + 1).setValue(lastPerformedTach === '' ? '' : lastPerformedTach);
+    sh.getRange(rowNumber, idx.START_DATE + 1).setValue(lastPerformedDate || '');
+    if (idx.LAST_PERFORMED_TACH != null) sh.getRange(rowNumber, idx.LAST_PERFORMED_TACH + 1).setValue(lastPerformedTach === '' ? '' : lastPerformedTach);
+    if (idx.LAST_PERFORMED_DATE != null) sh.getRange(rowNumber, idx.LAST_PERFORMED_DATE + 1).setValue(lastPerformedDate || '');
+    if (idx.DUE_DATE != null) sh.getRange(rowNumber, idx.DUE_DATE + 1).setValue(dueDate || '');
+    sh.getRange(rowNumber, idx.ACTIVE + 1).setValue(activeValue === 'N' ? 'N' : 'Y');
+    sh.getRange(rowNumber, idx.SOURCE + 1).setValue(sourceValue);
+    sh.getRange(rowNumber, idx.CAMO_KEY + 1).setValue(camoKeyValue);
+    sh.getRange(rowNumber, idx.NOTES + 1).setValue(notesValue);
+    sh.getRange(rowNumber, idx.UPDATED_AT + 1).setValue(_mxIsoDate_(new Date()));
+
+    var cvaSync = null;
+    if (dueDate && _mxLooksLikeCvaMaintenance_(taskCode, taskName, categoryValue, referenceValue, notesValue)) {
+      cvaSync = _mxSyncAircraftCvaExpiry_(aircraftReg, dueDate);
+      if (cvaSync && cvaSync.success === false) {
+        throw new Error(cvaSync.error || 'Failed to sync CVA expiry to DB_Aircraft.');
+      }
+    }
+
+    var calendarSync = _mxSyncMaintenanceAssignmentCalendar_(assignmentId, aircraftReg);
+    if (calendarSync && calendarSync.success === false) {
+      appLog_('Maintenance calendar sync failed for', assignmentId, calendarSync.error || 'unknown error');
+    }
+
+    return { success: true, assignmentId: assignmentId, cvaSynced: !!(cvaSync && cvaSync.success), calendarSynced: !!(calendarSync && calendarSync.success) };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }
@@ -14936,10 +15385,17 @@ function completeMaintenanceAssignment(payload) {
     for (var i = 1; i < asgData.length; i++) {
       if (String(asgData[i][asgIdx.ASSIGNMENT_ID] || '').trim() !== assignmentId) continue;
       asgSh.getRange(i + 1, asgIdx.UPDATED_AT + 1).setValue(nowIso);
+      if (asgIdx.LAST_PERFORMED_DATE != null) asgSh.getRange(i + 1, asgIdx.LAST_PERFORMED_DATE + 1).setValue(completedDate);
+      if (asgIdx.LAST_PERFORMED_TACH != null && completedTach !== '') asgSh.getRange(i + 1, asgIdx.LAST_PERFORMED_TACH + 1).setValue(completedTach);
       break;
     }
 
-    return { success: true, logId: logId };
+    var calendarSync = _mxSyncMaintenanceAssignmentCalendar_(assignmentId, aircraftReg);
+    if (calendarSync && calendarSync.success === false) {
+      appLog_('Maintenance calendar sync failed for completion', assignmentId, calendarSync.error || 'unknown error');
+    }
+
+    return { success: true, logId: logId, calendarSynced: !!(calendarSync && calendarSync.success) };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }
@@ -14998,10 +15454,15 @@ function applyMaintenanceTemplateToAircraft(payload) {
       newRow[asgIdx.TASK_NAME] = taskName;
       newRow[asgIdx.CATEGORY] = String(tr[tplIdx.CATEGORY] || '').trim();
       newRow[asgIdx.REFERENCE] = String(tr[tplIdx.REFERENCE] || '').trim();
+      if (asgIdx.DUE_MODE != null) newRow[asgIdx.DUE_MODE] = String(tr[tplIdx.DUE_MODE] || '').trim();
       newRow[asgIdx.INTERVAL_HOURS] = _mxParseNum_(tr[tplIdx.INTERVAL_HOURS]);
       newRow[asgIdx.INTERVAL_DAYS] = _mxParseNum_(tr[tplIdx.INTERVAL_DAYS]);
+      if (asgIdx.INTERVAL_MONTHS != null) newRow[asgIdx.INTERVAL_MONTHS] = _mxParseNum_(tr[tplIdx.INTERVAL_MONTHS]);
+      if (asgIdx.INTERVAL_YEARS != null) newRow[asgIdx.INTERVAL_YEARS] = _mxParseNum_(tr[tplIdx.INTERVAL_YEARS]);
       newRow[asgIdx.START_TACH] = startTach;
       newRow[asgIdx.START_DATE] = startDate;
+      if (asgIdx.LAST_PERFORMED_TACH != null) newRow[asgIdx.LAST_PERFORMED_TACH] = startTach;
+      if (asgIdx.LAST_PERFORMED_DATE != null) newRow[asgIdx.LAST_PERFORMED_DATE] = startDate;
       newRow[asgIdx.ACTIVE] = 'Y';
       newRow[asgIdx.SOURCE] = String(tr[tplIdx.SOURCE] || 'template').trim();
       newRow[asgIdx.CAMO_KEY] = String(tr[tplIdx.CAMO_KEY] || '').trim();
@@ -16458,6 +16919,141 @@ function _schedulerReadConfigMap_(configSheet) {
   return out;
 }
 
+function _mxCalendarIdFromLinkOrId_(value) {
+  var raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    var url = new URL(raw);
+    var cid = url.searchParams.get('cid');
+    if (cid) return decodeURIComponent(cid);
+    var src = url.searchParams.get('src');
+    if (src) return decodeURIComponent(src);
+  } catch (e) {}
+  return raw;
+}
+
+function _mxGetCalendarSyncTarget_(cfg, linkKey, legacyIdKey) {
+  var map = cfg && typeof cfg === 'object' ? cfg : {};
+  var linkValue = String(map[linkKey] || '').trim();
+  var idValue = String(map[legacyIdKey] || '').trim();
+  return _mxCalendarIdFromLinkOrId_(linkValue || idValue);
+}
+
+function _mxRemoveTaggedCalendarEvents_(calendar, tag) {
+  var removed = 0;
+  if (!calendar || !tag) return removed;
+  var start = new Date(2000, 0, 1);
+  var end = new Date(2100, 0, 1);
+  var events = calendar.getEvents(start, end) || [];
+  for (var i = 0; i < events.length; i++) {
+    var ev = events[i];
+    var text = String(ev.getTitle() || '') + '\n' + String(ev.getDescription() || '');
+    if (text.indexOf(tag) < 0) continue;
+    ev.deleteEvent();
+    removed++;
+  }
+  return removed;
+}
+
+function _mxSyncTaggedAllDayCalendarEvent_(calendarTarget, tag, title, dateIso, description) {
+  try {
+    var calendarId = _mxCalendarIdFromLinkOrId_(calendarTarget);
+    if (!calendarId) return { success: false, skipped: true, error: 'Calendar link not configured.' };
+    var calendar = CalendarApp.getCalendarById(calendarId);
+    if (!calendar) return { success: false, error: 'Calendar not found for ' + calendarId };
+    var ymd = _mxIsoDate_(dateIso);
+    if (!ymd) return { success: false, error: 'Invalid calendar date.' };
+    var removed = _mxRemoveTaggedCalendarEvents_(calendar, tag);
+    var payloadDescription = String(description || '').trim();
+    if (payloadDescription.indexOf(tag) < 0) {
+      payloadDescription = payloadDescription ? (payloadDescription + '\n' + tag) : tag;
+    }
+    calendar.createAllDayEvent(String(title || '').trim() || tag, new Date(ymd + 'T00:00:00'), {
+      description: payloadDescription
+    });
+    return { success: true, calendarId: calendarId, removed: removed };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _mxSyncFlightMissionCalendar_(missionId, data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var cfgSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', '_mxSyncFlightMissionCalendar_');
+    var cfg = _schedulerReadConfigMap_(cfgSheet);
+    var calendarTarget = _mxGetCalendarSyncTarget_(cfg, 'FLIGHTS_CALENDAR_LINK', 'FLIGHTS_CALENDAR_ID');
+    if (!calendarTarget) return { success: true, skipped: true, reason: 'no_flight_calendar_config' };
+
+    var payload = data && typeof data === 'object' ? data : {};
+    var deleteOnly = String(payload.action || '').trim().toUpperCase() === 'DELETE' || payload.deleteOnly === true;
+    var tag = '[MBA_FLIGHT:' + missionId + ']';
+    if (deleteOnly) {
+      var deleteCalendar = CalendarApp.getCalendarById(calendarTarget);
+      if (!deleteCalendar) return { success: false, error: 'Calendar not found for ' + calendarTarget };
+      var removed = _mxRemoveTaggedCalendarEvents_(deleteCalendar, tag);
+      return { success: true, calendarId: calendarTarget, removed: removed, deletedOnly: true };
+    }
+
+    var missionDate = String(payload.date || '').trim();
+    var missionTime = String(payload.time || '08:00').trim();
+    var flightDescription = String(payload.flightDescription || '').trim();
+    var acft = String(payload.acft || '').trim().toUpperCase();
+    var pilot = String(payload.pilot || '').trim();
+    var copilot = String(payload.copilot || '').trim();
+    var missionType = String(payload.type || '').trim();
+    var legs = Array.isArray(payload.legs) ? payload.legs : [];
+    var firstLeg = legs.length ? (legs[0] || {}) : {};
+    var route = String(firstLeg.route || '').trim() || [String(firstLeg.from || '').trim(), String(firstLeg.to || '').trim()].filter(Boolean).join(' - ');
+    var descriptionLines = [
+      'Mission ID: ' + missionId,
+      'Aircraft: ' + acft,
+      'Pilot: ' + pilot,
+      copilot ? ('Copilot: ' + copilot) : '',
+      missionType ? ('Type: ' + missionType) : '',
+      flightDescription ? ('Description: ' + flightDescription) : '',
+      route ? ('Route: ' + route) : ''
+    ].filter(Boolean);
+    var title = acft + (flightDescription ? (' - ' + flightDescription) : (' - ' + missionId));
+    return _mxSyncTaggedAllDayCalendarEvent_(calendarTarget, tag, title, missionDate || _mxIsoDate_(new Date()), descriptionLines.join('\n'));
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function _mxSyncMaintenanceAssignmentCalendar_(assignmentId, aircraftReg) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var cfgSheet = getRequiredSheet_(ss, APP_SHEETS.SCHED_CONFIG || 'SCHED_Config', '_mxSyncMaintenanceAssignmentCalendar_');
+    var cfg = _schedulerReadConfigMap_(cfgSheet);
+    var calendarTarget = _mxGetCalendarSyncTarget_(cfg, 'MAINTENANCE_CALENDAR_LINK', 'SCHEDULE_CALENDAR_ID');
+    if (!calendarTarget) return { success: true, skipped: true, reason: 'no_maintenance_calendar_config' };
+
+    var maintRes = getMaintenanceScheduleData({ aircraftReg: aircraftReg });
+    if (!maintRes || !maintRes.success || !Array.isArray(maintRes.rows)) {
+      return { success: false, error: (maintRes && maintRes.error) ? maintRes.error : 'Unable to read maintenance rows.' };
+    }
+    var row = maintRes.rows.find(function(item) {
+      return String(item && item.assignmentId || '').trim() === String(assignmentId || '').trim();
+    });
+    if (!row) return { success: false, error: 'Maintenance assignment not found for calendar sync.' };
+    if (!row.nextDueDate) return { success: false, error: 'Maintenance assignment has no next due date.' };
+
+    var title = String(row.aircraftReg || aircraftReg || '').trim().toUpperCase() + ' - ' + String(row.taskName || row.taskCode || 'Maintenance').trim();
+    var description = [
+      'Assignment ID: ' + String(row.assignmentId || assignmentId || ''),
+      'Aircraft: ' + String(row.aircraftReg || aircraftReg || '').trim().toUpperCase(),
+      'Task Code: ' + String(row.taskCode || ''),
+      'Task Name: ' + String(row.taskName || ''),
+      'Due Mode: ' + String(row.dueMode || ''),
+      row.notes ? ('Notes: ' + String(row.notes || '')) : ''
+    ].filter(Boolean).join('\n');
+    return _mxSyncTaggedAllDayCalendarEvent_(calendarTarget, '[MBA_MAINT:' + assignmentId + ']', title, row.nextDueDate, description);
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
 function setupSchedulerSchema() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -16609,6 +17205,8 @@ function setupSchedulerSchema() {
 
     var configSeed = [
       { CONFIG_KEY: 'AVAILABILITY_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Shared calendar id with unavailable-only events', ACTIVE: 'Y' },
+      { CONFIG_KEY: 'FLIGHTS_CALENDAR_LINK', CONFIG_VALUE: '', DESCRIPTION: 'Google Calendar link for flight events', ACTIVE: 'Y' },
+      { CONFIG_KEY: 'MAINTENANCE_CALENDAR_LINK', CONFIG_VALUE: '', DESCRIPTION: 'Google Calendar link for maintenance events', ACTIVE: 'Y' },
       { CONFIG_KEY: 'FLIGHTS_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Target Google Calendar id for flight events', ACTIVE: 'Y' },
       { CONFIG_KEY: 'SCHEDULE_CALENDAR_ID', CONFIG_VALUE: '', DESCRIPTION: 'Target Google Calendar id for staffing schedule', ACTIVE: 'Y' },
       { CONFIG_KEY: 'FLIGHT_FOLLOW_RECIPIENTS', CONFIG_VALUE: 'acompanhamento@asasdesocorro.org.br', DESCRIPTION: 'Flight Following inbox recipient list (comma-separated).', ACTIVE: 'Y' },
@@ -19398,7 +19996,7 @@ function getPilotAircraftAuthorizations(payload) {
     var body = (payload && typeof payload === 'object') ? payload : {};
     var targetEmail = String(body.pilotEmail || body.email || '').trim().toLowerCase();
     var targetName = String(body.pilotName || body.name || '').trim().toUpperCase();
-    var targetAircraft = String(body.aircraftType || '').trim().toUpperCase();
+    var targetAircraft = _toolsCanonicalAircraftType_(body.aircraftType || '').trim().toUpperCase();
     var targetRole = String(body.role || '').trim().toUpperCase();
 
     var sh = _pilotAuthorizationSheet_();
@@ -19410,9 +20008,8 @@ function getPilotAircraftAuthorizations(payload) {
     for (var i = 1; i < data.length; i++) {
       var rec = _pilotAuthorizationRecordFromRow_(headers, data[i], i + 1);
       if (!rec.pilotName && !rec.pilotEmail) continue;
-      if (targetEmail && rec.pilotEmail !== targetEmail) continue;
-      if (!targetEmail && targetName && String(rec.pilotName || '').trim().toUpperCase() !== targetName) continue;
-      if (targetAircraft && String(rec.aircraftType || '').trim().toUpperCase() !== targetAircraft) continue;
+      if (!_pilotAuthMatchesPerson_(rec, targetEmail, targetName)) continue;
+      if (targetAircraft && _toolsCanonicalAircraftType_(rec.aircraftType || '').trim().toUpperCase() !== targetAircraft) continue;
       if (targetRole && String(rec.role || '').trim().toUpperCase() !== targetRole) continue;
       rows.push(rec);
     }
@@ -19458,7 +20055,7 @@ function saveToolsPilotAuthorization(payload) {
     var authorizationId = String(body.authorizationId || '').trim();
     var pilotName = String(body.pilotName || '').trim();
     var pilotEmail = String(body.pilotEmail || '').trim().toLowerCase();
-    var aircraftType = String(body.aircraftType || '').trim();
+    var aircraftType = _toolsCanonicalAircraftType_(body.aircraftType || '').trim();
     var role = String(body.role || '').trim();
 
     if (!pilotName) return { success: false, error: 'Pilot name is required' };
@@ -25779,6 +26376,7 @@ function getDispatchMaintenanceStatus(payload) {
       var nextHours = nextInspection ? Number(nextInspection.hoursRemaining) : null;
       byAircraft[reg] = {
         aircraftReg: reg,
+        nextInspectionDate: nextInspection && nextInspection.nextDueDate ? String(nextInspection.nextDueDate || '') : '',
         nextInspection: nextInspection ? {
           assignmentId: String(nextInspection.assignmentId || ''),
           taskCode: String(nextInspection.taskCode || ''),
@@ -25866,4 +26464,114 @@ function rejectMissionMxReview(missionId, supervisorName, supervisorNotes, appro
     rejectionNotes: notes
   });
   return { success: true, message: 'Chief mechanic review rejected', missionId: missionId, rejectedBy: name, rejectedAt: nowIso };
+}
+
+function getPilotRunwayAuthorizations(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var targetEmail = String(body.pilotEmail || body.email || '').trim().toLowerCase();
+    var targetName = String(body.pilotName || body.name || '').trim().toUpperCase();
+    var targetIcao = String(body.icao || body.airportIcao || '').trim().toUpperCase();
+    var targetRunway = String(body.runwayIdent || body.runway || '').trim().toUpperCase();
+
+    var sh = _pilotRunwayChecksSheet_();
+    var data = sh.getDataRange().getValues();
+    if (!data || data.length < 2) return { success: true, rows: [] };
+
+    var headers = data[0];
+    var rows = [];
+    for (var i = 1; i < data.length; i++) {
+      var rec = _pilotRunwayCheckRecordFromRow_(headers, data[i], i + 1);
+      if (!rec.pilotName && !rec.pilotEmail) continue;
+      if (!_pilotAuthMatchesPerson_(rec, targetEmail, targetName)) continue;
+      if (targetIcao && String(rec.icao || '').trim().toUpperCase() !== targetIcao) continue;
+      if (targetRunway && String(rec.runwayIdent || '').trim().toUpperCase() !== targetRunway) continue;
+      rows.push(rec);
+    }
+
+    rows.sort(function(a, b) {
+      var ak = [a.pilotName, a.icao, a.runwayIdent, a.expiryDate].join('|').toUpperCase();
+      var bk = [b.pilotName, b.icao, b.runwayIdent, b.expiryDate].join('|').toUpperCase();
+      return ak.localeCompare(bk);
+    });
+
+    return { success: true, rows: rows };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function saveToolsRunwayAuthorization(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var sh = _pilotRunwayChecksSheet_();
+    var headers = _toolsSheetHeaderRow_(sh);
+    var data = sh.getDataRange().getValues();
+    var rowNumber = Number(body.rowNumber || 0);
+    var pilotName = String(body.pilotName || '').trim();
+    var pilotEmail = String(body.pilotEmail || '').trim().toLowerCase();
+    var icao = String(body.icao || '').trim().toUpperCase();
+    var runwayIdent = String(body.runwayIdent || '').trim().toUpperCase();
+
+    if (!pilotName) return { success: false, error: 'Pilot name is required' };
+    if (!icao) return { success: false, error: 'ICAO is required' };
+
+    var status = String(body.status || 'ACTIVE').trim().toUpperCase();
+    var source = String(body.source || '').trim();
+    var notes = String(body.notes || '').trim();
+    var approvedBy = String(body.approvedBy || '').trim();
+    var dateChecked = safeDateStr(body.dateChecked || new Date());
+    var expiryDate = safeDateStr(body.expiryDate || '');
+    var authScope = String(body.authScope || 'RUNWAY').trim().toUpperCase() || 'RUNWAY';
+
+    if (rowNumber < 2) {
+      for (var i = 1; i < data.length; i++) {
+        var rec = _pilotRunwayCheckRecordFromRow_(headers, data[i], i + 1);
+        if (String(rec.pilotName || '').trim().toUpperCase() !== String(pilotName || '').trim().toUpperCase()) continue;
+        if (String(rec.icao || '').trim().toUpperCase() !== icao) continue;
+        if (String(rec.runwayIdent || '').trim().toUpperCase() !== runwayIdent) continue;
+        rowNumber = i + 1;
+        break;
+      }
+    }
+
+    var now = safeDateStr(new Date());
+    var dataMap = {
+      CHECK_ID: String(body.checkId || ('CHK_' + new Date().getTime() + '_' + icao + '_' + runwayIdent)).trim(),
+      PILOT_NAME: pilotName,
+      PILOT_EMAIL: pilotEmail,
+      STAFF_ID: String(body.staffId || '').trim(),
+      ICAO: icao,
+      RUNWAY_IDENT: runwayIdent,
+      AUTH_SCOPE: authScope,
+      STATUS: status,
+      DATE_CHECKED: dateChecked,
+      EXPIRY_DATE: expiryDate,
+      APPROVED_BY: approvedBy,
+      SOURCE: source,
+      NOTES: notes,
+      UPDATED_AT: now
+    };
+
+    if (rowNumber >= 2) {
+      var current = sh.getRange(rowNumber, 1, 1, headers.length).getValues()[0];
+      var merged = headers.map(function(header, idx) {
+        var key = _toolsNormHeader_(header);
+        if (key === 'CREATED_AT') return current[idx] || now;
+        return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : current[idx];
+      });
+      sh.getRange(rowNumber, 1, 1, merged.length).setValues([merged]);
+      return { success: true, action: 'updated', rowNumber: rowNumber };
+    }
+
+    dataMap.CREATED_AT = now;
+    var row = headers.map(function(header) {
+      var key = _toolsNormHeader_(header);
+      return Object.prototype.hasOwnProperty.call(dataMap, key) ? dataMap[key] : '';
+    });
+    sh.appendRow(row);
+    return { success: true, action: 'created', rowNumber: sh.getLastRow() };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
 }

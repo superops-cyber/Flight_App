@@ -59,18 +59,18 @@
 
   <div class="mx-card" style="border-left:5px solid #1565c0;">
     <div class="mx-head">
-      <h5 style="color:#0b5394;">Maintenance Scheduling</h5>
+      <h5 style="color:#0b5394;">Programacao de Manutencao</h5>
       <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-        <button class="mx-btn ghost" type="button" onclick="mxSeedU206Baseline_()">SEED U206 BASELINE</button>
-        <button class="mx-btn ghost" type="button" onclick="mxLoadSchedule_()">REFRESH SCHEDULE</button>
+        <button class="mx-btn ghost" type="button" onclick="mxSeedU206Baseline_()">BASE U206</button>
+        <button class="mx-btn ghost" type="button" onclick="mxLoadSchedule_()">ATUALIZAR</button>
       </div>
     </div>
     <div class="mx-body">
       <div class="mx-grid" style="margin-bottom:10px;">
-        <div class="mx-stat"><div class="mx-stat-label">Scheduled Items</div><div class="mx-stat-val" id="mx-sched-total">0</div></div>
-        <div class="mx-stat"><div class="mx-stat-label">Overdue</div><div class="mx-stat-val" id="mx-sched-overdue">0</div></div>
-        <div class="mx-stat"><div class="mx-stat-label">Due Soon</div><div class="mx-stat-val" id="mx-sched-soon">0</div></div>
-        <div class="mx-stat"><div class="mx-stat-label">Healthy</div><div class="mx-stat-val" id="mx-sched-ok">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Itens agendados</div><div class="mx-stat-val" id="mx-sched-total">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Atrasados</div><div class="mx-stat-val" id="mx-sched-overdue">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Perto do vencimento</div><div class="mx-stat-val" id="mx-sched-soon">0</div></div>
+        <div class="mx-stat"><div class="mx-stat-label">Em dia</div><div class="mx-stat-val" id="mx-sched-ok">0</div></div>
       </div>
 
       <div class="mx-grid">
@@ -81,29 +81,40 @@
       </div>
 
       <div class="mx-inline-form">
-        <div style="font-size:0.75rem;color:#607d8b;font-weight:800;margin-bottom:8px;">ADD MAINTENANCE ITEM</div>
+        <div style="font-size:0.75rem;color:#607d8b;font-weight:800;margin-bottom:8px;">NOVO ITEM DE MANUTENCAO</div>
+        <div id="mx-edit-banner" style="display:none;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;border-radius:6px;background:#fff3e0;border:1px solid #ffe0b2;color:#ef6c00;font-size:0.8rem;font-weight:800;"></div>
         <div class="mx-grid">
           <div class="mx-field">
-            <label for="mx-new-apply-scope">Apply To</label>
+            <label for="mx-new-apply-scope">Aplicar em</label>
             <select id="mx-new-apply-scope" class="browser-default" onchange="mxToggleApplyScope_()">
-              <option value="SINGLE">Single Aircraft</option>
-              <option value="ALL">All Aircraft</option>
-              <option value="TYPE">Aircraft Type</option>
-              <option value="REG_LIST">Selected Registrations</option>
+              <option value="SINGLE">Aeronave unica</option>
+              <option value="ALL">Todas as aeronaves</option>
+              <option value="TYPE">Por tipo</option>
+              <option value="REG_LIST">Registro selecionado</option>
             </select>
           </div>
-          <div class="mx-field"><label for="mx-new-aircraft">Aircraft</label><select id="mx-new-aircraft" class="browser-default"></select></div>
-          <div class="mx-field" id="mx-new-aircraft-type-wrap" style="display:none;"><label for="mx-new-aircraft-type">Aircraft Type</label><select id="mx-new-aircraft-type" class="browser-default"></select></div>
-          <div class="mx-field" id="mx-new-aircraft-reg-list-wrap" style="display:none;"><label for="mx-new-aircraft-reg-list">Registrations</label><select id="mx-new-aircraft-reg-list" multiple size="5" style="height:auto; min-height:120px;"></select></div>
-          <div class="mx-field"><label for="mx-new-task-code">Task Code</label><input id="mx-new-task-code" type="text" placeholder="INSP-50H"></div>
-          <div class="mx-field"><label for="mx-new-task-name">Task Name</label><input id="mx-new-task-name" type="text" placeholder="50 Hour Inspection"></div>
-          <div class="mx-field"><label for="mx-new-category">Category</label><input id="mx-new-category" type="text" placeholder="INSPECTION"></div>
-          <div class="mx-field"><label for="mx-new-reference">Reference</label><input id="mx-new-reference" type="text" placeholder="MGM 5.3"></div>
-          <div class="mx-field"><label for="mx-new-hours">Interval (Hours)</label><input id="mx-new-hours" type="number" step="0.1" placeholder="100"></div>
-          <div class="mx-field"><label for="mx-new-days">Interval (Days)</label><input id="mx-new-days" type="number" step="1" placeholder="365"></div>
-          <div class="mx-field"><label for="mx-new-start-tach">Start Tach</label><input id="mx-new-start-tach" type="number" step="0.1" placeholder="Current Tach"></div>
-          <div class="mx-field"><label for="mx-new-start-date">Start Date</label><input id="mx-new-start-date" type="date"></div>
-          <div class="mx-field" style="align-self:end;"><button class="mx-btn primary" type="button" onclick="mxCreateScheduleItem_()" style="width:100%;">ADD ITEM</button></div>
+          <div class="mx-field"><label for="mx-new-aircraft">Aeronave</label><select id="mx-new-aircraft" class="browser-default"></select></div>
+          <div class="mx-field" id="mx-new-aircraft-type-wrap" style="display:none;"><label for="mx-new-aircraft-type">Tipo de aeronave</label><select id="mx-new-aircraft-type" class="browser-default"></select></div>
+          <div class="mx-field" id="mx-new-aircraft-reg-list-wrap" style="display:none;"><label for="mx-new-aircraft-reg-list">Registros</label><select id="mx-new-aircraft-reg-list" multiple size="5" style="height:auto; min-height:120px;"></select></div>
+          <div class="mx-field"><label for="mx-new-task-code">Codigo</label><input id="mx-new-task-code" type="text" placeholder="INSP-50H"></div>
+          <div class="mx-field"><label for="mx-new-task-name">Nome</label><input id="mx-new-task-name" type="text" placeholder="Inspecao de 50 horas"></div>
+          <div class="mx-field"><label for="mx-new-category">Categoria</label><input id="mx-new-category" type="text" placeholder="INSPECAO"></div>
+          <div class="mx-field"><label for="mx-new-reference">Referencia</label><input id="mx-new-reference" type="text" placeholder="MGM 5.3"></div>
+          <div class="mx-field">
+            <label for="mx-new-due-mode">Tipo de vencimento</label>
+            <select id="mx-new-due-mode" class="browser-default" onchange="mxToggleDueMode_()">
+              <option value="HORAS">Horas de tach</option>
+              <option value="DATA">Tempo / data</option>
+              <option value="AMBOS">Ambos, o que vier primeiro</option>
+            </select>
+          </div>
+          <div class="mx-field" id="mx-new-hours-wrap"><label for="mx-new-hours">Intervalo em horas de tach</label><input id="mx-new-hours" type="number" step="0.1" placeholder="100"></div>
+          <div class="mx-field" id="mx-new-calendar-value-wrap"><label for="mx-new-calendar-value">Intervalo por data</label><input id="mx-new-calendar-value" type="number" step="1" placeholder="365"></div>
+          <div class="mx-field" id="mx-new-calendar-unit-wrap"><label for="mx-new-calendar-unit">Unidade da data</label><select id="mx-new-calendar-unit" class="browser-default"><option value="DIAS">Dias</option><option value="MESES">Meses</option><option value="ANOS">Anos</option></select></div>
+          <div class="mx-field"><label for="mx-new-due-date">Data da proxima inspeção</label><input id="mx-new-due-date" type="date"></div>
+          <div class="mx-field"><label for="mx-new-last-performed-date">Ultima execucao - data</label><input id="mx-new-last-performed-date" type="date"></div>
+          <div class="mx-field"><label for="mx-new-last-performed-tach">Ultima execucao - tach</label><input id="mx-new-last-performed-tach" type="number" step="0.1" placeholder="Opcional"></div>
+          <div class="mx-field" style="align-self:end;"><button id="mx-new-submit-btn" class="mx-btn primary" type="button" onclick="mxCreateScheduleItem_()" style="width:100%;">ADICIONAR ITEM</button></div>
         </div>
       </div>
 
@@ -209,6 +220,10 @@
     try{var parsed=JSON.parse(text);return Array.isArray(parsed)?parsed:[];}catch(e){return[];}
   }
 
+  var mxScheduleRows_ = [];
+  var mxEditingAssignment_ = null;
+  var mxEditingSupervisorPassword_ = '';
+
   function mxReadData_(){
     var live=(window.appData&&typeof window.appData==='object')?window.appData:{};
     var list=Array.isArray(live.aircraft)?live.aircraft:[];
@@ -298,6 +313,156 @@
     if(regListWrap)regListWrap.style.display=(scope==='REG_LIST')?'':'none';
   }
 
+  function mxToggleDueMode_(){
+    var mode=String((document.getElementById('mx-new-due-mode')||{}).value||'HORAS').trim().toUpperCase();
+    var hoursWrap=document.getElementById('mx-new-hours-wrap');
+    var calendarValueWrap=document.getElementById('mx-new-calendar-value-wrap');
+    var calendarUnitWrap=document.getElementById('mx-new-calendar-unit-wrap');
+    if(hoursWrap)hoursWrap.style.display=(mode==='DATA')?'none':'';
+    if(calendarValueWrap)calendarValueWrap.style.display=(mode==='HORAS')?'none':'';
+    if(calendarUnitWrap)calendarUnitWrap.style.display=(mode==='HORAS')?'none':'';
+  }
+
+  function mxDueModeLabel_(mode){
+    var key=String(mode||'').trim().toUpperCase();
+    if(key==='HORAS')return 'Horas de tach';
+    if(key==='DATA')return 'Tempo / data';
+    if(key==='AMBOS')return 'Ambos, o que vier primeiro';
+    return key||'-';
+  }
+
+  function mxCalendarIntervalLabel_(row){
+    var parts=[];
+    var days=String(row&&row.intervalDays!=null?row.intervalDays:'').trim();
+    var months=String(row&&row.intervalMonths!=null?row.intervalMonths:'').trim();
+    var years=String(row&&row.intervalYears!=null?row.intervalYears:'').trim();
+    if(days)parts.push(days+' dia(s)');
+    if(months)parts.push(months+' mes(es)');
+    if(years)parts.push(years+' ano(s)');
+    return parts.length?parts.join(' + '):'-';
+  }
+
+  function mxCalendarUnitFromRow_(row){
+    if(row&&row.intervalMonths!=null&&String(row.intervalMonths).trim()!=='') return 'MESES';
+    if(row&&row.intervalYears!=null&&String(row.intervalYears).trim()!=='') return 'ANOS';
+    return 'DIAS';
+  }
+
+  function mxSetEditBanner_(row){
+    var banner=document.getElementById('mx-edit-banner');
+    if(!banner) return;
+    if(!row){
+      banner.style.display='none';
+      banner.innerHTML='';
+      return;
+    }
+    banner.style.display='flex';
+    banner.innerHTML='<div><b>Editando:</b> '+mxEsc_(row.aircraftReg||'')+' • '+mxEsc_(row.taskName||row.taskCode||'Item')+'</div>'
+      + '<button class="mx-btn ghost" type="button" onclick="mxCancelEdit_()">CANCELAR EDICAO</button>';
+  }
+
+  function mxSetEditFormLocked_(locked){
+    [
+      'mx-new-apply-scope',
+      'mx-new-aircraft',
+      'mx-new-aircraft-type',
+      'mx-new-aircraft-reg-list'
+    ].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el) el.disabled=!!locked;
+    });
+  }
+
+  function mxClearScheduleForm_(){
+    mxEditingAssignment_ = null;
+    mxEditingSupervisorPassword_ = '';
+    mxSetEditBanner_(null);
+    mxSetEditFormLocked_(false);
+    var scopeSel=document.getElementById('mx-new-apply-scope'); if(scopeSel) scopeSel.value='SINGLE';
+    var aircraftSel=document.getElementById('mx-new-aircraft'); if(aircraftSel && aircraftSel.options.length) aircraftSel.selectedIndex=0;
+    var typeSel=document.getElementById('mx-new-aircraft-type'); if(typeSel && typeSel.options.length) typeSel.selectedIndex=0;
+    var regListSel=document.getElementById('mx-new-aircraft-reg-list'); if(regListSel) Array.prototype.slice.call(regListSel.options||[]).forEach(function(opt){ opt.selected=false; });
+    var taskCode=document.getElementById('mx-new-task-code'); if(taskCode) taskCode.value='';
+    var taskName=document.getElementById('mx-new-task-name'); if(taskName) taskName.value='';
+    var category=document.getElementById('mx-new-category'); if(category) category.value='';
+    var reference=document.getElementById('mx-new-reference'); if(reference) reference.value='';
+    var dueMode=document.getElementById('mx-new-due-mode'); if(dueMode) dueMode.value='HORAS';
+    var hours=document.getElementById('mx-new-hours'); if(hours) hours.value='';
+    var calendarValue=document.getElementById('mx-new-calendar-value'); if(calendarValue) calendarValue.value='';
+    var calendarUnit=document.getElementById('mx-new-calendar-unit'); if(calendarUnit) calendarUnit.value='DIAS';
+    var lastDate=document.getElementById('mx-new-last-performed-date'); if(lastDate) lastDate.value='';
+    var lastTach=document.getElementById('mx-new-last-performed-tach'); if(lastTach) lastTach.value='';
+    var dueDate=document.getElementById('mx-new-due-date'); if(dueDate) dueDate.value='';
+    mxToggleApplyScope_();
+    mxToggleDueMode_();
+    var submitBtn=document.getElementById('mx-new-submit-btn');
+    if(submitBtn) submitBtn.textContent='ADICIONAR ITEM';
+  }
+
+  function mxPopulateScheduleForm_(row){
+    if(!row) return;
+    var scopeSel=document.getElementById('mx-new-apply-scope');
+    if(scopeSel) scopeSel.value='SINGLE';
+    mxToggleApplyScope_();
+    var aircraftSel=document.getElementById('mx-new-aircraft');
+    if(aircraftSel){
+      var reg=String(row.aircraftReg||'').trim().toUpperCase();
+      aircraftSel.value = reg;
+    }
+    var taskCode=document.getElementById('mx-new-task-code'); if(taskCode) taskCode.value=String(row.taskCode||'').trim();
+    var taskName=document.getElementById('mx-new-task-name'); if(taskName) taskName.value=String(row.taskName||'').trim();
+    var category=document.getElementById('mx-new-category'); if(category) category.value=String(row.category||'').trim();
+    var reference=document.getElementById('mx-new-reference'); if(reference) reference.value=String(row.reference||'').trim();
+    var dueMode=document.getElementById('mx-new-due-mode'); if(dueMode) dueMode.value=String(row.dueMode||'HORAS').trim().toUpperCase()||'HORAS';
+    var hours=document.getElementById('mx-new-hours'); if(hours) hours.value=(row.intervalHours!=null&&row.intervalHours!=='')?row.intervalHours:'';
+    var calendarValue=document.getElementById('mx-new-calendar-value');
+    if(calendarValue){
+      var unit=mxCalendarUnitFromRow_(row);
+      if(unit==='MESES') calendarValue.value=(row.intervalMonths!=null&&row.intervalMonths!=='')?row.intervalMonths:'';
+      else if(unit==='ANOS') calendarValue.value=(row.intervalYears!=null&&row.intervalYears!=='')?row.intervalYears:'';
+      else calendarValue.value=(row.intervalDays!=null&&row.intervalDays!=='')?row.intervalDays:'';
+    }
+    var calendarUnit=document.getElementById('mx-new-calendar-unit'); if(calendarUnit) calendarUnit.value=mxCalendarUnitFromRow_(row);
+    var lastDate=document.getElementById('mx-new-last-performed-date'); if(lastDate) lastDate.value=String(row.lastPerformedDate||row.lastCompletedDate||'').trim();
+    var lastTach=document.getElementById('mx-new-last-performed-tach'); if(lastTach) lastTach.value=(row.lastPerformedTach!=null&&row.lastPerformedTach!=='')?row.lastPerformedTach:(row.lastCompletedTach!=null&&row.lastCompletedTach!=='')?row.lastCompletedTach:'';
+    var dueDate=document.getElementById('mx-new-due-date'); if(dueDate) dueDate.value=String(row.dueDateRaw||row.dueDate||'').trim();
+    mxToggleDueMode_();
+    var submitBtn=document.getElementById('mx-new-submit-btn');
+    if(submitBtn) submitBtn.textContent='SALVAR ALTERACOES';
+  }
+
+  function mxBeginEdit_(assignmentId){
+    var id=String(assignmentId||'').trim();
+    if(!id) return;
+    var row=(mxScheduleRows_||[]).find(function(item){ return String(item&&item.assignmentId||'').trim()===id; }) || null;
+    if(!row){
+      if(window.M&&M.toast)M.toast({html:'Nao foi possivel localizar o registro selecionado',classes:'orange'});
+      return;
+    }
+    var password=window.prompt('Senha do supervisor de MX para editar '+id+':');
+    if(!password) return;
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res||!res.success){
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Senha invalida',classes:'red'});
+          return;
+        }
+        mxEditingAssignment_=row;
+        mxEditingSupervisorPassword_=password;
+        mxPopulateScheduleForm_(row);
+        mxSetEditBanner_(row);
+        mxSetEditFormLocked_(true);
+      })
+      .withFailureHandler(function(err){
+        if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});
+      })
+      .verifySupervisorApprovalPassword(password);
+  }
+
+  function mxCancelEdit_(){
+    mxClearScheduleForm_();
+  }
+
   function mxTargetRegsFromForm_(){
     var scope=String((document.getElementById('mx-new-apply-scope')||{}).value||'SINGLE').trim().toUpperCase();
     var fleet=mxReadData_();
@@ -349,29 +514,33 @@
   function mxRenderScheduleRows_(rows){
     var box=document.getElementById('mx-sched-list');
     if(!box)return;
+    mxScheduleRows_ = Array.isArray(rows) ? rows.slice() : [];
     if(!rows||!rows.length){
       box.innerHTML='<div class="mx-empty">No scheduled maintenance items yet. Add one above or seed U206 baseline.</div>';
       return;
     }
 
     box.innerHTML=rows.map(function(r){
+      var dueModeLabel=String(r&&r.dueMode||'').trim();
       return '<div class="mx-sched-row">'
         + '<div class="mx-sched-head">'
-          + '<div><div class="mx-sched-title">'+(r.aircraftReg||'')+' • '+(r.taskName||r.taskCode||'Task')+'</div><div class="mx-sched-sub">'+(r.reference||'No reference')+'</div></div>'
+          + '<div><div class="mx-sched-title">'+(r.aircraftReg||'')+' • '+(r.taskName||r.taskCode||'Item')+'</div><div class="mx-sched-sub">'+(r.reference||'Sem referencia')+'</div></div>'
           + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">'
             + '<span class="mx-pill '+mxDuePillClass_(r.dueState)+'">'+String(r.dueState||'UNKNOWN').replace('_',' ')+'</span>'
-            + '<button class="mx-btn primary" type="button" onclick="mxCompleteItem_(\''+String(r.assignmentId||'').replace(/'/g,"\\'")+'\',\''+String(r.aircraftReg||'').replace(/'/g,"\\'")+'\')">COMPLETE</button>'
+            + '<button class="mx-btn ghost" type="button" onclick="mxBeginEdit_(\''+String(r.assignmentId||'').replace(/'/g,"\\'")+'\')">EDITAR</button>'
+            + '<button class="mx-btn primary" type="button" onclick="mxCompleteItem_(\''+String(r.assignmentId||'').replace(/'/g,"\\'")+'\',\''+String(r.aircraftReg||'').replace(/'/g,"\\'")+'\')">CONCLUIR</button>'
           + '</div>'
         + '</div>'
         + '<div class="mx-sched-grid">'
-          + '<div class="mx-kv"><b>Interval Hrs</b><span>'+(r.intervalHours!==''?r.intervalHours:'-')+'</span></div>'
-          + '<div class="mx-kv"><b>Interval Days</b><span>'+(r.intervalDays!==''?r.intervalDays:'-')+'</span></div>'
-          + '<div class="mx-kv"><b>Current Tach</b><span>'+(r.currentTach!==''?r.currentTach:'-')+'</span></div>'
-          + '<div class="mx-kv"><b>Next Due Tach</b><span>'+(r.nextDueTach!==''?r.nextDueTach:'-')+'</span></div>'
-          + '<div class="mx-kv"><b>Hours Remaining</b><span>'+(r.hoursRemaining!==''?r.hoursRemaining:'-')+'</span></div>'
-          + '<div class="mx-kv"><b>Next Due Date</b><span>'+(r.nextDueDate||'-')+'</span></div>'
-          + '<div class="mx-kv"><b>Days Remaining</b><span>'+(r.daysRemaining!==''?r.daysRemaining:'-')+'</span></div>'
-          + '<div class="mx-kv"><b>Last Completed</b><span>'+(r.lastCompletedDate||'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Tipo</b><span>'+(dueModeLabel||'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Intervalo horas</b><span>'+(r.intervalHours!==''?r.intervalHours:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Intervalo data</b><span>'+mxCalendarIntervalLabel_(r)+'</span></div>'
+          + '<div class="mx-kv"><b>Tach atual</b><span>'+(r.currentTach!==''?r.currentTach:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Prx. tach</b><span>'+(r.nextDueTach!==''?r.nextDueTach:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Horas restantes</b><span>'+(r.hoursRemaining!==''?r.hoursRemaining:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Prx. data</b><span>'+(r.nextDueDate||'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Dias restantes</b><span>'+(r.daysRemaining!==''?r.daysRemaining:'-')+'</span></div>'
+          + '<div class="mx-kv"><b>Ultima execucao</b><span>'+(r.lastCompletedDate||r.lastPerformedDate||'-')+'</span></div>'
         + '</div>'
       + '</div>';
     }).join('');
@@ -560,46 +729,91 @@
   }
 
   function mxCreateScheduleItem_(){
+    var mode=String((document.getElementById('mx-new-due-mode')||{}).value||'HORAS').trim().toUpperCase();
+    var calendarValue=String((document.getElementById('mx-new-calendar-value')||{}).value||'').trim();
+    var calendarUnit=String((document.getElementById('mx-new-calendar-unit')||{}).value||'DIAS').trim().toUpperCase();
     var payload={
       taskCode:String((document.getElementById('mx-new-task-code')||{}).value||'').trim().toUpperCase(),
       taskName:String((document.getElementById('mx-new-task-name')||{}).value||'').trim(),
       category:String((document.getElementById('mx-new-category')||{}).value||'').trim(),
       reference:String((document.getElementById('mx-new-reference')||{}).value||'').trim(),
+      dueMode:mode,
+      dueDate:(document.getElementById('mx-new-due-date')||{}).value,
       intervalHours:(document.getElementById('mx-new-hours')||{}).value,
-      intervalDays:(document.getElementById('mx-new-days')||{}).value,
-      startTach:(document.getElementById('mx-new-start-tach')||{}).value,
-      startDate:(document.getElementById('mx-new-start-date')||{}).value
+      intervalDays:calendarUnit==='DIAS' ? calendarValue : '',
+      intervalMonths:calendarUnit==='MESES' ? calendarValue : '',
+      intervalYears:calendarUnit==='ANOS' ? calendarValue : '',
+      lastPerformedTach:(document.getElementById('mx-new-last-performed-tach')||{}).value,
+      lastPerformedDate:(document.getElementById('mx-new-last-performed-date')||{}).value
     };
+    if(mxEditingAssignment_ && mxEditingAssignment_.assignmentId){
+      var editRegs=mxTargetRegsFromForm_();
+      if(!editRegs.length){
+        if(window.M&&M.toast)M.toast({html:'Nenhuma aeronave selecionada para editar',classes:'orange'});
+        return;
+      }
+      payload.assignmentId=String(mxEditingAssignment_.assignmentId||'').trim();
+      payload.supervisorPassword=mxEditingSupervisorPassword_;
+      payload.aircraftReg=editRegs[0];
+      google.script.run
+        .withSuccessHandler(function(res){
+          if(!res||!res.success){
+            if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Nao foi possivel salvar alteracoes',classes:'red'});
+            return;
+          }
+          if(window.M&&M.toast)M.toast({html:'Alteracoes salvas com sucesso',classes:'green'});
+          mxCancelEdit_();
+          mxLoadSchedule_();
+        })
+        .withFailureHandler(function(err){
+          if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});
+        })
+        .updateMaintenanceAssignment(payload);
+      return;
+    }
     var regs=mxTargetRegsFromForm_();
     if(!regs.length){
-      if(window.M&&M.toast)M.toast({html:'No target aircraft selected for this scope',classes:'orange'});
+      if(window.M&&M.toast)M.toast({html:'Nenhuma aeronave selecionada para este escopo',classes:'orange'});
+      return;
+    }
+
+    if(mode==='HORAS' && !String(payload.intervalHours||'').trim()){
+      if(window.M&&M.toast)M.toast({html:'Informe o intervalo em horas de tach',classes:'orange'});
+      return;
+    }
+    if(mode!=='HORAS' && !calendarValue){
+      if(window.M&&M.toast)M.toast({html:'Informe o intervalo de data',classes:'orange'});
+      return;
+    }
+    if(mode==='AMBOS' && !String(payload.intervalHours||'').trim()){
+      if(window.M&&M.toast)M.toast({html:'Informe tambem o intervalo em horas de tach',classes:'orange'});
       return;
     }
 
     mxCreateAssignmentsForRegs_(regs,payload,function(summary){
       if(summary.failed>0){
-        if(window.M&&M.toast)M.toast({html:'Added '+summary.created+' item(s), '+summary.failed+' failed',classes:'orange'});
+        if(window.M&&M.toast)M.toast({html:'Adicionados '+summary.created+' item(ns), '+summary.failed+' falharam',classes:'orange'});
       }else{
-        if(window.M&&M.toast)M.toast({html:'Added '+summary.created+' maintenance item(s)',classes:'green'});
+        if(window.M&&M.toast)M.toast({html:'Adicionados '+summary.created+' item(ns) de manutencao',classes:'green'});
       }
       mxLoadSchedule_();
     });
   }
 
   function mxCompleteItem_(assignmentId, aircraftReg){
-    var completedDate=window.prompt('Completed date (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+    var completedDate=window.prompt('Data de conclusao (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
     if(!completedDate)return;
-    var completedTach=window.prompt('Completed tach (optional):','');
-    var referenceDoc=window.prompt('Reference document/work order (optional):','');
+    var completedTach=window.prompt('Tach de conclusao (opcional):','');
+    var referenceDoc=window.prompt('Documento / ordem de servico (opcional):','');
     var performedBy=(document.getElementById('userDisplay')&&document.getElementById('userDisplay').innerText)?document.getElementById('userDisplay').innerText:'';
 
     google.script.run
       .withSuccessHandler(function(res){
         if(!res||!res.success){
-          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Could not complete maintenance item',classes:'red'});
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Nao foi possivel concluir o item de manutencao',classes:'red'});
           return;
         }
-        if(window.M&&M.toast)M.toast({html:'Maintenance item completed',classes:'green'});
+        if(window.M&&M.toast)M.toast({html:'Item de manutencao concluido',classes:'green'});
         mxLoadSchedule_();
       })
       .withFailureHandler(function(err){
@@ -619,10 +833,10 @@
     google.script.run
       .withSuccessHandler(function(res){
         if(!res||!res.success){
-          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Could not seed baseline',classes:'red'});
+          if(window.M&&M.toast)M.toast({html:(res&&res.error)?res.error:'Nao foi possivel gerar a base',classes:'red'});
           return;
         }
-        if(window.M&&M.toast)M.toast({html:'Seeded baseline templates: '+res.inserted+' inserted, '+res.skipped+' skipped',classes:'green'});
+        if(window.M&&M.toast)M.toast({html:'Base gerada: '+res.inserted+' inseridos, '+res.skipped+' ignorados',classes:'green'});
       })
       .withFailureHandler(function(err){
         if(window.M&&M.toast)M.toast({html:'Error: '+(err&&err.message?err.message:String(err)),classes:'red'});

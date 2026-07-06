@@ -434,6 +434,11 @@
       || (runwayRows.length === 1 ? runwayRows[0] : null)
       || null;
     const result = perf.lastPerformanceResult || {};
+    const briefingCard = (selected && selected.briefingCard && typeof selected.briefingCard === 'object')
+      ? selected.briefingCard
+      : ((selected && selected.verifiedOperational && selected.verifiedOperational.briefingCard && typeof selected.verifiedOperational.briefingCard === 'object')
+        ? selected.verifiedOperational.briefingCard
+        : {});
 
     const runwayLengthM = Math.round(Number(selected && selected.length || 0));
     const runwayWidthM = Math.round(Number(selected && selected.width || 0));
@@ -445,7 +450,11 @@
     const elevationFt = Math.round(Number(selected && selected.elevation || 0));
     const slopePct = Number(selected && selected.slope || 0).toFixed(1);
     const heading = String(Math.round(Number(selected && selected.headingDeg || 0))).padStart(3, '0');
-    const cutdownFromDataRaw = Number(selected && (selected.cutdownAreaM || selected.cutdownArea || selected.clearway || selected.cutdown || 0) || 0);
+    const cutdownFromDataRaw = Number(
+      (briefingCard && (briefingCard.cutdownAreaM != null ? briefingCard.cutdownAreaM : briefingCard.clearway))
+      || (selected && (selected.cutdownAreaM || selected.cutdownArea || selected.clearway || selected.cutdown || 0))
+      || 0
+    );
     const cutdownFromData = cutdownFromDataRaw > 0 ? Math.round(cutdownFromDataRaw) : null;
     const cutdownInputRaw = String(document.getElementById('release5-cutdown')?.value || '').trim();
     const cutdownInputNum = cutdownInputRaw === '' ? NaN : Number(cutdownInputRaw);

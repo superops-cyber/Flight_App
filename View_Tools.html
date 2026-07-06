@@ -286,7 +286,6 @@
     <button class="tools-action-btn" onclick="toolsOpenDiscrepancyPanel()"><i class="material-icons">report_problem</i><span>Report Discrepancy</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('airports')"><i class="material-icons">add_business</i><span>Add Airport</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPersonalPanel()"><i class="material-icons">badge</i><span>Adicionar/Editar Pessoa</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenPilotAuthPanel()"><i class="material-icons">verified_user</i><span>Pilot Authorizations</span></button>
     <button class="tools-action-btn" onclick="toolsOpenSavedRoutesPanel()"><i class="material-icons">route</i><span>Route Manager</span></button>
     <button class="tools-action-btn" onclick="toolsOpenTrainingModulePanel()"><i class="material-icons">school</i><span>Training Modules</span></button>
     <button class="tools-action-btn" onclick="toolsOpenManeuverPanel()"><i class="material-icons">sports_gymnastics</i><span>Maneuver Catalog</span></button>
@@ -301,7 +300,7 @@
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('schedcoverage')"><i class="material-icons">rule_folder</i><span>Sched Coverage Rules</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDbAdd('schedcompat')"><i class="material-icons">balance</i><span>Sched Compat Rules</span></button>
     <button class="tools-action-btn" onclick="toolsOpenAircraftDocsPanel()"><i class="material-icons">menu_book</i><span>Aircraft Docs</span></button>
-    <button class="tools-action-btn" onclick="toolsOpenAircraftBuilder()"><i class="material-icons">flight_takeoff</i><span>Add Aircraft</span></button>
+    <button class="tools-action-btn" onclick="toolsOpenAircraftBuilder()"><i class="material-icons">flight_takeoff</i><span>Adicionar/Editar Aeronave</span></button>
     <button class="tools-action-btn" onclick="toolsOpenHistoricalImportsPanel()"><i class="material-icons">history</i><span>Review Imports</span></button>
     <button class="tools-action-btn" onclick="toolsOpenDonationImport()"><i class="material-icons">upload_file</i><span>Import Donations</span></button>
   </div>
@@ -803,6 +802,74 @@
       <div class="tools-dbadd-help">Marque todas as habilitações que se aplicam.</div>
     </div>
 
+    <div class="tools-field" style="border:1px solid #dbe4ee;border-radius:8px;background:#f8fbff;padding:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+        <div style="font-size:0.78rem;font-weight:800;color:#0b5394;text-transform:uppercase;">Qualificações para voar aeronaves</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button id="tools-student-auth-add-btn" class="btn-ts" type="button" style="height:30px; line-height:30px; padding:0 12px; font-size:0.72rem;" onclick="toolsStudentToggleAuthEditor_()">ADICIONAR</button>
+          <span id="tools-student-auth-meta" class="tools-report-meta" style="margin:0;">Nenhuma autorização carregada.</span>
+        </div>
+      </div>
+      <div id="tools-student-auth-editor" style="display:none;">
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-auth-aircraft">Tipo de Aeronave</label><select id="tools-student-auth-aircraft" class="browser-default"></select></div>
+        <div class="tools-field"><label for="tools-student-auth-role">Função</label><select id="tools-student-auth-role" class="browser-default"></select></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-auth-type">Tipo de Autorização</label><select id="tools-student-auth-type" class="browser-default"></select></div>
+        <div class="tools-field"><label for="tools-student-auth-status">Status</label><select id="tools-student-auth-status" class="browser-default"></select></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-auth-date">Data</label><input id="tools-student-auth-date" type="text" class="tools-date-input" placeholder="DD-mmm-AAAA" readonly onclick="toolsOpenDatePicker_('tools-student-auth-date')"></div>
+        <div class="tools-field"><label for="tools-student-auth-expiry">Validade</label><input id="tools-student-auth-expiry" type="text" class="tools-date-input" placeholder="DD-mmm-AAAA" readonly onclick="toolsOpenDatePicker_('tools-student-auth-expiry')"></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-auth-signoff">Assinatura / Instrutor</label><input id="tools-student-auth-signoff" type="text"></div>
+        <div class="tools-field"><label for="tools-student-auth-source">Fonte</label><input id="tools-student-auth-source" type="text" placeholder="Checagem, treinamento, etc."></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field" style="flex:1 1 100%;"><label for="tools-student-auth-notes">Notas</label><input id="tools-student-auth-notes" type="text"></div>
+      </div>
+      <div class="tools-btn-row" style="margin-top:8px;">
+        <button class="btn-ts" type="button" onclick="toolsStudentAuthClear_()">NOVO</button>
+        <button class="btn-tp" type="button" onclick="toolsStudentAuthSave_()">SALVAR QUALIFICAÇÃO</button>
+      </div>
+      </div>
+      <div id="tools-student-auth-list" class="tools-search-results" style="max-height:180px; margin-top:8px;"></div>
+    </div>
+
+    <div class="tools-field" style="border:1px solid #dbe4ee;border-radius:8px;background:#f8fbff;padding:10px; margin-top:8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+        <div style="font-size:0.78rem;font-weight:800;color:#0b5394;text-transform:uppercase;">Autorizações de pista</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button id="tools-student-runway-add-btn" class="btn-ts" type="button" style="height:30px; line-height:30px; padding:0 12px; font-size:0.72rem;" onclick="toolsStudentToggleRunwayEditor_()">ADICIONAR</button>
+          <span id="tools-student-runway-meta" class="tools-report-meta" style="margin:0;">Nenhuma pista carregada.</span>
+        </div>
+      </div>
+      <div id="tools-student-runway-editor" style="display:none;">
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-runway-icao">ICAO</label><select id="tools-student-runway-icao" class="browser-default" onchange="toolsStudentRunwayFillRunways_()"></select></div>
+        <div class="tools-field"><label for="tools-student-runway-ident">Pista</label><select id="tools-student-runway-ident" class="browser-default"></select></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-runway-status">Status</label><select id="tools-student-runway-status" class="browser-default"></select></div>
+        <div class="tools-field"><label for="tools-student-runway-expiry">Validade</label><input id="tools-student-runway-expiry" type="text" class="tools-date-input" placeholder="DD-mmm-AAAA" readonly onclick="toolsOpenDatePicker_('tools-student-runway-expiry')"></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field"><label for="tools-student-runway-approved-by">Aprovado por</label><input id="tools-student-runway-approved-by" type="text"></div>
+        <div class="tools-field"><label for="tools-student-runway-source">Fonte</label><input id="tools-student-runway-source" type="text" placeholder="Cheque de pista, waiver, etc."></div>
+      </div>
+      <div class="tools-row">
+        <div class="tools-field" style="flex:1 1 100%;"><label for="tools-student-runway-notes">Notas</label><input id="tools-student-runway-notes" type="text"></div>
+      </div>
+      <div class="tools-btn-row" style="margin-top:8px;">
+        <button class="btn-ts" type="button" onclick="toolsStudentRunwayClear_()">NOVO</button>
+        <button class="btn-tp" type="button" onclick="toolsStudentRunwaySave_()">SALVAR PISTA</button>
+      </div>
+      </div>
+      <div id="tools-student-runway-list" class="tools-search-results" style="max-height:180px; margin-top:8px;"></div>
+    </div>
+
     <div id="tools-student-funds-box" style="border:1px solid #dbe4ee;border-radius:8px;background:#f8fbff;padding:10px;margin:8px 0;">
       <div style="font-size:0.78rem;font-weight:800;color:#0b5394;text-transform:uppercase;margin-bottom:6px;">Fundos / Depósito</div>
       <div class="tools-row">
@@ -844,50 +911,6 @@
     <div class="tools-btn-row">
       <button class="btn-ts" type="button" onclick="toolsStudentClearForm_()">LIMPAR</button>
       <button class="btn-tp" type="button" onclick="toolsStudentSave_()">SALVAR PESSOA</button>
-    </div>
-  </div>
-
-  <div id="tools-panel-pilotauth" class="tools-panel">
-    <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Pilot Authorizations</h3>
-      <button class="tools-panel-close" onclick="toolsClosePanel('pilotauth')">&times;</button>
-    </div>
-    <div class="tools-search-box">
-      <div class="tools-row" style="align-items:flex-end;">
-        <div class="tools-field" style="margin-bottom:0;">
-          <label for="tools-pilotauth-select">Selecionar Autorização</label>
-          <select id="tools-pilotauth-select" class="browser-default" onchange="toolsPilotAuthLoadSelected_()"></select>
-        </div>
-        <div class="tools-field" style="margin-bottom:0; flex:0 0 130px;">
-          <button class="btn-ts" type="button" onclick="toolsPilotAuthClearForm_()">NOVO</button>
-        </div>
-      </div>
-      <div id="tools-pilotauth-meta" class="tools-report-meta" style="margin-top:8px;">Nenhuma autorização carregada.</div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-staff">Staff</label><select id="tools-pilotauth-staff" class="browser-default"></select></div>
-      <div class="tools-field"><label for="tools-pilotauth-aircraft">Aircraft Type</label><select id="tools-pilotauth-aircraft" class="browser-default"></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-role">Authorization Role</label><select id="tools-pilotauth-role" class="browser-default"></select></div>
-      <div class="tools-field"><label for="tools-pilotauth-type">Authorization Type</label><select id="tools-pilotauth-type" class="browser-default"></select></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-status">Status</label><select id="tools-pilotauth-status" class="browser-default"></select></div>
-      <div class="tools-field"><label for="tools-pilotauth-date">Date Authorized</label><input id="tools-pilotauth-date" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-pilotauth-date')"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-expiry">Expiry Date</label><input id="tools-pilotauth-expiry" type="text" class="tools-date-input" placeholder="YYYY-MM-DD" readonly onclick="toolsOpenDatePicker_('tools-pilotauth-expiry')"></div>
-      <div class="tools-field"><label for="tools-pilotauth-signoff">Instructor Signoff</label><input id="tools-pilotauth-signoff" type="text"></div>
-    </div>
-    <div class="tools-row">
-      <div class="tools-field"><label for="tools-pilotauth-source">Source</label><input id="tools-pilotauth-source" type="text" placeholder="Check ride, line check, etc."></div>
-      <div class="tools-field"><label for="tools-pilotauth-notes">Notes</label><input id="tools-pilotauth-notes" type="text"></div>
-    </div>
-    <div class="tools-btn-row">
-      <button class="btn-ts" type="button" onclick="toolsPilotAuthClearForm_()">LIMPAR</button>
-      <button class="btn-ts" type="button" onclick="toolsPilotAuthDelete_()">EXCLUIR</button>
-      <button class="btn-tp" type="button" onclick="toolsPilotAuthSave_()">SALVAR AUTORIZAÇÃO</button>
     </div>
   </div>
 
@@ -1302,11 +1325,19 @@
           <input id="tools-master-sched-calendar-id" type="text" placeholder="intranet@asasdesocorro.org.br">
         </div>
         <div class="tools-field">
+          <label for="tools-master-flight-calendar-link">Flight Calendar Share Link</label>
+          <input id="tools-master-flight-calendar-link" type="url" placeholder="https://calendar.google.com/calendar/u/0/r?cid=...">
+        </div>
+        <div class="tools-field">
+          <label for="tools-master-maint-calendar-link">Maintenance Calendar Share Link</label>
+          <input id="tools-master-maint-calendar-link" type="url" placeholder="https://calendar.google.com/calendar/u/0/r?cid=...">
+        </div>
+        <div class="tools-field">
           <label for="tools-master-sched-publish-day">Publish Day Of Month</label>
           <input id="tools-master-sched-publish-day" type="number" min="1" max="31" inputmode="numeric" placeholder="15">
         </div>
       </div>
-      <div style="font-size:0.78rem; color:#607d8b; margin-top:4px;">Applies to staffing scheduler only (availability sync + auto-publish cadence).</div>
+      <div style="font-size:0.78rem; color:#607d8b; margin-top:4px;">Paste the Google Calendar share link here. The app extracts the calendar ID from the link and publishes flight or maintenance events to it.</div>
     </div>
 
     <div class="tools-report-section" style="margin-top:10px;">
@@ -1523,21 +1554,19 @@
 
   <div id="tools-panel-aircraftbuild" class="tools-panel">
     <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Add New Aircraft</h3>
+      <h3 class="tools-panel-title">Adicionar/Editar Aeronave</h3>
       <button class="tools-panel-close" onclick="toolsClosePanel('aircraftbuild')">&times;</button>
     </div>
-    <p class="tools-ac-note">Choose one mode: start from scratch or copy an existing aircraft and verify/edit every field before saving.</p>
+    <p class="tools-ac-note">Adicione uma aeronave nova, copie uma aeronave existente como template, ou carregue uma aeronave existente para revisar e editar os dados salvos em DB_Aircraft, REF_Airframes, REF_Envelopes e Aircraft_Roll_Numbers.</p>
     <div class="tools-ac-mode">
-      <button id="tools-ac-mode-scratch" type="button" class="active" onclick="toolsAircraftSetMode('scratch')">FROM SCRATCH</button>
-      <button id="tools-ac-mode-copy" type="button" onclick="toolsAircraftSetMode('copy')">COPY AND VERIFY</button>
+      <button id="tools-ac-mode-scratch" type="button" class="active" onclick="toolsAircraftSetMode('scratch')">ADICIONAR NOVA</button>
+      <button id="tools-ac-mode-copy-new" type="button" onclick="toolsAircraftSetMode('copy')">COPIAR COMO NOVA</button>
+      <button id="tools-ac-mode-edit" type="button" onclick="toolsAircraftSetMode('edit')">EDITAR EXISTENTE</button>
     </div>
     <div class="tools-row" id="tools-ac-copy-row" style="display:none;">
       <div class="tools-field" style="flex:1 1 auto;">
-        <label for="tools-ac-source">Source Aircraft</label>
-        <select id="tools-ac-source" class="browser-default"></select>
-      </div>
-      <div class="tools-field" style="flex:0 0 140px; margin-top:20px;">
-        <button class="btn-ta" type="button" onclick="toolsAircraftLoadSource()">LOAD COPY</button>
+        <label for="tools-ac-source">Selecionar aeronave</label>
+        <select id="tools-ac-source" class="browser-default" onchange="toolsAircraftLoadSource()"></select>
       </div>
     </div>
     <div id="tools-ac-note" class="tools-ac-note" style="margin-bottom:8px;">Loading aircraft template…</div>
@@ -1805,6 +1834,7 @@
   var _toolsDiscrepancyRows = [];
   var _toolsStaffData = { currentUser: {}, staff: [], roles: [], modules: [], pilotAuthorizations: [], authorizationConfig: {} };
   var _toolsStudentsData = { rows: [], ratingsOptions: [] };
+  var _toolsStudentAuthData = { aircraftAuthRows: [], runwayAuthRows: [] };
   var _toolsSelectedStaffRow = 0;
   var _toolsSelectedStudentRow = 0;
   var _toolsPendingStudentReceipt = null;
@@ -1812,7 +1842,9 @@
   var _toolsSelectedModuleRow = 0;
   var _toolsAircraftDocsRows = [];
   var _toolsAircraftDocsFolderUrl = '';
-  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','students','pilotauth','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations','histimports'];
+  var _toolsAircraftBuilderSourceReg = '';
+  var _toolsAircraftBuilderSourceType = '';
+  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','students','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations','histimports'];
 
   function toolsCurrentAdmin_() {
     var userEl = document.getElementById('userDisplay');
@@ -1852,6 +1884,24 @@
       if (t && !seen[t]) { seen[t] = true; types.push(t); }
     });
     return types.sort();
+  }
+
+  function toolsGetUniqueRunwayOptions_() {
+    var data = toolsGetData_();
+    var seen = {};
+    var items = [];
+    (data.airports || []).forEach(function(a) {
+      var icao = String(a && a.icao || '').trim().toUpperCase();
+      var rwy = String(a && a.runwayIdent || '').trim().toUpperCase();
+      if (!icao || !rwy) return;
+      var key = icao + '|' + rwy;
+      if (seen[key]) return;
+      seen[key] = true;
+      items.push({ icao: icao, runwayIdent: rwy, label: icao + ' · ' + rwy });
+    });
+    return items.sort(function(a, b) {
+      return String(a.label || '').localeCompare(String(b.label || ''));
+    });
   }
 
   function toolsNormKey_(value) {
@@ -3558,6 +3608,349 @@
     }
   }
 
+  function toolsStudentAuthOptionSets_() {
+    var authConfig = (_toolsStaffData.authorizationConfig && typeof _toolsStaffData.authorizationConfig === 'object') ? _toolsStaffData.authorizationConfig : {};
+    return {
+      roles: Array.isArray(authConfig.roles) && authConfig.roles.length ? authConfig.roles : ['Student', 'Operational', 'Instructor'],
+      authorizationTypes: Array.isArray(authConfig.authorizationTypes) && authConfig.authorizationTypes.length ? authConfig.authorizationTypes : ['INITIAL', 'ANNUAL_PROFICIENCY', 'UPGRADE', 'REINSTATEMENT', 'LINE_CHECK'],
+      statuses: Array.isArray(authConfig.statuses) && authConfig.statuses.length ? authConfig.statuses : ['ACTIVE', 'PENDING', 'SUSPENDED', 'REVOKED', 'EXPIRED']
+    };
+  }
+
+  function toolsStudentCurrentIdentity_() {
+    return {
+      rowNumber: Number(_toolsSelectedStudentRow || 0),
+      name: String((document.getElementById('tools-student-name') || {}).value || '').trim(),
+      email: String((document.getElementById('tools-student-email') || {}).value || '').trim().toLowerCase(),
+      staffId: String((document.getElementById('tools-student-canac') || {}).value || '').trim()
+    };
+  }
+
+  function toolsStudentBindAuthDropdowns_() {
+    var sets = toolsStudentAuthOptionSets_();
+    var aircraftTypes = toolsGetUniqueAircraftTypes_();
+    var runways = toolsGetUniqueRunwayOptions_();
+
+    var aircraftSel = document.getElementById('tools-student-auth-aircraft');
+    if (aircraftSel) {
+      aircraftSel.innerHTML = '<option value="">Selecione...</option>' + aircraftTypes.map(function(type) {
+        return '<option value="' + toolsAircraftEscape_(String(type || '')) + '">' + toolsAircraftEscape_(String(type || '')) + '</option>';
+      }).join('');
+    }
+
+    var roleSel = document.getElementById('tools-student-auth-role');
+    if (roleSel) {
+      roleSel.innerHTML = '<option value="">Selecione...</option>' + sets.roles.map(function(role) {
+        return '<option value="' + toolsAircraftEscape_(String(role || '')) + '">' + toolsAircraftEscape_(String(role || '')) + '</option>';
+      }).join('');
+    }
+
+    var typeSel = document.getElementById('tools-student-auth-type');
+    if (typeSel) {
+      typeSel.innerHTML = '<option value="">Selecione...</option>' + sets.authorizationTypes.map(function(type) {
+        return '<option value="' + toolsAircraftEscape_(String(type || '')) + '">' + toolsAircraftEscape_(String(type || '')) + '</option>';
+      }).join('');
+    }
+
+    var statusSel = document.getElementById('tools-student-auth-status');
+    if (statusSel) {
+      statusSel.innerHTML = '<option value="">Selecione...</option>' + sets.statuses.map(function(status) {
+        return '<option value="' + toolsAircraftEscape_(String(status || '')) + '">' + toolsAircraftEscape_(String(status || '')) + '</option>';
+      }).join('');
+      if (!String(statusSel.value || '').trim()) statusSel.value = 'ACTIVE';
+    }
+
+    var runwayIcaoSel = document.getElementById('tools-student-runway-icao');
+    if (runwayIcaoSel) {
+      var icaos = Array.from(new Set(runways.map(function(r) { return String(r.icao || '').trim().toUpperCase(); }).filter(Boolean))).sort();
+      runwayIcaoSel.innerHTML = '<option value="">Selecione...</option>' + icaos.map(function(icao) {
+        return '<option value="' + toolsAircraftEscape_(icao) + '">' + toolsAircraftEscape_(icao) + '</option>';
+      }).join('');
+    }
+
+    toolsStudentRunwayFillRunways_();
+  }
+
+  function toolsStudentRunwayFillRunways_() {
+    var icao = String((document.getElementById('tools-student-runway-icao') || {}).value || '').trim().toUpperCase();
+    var runwaySel = document.getElementById('tools-student-runway-ident');
+    if (!runwaySel) return;
+    var runways = toolsGetUniqueRunwayOptions_().filter(function(item) {
+      return !icao || String(item.icao || '').trim().toUpperCase() === icao;
+    });
+    runwaySel.innerHTML = '<option value="">Selecione...</option>' + runways.map(function(item) {
+      var value = String(item.runwayIdent || '').trim().toUpperCase();
+      return '<option value="' + toolsAircraftEscape_(value) + '">' + toolsAircraftEscape_(item.label || value) + '</option>';
+    }).join('');
+  }
+
+  function toolsStudentSetAuthEditorOpen_(isOpen) {
+    var panel = document.getElementById('tools-student-auth-editor');
+    var btn = document.getElementById('tools-student-auth-add-btn');
+    if (panel) panel.style.display = isOpen ? 'block' : 'none';
+    if (btn) btn.textContent = isOpen ? 'FECHAR' : 'ADICIONAR';
+  }
+
+  function toolsStudentSetRunwayEditorOpen_(isOpen) {
+    var panel = document.getElementById('tools-student-runway-editor');
+    var btn = document.getElementById('tools-student-runway-add-btn');
+    if (panel) panel.style.display = isOpen ? 'block' : 'none';
+    if (btn) btn.textContent = isOpen ? 'FECHAR' : 'ADICIONAR';
+  }
+
+  function toolsStudentToggleAuthEditor_() {
+    var panel = document.getElementById('tools-student-auth-editor');
+    toolsStudentSetAuthEditorOpen_(!(panel && panel.style.display === 'block'));
+  }
+
+  function toolsStudentToggleRunwayEditor_() {
+    var panel = document.getElementById('tools-student-runway-editor');
+    toolsStudentSetRunwayEditorOpen_(!(panel && panel.style.display === 'block'));
+  }
+
+  function toolsStudentAuthRender_() {
+    var el = document.getElementById('tools-student-auth-list');
+    if (!el) return;
+    var rows = Array.isArray(_toolsStudentAuthData.aircraftAuthRows) ? _toolsStudentAuthData.aircraftAuthRows : [];
+    if (!rows.length) {
+      el.innerHTML = '<div class="tools-search-item"><div class="tools-search-meta">Nenhuma autorização de aeronave encontrada para esta pessoa.</div></div>';
+    } else {
+      el.innerHTML = rows.map(function(row) {
+        var label = [row.aircraftType || 'Sem aeronave', row.role || 'Sem função', row.authorizationType || 'Sem tipo'].join(' · ');
+        var status = row.status ? (' · ' + row.status) : '';
+        var expiry = row.expiryDate ? (' · Válida até ' + row.expiryDate) : '';
+        return '<div class="tools-search-item" data-auth-row="' + toolsAircraftEscape_(String(row.rowNumber || '')) + '">'
+          + '<div class="tools-search-name">' + toolsAircraftEscape_(label + status + expiry) + '</div>'
+          + '<div class="tools-search-meta">' + toolsAircraftEscape_(row.pilotName || '') + (row.instructorSignoff ? (' · ' + toolsAircraftEscape_(row.instructorSignoff)) : '') + '</div>'
+          + '<div class="tools-search-meta">' + toolsAircraftEscape_(row.source || '') + '</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    var runwayEl = document.getElementById('tools-student-runway-list');
+    var runwayRows = Array.isArray(_toolsStudentAuthData.runwayAuthRows) ? _toolsStudentAuthData.runwayAuthRows : [];
+    if (runwayEl) {
+      if (!runwayRows.length) {
+        runwayEl.innerHTML = '<div class="tools-search-item"><div class="tools-search-meta">Nenhuma autorização de pista encontrada para esta pessoa.</div></div>';
+      } else {
+        runwayEl.innerHTML = runwayRows.map(function(row) {
+          var icaos = Array.isArray(row.icaos) && row.icaos.length ? row.icaos : (row.icao ? [row.icao] : []);
+          var icaoLabel = icaos.length ? icaos.join(', ') : 'Sem ICAO';
+          var label = [icaoLabel, row.runwayIdent || 'Sem pista'].join(' · ');
+          var status = row.status ? (' · ' + row.status) : '';
+          var expiry = row.expiryDate ? (' · Válida até ' + row.expiryDate) : '';
+          return '<div class="tools-search-item" data-runway-auth-row="' + toolsAircraftEscape_(String(row.rowNumber || '')) + '">'
+            + '<div class="tools-search-name">' + toolsAircraftEscape_(label + status + expiry) + '</div>'
+            + '<div class="tools-search-meta">' + toolsAircraftEscape_(row.approvedBy || '') + (row.authScope ? (' · ' + toolsAircraftEscape_(row.authScope)) : '') + '</div>'
+            + '<div class="tools-search-meta">' + toolsAircraftEscape_(row.source || '') + '</div>'
+            + '</div>';
+        }).join('');
+      }
+    }
+
+    if (el) {
+      Array.prototype.forEach.call(el.querySelectorAll('[data-auth-row]'), function(node) {
+        node.onclick = function() {
+          toolsStudentAuthLoadRow_(Number(node.getAttribute('data-auth-row') || 0));
+        };
+      });
+    }
+    if (runwayEl) {
+      Array.prototype.forEach.call(runwayEl.querySelectorAll('[data-runway-auth-row]'), function(node) {
+        node.onclick = function() {
+          toolsStudentRunwayLoadRow_(Number(node.getAttribute('data-runway-auth-row') || 0));
+        };
+      });
+    }
+
+    var authMeta = document.getElementById('tools-student-auth-meta');
+    if (authMeta) authMeta.textContent = rows.length + ' qualificação(ões) carregadas.';
+    var runwayMeta = document.getElementById('tools-student-runway-meta');
+    if (runwayMeta) runwayMeta.textContent = runwayRows.length + ' pista(s) carregadas.';
+  }
+
+  function toolsStudentLoadAuthData_() {
+    var identity = toolsStudentCurrentIdentity_();
+    if (!identity.name && !identity.email) {
+      _toolsStudentAuthData.aircraftAuthRows = [];
+      _toolsStudentAuthData.runwayAuthRows = [];
+      toolsStudentAuthRender_();
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        _toolsStudentAuthData.aircraftAuthRows = res && res.success && Array.isArray(res.rows) ? res.rows : [];
+        google.script.run
+          .withSuccessHandler(function(rRes) {
+            _toolsStudentAuthData.runwayAuthRows = rRes && rRes.success && Array.isArray(rRes.rows) ? rRes.rows : [];
+            toolsStudentAuthRender_();
+          })
+          .withFailureHandler(function() {
+            _toolsStudentAuthData.runwayAuthRows = [];
+            toolsStudentAuthRender_();
+          })
+          .getPilotRunwayAuthorizations({ pilotEmail: identity.email, pilotName: identity.name });
+      })
+      .withFailureHandler(function() {
+        _toolsStudentAuthData.aircraftAuthRows = [];
+        _toolsStudentAuthData.runwayAuthRows = [];
+        toolsStudentAuthRender_();
+      })
+      .getPilotAircraftAuthorizations({ pilotEmail: identity.email, pilotName: identity.name });
+  }
+
+  function toolsStudentAuthClear_() {
+    ['tools-student-auth-aircraft','tools-student-auth-role','tools-student-auth-type','tools-student-auth-status','tools-student-auth-date','tools-student-auth-expiry','tools-student-auth-signoff','tools-student-auth-source','tools-student-auth-notes'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    var statusSel = document.getElementById('tools-student-auth-status');
+    if (statusSel) statusSel.value = 'ACTIVE';
+    toolsStudentSetAuthEditorOpen_(false);
+  }
+
+  function toolsStudentRunwayClear_() {
+    ['tools-student-runway-icao','tools-student-runway-ident','tools-student-runway-status','tools-student-runway-expiry','tools-student-runway-approved-by','tools-student-runway-source','tools-student-runway-notes'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    var statusSel = document.getElementById('tools-student-runway-status');
+    if (statusSel) statusSel.value = 'ACTIVE';
+    toolsStudentRunwayFillRunways_();
+    toolsStudentSetRunwayEditorOpen_(false);
+  }
+
+  function toolsStudentAuthLoadRow_(rowNumber) {
+    var row = (_toolsStudentAuthData.aircraftAuthRows || []).find(function(item) { return Number(item.rowNumber || 0) === Number(rowNumber || 0); }) || null;
+    if (!row) return;
+    toolsStudentSetAuthEditorOpen_(true);
+    var aircraftSel = document.getElementById('tools-student-auth-aircraft');
+    var roleSel = document.getElementById('tools-student-auth-role');
+    var typeSel = document.getElementById('tools-student-auth-type');
+    var statusSel = document.getElementById('tools-student-auth-status');
+    var dateSel = document.getElementById('tools-student-auth-date');
+    var expirySel = document.getElementById('tools-student-auth-expiry');
+    var signoffEl = document.getElementById('tools-student-auth-signoff');
+    var sourceEl = document.getElementById('tools-student-auth-source');
+    var notesEl = document.getElementById('tools-student-auth-notes');
+    if (aircraftSel) aircraftSel.value = String(row.aircraftType || '');
+    if (roleSel) roleSel.value = String(row.role || '');
+    if (typeSel) typeSel.value = String(row.authorizationType || '');
+    if (statusSel) statusSel.value = String(row.status || 'ACTIVE');
+    if (dateSel) dateSel.value = toolsDisplayDateForInput_(dateSel, row.dateAuthorized || '');
+    if (expirySel) expirySel.value = toolsDisplayDateForInput_(expirySel, row.expiryDate || '');
+    if (signoffEl) signoffEl.value = String(row.instructorSignoff || '');
+    if (sourceEl) sourceEl.value = String(row.source || '');
+    if (notesEl) notesEl.value = String(row.notes || '');
+  }
+
+  function toolsStudentRunwayLoadRow_(rowNumber) {
+    var row = (_toolsStudentAuthData.runwayAuthRows || []).find(function(item) { return Number(item.rowNumber || 0) === Number(rowNumber || 0); }) || null;
+    if (!row) return;
+    toolsStudentSetRunwayEditorOpen_(true);
+    var icaoSel = document.getElementById('tools-student-runway-icao');
+    var identSel = document.getElementById('tools-student-runway-ident');
+    var statusSel = document.getElementById('tools-student-runway-status');
+    var expirySel = document.getElementById('tools-student-runway-expiry');
+    var approvedByEl = document.getElementById('tools-student-runway-approved-by');
+    var sourceEl = document.getElementById('tools-student-runway-source');
+    var notesEl = document.getElementById('tools-student-runway-notes');
+    if (icaoSel) icaoSel.value = String(row.icao || (Array.isArray(row.icaos) && row.icaos.length ? row.icaos[0] : '') || '');
+    toolsStudentRunwayFillRunways_();
+    if (identSel) identSel.value = String(row.runwayIdent || '');
+    if (statusSel) statusSel.value = String(row.status || 'ACTIVE');
+    if (expirySel) expirySel.value = toolsDisplayDateForInput_(expirySel, row.expiryDate || '');
+    if (approvedByEl) approvedByEl.value = String(row.approvedBy || '');
+    if (sourceEl) sourceEl.value = String(row.source || '');
+    if (notesEl) notesEl.value = String(row.notes || '');
+  }
+
+  function toolsStudentAuthSave_() {
+    var identity = toolsStudentCurrentIdentity_();
+    if (!identity.name && !identity.email) {
+      toolsToast_('Selecione ou preencha a pessoa primeiro.', 'orange');
+      return;
+    }
+    var payload = {
+      pilotName: identity.name,
+      pilotEmail: identity.email,
+      staffId: identity.staffId,
+      aircraftType: String((document.getElementById('tools-student-auth-aircraft') || {}).value || '').trim(),
+      role: String((document.getElementById('tools-student-auth-role') || {}).value || '').trim(),
+      authorizationType: String((document.getElementById('tools-student-auth-type') || {}).value || '').trim(),
+      status: String((document.getElementById('tools-student-auth-status') || {}).value || 'ACTIVE').trim(),
+      dateAuthorized: toolsNormalizeDateForSave_(String((document.getElementById('tools-student-auth-date') || {}).value || '').trim()),
+      expiryDate: toolsNormalizeDateForSave_(String((document.getElementById('tools-student-auth-expiry') || {}).value || '').trim()),
+      instructorSignoff: String((document.getElementById('tools-student-auth-signoff') || {}).value || '').trim(),
+      source: String((document.getElementById('tools-student-auth-source') || {}).value || '').trim(),
+      notes: String((document.getElementById('tools-student-auth-notes') || {}).value || '').trim()
+    };
+    if (!payload.aircraftType) {
+      toolsToast_('Selecione o tipo de aeronave.', 'orange');
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          toolsToast_((res && res.error) ? res.error : 'Falha ao salvar qualificação.', 'red');
+          return;
+        }
+        toolsToast_('Qualificação salva.', 'green');
+        toolsStudentSetAuthEditorOpen_(false);
+        toolsStudentLoadAuthData_();
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .saveToolsPilotAuthorization(payload);
+  }
+
+  function toolsStudentRunwaySave_() {
+    var identity = toolsStudentCurrentIdentity_();
+    if (!identity.name && !identity.email) {
+      toolsToast_('Selecione ou preencha a pessoa primeiro.', 'orange');
+      return;
+    }
+    var icao = String((document.getElementById('tools-student-runway-icao') || {}).value || '').trim().toUpperCase();
+    var runwayIdent = String((document.getElementById('tools-student-runway-ident') || {}).value || '').trim().toUpperCase();
+    var payload = {
+      pilotName: identity.name,
+      pilotEmail: identity.email,
+      staffId: identity.staffId,
+      icao: icao,
+      runwayIdent: runwayIdent,
+      status: String((document.getElementById('tools-student-runway-status') || {}).value || 'ACTIVE').trim(),
+      dateChecked: toolsTodayIso_(),
+      expiryDate: toolsNormalizeDateForSave_(String((document.getElementById('tools-student-runway-expiry') || {}).value || '').trim()),
+      approvedBy: String((document.getElementById('tools-student-runway-approved-by') || {}).value || '').trim(),
+      source: String((document.getElementById('tools-student-runway-source') || {}).value || '').trim(),
+      notes: String((document.getElementById('tools-student-runway-notes') || {}).value || '').trim(),
+      authScope: 'RUNWAY'
+    };
+    if (!payload.icao) {
+      toolsToast_('Selecione o ICAO.', 'orange');
+      return;
+    }
+    if (!payload.runwayIdent) {
+      toolsToast_('Selecione a pista.', 'orange');
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success) {
+          toolsToast_((res && res.error) ? res.error : 'Falha ao salvar pista.', 'red');
+          return;
+        }
+        toolsToast_('Autorização de pista salva.', 'green');
+        toolsStudentSetRunwayEditorOpen_(false);
+        toolsStudentLoadAuthData_();
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Error: ' + (err && err.message ? err.message : String(err)), 'red');
+      })
+      .saveToolsRunwayAuthorization(payload);
+  }
+
   function toolsStudentPersonTypeLabel_(kind) {
     var type = String(kind || '').trim().toUpperCase();
     if (type === 'OPS_PILOT') return 'Piloto Operacional';
@@ -3794,6 +4187,7 @@
         _toolsStudentsData.rows = Array.isArray(res.rows) ? res.rows : [];
         _toolsStudentsData.ratingsOptions = Array.isArray(res.ratingsOptions) ? res.ratingsOptions : [];
         toolsStudentRefreshSelect_();
+        toolsStudentBindAuthDropdowns_();
         var ratingsEl = document.getElementById('tools-student-ratings');
         if (ratingsEl) ratingsEl.innerHTML = toolsStudentRatingsOptionsHtml_([], {});
         var metaEl = document.getElementById('tools-student-meta');
@@ -3849,6 +4243,10 @@
 
     toolsStudentRenderLedger_(item.ledger || []);
     toolsStudentApplyPersonTypeUi_();
+    toolsStudentSetAuthEditorOpen_(false);
+    toolsStudentSetRunwayEditorOpen_(false);
+    toolsStudentBindAuthDropdowns_();
+    toolsStudentLoadAuthData_();
     var metaEl = document.getElementById('tools-student-meta');
     if (metaEl) metaEl.textContent = 'Editando pessoa linha ' + rowNumber + '.';
   }
@@ -3876,6 +4274,12 @@
     if (receiptMetaEl) receiptMetaEl.textContent = 'Nenhum comprovante selecionado.';
     toolsStudentRenderLedger_([]);
     toolsStudentApplyPersonTypeUi_();
+    toolsStudentSetAuthEditorOpen_(false);
+    toolsStudentSetRunwayEditorOpen_(false);
+    toolsStudentBindAuthDropdowns_();
+    toolsStudentAuthClear_();
+    toolsStudentRunwayClear_();
+    toolsStudentLoadAuthData_();
     var metaEl = document.getElementById('tools-student-meta');
     if (metaEl) metaEl.textContent = 'Nova pessoa.';
   }
@@ -4107,13 +4511,6 @@
       })
       .withFailureHandler(function(err) { toolsToast_('Erro: ' + (err && err.message ? err.message : String(err)), 'red'); })
       .voidStudentLedgerEntry({ txId: txId, studentKey: studentKey, reason: reason, actorEmail: toolsCurrentAdmin_() });
-  }
-
-  function toolsOpenPilotAuthPanel() {
-    toolsOpenPanel('pilotauth');
-    toolsLoadStaffSetupData_(false);
-    toolsPilotAuthClearForm_();
-    toolsInitDatePickers_(document.getElementById('tools-panel-pilotauth') || document);
   }
 
   function toolsPilotAuthLoadSelected_() {
@@ -5755,16 +6152,24 @@
   function toolsApplyMasterSchedulerConfig_(cfg) {
     var c = cfg || {};
     var calEl = document.getElementById('tools-master-sched-calendar-id');
+    var flightLinkEl = document.getElementById('tools-master-flight-calendar-link');
+    var maintLinkEl = document.getElementById('tools-master-maint-calendar-link');
     var dayEl = document.getElementById('tools-master-sched-publish-day');
     if (calEl) calEl.value = String(c.AVAILABILITY_CALENDAR_ID || '');
+    if (flightLinkEl) flightLinkEl.value = String(c.FLIGHTS_CALENDAR_LINK || '');
+    if (maintLinkEl) maintLinkEl.value = String(c.MAINTENANCE_CALENDAR_LINK || '');
     if (dayEl) dayEl.value = String(c.PUBLISH_DAY_OF_MONTH || '15');
   }
 
   function toolsMasterSchedulerEntries_() {
     var calId = String((document.getElementById('tools-master-sched-calendar-id') || {}).value || '').trim();
+    var flightLink = String((document.getElementById('tools-master-flight-calendar-link') || {}).value || '').trim();
+    var maintLink = String((document.getElementById('tools-master-maint-calendar-link') || {}).value || '').trim();
     var publishDay = String((document.getElementById('tools-master-sched-publish-day') || {}).value || '').trim();
     return [
       { key: 'AVAILABILITY_CALENDAR_ID', value: calId, description: 'Shared calendar id with unavailable-only events', active: 'Y' },
+      { key: 'FLIGHTS_CALENDAR_LINK', value: flightLink, description: 'Google Calendar link for flight events', active: 'Y' },
+      { key: 'MAINTENANCE_CALENDAR_LINK', value: maintLink, description: 'Google Calendar link for maintenance events', active: 'Y' },
       { key: 'PUBLISH_DAY_OF_MONTH', value: publishDay || '15', description: 'Auto-publish day for next month schedule', active: 'Y' }
     ];
   }
@@ -8726,8 +9131,10 @@
     toolsOpenPanel('aircraftbuild');
     var noteEl = document.getElementById('tools-ac-note');
     var sectionsEl = document.getElementById('tools-ac-sections');
-    if (noteEl) noteEl.textContent = 'Loading aircraft template…';
+    if (noteEl) noteEl.textContent = 'Carregando aeronaves…';
     if (sectionsEl) sectionsEl.style.display = 'none';
+    _toolsAircraftBuilderSourceReg = '';
+    _toolsAircraftBuilderSourceType = '';
 
     google.script.run
       .withSuccessHandler(function(res) {
@@ -8760,17 +9167,35 @@
   }
 
   function toolsAircraftSetMode(mode) {
-    _toolsAircraftMode = String(mode || 'scratch') === 'copy' ? 'copy' : 'scratch';
-    var isCopy = _toolsAircraftMode === 'copy';
+    var rawMode = String(mode || 'scratch').trim().toLowerCase();
+    _toolsAircraftMode = rawMode === 'edit' ? 'edit' : (rawMode === 'copy' ? 'copy' : 'scratch');
+    var isCopy = _toolsAircraftMode !== 'scratch';
     var copyRow = document.getElementById('tools-ac-copy-row');
     var scratchBtn = document.getElementById('tools-ac-mode-scratch');
-    var copyBtn = document.getElementById('tools-ac-mode-copy');
+    var copyBtn = document.getElementById('tools-ac-mode-copy-new');
+    var editBtn = document.getElementById('tools-ac-mode-edit');
     if (copyRow) copyRow.style.display = isCopy ? 'flex' : 'none';
     if (scratchBtn) scratchBtn.classList.toggle('active', !isCopy);
-    if (copyBtn) copyBtn.classList.toggle('active', isCopy);
+    if (copyBtn) copyBtn.classList.toggle('active', _toolsAircraftMode === 'copy');
+    if (editBtn) editBtn.classList.toggle('active', _toolsAircraftMode === 'edit');
+    toolsAircraftUpdateSaveButton_();
 
     if (isCopy) {
-      toolsAircraftRenderTemplateRows_(null);
+      var sel = document.getElementById('tools-ac-source');
+      var reg = String((sel && sel.value) || '').trim();
+      if (reg) toolsAircraftLoadSource();
+      else {
+        var noteEl = document.getElementById('tools-ac-note');
+        if (noteEl) noteEl.textContent = 'Selecione uma aeronave para carregar os dados salvos.';
+        _toolsAircraftBuilderSourceReg = '';
+        _toolsAircraftBuilderSourceType = '';
+        toolsAircraftRenderTemplateRows_({
+          aircraftRow: {},
+          airframeRows: [],
+          envelopeRows: [],
+          rollRows: []
+        });
+      }
     } else {
       toolsAircraftRenderTemplateRows_({
         aircraftRow: {},
@@ -8784,9 +9209,21 @@
   function toolsAircraftLoadSource() {
     var sel = document.getElementById('tools-ac-source');
     var reg = String((sel && sel.value) || '').trim();
-    if (!reg) { toolsToast_('Choose a source aircraft first.', 'orange'); return; }
     var noteEl = document.getElementById('tools-ac-note');
-    if (noteEl) noteEl.textContent = 'Loading copy template for ' + reg + '…';
+    if (!reg) {
+      if (noteEl) noteEl.textContent = 'Selecione uma aeronave para carregar os dados salvos.';
+      _toolsAircraftBuilderSourceReg = '';
+      _toolsAircraftBuilderSourceType = '';
+      toolsAircraftUpdateSaveButton_();
+      toolsAircraftRenderTemplateRows_({
+        aircraftRow: {},
+        airframeRows: [],
+        envelopeRows: [],
+        rollRows: []
+      });
+      return;
+    }
+    if (noteEl) noteEl.textContent = 'Carregando dados da aeronave ' + reg + '…';
 
     google.script.run
       .withSuccessHandler(function(res) {
@@ -8797,9 +9234,12 @@
           return;
         }
         _toolsAircraftBuilderData = res;
+        _toolsAircraftBuilderSourceReg = String((res && res.sourceRegistration) || reg || '').trim();
+        _toolsAircraftBuilderSourceType = String((res && res.sourceAircraftType) || '').trim();
         toolsAircraftRenderSourceOptions_();
         if (sel) sel.value = reg;
         toolsAircraftRenderTemplateRows_(res.template || null);
+        toolsAircraftUpdateSaveButton_();
       })
       .withFailureHandler(function(err) {
         var msg = 'Error: ' + (err && err.message ? err.message : String(err));
@@ -8807,6 +9247,14 @@
         toolsToast_(msg, 'red');
       })
       .getToolsAircraftBuilderTemplate(reg);
+  }
+
+  function toolsAircraftUpdateSaveButton_() {
+    var btn = document.querySelector('#tools-panel-aircraftbuild .btn-tp');
+    if (!btn) return;
+    btn.textContent = _toolsAircraftMode === 'edit'
+      ? 'SALVAR ALTERAÇÕES'
+      : (_toolsAircraftMode === 'copy' ? 'SALVAR COPIA NOVA' : 'SALVAR NOVA AERONAVE');
   }
 
   function toolsAircraftRowHtml_(sectionName, headers, rowObj, idx, allowRemove) {
@@ -8956,8 +9404,8 @@
 
     if (noteEl) {
       noteEl.textContent = _toolsAircraftMode === 'copy'
-        ? 'Copied values loaded. Review and edit every row/field before saving.'
-        : 'Blank template loaded. Fill all sections and save.';
+        ? 'Dados da aeronave carregados. Revise e ajuste cada linha/campo antes de salvar.'
+        : 'Modelo em branco carregado. Preencha todas as seções e salve.';
     }
     if (sectionsEl) sectionsEl.style.display = 'block';
   }
@@ -9009,6 +9457,10 @@
       envelopeRows: toolsAircraftCollectSection_('envelopes'),
       rollRows: toolsAircraftCollectSection_('rollnumbers')
     };
+    if (_toolsAircraftMode === 'edit') {
+      payload.originalRegistration = _toolsAircraftBuilderSourceReg;
+      payload.originalAircraftType = _toolsAircraftBuilderSourceType;
+    }
 
     var btn = document.querySelector('#tools-panel-aircraftbuild .btn-tp');
     if (btn) btn.disabled = true;
@@ -10606,7 +11058,7 @@
   window.toolsOpenDiscrepancyPanel = toolsOpenDiscrepancyPanel;
   window.toolsOpenStaffPanel = toolsOpenStaffPanel;
   window.toolsOpenStudentPanel = toolsOpenStudentPanel;
-  window.toolsOpenPilotAuthPanel = toolsOpenPilotAuthPanel;
+  window.toolsOpenPersonalPanel = toolsOpenPersonalPanel;
   window.toolsOpenSavedRoutesPanel = toolsOpenSavedRoutesPanel;
   window.toolsOpenTrainingModulePanel = toolsOpenTrainingModulePanel;
   window.toolsOpenManeuverPanel = toolsOpenManeuverPanel;

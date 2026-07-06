@@ -649,6 +649,7 @@
     flightId: '',
     aircraftReg: '',
     aircraftType: '',
+    uiVersion: 105,
     fromIcao: '',
     weightKg: 0,
     runways: [],
@@ -948,6 +949,57 @@
     } catch (e) {
       return fallback;
     }
+  }
+
+  function _perfAircraftTypeMatchKey_(value) {
+    const text = String(value || '').trim().toUpperCase();
+    if (!text) return '';
+    return text
+      .replace(/^CESSNA\s+U(?=\d)/, 'CESSNA ')
+      .replace(/^U(?=\d)/, '')
+      .replace(/[^A-Z0-9]+/g, '');
+  }
+
+  function _perfResolveAircraftTypeFromReg_(aircraftReg) {
+    const reg = String(aircraftReg || '').trim().toUpperCase();
+    if (!reg) return '';
+
+    const aircraftSources = [];
+    if (window.appData && Array.isArray(window.appData.aircraft)) {
+      aircraftSources.push(window.appData.aircraft);
+    }
+
+    try {
+      const raw = localStorage.getItem('mba_cache_dropdown_data_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.aircraft)) {
+          aircraftSources.push(parsed.aircraft);
+        }
+      }
+    } catch (e) {}
+
+    for (let i = 0; i < aircraftSources.length; i++) {
+      const source = aircraftSources[i] || [];
+      const aircraft = source.find(function(row) {
+        const rowReg = String(
+          row && (row.reg || row.aircraftReg || row.registration || row.REGISTRATION || row.aircraftRegistration || '')
+        ).trim().toUpperCase();
+        return rowReg === reg;
+      });
+      if (!aircraft) continue;
+
+      const resolvedType = String(
+        aircraft.aircraftType
+        || aircraft.AIRCRAFT_TYPE
+        || aircraft.typeForPerformance
+        || aircraft.TYPE_FOR_PERFORMANCE
+        || ''
+      ).trim();
+      if (resolvedType) return resolvedType;
+    }
+
+    return '';
   }
 
   function buildLocalPerformanceSetup_(icao) {
@@ -1496,8 +1548,9 @@
       if (weightKg <= 0) return { success: false, error: 'Weight must be greater than zero.' };
       if (runwayLengthM <= 0) return { success: false, error: 'Runway length must be greater than zero.' };
 
+      const aircraftTypeKey = _perfAircraftTypeMatchKey_(aircraftType);
       const baseRows = ((calcReference && calcReference.baseRows) || [])
-        .filter(r => String(_perfCalcValue(r, ['AIRCRAFT_TYPE'], '')).trim().toUpperCase() === aircraftType.toUpperCase())
+        .filter(r => _perfAircraftTypeMatchKey_(_perfCalcValue(r, ['AIRCRAFT_TYPE'], '')) === aircraftTypeKey)
         .map(r => ({
           w: _perfCalcNum(_perfCalcValue(r, ['WEIGHT_KG', 'WEIGHT'], 0), 0),
           to: _perfCalcNum(_perfCalcValue(r, ['TO_ROLL_M', 'TO_ROLL'], 0), 0),
@@ -1711,6 +1764,9 @@
   }
 
   function _perfWindConfirmedStatus_() {
+    const dir = String(document.getElementById('perf-wind-direction')?.value || '').trim();
+    const spd = String(document.getElementById('perf-wind-speed')?.value || '').trim();
+    if (dir !== '' && spd !== '') return true;
     return !!(window.performanceTab4 && window.performanceTab4.windConfirmed);
   }
 
@@ -1787,6 +1843,24 @@
       ...ctx,
       weightKg: Number(ctx.weightKg || 0)
     };
+
+    window.performanceTab4.setupDiagnostics = {
+      missionId: String(window.performanceTab4.missionId || '').trim(),
+      flightId: String(window.performanceTab4.flightId || '').trim(),
+      aircraftReg: String(window.performanceTab4.aircraftReg || '').trim(),
+      aircraftType: String(window.performanceTab4.aircraftType || '').trim(),
+      fromIcao: String(window.performanceTab4.fromIcao || '').trim(),
+      weightKg: Number(window.performanceTab4.weightKg || 0),
+      uiVersion: Number(window.performanceTab4.uiVersion || 0)
+    };
+    console.info('[Tab4 setup]', window.performanceTab4.setupDiagnostics);
+
+    if (!String(window.performanceTab4.aircraftType || '').trim()) {
+      const resolvedAircraftType = _perfResolveAircraftTypeFromReg_(window.performanceTab4.aircraftReg);
+      if (resolvedAircraftType) {
+        window.performanceTab4.aircraftType = resolvedAircraftType;
+      }
+    }
 
     const airportEl = document.getElementById('perf-airport');
     const weightEl = document.getElementById('perf-weight');
@@ -1911,14 +1985,21 @@
     document.getElementById('perf-elevation').value = runway ? Math.round(Number(runway.elevation || 0)) : '';
     document.getElementById('perf-rwy-hdg').textContent = `${String(Math.round(Number(runway?.headingDeg || 0))).padStart(3, '0')}°`;
     window.performanceTab4.slopeOverridden = false;
-    window.performanceTab4.windConfirmed = false;
     window.performanceTab4.selectedRunway = runway;
     const windDirEl = document.getElementById('perf-wind-direction');
     const windSpdEl = document.getElementById('perf-wind-speed');
-    if (windDirEl) windDirEl.value = '';
-    if (windSpdEl) windSpdEl.value = '';
+    const hasWindValues = !!(String(windDirEl && windDirEl.value || '').trim() && String(windSpdEl && windSpdEl.value || '').trim());
+    window.performanceTab4.windConfirmed = hasWindValues;
     const calmBtn = document.getElementById('perf-calm-wind-btn');
-    if (calmBtn) { calmBtn.style.background = ''; calmBtn.style.color = ''; }
+    if (calmBtn) {
+      if (hasWindValues && Number(windDirEl && windDirEl.value || 0) === 0 && Number(windSpdEl && windSpdEl.value || 0) === 0) {
+        calmBtn.style.background = '#1565c0';
+        calmBtn.style.color = '#fff';
+      } else {
+        calmBtn.style.background = '';
+        calmBtn.style.color = '';
+      }
+    }
 
     // --- LENGTH ---
     const rawLength = runway ? runway.length : null;
@@ -2718,16 +2799,42 @@
       flapSetting: Number(document.getElementById('perf-flaps')?.value || 0)
     };
 
+    window.performanceTab4.lastCalcDiagnostics = {
+      uiVersion: Number(window.performanceTab4.uiVersion || 0),
+      runwayIndex: idx,
+      runwayIdent: String(runway && runway.rwyIdent || '').trim(),
+      aircraftReg: String(payload.aircraftReg || '').trim(),
+      aircraftType: String(payload.aircraftType || '').trim(),
+      runwayLengthM: Number(payload.runwayLengthM || 0),
+      slopePercent: Number(payload.slopePercent || 0),
+      qnhHpa: Number(payload.qnhHpa || 0),
+      tempC: Number(payload.tempC || 0),
+      humidityPct: Number(payload.humidityPct || 0),
+      windDirectionDeg: Number(payload.windDirectionDeg || 0),
+      windSpeedKts: Number(payload.windSpeedKts || 0),
+      payloadReady: !!(payload.aircraftType && payload.weightKg && payload.runwayLengthM)
+    };
+    console.info('[Tab4 calc]', window.performanceTab4.lastCalcDiagnostics);
+
     let localCalcReference = window.performanceTab4.calcReference;
     if (!localCalcReference || !Array.isArray(localCalcReference.baseRows) || !localCalcReference.baseRows.length || !Array.isArray(localCalcReference.perfRows) || !localCalcReference.perfRows.length) {
       localCalcReference = readGlobalPerformanceReference_() || { baseRows: [], perfRows: [] };
       window.performanceTab4.calcReference = localCalcReference;
     }
 
+    if (!String(payload.aircraftType || '').trim()) {
+      const resolvedAircraftType = _perfResolveAircraftTypeFromReg_(payload.aircraftReg || window.performanceTab4.aircraftReg);
+      if (resolvedAircraftType) {
+        payload.aircraftType = resolvedAircraftType;
+        window.performanceTab4.aircraftType = resolvedAircraftType;
+      }
+    }
+
     if (!String(payload.aircraftType || '').trim() && localCalcReference && Array.isArray(localCalcReference.baseRows) && localCalcReference.baseRows.length) {
+      const aircraftTypeKey = _perfAircraftTypeMatchKey_(payload.aircraftType || '');
       const knownTypes = Array.from(new Set(localCalcReference.baseRows
         .map(function(r) { return String(_perfCalcValue(r, ['AIRCRAFT_TYPE'], '')).trim(); })
-        .filter(Boolean)));
+        .filter(function(typeName) { return _perfAircraftTypeMatchKey_(typeName) === aircraftTypeKey; })));
       if (knownTypes.length === 1) {
         payload.aircraftType = knownTypes[0];
         window.performanceTab4.aircraftType = knownTypes[0];
@@ -2744,10 +2851,30 @@
     const cachedResult = readCachedPerformanceResult_(payload);
 
     if (localCalcReference && Array.isArray(localCalcReference.baseRows) && localCalcReference.baseRows.length && Array.isArray(localCalcReference.perfRows) && localCalcReference.perfRows.length) {
+      const aircraftTypeKey = _perfAircraftTypeMatchKey_(payload.aircraftType || '');
+      const baseRowsForAircraft = localCalcReference.baseRows.filter(function(r) {
+        return _perfAircraftTypeMatchKey_(_perfCalcValue(r, ['AIRCRAFT_TYPE'], '')) === aircraftTypeKey;
+      });
+      const refDiagnostics = {
+        aircraftType: String(payload.aircraftType || '').trim(),
+        baseRowsTotal: localCalcReference.baseRows.length,
+        perfRowsTotal: localCalcReference.perfRows.length,
+        baseRowsForAircraft: baseRowsForAircraft.length,
+        sampleAircraftTypes: Array.from(new Set(localCalcReference.baseRows
+          .map(function(r) { return String(_perfCalcValue(r, ['AIRCRAFT_TYPE'], '')).trim(); })
+          .filter(Boolean)))
+          .slice(0, 8)
+      };
+      window.performanceTab4.lastCalcDiagnostics = Object.assign({}, window.performanceTab4.lastCalcDiagnostics || {}, refDiagnostics);
+      console.info('[Tab4 calc ref]', refDiagnostics);
+
       const localResult = calculatePerformanceLocally_(payload, localCalcReference);
       if (!localResult || !localResult.success) {
+        const failureText = String(localResult && localResult.error ? localResult.error : 'unknown');
+        const diagText = JSON.stringify(window.performanceTab4.lastCalcDiagnostics || {});
+        console.error('[Tab4 calc failed] ' + failureText + ' | diagnostics=' + diagText);
         if (!silentMode && window.M) {
-          M.toast({ html: (localResult && localResult.error) ? localResult.error : 'Performance calculation failed', classes: 'red', displayLength: 7000 });
+          M.toast({ html: failureText, classes: 'red', displayLength: 7000 });
         }
         return;
       }

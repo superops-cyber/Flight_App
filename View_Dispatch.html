@@ -249,6 +249,7 @@ font-weight: bold;
 </div>
 <div class="nav-header">
 <span>FLIGHT DISPATCH TERMINAL V4.0</span>
+<button onclick="openMaintenanceCalendar_()" style="background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.45); color:white; border-radius:6px; padding:0 13px; height:28px; font-size:0.72rem; font-weight:900; cursor:pointer; letter-spacing:0.04em; text-transform:uppercase;">MX CALENDAR</button>
 <button onclick="switchTab('view-flightfollow')" style="background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.45); color:white; border-radius:6px; padding:0 13px; height:28px; font-size:0.72rem; font-weight:900; cursor:pointer; letter-spacing:0.04em; text-transform:uppercase;">&#9992; FLIGHT FOLLOWING</button>
 <span style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
 <span id="missionIdDisp" style="background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:4px;">LOADING...</span>
@@ -611,6 +612,23 @@ function refreshDispatchAirportAutocomplete_() {
   }).join('');
 }
 
+function aircraftDisplayLabel_(aircraft) {
+  const reg = String(aircraft && aircraft.reg ? aircraft.reg : '').trim().toUpperCase();
+  const hoursToInsp = aircraft ? parseFloat(aircraft.hoursToInsp) : NaN;
+  const forecast = aircraft ? parseFloat(aircraft.hoursToInspForecast) : NaN;
+  if (isFinite(hoursToInsp) && isFinite(forecast)) return reg + ` (${hoursToInsp.toFixed(1)}, ${forecast.toFixed(1)})`;
+  return reg + (isFinite(hoursToInsp) ? ` (${hoursToInsp.toFixed(1)} hrs)` : '');
+}
+
+function openMaintenanceCalendar_() {
+  try {
+    if (typeof switchTab === 'function') switchTab('view-home');
+    if (typeof portalCalendarModeIsMaintenance_ === 'function' && typeof togglePortalCalendarMode_ === 'function') {
+      if (!portalCalendarModeIsMaintenance_()) togglePortalCalendarMode_();
+    }
+  } catch (e) {}
+}
+
 function dispatchResolveAirportInput_(raw, allowPrefix) {
   if (!raw || !Array.isArray(appData.airports)) return null;
   const airports = dispatchUniqueAirports_();
@@ -847,7 +865,7 @@ google.script.run
 if (!data) { showDispatchError("Server returned empty data."); return; }
 appData = data;
 document.getElementById('missionIdDisp').innerText = "ID: " + data.nextId;
-if(data.aircraft) data.aircraft.forEach(a => document.getElementById('aircraft').add(new Option(a.reg, a.reg)));
+if(data.aircraft) data.aircraft.forEach(a => document.getElementById('aircraft').add(new Option(aircraftDisplayLabel_(a), a.reg)));
 document.getElementById('pilot').add(new Option('TBD', 'TBD'));
 if(data.pilots) data.pilots.forEach(p => {
   document.getElementById('pilot').add(new Option(p.name, p.name));
@@ -2654,6 +2672,13 @@ function renderFlightBlocks(blocks) {
     return;
   }
   const today = new Date(); today.setHours(0,0,0,0);
+
+  function aircraftLabelWithInspection_(reg) {
+    const aircraft = (appData.aircraft || []).find(a => a.reg === reg);
+    const hoursToInsp = aircraft ? parseFloat(aircraft.hoursToInsp) : NaN;
+    return reg + (isFinite(hoursToInsp) ? ` (${hoursToInsp.toFixed(1)} hrs)` : '');
+  }
+
   box.innerHTML = blocks.map(b => {
     const pct = b.allocatedHrs > 0 ? Math.min(100, Math.round(b.usedHrs / b.allocatedHrs * 100)) : 0;
     const remaining = Math.max(0, b.allocatedHrs - b.usedHrs);
@@ -2680,7 +2705,7 @@ function renderFlightBlocks(blocks) {
   <div style="display:flex; justify-content:space-between; align-items:flex-start;">
     <div style="min-width:0;">
       <span class="block-title">${b.name}${statusBadge}</span>
-      <div class="block-meta">${b.aircraft}${b.type ? ' &middot; ' + b.type : ''} &middot; ${b.dateStart} &rarr; ${b.dateEnd}</div>
+      <div class="block-meta">${aircraftLabelWithInspection_(b.aircraft)}${b.type ? ' &middot; ' + b.type : ''} &middot; ${b.dateStart} &rarr; ${b.dateEnd}</div>
     </div>
     <div style="display:flex; gap:4px; align-items:center; flex-shrink:0; margin-left:8px;">
       <button class="dispatch-mini-btn" title="Edit block" onclick="openFlightBlockModal('${b.blockId}')">&#9998;</button>
@@ -2702,7 +2727,7 @@ function renderFlightBlocks(blocks) {
 function openFlightBlockModal(blockId) {
   const acftSel = document.getElementById('blkAircraft');
   acftSel.innerHTML = '<option value="">Select Aircraft</option>';
-  (appData.aircraft || []).forEach(a => acftSel.add(new Option(a.reg, a.reg)));
+  (appData.aircraft || []).forEach(a => acftSel.add(new Option(aircraftDisplayLabel_(a), a.reg)));
 
   // Clear fields
   ['blkId','blkName','blkHours','blkStart','blkEnd','blkNotes'].forEach(id => {
