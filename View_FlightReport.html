@@ -161,6 +161,23 @@
       return d.toLocaleString('pt-BR');
     }
 
+    function ptDate(v) {
+      if (!v) return '---';
+      var text = String(v).trim();
+      if (!text) return '---';
+      var months = { '01': 'jan', '02': 'fev', '03': 'mar', '04': 'abr', '05': 'mai', '06': 'jun', '07': 'jul', '08': 'ago', '09': 'set', '10': 'out', '11': 'nov', '12': 'dez' };
+      var m = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return m[3] + '-' + (months[m[2]] || m[2]) + '-' + m[1];
+      var d = new Date(text);
+      if (!isNaN(d.getTime())) {
+        var dd = String(d.getDate()).padStart(2, '0');
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var yyyy = String(d.getFullYear());
+        return dd + '-' + (months[mm] || mm) + '-' + yyyy;
+      }
+      return text;
+    }
+
     function buildKv(rows) {
       return '<div class="kv">' + rows.map(function(it) {
         return '<div class="k"><span>' + esc(it.k) + '</span><strong>' + esc(it.v == null ? '---' : it.v) + '</strong></div>';
@@ -253,7 +270,7 @@
           '<h3>Resumo do Voo</h3>' +
           buildKv([
             { k: 'Flight ID', v: data.flightId || '---' },
-            { k: 'Data', v: summary.date || log.date || '---' },
+            { k: 'Data', v: ptDate(summary.date || log.date || '---') },
             { k: 'Aeronave', v: summary.aircraft || log.aircraft || '---' },
             { k: 'Piloto', v: summary.pilot || log.pilot || '---' },
             { k: 'Origem', v: summary.from || log.from || '---' },

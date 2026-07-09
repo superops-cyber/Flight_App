@@ -31,7 +31,7 @@
       width: 100%;
       max-width: 760px;
       margin: 0 auto;
-      padding: 14px;
+      padding: 64px 14px 14px;
     }
 
     h1 {
@@ -552,6 +552,7 @@
   <div class="wrap">
     <div class="topbar">
       <h1>Registro de Horas</h1>
+      <div id="duty-app-version" class="account-status" style="margin-left:auto; margin-right:8px; font-size:0.72rem; font-weight:800; padding:5px 9px; border-radius:999px; background:#eef6ff; color:#0b5394; border:1px solid #cfe2ff;">v?</div>
       <button type="button" class="info-btn" title="Ajuda de lembretes no celular" aria-label="Ajuda de lembretes no celular" onclick="dutyOpenMobileHelp_()">i</button>
     </div>
     <div id="duty-banner" class="banner"></div>
@@ -567,13 +568,20 @@
       <div class="field">
         <label for="preferred-duty-email">Conta Google para registrar horas</label>
         <input id="preferred-duty-email" type="email" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="usuario@dominio.com">
-        <div class="account-note">Salvo neste navegador. Deixe em branco para usar a conta atual logada.</div>
+        <div class="account-note">Salvo neste navegador e no servidor. Use o botao para puxar a conta salva.</div>
       </div>
       <div class="btn-row" style="margin-top:8px;">
         <button class="primary" type="button" onclick="dutySavePreferredEmail()">Salvar conta</button>
-        <button class="secondary" type="button" onclick="dutyUseCurrentEmail()">Usar conta logada</button>
+        <button class="secondary" type="button" onclick="dutyLoadSavedEmail()">Carregar conta salva</button>
       </div>
       <div id="preferred-duty-email-status" class="account-status" style="margin-top:6px;"></div>
+      <details id="preferred-duty-debug-panel" style="margin-top:10px; border:1px dashed #c9d8e6; border-radius:10px; background:#f8fbff; font-size:0.74rem; color:#32506b; padding:8px 12px;">
+        <summary style="cursor:pointer; font-weight:900; text-transform:uppercase; letter-spacing:0.03em; color:#0b5394; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <span>Diagnostico de carregamento</span>
+          <span id="preferred-duty-debug-count" style="font-size:0.68rem; color:#607d8b; text-transform:none; letter-spacing:0;"></span>
+        </summary>
+        <div id="preferred-duty-debug-lines" style="display:grid; gap:4px; margin-top:8px;"></div>
+      </details>
     </section>
 
     <section class="card">
@@ -794,6 +802,8 @@
       selectedPilotName: '',
       selectedDateYmd: '',
       currentUser: null,
+      appVersion: '',
+      serverPreferredDutyEmail: '',
       staff: [],
       snapshot: null,
       logs: [],
@@ -802,7 +812,11 @@
       editingDateYmd: '',
       editingShifts: [],
       loading: false,
-      dutyConfig: {}
+      dutyConfig: {},
+      lastServerCall: null,
+      recentServerCalls: [],
+      bootstrapInFlight: null,
+      bootstrapPending: null
     };
 
     let dutyBannerTimer = null;
@@ -884,6 +898,10 @@
       }
     }
 
+    function dutyReadServerPreferredEmail_() {
+      return dutyNormalizePreferredEmail_(dutyState.serverPreferredDutyEmail || '');
+    }
+
     function dutyWritePreferredEmail_(value) {
       const email = dutyNormalizePreferredEmail_(value);
       try {
@@ -895,7 +913,7 @@
     }
 
     function dutyPreferredEmailForRequest_() {
-      return dutyNormalizePreferredEmail_(dutyState.preferredDutyEmail || dutyReadPreferredEmail_());
+      return dutyNormalizePreferredEmail_(dutyState.preferredDutyEmail || dutyReadPreferredEmail_() || dutyReadServerPreferredEmail_());
     }
 
     function dutyRefreshPreferredEmailUi_() {
@@ -903,9 +921,13 @@
       const status = document.getElementById('preferred-duty-email-status');
       if (!input && !status) return;
 
-      const savedEmail = dutyReadPreferredEmail_();
+      const savedEmail = dutyReadPreferredEmail_() || dutyReadServerPreferredEmail_();
       const sessionEmail = String(dutyState.currentUser && dutyState.currentUser.sessionEmail || '').trim().toLowerCase();
       const currentValue = savedEmail || sessionEmail || '';
+
+      if (!dutyReadPreferredEmail_() && savedEmail) {
+        dutyWritePreferredEmail_(savedEmail);
+      }
 
       if (input) {
         input.value = currentValue;
@@ -918,6 +940,7 @@
       }
 
       dutyState.preferredDutyEmail = savedEmail;
+      dutyRenderServerCallDebug_();
     }
 
     async function dutySavePreferredEmail() {
@@ -925,6 +948,21 @@
       const email = dutyWritePreferredEmail_(input ? input.value : '');
       dutyRefreshPreferredEmailUi_();
       dutySetBanner(email ? 'Conta salva para registrar horas.' : 'Conta salva limpa. O app voltará a usar a conta logada.', 'ok');
+      if (email) {
+        try {
+          await dutyCallServer('saveDutyPreferredEmail', {
+            pilotName: dutyState.selectedPilotName,
+            preferredDutyEmail: email
+          });
+        } catch (e) {}
+      } else {
+        try {
+          await dutyCallServer('saveDutyPreferredEmail', {
+            pilotName: dutyState.selectedPilotName,
+            preferredDutyEmail: ''
+          });
+        } catch (e) {}
+      }
       await dutyLoadBootstrap('Atualizando conta de duty...');
     }
 
@@ -939,25 +977,59 @@
       await dutySavePreferredEmail();
     }
 
+    async function dutyLoadSavedEmail() {
+      const savedEmail = String(dutyReadPreferredEmail_() || dutyReadServerPreferredEmail_() || '').trim().toLowerCase();
+      if (!savedEmail) {
+        dutySetBanner('Nenhuma conta salva encontrada.', 'warn');
+        return;
+      }
+      const input = document.getElementById('preferred-duty-email');
+      if (input) input.value = savedEmail;
+      dutyWritePreferredEmail_(savedEmail);
+      dutyRefreshPreferredEmailUi_();
+      await dutyLoadBootstrap('Carregando conta salva...');
+    }
+
     function dutyCallServer(methodName, payload) {
       return new Promise(function(resolve, reject) {
         if (!(window.google && google.script && google.script.run)) {
-          reject(new Error('google.script.run indisponivel'));
+          const err = new Error('google.script.run indisponivel');
+          dutyRecordServerCall_({ methodName: methodName, phase: 'client-unavailable', ok: false, message: err.message });
+          reject(err);
           return;
         }
-        const requestPayload = (payload && typeof payload === 'object' && !Array.isArray(payload))
-          ? Object.assign({}, payload, { preferredDutyEmail: dutyPreferredEmailForRequest_() })
-          : payload;
+        let requestPayload = payload;
+        if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+          requestPayload = Object.assign({}, payload);
+          if (!Object.prototype.hasOwnProperty.call(requestPayload, 'preferredDutyEmail')) {
+            requestPayload.preferredDutyEmail = dutyPreferredEmailForRequest_();
+          }
+        }
+        const requestSource = String(requestPayload && requestPayload._source || '').trim();
         google.script.run
           .withSuccessHandler(function(res) {
             if (res == null) {
-              reject(new Error('Resposta vazia do servidor'));
+              const err = new Error('Resposta vazia do servidor');
+              dutyRecordServerCall_({ methodName: methodName, phase: 'empty-response', ok: false, message: err.message });
+              reject(err);
               return;
             }
+            dutyRecordServerCall_({ methodName: methodName, phase: 'success', ok: true, retryCount: Number(requestPayload && requestPayload._retryCount || 0), source: requestSource });
             resolve(res);
           })
           .withFailureHandler(function(err) {
-            reject(err instanceof Error ? err : new Error(err && err.message ? err.message : String(err)));
+            const normalizedErr = err instanceof Error ? err : new Error(err && err.message ? err.message : String(err));
+            const retryCount = Number(requestPayload && requestPayload._retryCount || 0);
+            dutyRecordServerCall_({ methodName: methodName, phase: 'failure', ok: false, retryCount: retryCount, message: normalizedErr.message, source: requestSource });
+            if (dutyIsTransportError_(normalizedErr) && retryCount < 1) {
+              const retryPayload = (requestPayload && typeof requestPayload === 'object') ? Object.assign({}, requestPayload, { _retryCount: retryCount + 1 }) : { _retryCount: 1 };
+              dutyTrace_('server-call-retry', { methodName: methodName, retryCount: 1, message: normalizedErr.message });
+              setTimeout(function() {
+                dutyCallServer(methodName, retryPayload).then(resolve).catch(reject);
+              }, 250);
+              return;
+            }
+            reject(normalizedErr);
           })[methodName](requestPayload);
       });
     }
@@ -1019,8 +1091,10 @@
     function dutyApplyHeader() {
       const pilotEl = document.getElementById('active-pilot');
       const dateLabel = document.getElementById('active-date-label');
+      const versionEl = document.getElementById('duty-app-version');
       if (pilotEl) pilotEl.textContent = dutyPilotDisplayName();
       if (dateLabel) dateLabel.textContent = dutyFormatDatePt(dutyState.selectedDateYmd);
+      if (versionEl) versionEl.textContent = 'v' + String(dutyState.appVersion || '?.?').trim();
     }
 
     function dutyBindPilotSelector() {
@@ -1076,6 +1150,68 @@
       try {
         console.log('[DutyApp][' + String(stage || 'trace') + ']', details || {});
       } catch (e) {}
+    }
+
+    function dutyIsTransportError_(err) {
+      const msg = String((err && err.message) || err || '').trim();
+      return /HTTP 0|NetworkError|Connection failure|Failed to fetch|ScriptError/i.test(msg);
+    }
+
+    function dutyRecordServerCall_(entry) {
+      const record = Object.assign({
+        at: new Date().toISOString(),
+        methodName: '',
+        phase: '',
+        retryCount: 0,
+        ok: false,
+        message: '',
+        source: ''
+      }, entry || {});
+      dutyState.lastServerCall = record;
+      dutyState.recentServerCalls = Array.isArray(dutyState.recentServerCalls) ? dutyState.recentServerCalls.slice(-6) : [];
+      dutyState.recentServerCalls.push(record);
+      const status = document.getElementById('preferred-duty-email-status');
+      if (status) {
+        status.textContent = record.ok
+          ? ('Diagnostico: ' + record.methodName + ' ok' + (record.retryCount ? ' apos ' + record.retryCount + ' retry(s)' : ''))
+          : ('Diagnostico: ' + record.methodName + ' ' + record.phase + (record.message ? ' - ' + record.message : ''));
+      }
+      dutyTrace_('server-call', record);
+      dutyRenderServerCallDebug_();
+    }
+
+    function dutyRenderServerCallDebug_() {
+      const lines = document.getElementById('preferred-duty-debug-lines');
+      const count = document.getElementById('preferred-duty-debug-count');
+      if (!lines && !count) return;
+
+      const recent = Array.isArray(dutyState.recentServerCalls) ? dutyState.recentServerCalls.slice(-5) : [];
+      if (count) {
+        count.textContent = recent.length ? (String(recent.length) + ' ultimo(s) evento(s)') : 'sem eventos ainda';
+      }
+      if (!lines) return;
+
+      if (!recent.length) {
+        lines.innerHTML = '<div style="color:#78909c;">Nenhuma chamada registrada ainda. Clique em "Carregar conta salva" para observar o caminho completo.</div>';
+        return;
+      }
+
+      lines.innerHTML = recent.slice().reverse().map(function(item) {
+        const stamp = String(item.at || '').replace('T', ' ').replace('Z', ' UTC');
+        const outcome = item.ok ? 'OK' : 'FALHA';
+        const retryText = Number(item.retryCount || 0) ? ('retry ' + item.retryCount + 'x') : 'sem retry';
+        const msg = String(item.message || '').trim();
+        const source = String(item.source || '').trim();
+        return '<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start; padding:6px 8px; border-radius:8px; background:' + (item.ok ? '#eef7ee' : '#fff4f4') + '; border:1px solid ' + (item.ok ? '#cfe9d1' : '#f2c6c6') + ';">' +
+          '<strong style="min-width:56px; color:' + (item.ok ? '#2e7d32' : '#c62828') + ';">' + outcome + '</strong>' +
+          '<span style="min-width:140px; color:#546e7a;">' + dutyEscape(stamp || '--') + '</span>' +
+          '<span style="min-width:160px; font-weight:700; color:#263238;">' + dutyEscape(String(item.methodName || '')) + '</span>' +
+          '<span style="color:#607d8b;">' + dutyEscape(String(item.phase || '')) + '</span>' +
+          '<span style="color:#607d8b;">' + dutyEscape(retryText) + '</span>' +
+          (source ? '<span style="color:#607d8b;">' + dutyEscape(source) + '</span>' : '') +
+          (msg ? '<span style="flex:1 1 100%; color:' + (item.ok ? '#33691e' : '#8e0000') + ';">' + dutyEscape(msg) + '</span>' : '') +
+        '</div>';
+      }).join('');
     }
 
     function dutyLockIconMarkup_(isLocked) {
@@ -1237,7 +1373,10 @@
         }
 
         dutySetBanner((kind === 'start' ? 'Inicio' : 'Fim') + ' bloqueado em ' + valueLabel + '.', 'ok');
-        await dutyLoadBootstrap('Atualizando após bloquear ' + (kind === 'start' ? 'inicio' : 'fim') + '...');
+        dutyScheduleBootstrapRefresh_('Atualizando após bloquear ' + (kind === 'start' ? 'inicio' : 'fim') + '...', {
+          source: 'lock-' + kind,
+          delayMs: 250
+        });
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1349,7 +1488,10 @@
             throw new Error(res && res.error ? res.error : 'Falha ao remover shift');
           }
           dutyTrace_('remove-shift-success', res);
-          return dutyLoadBootstrap('Atualizando após remover shift...');
+          dutyScheduleBootstrapRefresh_('Atualizando após remover shift...', {
+            source: 'remove-shift',
+            delayMs: 250
+          });
         }).then(function() {
           dutySetBanner('Shift removido.', 'ok');
         }).catch(function(err) {
@@ -1552,13 +1694,22 @@
       dutyRenderShiftList(false);
     }
 
-    async function dutyLoadBootstrap(statusText) {
+    async function dutyLoadBootstrap(statusText, opts) {
+      const options = (opts && typeof opts === 'object') ? opts : {};
+      const source = String(options.source || statusText || 'bootstrap').trim();
+      if (dutyState.bootstrapInFlight) {
+        dutyState.bootstrapPending = { statusText: statusText, opts: Object.assign({}, options) };
+        dutyRecordServerCall_({ methodName: 'getDutyAppBootstrap', phase: 'queued', ok: false, message: 'Bootstrap already in flight', source: source });
+        return dutyState.bootstrapInFlight;
+      }
+      const run = (async function() {
       try {
         dutySetLoading(true);
         dutySetBanner(String(statusText || 'Carregando jornada...').trim(), 'info');
         const res = await dutyCallServer('getDutyAppBootstrap', {
           pilotName: dutyState.selectedPilotName,
-          dateYmd: dutyState.selectedDateYmd
+          dateYmd: dutyState.selectedDateYmd,
+          _source: source
         });
         if (!res || res.success !== true) {
           throw new Error(res && res.error ? res.error : 'Falha ao carregar dados');
@@ -1568,10 +1719,23 @@
         dutyState.selectedPilotName = String(res.selectedPilotName || '').trim();
         dutyState.selectedDateYmd = String(res.dateYmd || dutyNowBsb().ymd).trim();
         dutyState.currentUser = res.currentUser || null;
+        dutyState.appVersion = String(res.appVersion || dutyState.appVersion || '').trim();
+        dutyState.serverPreferredDutyEmail = String(res.preferredDutyEmail || '').trim().toLowerCase();
         dutyState.staff = Array.isArray(res.staff) ? res.staff : [];
         dutyState.snapshot = res.snapshot || null;
         dutyState.logs = Array.isArray(res.logs) ? res.logs : [];
         dutyState.dutyConfig = res.dutyConfig || {};
+
+        const sessionEmail = String(dutyState.currentUser && dutyState.currentUser.sessionEmail || '').trim().toLowerCase();
+        if (!options.restoredPreferredEmail && dutyState.serverPreferredDutyEmail && dutyState.serverPreferredDutyEmail !== sessionEmail) {
+          dutyState.preferredDutyEmail = dutyState.serverPreferredDutyEmail;
+          dutyRefreshPreferredEmailUi_();
+          dutyState.bootstrapPending = {
+            statusText: 'Restaurando conta salva...',
+            opts: { restoredPreferredEmail: true, source: 'restoredPreferredEmail' }
+          };
+          return;
+        }
 
         dutyRefreshPreferredEmailUi_();
 
@@ -1584,7 +1748,26 @@
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
         dutySetLoading(false);
+        dutyState.bootstrapInFlight = null;
+        if (dutyState.bootstrapPending) {
+          const pending = dutyState.bootstrapPending;
+          dutyState.bootstrapPending = null;
+          dutyLoadBootstrap(pending.statusText, pending.opts);
+        }
       }
+      })();
+      dutyState.bootstrapInFlight = run;
+      return run;
+    }
+
+    function dutyScheduleBootstrapRefresh_(statusText, opts) {
+      const options = (opts && typeof opts === 'object') ? opts : {};
+      const delayMs = Number(options.delayMs || 250);
+      const nextOpts = Object.assign({}, options);
+      delete nextOpts.delayMs;
+      setTimeout(function() {
+        dutyLoadBootstrap(statusText, nextOpts);
+      }, isFinite(delayMs) && delayMs >= 0 ? delayMs : 250);
     }
 
     function dutyValidateShifts(shifts) {
@@ -1690,7 +1873,7 @@
         }
 
         dutySetBanner('Inicio registrado as ' + dutyEscape(shift.startTime) + '.', 'ok');
-        await dutyLoadBootstrap('Atualizando após registrar inicio...');
+        dutyScheduleBootstrapRefresh_('Atualizando após registrar inicio...', { source: 'save-start', delayMs: 250 });
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1725,7 +1908,7 @@
         }
 
         dutySetBanner('Fim registrado as ' + dutyEscape(shift.endTime) + '.', 'ok');
-        await dutyLoadBootstrap('Atualizando após registrar fim...');
+        dutyScheduleBootstrapRefresh_('Atualizando após registrar fim...', { source: 'save-end', delayMs: 250 });
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1773,7 +1956,10 @@
 
         dutySetBanner(isEdit ? 'Edicao salva.' : 'Dia encerrado e salvo.', 'ok');
         if (isEdit) dutyCloseEditModal();
-        await dutyLoadBootstrap(isEdit ? 'Recarregando edicao salva...' : 'Recarregando jornada fechada...');
+        dutyScheduleBootstrapRefresh_(isEdit ? 'Recarregando edicao salva...' : 'Recarregando jornada fechada...', {
+          source: isEdit ? 'finalize-edit' : 'finalize-day',
+          delayMs: 300
+        });
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1870,7 +2056,7 @@
 
     function dutyRefreshIfCurrentDay_() {
       if (!dutyCanAutoRefresh_()) return;
-      dutyLoadBootstrap('Atualizando jornada atual...');
+      dutyScheduleBootstrapRefresh_('Atualizando jornada atual...', { source: 'auto-refresh-current-day', delayMs: 200 });
     }
 
     function dutyOpenMobileHelp_() {
@@ -1892,11 +2078,11 @@
       if (pilotSelect) {
         pilotSelect.addEventListener('change', function() {
           dutyState.selectedPilotName = String(this.value || '').trim();
-          dutyLoadBootstrap('Atualizando jornada após abrir edição...');
+          dutyScheduleBootstrapRefresh_('Atualizando jornada após abrir edição...', { source: 'pilot-change', delayMs: 200 });
         });
       }
 
-      dutyLoadBootstrap('Carregando jornada inicial...');
+      dutyLoadBootstrap('Carregando jornada inicial...', { source: 'initial-load' });
       dutyGeoInit_();
 
       window.addEventListener('focus', dutyRefreshIfCurrentDay_);

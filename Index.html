@@ -89,6 +89,24 @@
       font-size: 0.72rem;
       color: #fff;
     }
+    .portal-auth-banner {
+      display: none;
+      margin: 0 20px;
+      padding: 10px 12px;
+      border: 1px solid #ffd59a;
+      border-radius: 10px;
+      background: #fff8e1;
+      color: #8d4a00;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1.45;
+      box-shadow: 0 2px 8px rgba(141, 74, 0, 0.08);
+    }
+    .portal-auth-banner strong {
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
 
     @media (max-width: 1024px) {
       .nav-wrapper { padding: 0 10px; }
@@ -144,6 +162,25 @@
     .calendar-action-btn.primary { background: #0b5394; color: #fff; }
     .calendar-action-btn.ghost { background: #eceff1; color: #455a64; }
     #calendar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; min-height: 0; }
+    .calendar-wa-copy-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-left: 8px;
+      padding: 2px 8px;
+      height: 24px;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      background: rgba(37, 211, 102, 0.18);
+      color: #fff;
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .calendar-wa-copy-btn:hover { background: rgba(37, 211, 102, 0.32); }
     .fc-daygrid-day { cursor: pointer; transition: background 0.2s; }
     .fc-daygrid-day:hover { background: #f5f5f5; }
 
@@ -165,6 +202,10 @@
 <body>
 
 <nav>
+
+<div id="portal-auth-banner" class="portal-auth-banner" role="alert" aria-live="polite">
+  <strong>Authorization blocked:</strong> if this page stays blank, sign in with the ASA Workspace account and approve the Google permission prompt. If the prompt is hidden by the browser, refresh after signing in.
+</div>
   <div class="nav-wrapper" style="display:flex; justify-content:space-between;">
     <div style="display:flex; align-items:center;">
       <div class="nav-btn-group">
@@ -229,12 +270,13 @@
       <div class="col s6"><p><strong>Duty Time:</strong> <span id="qvDuty" style="font-weight:bold; color:#0b5394;"></span></p></div>
     </div>
   </div>
-  <div class="modal-footer" style="display:flex; justify-content:space-between; padding: 10px 24px;">
+  <div class="modal-footer" style="display:flex; justify-content:space-between; gap:10px; padding: 10px 24px; flex-wrap:wrap; align-items:flex-end;">
     <a href="#" onclick="return false;" class="modal-close waves-effect waves-grey btn-flat">Close</a>
-    <div style="display:flex; gap:8px;">
-      <button id="qvReportsBtn" class="waves-effect waves-light btn teal darken-2" style="display:none;">OPEN IN REPORTS</button>
-      <button id="qvSupervisorBtn" class="waves-effect waves-light btn amber darken-3">OPEN IN SUPERVISOR</button>
-      <button id="qvEditBtn" class="waves-effect waves-light btn blue darken-3">OPEN IN DISPATCH</button>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+      <button id="qvCopyWaBtn" class="waves-effect waves-light btn green darken-2" type="button" style="white-space:nowrap;">WHATSAPP</button>
+      <button id="qvReportsBtn" class="waves-effect waves-light btn teal darken-2" style="display:none; white-space:nowrap;">REPORTS</button>
+      <button id="qvSupervisorBtn" class="waves-effect waves-light btn amber darken-3" style="white-space:nowrap;">SUPERVISOR</button>
+      <button id="qvEditBtn" class="waves-effect waves-light btn blue darken-3" style="white-space:nowrap;">DISPATCH</button>
     </div>
   </div>
 </div>
@@ -320,6 +362,7 @@
             <div id="calendar-toolbar-note" class="calendar-toolbar-note">Modo voos: clique em um dia para abrir o Dispatch.</div>
           </div>
           <div class="calendar-toolbar-actions">
+            <span id="calendar-build-badge" class="calendar-mode-pill" style="background:#eef6ff; color:#0b5394; border-color:#cfe2ff; font-weight:900;">Build <?!= buildStamp ?></span>
             <span id="calendar-mode-pill" class="calendar-mode-pill">Voos</span>
             <button id="calendar-mode-toggle" class="calendar-action-btn ghost" type="button" onclick="togglePortalCalendarMode_()">Modo manutenção</button>
             <button id="calendar-add-maintenance" class="calendar-action-btn primary" type="button" onclick="openPortalMaintenancePlanner_()" style="display:none;">Adicionar inspeção</button>
@@ -330,6 +373,7 @@
     </div>
     <div id="view-dispatch" class="view-section"><?!= include('View_Dispatch'); ?></div>
     <div id="view-supervisor" class="view-section"><?!= include('View_Supervisor'); ?><?!= include('RunwayBriefingCard'); ?></div>
+      <div id="portal-config" data-build-stamp="<?!= String(buildStamp + ' v3').replace(/&/g, '&amp;').replace(/"/g, '&quot;') ?>" data-web-app-url="<?!= String(typeof webAppUrl === 'string' ? webAppUrl : '').replace(/&/g, '&amp;').replace(/"/g, '&quot;') ?>" style="display:none;"></div>
     <div id="view-flightfollow" class="view-section"><?!= include('View_FlightFollowing'); ?></div>
     <div id="view-tools" class="view-section"><?!= include('View_Tools'); ?></div>
     <div id="view-maintenance" class="view-section"><?!= include('View_Maintenance'); ?></div>
@@ -340,7 +384,9 @@
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js'></script>
 
   <script>
-    const WEB_APP_URL = <?!= JSON.stringify(typeof webAppUrl === 'string' ? webAppUrl : '') ?>;
+    const _portalConfigEl = document.getElementById('portal-config');
+    window.FF_UI_BUILD_STAMP = String((_portalConfigEl && _portalConfigEl.getAttribute('data-build-stamp')) || '');
+    const WEB_APP_URL = String((_portalConfigEl && _portalConfigEl.getAttribute('data-web-app-url')) || '');
     const _portalDiagnostics = {
       startedAt: new Date().toISOString(),
       href: window.location.href,
@@ -632,6 +678,13 @@
       }
     }
 
+    function showPortalAuthBanner_(message) {
+      var banner = document.getElementById('portal-auth-banner');
+      if (!banner) return;
+      if (message) banner.innerHTML = message;
+      banner.style.display = 'block';
+    }
+
     function goBack() { if (histIndex > 0) { histIndex--; isNavigating = true; switchTab(navHistory[histIndex]); isNavigating = false; } }
     function goForward() { if (histIndex < navHistory.length - 1) { histIndex++; isNavigating = true; switchTab(navHistory[histIndex]); isNavigating = false; } }
 
@@ -648,6 +701,10 @@
       portalUpdateCalendarModeUI_();
       renderCalendar();
       initPortalDispatchClocks_();
+
+      if (!(window.google && google.script && google.script.run)) {
+        showPortalAuthBanner_('<strong>Authorization blocked:</strong> the Google Apps Script runtime is unavailable, so the portal cannot load. Sign in with the ASA Workspace account and refresh this page after approving access.');
+      }
 
       window.addEventListener('mission-saved', function() {
         refreshPortalAfterMissionSave_();
@@ -732,6 +789,150 @@
       const forecast = aircraft ? parseFloat(aircraft.hoursToInspForecast) : NaN;
       if (isFinite(hours) && isFinite(forecast)) return reg + ` (${hours.toFixed(1)}, ${forecast.toFixed(1)})`;
       return reg + (isFinite(hours) ? ` (${hours.toFixed(1)} hrs)` : '');
+    }
+
+    function portalNormalizeFirstName_(value) {
+      return String(value || '').trim().split(/\s+/)[0] || '';
+    }
+
+    function portalParseHoursToText_(value) {
+      const hours = parseFloat(value);
+      if (!isFinite(hours) || hours < 0) return '--';
+      const totalMinutes = Math.max(0, Math.round(hours * 60));
+      const wholeHours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      if (!wholeHours) return minutes + ' min';
+      return wholeHours + 'h' + String(minutes).padStart(2, '0');
+    }
+
+    function portalEscapeHtml_(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function portalGetAirportByIcao_(icao) {
+      const code = String(icao || '').trim().toUpperCase();
+      if (!code || !Array.isArray(appData && appData.airports)) return null;
+      return appData.airports.find(function(airport) {
+        return String(airport && airport.icao || airport && airport.ICAO || '').trim().toUpperCase() === code;
+      }) || null;
+    }
+
+    function portalAirportMapUrl_(icao) {
+      const airport = portalGetAirportByIcao_(icao);
+      const code = String(icao || '').trim().toUpperCase();
+      const label = airport ? String(airport.nome || airport.NOME || code).trim() : code;
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([code, label].filter(Boolean).join(' '));
+    }
+
+    function portalAirportDisplay_(icao) {
+      const code = String(icao || '').trim().toUpperCase();
+      const airport = portalGetAirportByIcao_(code);
+      const label = airport ? String(airport.nome || airport.NOME || '').trim() : '';
+      return label ? (code + ' - ' + label) : code;
+    }
+
+    function portalCopyTextToClipboard_(text) {
+      const value = String(text || '').trim();
+      if (!value) return Promise.reject(new Error('empty text'));
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(value);
+      }
+      return new Promise(function(resolve, reject) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = value;
+          ta.setAttribute('readonly', 'readonly');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if (ok) resolve(); else reject(new Error('copy failed'));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+
+    function portalBuildWhatsAppFlightText_(mission, legIndex) {
+      const legs = Array.isArray(mission && mission.legs) ? mission.legs : [];
+      const leg = legs[Math.max(0, Math.min(legs.length - 1, Number(legIndex) || 0))] || {};
+      const from = String(leg.from || '').trim().toUpperCase();
+      const to = String(leg.to || '').trim().toUpperCase();
+      const etd = String(leg.missionTime || mission && mission.meta && mission.meta.missionTime || '08:00').trim();
+      const routeHours = portalParseHoursToText_(leg.time);
+      const availableCargo = Math.max(0, Number(leg.availPayload || 0) - Number(leg.payload || 0));
+      const paxLines = (Array.isArray(leg.pax) ? leg.pax : [])
+        .filter(function(p) {
+          return p && String(p.name || '').trim() && String(p.name || '').trim().toUpperCase() !== 'FREIGHT';
+        })
+        .map(function(p) {
+          const firstName = portalNormalizeFirstName_(p.name);
+          const weight = parseFloat(p.weight);
+          return firstName + ' - ' + (isFinite(weight) ? String(Math.round(weight)) + ' kg' : '-- kg');
+        });
+      return [
+        portalAirportDisplay_(from) + ' - ' + portalAirportDisplay_(to),
+        'Origem: ' + portalAirportMapUrl_(from),
+        'Destino: ' + portalAirportMapUrl_(to),
+        'ETD: ' + etd,
+        'Tempo em rota: ' + routeHours,
+        'Passageiros:',
+        paxLines.length ? paxLines.map(function(line) { return '- ' + line; }) : ['- Nenhum passageiro'],
+        'Carga disponível: ' + String(Math.round(availableCargo)) + ' kg',
+        'Por favor, esteja no aeroporto 45 minutos antes da partida prevista.'
+      ].flat().join('\n');
+    }
+
+    function portalCopyMissionWhatsAppText_(missionId, selectedLegIndex) {
+      const missionKey = String(missionId || '').trim();
+      if (!missionKey) return;
+      google.script.run
+        .withSuccessHandler(function(mission) {
+          try {
+            const legs = Array.isArray(mission && mission.legs) ? mission.legs : [];
+            if (!legs.length) {
+              if (window.M && M.toast) M.toast({ html: 'No legs found for this mission.', classes: 'orange' });
+              return;
+            }
+            let legIndex = Number(selectedLegIndex);
+            if (!isFinite(legIndex) || legIndex < 0 || legIndex >= legs.length) {
+              if (legs.length === 1) {
+                legIndex = 0;
+              } else {
+                const options = legs.map(function(leg, idx) {
+                  const legLabel = String(leg.flightLegId || ('LEG ' + (idx + 1))).trim();
+                  return (idx + 1) + ' - ' + legLabel + ' (' + String(leg.from || '?') + ' -> ' + String(leg.to || '?') + ')';
+                }).join('\n');
+                const chosen = window.prompt('Escolha o leg para copiar para WhatsApp:\n\n' + options, '1');
+                if (chosen == null) return;
+                legIndex = parseInt(chosen, 10) - 1;
+                if (!isFinite(legIndex) || legIndex < 0 || legIndex >= legs.length) {
+                  if (window.M && M.toast) M.toast({ html: 'Leg inválido.', classes: 'orange' });
+                  return;
+                }
+              }
+            }
+            const text = portalBuildWhatsAppFlightText_(mission, legIndex);
+            portalCopyTextToClipboard_(text).then(function() {
+              if (window.M && M.toast) M.toast({ html: 'Mensagem copiada para WhatsApp.', classes: 'green' });
+            }).catch(function() {
+              window.prompt('Copie a mensagem abaixo:', text);
+            });
+          } catch (e) {
+            if (window.M && M.toast) M.toast({ html: 'Falha ao montar a mensagem.', classes: 'red' });
+          }
+        })
+        .withFailureHandler(function(err) {
+          if (window.M && M.toast) M.toast({ html: 'Erro ao carregar o voo: ' + (err && err.message ? err.message : String(err)), classes: 'red' });
+        })
+        .getMissionById(missionKey);
     }
 
     function portalUpdateCalendarModeUI_() {
@@ -1062,53 +1263,55 @@
 
         // --- NEW FORMATTING HERE ---
         eventContent: function(arg) {
-          let p = arg.event.extendedProps;
-          const maintenanceMode = portalCalendarModeIsMaintenance_();
-          if (p.type === 'mission') {
-            if (maintenanceMode) {
-              const flightLabel = String(p.flightHoursLabel || (p.isPastDate ? 'FLOWN' : 'EST')).trim().toUpperCase();
-              const flightHours = String(p.flightHoursDisplay || p.fltTime || '0.0').trim();
-              const aircraftObj = Array.isArray(appData && appData.aircraft)
-                ? appData.aircraft.find(function(a) { return String(a && a.reg || '').trim().toUpperCase() === String(p.acft || '').trim().toUpperCase(); })
-                : null;
-              const aircraftLabel = portalAircraftLabel_(aircraftObj || { reg: p.acft });
-              const dueText = portalFormatDatePtBr_(p.maintenanceNextInspectionDate || p.dueDate || arg.event.startStr || '');
-              return {
-                html: `
-                  <div class="evt-one-line" style="font-size:0.78em; gap:4px;">
-                    <span style="font-weight:900; background:rgba(0,0,0,0.25); padding:0 4px; border-radius:3px; margin-right:5px;">${_formatBsbTimeText_(p.takeoff || '--:--')}</span>
-                    <span style="font-weight:bold;">${aircraftLabel}</span>
-                    <span style="opacity:0.7; margin:0 4px;">|</span>
-                    <span>${flightLabel} ${flightHours}h</span>
-                    ${dueText ? `<span style="opacity:0.7; margin:0 4px;">|</span><span>${dueText}</span>` : ''}
-                  </div>
-                `
-              };
+          try {
+            let p = arg.event.extendedProps || {};
+            const maintenanceMode = portalCalendarModeIsMaintenance_();
+            if (p.type === 'mission') {
+              if (maintenanceMode) {
+                const flightLabel = String(p.flightHoursLabel || (p.isPastDate ? 'FLOWN' : 'EST')).trim().toUpperCase();
+                const flightHours = String(p.flightHoursDisplay || p.fltTime || '0.0').trim();
+                const aircraftObj = Array.isArray(appData && appData.aircraft)
+                  ? appData.aircraft.find(function(a) { return String(a && a.reg || '').trim().toUpperCase() === String(p.acft || '').trim().toUpperCase(); })
+                  : null;
+                const aircraftLabel = portalAircraftLabel_(aircraftObj || { reg: p.acft });
+                const dueText = portalFormatDatePtBr_(p.maintenanceNextInspectionDate || p.dueDate || arg.event.startStr || '');
+                return {
+                  html: `
+                    <div class="evt-one-line" style="font-size:0.78em; gap:4px;">
+                      <span style="font-weight:900; background:rgba(0,0,0,0.25); padding:0 4px; border-radius:3px; margin-right:5px;">${_formatBsbTimeText_(p.takeoff || '--:--')}</span>
+                      <span style="font-weight:bold;">${portalEscapeHtml_(aircraftLabel)}</span>
+                      <span style="opacity:0.7; margin:0 4px;">|</span>
+                      <span>${portalEscapeHtml_(flightLabel)} ${portalEscapeHtml_(flightHours)}h</span>
+                      ${dueText ? `<span style="opacity:0.7; margin:0 4px;">|</span><span>${portalEscapeHtml_(dueText)}</span>` : ''}
+                    </div>
+                  `
+                };
+              }
+              let time = _formatBsbTimeText_(p.takeoff || '--:--');
+              let html = `
+                <div class="evt-one-line">
+                  <span style="font-weight:900; background:rgba(0,0,0,0.25); padding:0 4px; border-radius:3px; margin-right:5px;">${time}</span>
+                  <span style="font-weight:bold;">${portalEscapeHtml_(p.acft || '')}</span>
+                  <span style="opacity:0.7; margin:0 4px;">|</span>
+                  <span>${portalEscapeHtml_(p.route || '')}</span>
+                  <span style="opacity:0.7; margin:0 4px;">|</span>
+                  <span>${portalEscapeHtml_(p.pilot || 'PILOT TBD')}</span>
+                </div>
+              `;
+              return { html: html };
             }
-            let time = _formatBsbTimeText_(p.takeoff || '--:--');
-            // STYLE: [08:00] PT-KPS | Route | Pilot
-            let html = `
-              <div class="evt-one-line">
-                <span style="font-weight:900; background:rgba(0,0,0,0.25); padding:0 4px; border-radius:3px; margin-right:5px;">${time}</span>
-                <span style="font-weight:bold;">${p.acft}</span>
-                <span style="opacity:0.7; margin:0 4px;">|</span>
-                <span>${p.route}</span>
-                <span style="opacity:0.7; margin:0 4px;">|</span>
-                <span>${p.pilot || 'PILOT TBD'}</span>
-              </div>
-            `;
-            return { html: html };
-          }
-          if (p.type === 'block') {
-            let html = `<div class="evt-one-line" style="padding:1px 5px; opacity:0.92;">&#128203; <b>${p.name}</b> &middot; ${p.acft} &middot; ${p.allocatedHrs}h</div>`;
-            return { html: html };
-          }
-          if (p.type === 'maintenance') {
-            const html = maintenanceMode
-              ? `<div class="evt-one-line" style="padding:1px 5px; opacity:0.92; font-size:0.78em;">&#128295; <b>${p.aircraftReg}</b> <span style="opacity:0.7; margin:0 4px;">|</span> <span>${p.taskName || p.taskCode || 'Maintenance'}</span> <span style="opacity:0.7; margin:0 4px;">|</span> <span>${portalFormatDatePtBr_(p.dueDate || arg.event.startStr || '')}</span></div>`
-              : `<div class="evt-one-line" style="padding:1px 5px; opacity:0.92; font-size:0.8em;">&#128295; <b>${p.taskName || p.taskCode || 'Maintenance'}</b> &middot; ${p.aircraftReg}</div>`;
-            return { html: html };
-          }
+            if (p.type === 'block') {
+              let html = `<div class="evt-one-line" style="padding:1px 5px; opacity:0.92;">&#128203; <b>${portalEscapeHtml_(p.name || '')}</b> &middot; ${portalEscapeHtml_(p.acft || '')} &middot; ${portalEscapeHtml_(p.allocatedHrs || '')}h</div>`;
+              return { html: html };
+            }
+            if (p.type === 'maintenance') {
+              const html = maintenanceMode
+                ? `<div class="evt-one-line" style="padding:1px 5px; opacity:0.92; font-size:0.78em;">&#128295; <b>${portalEscapeHtml_(p.aircraftReg || '')}</b> <span style="opacity:0.7; margin:0 4px;">|</span> <span>${portalEscapeHtml_(p.taskName || p.taskCode || 'Maintenance')}</span> <span style="opacity:0.7; margin:0 4px;">|</span> <span>${portalEscapeHtml_(portalFormatDatePtBr_(p.dueDate || arg.event.startStr || ''))}</span></div>`
+                : `<div class="evt-one-line" style="padding:1px 5px; opacity:0.92; font-size:0.8em;">&#128295; <b>${portalEscapeHtml_(p.taskName || p.taskCode || 'Maintenance')}</b> &middot; ${portalEscapeHtml_(p.aircraftReg || '')}</div>`;
+              return { html: html };
+            }
+          } catch (e) {}
+          return { html: '<div class="evt-one-line" style="padding:1px 5px; opacity:0.92;">' + portalEscapeHtml_(arg.event.title || 'Evento') + '</div>' };
         },
 
         eventClick: function(info) {
@@ -1133,8 +1336,10 @@
             var qvDispatchBtn = document.getElementById('qvEditBtn');
             var qvSupervisorBtn = document.getElementById('qvSupervisorBtn');
             var qvReportsBtn = document.getElementById('qvReportsBtn');
+            var qvCopyWaBtn = document.getElementById('qvCopyWaBtn');
 
             if (qvReportsBtn) qvReportsBtn.style.display = isFlown ? '' : 'none';
+            if (qvCopyWaBtn) qvCopyWaBtn.style.display = '';
             if (qvDispatchBtn) qvDispatchBtn.style.display = isFlown ? 'none' : '';
             if (qvSupervisorBtn) qvSupervisorBtn.style.display = isFlown ? 'none' : '';
 
@@ -1150,6 +1355,11 @@
               qvReportsBtn.onclick = function() {
                 M.Modal.getInstance(document.getElementById('quickViewModal')).close();
                 jumpToReports(p.id);
+              };
+            }
+            if (qvCopyWaBtn) {
+              qvCopyWaBtn.onclick = function() {
+                portalCopyMissionWhatsAppText_(p.id);
               };
             }
             M.Modal.getInstance(document.getElementById('quickViewModal')).open();

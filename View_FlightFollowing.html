@@ -335,6 +335,13 @@
     text-overflow: ellipsis;
   }
 
+  .ff-focus-grid-top .ff-field-value.ff-field-imported {
+    background: #e8f5e9;
+    border-radius: 8px;
+    padding: 0 4px;
+    border: 1px solid #a5d6a7;
+  }
+
   .ff-focus-grid-top .ff-field-input {
     padding: 0 !important;
     font-size: 12px !important;
@@ -373,6 +380,39 @@
 
   .ff-verify-btn.show {
     display: inline-block;
+  }
+
+  .ff-import-verify-btn {
+    background: #1e3a5f;
+    color: #fff;
+    border: 1px solid #16314f;
+    border-radius: 12px;
+    padding: 5px 10px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    min-height: 26px;
+  }
+
+  .ff-import-verify-btn.locked {
+    background: #2e7d32;
+    border-color: #1b5e20;
+  }
+
+  .ff-import-banner {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    border: 1px dashed #b0bec5;
+    background: #f7fbff;
+    color: #456;
+    font-size: 0.76rem;
+    font-weight: 700;
   }
 
   .ff-focus-grid-mid {
@@ -1075,15 +1115,16 @@
     color: #37474f;
     border: 1px solid #cfd8dc;
     border-radius: 3px;
-    padding: 3px 8px;
-    font-size: 0.68rem;
+    padding: 2px 5px;
+    font-size: 0.62rem;
     font-weight: 700;
     cursor: pointer;
     text-transform: none;
   }
 
   .ff-chat-row-btn {
-    padding: 2px 6px;
+    padding: 1px 5px;
+    white-space: nowrap;
   }
 
   .ff-chat-toggle-btn.active {
@@ -1147,7 +1188,7 @@
   .ff-chat-col-dir { width: 88px; }
   .ff-chat-col-reg { width: 72px; }
   .ff-chat-col-time { width: 72px; }
-  .ff-chat-col-actions { width: 108px; }
+  .ff-chat-col-actions { width: 96px; }
 
   .ff-chat-dir-badge {
     display: inline-flex;
@@ -1178,6 +1219,150 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .ff-chat-message-cell-reply {
+    padding-left: 12px;
+  }
+
+  .ff-chat-row-reply td {
+    background: #f7fbf7;
+  }
+
+  .ff-chat-row-reply.sent td {
+    background: #f1f8f4;
+  }
+
+  .ff-chat-row-reply.draft td {
+    background: #fff8ef;
+  }
+
+  .ff-chat-row-reply .ff-chat-dir-badge {
+    min-width: 84px;
+  }
+
+  .ff-chat-row-reply.sent .ff-chat-dir-badge {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .ff-chat-row-reply.draft .ff-chat-dir-badge {
+    background: #fff3e0;
+    color: #b26a00;
+  }
+
+  .ff-chat-reply-details {
+    display: block;
+  }
+
+  .ff-chat-reply-summary {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .ff-chat-reply-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .ff-chat-reply-summary::marker {
+    content: '';
+  }
+
+  .ff-chat-reply-full {
+    margin-top: 6px;
+    padding: 8px 10px;
+    border: 1px solid #d8e2ea;
+    border-radius: 6px;
+    background: #fff;
+    color: #455a64;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .ff-chat-reply-actions {
+    color: #90a4ae;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .ff-reply-row-tools {
+    margin: 2px 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .ff-chat-message-replies {
+    margin-top: 6px;
+    padding-left: 10px;
+    border-left: 3px solid #d8e2ea;
+  }
+
+  .ff-chat-message-replies .ff-reply-thread {
+    gap: 6px;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble {
+    margin: 0;
+    border: 1px solid #d8e2ea;
+    border-left-width: 4px;
+    border-radius: 7px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble.sent {
+    border-left-color: #2e7d32;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble-summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 7px 9px 6px;
+    display: grid;
+    gap: 4px;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble-summary::marker {
+    content: '';
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble-head {
+    font-size: 0.68rem;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble-summary-text {
+    font-size: 0.72rem;
+    color: #455a64;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble-body {
+    padding: 0 9px 8px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble-text {
+    font-size: 0.73rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .ff-chat-message-replies .ff-reply-bubble-footer {
+    font-size: 0.68rem;
   }
 
   .ff-chat-message-subject {
@@ -1299,40 +1484,145 @@
     color: #263238;
   }
 
+  .ff-reply-thread {
+    display: grid;
+    gap: 8px;
+  }
+
+  .ff-reply-bubble {
+    border: 1px solid #d8e2ea;
+    border-left: 4px solid #78909c;
+    border-radius: 8px;
+    background: #fbfdff;
+    padding: 10px 10px 9px;
+    display: grid;
+    gap: 7px;
+  }
+
+  .ff-reply-bubble.sent {
+    border-left-color: #2e7d32;
+    background: #f1f8f4;
+  }
+
+  .ff-reply-bubble-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .ff-reply-bubble-head span:first-child {
+    color: #0b5394;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .ff-reply-bubble.sent .ff-reply-bubble-head span:first-child {
+    color: #2e7d32;
+  }
+
+  .ff-reply-bubble-head span:last-child {
+    color: #607d8b;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .ff-reply-bubble-text {
+    color: #263238;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .ff-reply-bubble-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+    color: #607d8b;
+  }
+
+  .ff-reply-sent-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 800;
+    color: #455a64;
+  }
+
+  .ff-reply-sent-toggle input {
+    margin: 0;
+  }
+
+  .ff-reply-sent-btn {
+    background: #2e7d32;
+    color: #fff;
+    border: 1px solid #2e7d32;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .ff-reply-sent-btn.sent {
+    background: #607d8b;
+    border-color: #607d8b;
+  }
+
+  .ff-reply-btn {
+    background: #0b5394;
+    color: #fff;
+    border: 1px solid #0b5394;
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .ff-reply-btn.secondary {
+    background: #fff;
+    color: #455a64;
+    border-color: #c7d4de;
+  }
+
+  .ff-reply-composer {
+    display: grid;
+    gap: 8px;
+  }
+
+  .ff-reply-composer textarea {
+    min-height: 96px;
+    width: 100%;
+    border: 1px solid #c7d4de;
+    border-radius: 8px;
+    padding: 9px 10px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.8rem;
+    color: #263238;
+    background: #fff;
+  }
+
+  .ff-reply-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   @media (max-width: 900px) {
     .ff-modal-grid {
       grid-template-columns: repeat(2, minmax(110px, 1fr));
     }
   }
-
-  .ff-chat-input-group {
-    display: flex;
-    gap: 6px;
-    padding: 8px 10px;
-    border-top: 1px solid #ccc;
-  }
-
-  .ff-chat-input {
-    flex: 1;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    padding: 4px 6px;
-    font-size: 0.75rem;
-    font-family: inherit;
-  }
-
-  .ff-chat-send {
-    background: #2196f3;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    padding: 4px 10px;
-    font-weight: 700;
-    font-size: 0.75rem;
-    cursor: pointer;
-  }
-
-  .ff-chat-send:hover { background: #1976d2; }
 
   .ff-pax-summary {
     margin-top: 8px;
@@ -1503,13 +1793,16 @@
   <button class="ff-exit-immersive" type="button" onclick="ffExitImmersiveMode()">Exit split</button>
   <div class="ff-toolbar">
     <label class="ff-toolbar-label">FLIGHT FOLLOW</label>
-    <button class="ff-btn-primary" onclick="ffLoadFlights()">ATUALIZAR LISTA</button>
+    <button class="ff-btn-primary" onclick="typeof ffLoadFlights === 'function' && ffLoadFlights()">ATUALIZAR LISTA</button>
   </div>
 
   <div class="ff-body">
     <div class="ff-layout">
       <section class="ff-list-pane">
-        <div class="ff-pane-head">Todos os voos</div>
+        <div class="ff-pane-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span>Todos os voos</span>
+          <span class="ff-list-version-tag" style="margin-top:0;padding:0;color:#0b5394;text-align:left;">FF-UI <span id="ff-ui-build-stamp"></span></span>
+        </div>
         <div class="ff-list-scroll" id="ff-flight-list"></div>
       </section>
       <section class="ff-detail-pane">
@@ -1524,7 +1817,7 @@
 <div class="ff-modal-backdrop" id="ff-message-modal" onclick="ffCloseMessageModal(event)">
   <div class="ff-modal-card" onclick="event.stopPropagation()">
     <div class="ff-modal-head">
-      <div class="ff-modal-title">Message Details</div>
+      <div class="ff-modal-title">Mensagem</div>
       <button class="ff-modal-close" type="button" onclick="ffCloseMessageModal()">&times;</button>
     </div>
     <div class="ff-modal-body" id="ff-message-modal-body"></div>
@@ -1550,8 +1843,13 @@
 
 <script>
 (function() {
-  var FF_UI_VERSION = 'FF-UI 2026-05-14.01';
+  var FF_UI_VERSION = String(window.FF_UI_BUILD_STAMP || '2026-05-14.01');
   var FF_UI_LOADED_AT_ISO = new Date().toISOString();
+
+  function _ffSyncBuildStamp_() {
+    var stamp = document.getElementById('ff-ui-build-stamp');
+    if (stamp) stamp.textContent = FF_UI_VERSION;
+  }
 
   var state = {
     aircraft: [],
@@ -1568,6 +1866,7 @@
     standaloneMode: false,
     messagesByReg: {},
     archivedVisibleByReg: {},
+    inreachReplyStateByReg: {},
     checksByReg: {},
     livePositions: {},      // reg -> { lat, lng, bearing, gsKts, updatedAtMs }
     mapModeByKey: {},       // key -> 'inhouse' | 'inreach' | 'both'
@@ -1580,6 +1879,8 @@
     leafletRouteLayersByKey: {}, // key -> L.layerGroup instance
     leafletDbLayersByKey: {}, // key -> L.layerGroup instance
     leafletMarkersByKey: {}, // key -> L.marker instance
+    leafletInreachMapsByKey: {}, // key -> L.map instance
+    leafletInreachLayersByKey: {}, // key -> L.layerGroup instance
     breadcrumbPointsByKey: {}, // key -> [{ lat, lng, ts }]
     breadcrumbLayersByKey: {}, // key -> L.layerGroup instance
     breadcrumbLastTsByKey: {}, // key -> last recorded sample timestamp (ms)
@@ -1587,6 +1888,11 @@
     satViewByKey: {},       // key -> { lat, lng, zoom } for satellite map view persistence
     satMapsByKey: {},       // key -> L.map instance (satellite-only pane)
     satRouteLayersByKey: {}, // key -> L.layerGroup instance (sat route overlay)
+    inreachKmlPayloadByKey: {}, // key -> parsed KML payload
+    inreachKmlUrlByKey: {}, // key -> last fetched URL
+    inreachKmlLoadingByKey: {}, // key -> url currently being fetched
+    inreachBreadcrumbPointsByKey: {}, // key -> accumulated inReach breadcrumb points
+    inreachBreadcrumbSigByKey: {}, // key -> last accepted breadcrumb signature
     routeEditsByKey: {},    // key -> [{ fix, eta, ata, fl }]
     eteByKey: {},           // key -> normalized ETE input (HH:MMZ)
     archivePromptedByKey: {}, // key -> bool (prompt already shown)
@@ -1602,6 +1908,8 @@
   };
   var _ffPollTimer = null;
   var _ffMsgPollTimer = null;
+  var _ffInreachPollTimer = null;
+  var _ffInreachPollMs = 45000;
   var _ffClockTimer = null;
   var _ffLeafletReady = false;
   var _ffMissingGoogleWarned = false;
@@ -1615,6 +1923,8 @@
     _ffMissingGoogleWarned = true;
     renderEmpty('Flight Following indisponivel neste contexto: google.script.run nao encontrado.');
   }
+
+  _ffSyncBuildStamp_();
 
   function _ffGetUrlParams_() {
     try {
@@ -1651,6 +1961,47 @@
   function _ffPersistArchivedMap_(reg, map) {
     try {
       localStorage.setItem(_ffArchiveStorageKey_(reg), JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function _ffInreachReplyStorageKey_(reg) {
+    return 'ffInreachReplies|' + String(reg || '').trim().toUpperCase();
+  }
+
+  function _ffDefaultInreachReplyState_() {
+    return { threads: {}, drafts: {} };
+  }
+
+  function _ffInreachReplyState_(reg) {
+    var key = String(reg || '').trim().toUpperCase();
+    if (!key) return _ffDefaultInreachReplyState_();
+    if (state.inreachReplyStateByReg && state.inreachReplyStateByReg[key]) return state.inreachReplyStateByReg[key];
+    try {
+      var raw = localStorage.getItem(_ffInreachReplyStorageKey_(key));
+      var parsed = raw ? JSON.parse(raw) : null;
+      var normalized = _ffDefaultInreachReplyState_();
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.threads && typeof parsed.threads === 'object') normalized.threads = parsed.threads;
+        if (parsed.drafts && typeof parsed.drafts === 'object') normalized.drafts = parsed.drafts;
+      }
+      state.inreachReplyStateByReg[key] = normalized;
+      return normalized;
+    } catch (e) {
+      var fallback = _ffDefaultInreachReplyState_();
+      state.inreachReplyStateByReg[key] = fallback;
+      return fallback;
+    }
+  }
+
+  function _ffPersistInreachReplyState_(reg, replyState) {
+    var key = String(reg || '').trim().toUpperCase();
+    if (!key) return;
+    var normalized = replyState && typeof replyState === 'object' ? replyState : _ffDefaultInreachReplyState_();
+    if (!normalized.threads || typeof normalized.threads !== 'object') normalized.threads = {};
+    if (!normalized.drafts || typeof normalized.drafts !== 'object') normalized.drafts = {};
+    state.inreachReplyStateByReg[key] = normalized;
+    try {
+      localStorage.setItem(_ffInreachReplyStorageKey_(key), JSON.stringify(normalized));
     } catch (e) {}
   }
 
@@ -1904,6 +2255,369 @@
     return [subject, preview, operational, body].join('\n').trim();
   }
 
+  function _ffIsInreachMessage_(msg) {
+    return /inreachlink\.com\/|explore\.garmin\.com\/textmessage\/txtmsg/i.test(_ffMessageBlob_(msg));
+  }
+
+  function _ffExtractInreachReplyUrl_(msg) {
+    var blob = String([msg && msg.subject || '', msg && msg.text || '', msg && msg.previewText || ''].join('\n'));
+    var match = blob.match(/https?:\/\/(?:inreachlink\.com\/[\S]+|explore\.garmin\.com\/textmessage\/txtmsg\?[\S]+)/i);
+    if (!match || !match[0]) return '';
+    return String(match[0]).replace(/[),.;]+$/g, '').trim();
+  }
+
+  function _ffParseInreachMessageSections_(msg) {
+    var subject = String(msg && msg.subject || '').trim();
+    var raw = String(msg && (msg.text || msg.previewText || '') || '').trim();
+    var lines = raw.split(/\r?\n/).map(function(line) { return String(line || '').trim(); }).filter(Boolean);
+    if (subject && lines.length && String(lines[0] || '').trim() === subject) lines.shift();
+    var link = _ffExtractInreachReplyUrl_(msg);
+    var linkIndex = -1;
+    var ctaIndex = -1;
+    if (link) {
+      for (var i = 0; i < lines.length; i++) {
+        if (String(lines[i] || '').indexOf(link) >= 0 || /inreachlink\.com|explore\.garmin\.com\/textmessage\/txtmsg/i.test(lines[i])) {
+          linkIndex = i;
+          break;
+        }
+      }
+    }
+    var junkStart = -1;
+    for (var j = 0; j < lines.length; j++) {
+      if (/^View the location or send a reply to\s+.+:?$/i.test(lines[j])) {
+        ctaIndex = j;
+        continue;
+      }
+      if (/^Do not reply directly to this message\.?$/i.test(lines[j]) || /^This message was sent to you using the inReach/i.test(lines[j]) || /^To learn more,/i.test(lines[j])) {
+        junkStart = j;
+        break;
+      }
+    }
+    var contentEnd = linkIndex >= 0 ? linkIndex : (junkStart >= 0 ? junkStart : lines.length);
+    var contentLines = lines.slice(0, contentEnd).filter(function(line, idx) { return idx !== ctaIndex; });
+    var fullContentLines = lines.slice(0, contentEnd);
+    var junkLines = [];
+    if (linkIndex >= 0) junkLines = lines.slice(linkIndex + 1);
+    else if (junkStart >= 0) junkLines = lines.slice(junkStart);
+    if (!contentLines.length && lines.length) contentLines = lines.slice(0, 1);
+    if (!link) link = _ffExtractLastUrl_(raw);
+    return {
+      subject: subject,
+      content: contentLines.join('\n').trim(),
+      fullContent: fullContentLines.join('\n').trim(),
+      link: link,
+      junk: junkLines.join('\n').trim(),
+      raw: raw
+    };
+  }
+
+  function _ffInreachReplyThreadKey_(reg, msg) {
+    return _ffMessageKey_(reg, msg);
+  }
+
+  function _ffInreachReplyThread_(reg, msg) {
+    var stateObj = _ffInreachReplyState_(reg);
+    var key = _ffInreachReplyThreadKey_(reg, msg);
+    var threads = stateObj.threads || {};
+    return Array.isArray(threads[key]) ? threads[key] : [];
+  }
+
+  function _ffInreachReplyDraft_(reg, msg) {
+    var stateObj = _ffInreachReplyState_(reg);
+    var key = _ffInreachReplyThreadKey_(reg, msg);
+    return String((stateObj.drafts || {})[key] || '').trim();
+  }
+
+  function _ffPersistInreachReplyDraft_(reg, msg, text) {
+    var stateObj = _ffInreachReplyState_(reg);
+    var key = _ffInreachReplyThreadKey_(reg, msg);
+    stateObj.drafts[key] = String(text || '').trim();
+    _ffPersistInreachReplyState_(reg, stateObj);
+  }
+
+  function _ffAddInreachReply_(reg, msg, reply) {
+    var stateObj = _ffInreachReplyState_(reg);
+    var key = _ffInreachReplyThreadKey_(reg, msg);
+    if (!Array.isArray(stateObj.threads[key])) stateObj.threads[key] = [];
+    stateObj.threads[key].push(reply);
+    stateObj.drafts[key] = '';
+    _ffPersistInreachReplyState_(reg, stateObj);
+  }
+
+  function _ffToggleInreachReplySent_(reg, msg, replyId, sent) {
+    var stateObj = _ffInreachReplyState_(reg);
+    var key = _ffInreachReplyThreadKey_(reg, msg);
+    var list = Array.isArray(stateObj.threads[key]) ? stateObj.threads[key] : [];
+    var changed = false;
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i] && list[i].id || '') !== String(replyId || '')) continue;
+      list[i] = Object.assign({}, list[i], {
+        sent: !!sent,
+        sentAt: sent ? new Date().toISOString() : ''
+      });
+      changed = true;
+      break;
+    }
+    if (changed) {
+      stateObj.threads[key] = list;
+      _ffPersistInreachReplyState_(reg, stateObj);
+    }
+    return changed;
+  }
+
+  function _ffToggleInreachReplyArchived_(reg, msg, replyId, archived) {
+    var stateObj = _ffInreachReplyState_(reg);
+    var key = _ffInreachReplyThreadKey_(reg, msg);
+    var list = Array.isArray(stateObj.threads[key]) ? stateObj.threads[key] : [];
+    var changed = false;
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i] && list[i].id || '') !== String(replyId || '')) continue;
+      list[i] = Object.assign({}, list[i], {
+        archived: !!archived,
+        archivedAt: archived ? new Date().toISOString() : ''
+      });
+      changed = true;
+      break;
+    }
+    if (changed) {
+      stateObj.threads[key] = list;
+      _ffPersistInreachReplyState_(reg, stateObj);
+    }
+    return changed;
+  }
+
+  window.ffToggleInreachReplyArchived = function(reg, messageKey, replyId, archived) {
+    reg = decodeURIComponent(String(reg || ''));
+    messageKey = decodeURIComponent(String(messageKey || ''));
+    replyId = decodeURIComponent(String(replyId || ''));
+    var msg = _ffFindMessageByKey_(reg, messageKey);
+    if (!msg) return;
+    if (_ffToggleInreachReplyArchived_(reg, msg, replyId, archived)) {
+      if (state.messagesByReg[reg]) renderMessages(reg);
+      var modal = document.getElementById('ff-message-modal');
+      if (modal && modal.classList.contains('open')) {
+        window.ffShowMessageBody(reg, encodeURIComponent(messageKey));
+      }
+    }
+  };
+
+  function _ffCopyTextToClipboard_(text) {
+    var value = String(text || '');
+    if (!value) return Promise.resolve(false);
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      return navigator.clipboard.writeText(value).then(function() { return true; }).catch(function() { return false; });
+    }
+    return new Promise(function(resolve) {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = value;
+        ta.setAttribute('readonly', 'readonly');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        resolve(!!ok);
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  function _ffGarminPopupFeatures_() {
+    return 'popup=yes,width=1100,height=900,noopener,noreferrer';
+  }
+
+  function _ffExtractLastUrl_(text) {
+    var raw = String(text || '');
+    if (!raw) return '';
+    var matches = raw.match(/https?:\/\/[^\s<>'"]+/gi) || [];
+    if (!matches.length) return '';
+    return String(matches[matches.length - 1] || '').trim().replace(/[).,;:!?]+$/g, '');
+  }
+
+  function _ffExtractMessageReplyUrl_(msg) {
+    var blob = _ffMessageBlob_(msg) + '\n' + String(msg && msg.previewText || '') + '\n' + String(msg && msg.subject || '');
+    return _ffExtractLastUrl_(blob);
+  }
+
+  function _ffMostRecentGarminLinkForReg_(reg) {
+    var regKey = String(reg || '').trim().toUpperCase();
+    if (!regKey) return '';
+    var messages = (state.messagesByReg && state.messagesByReg[regKey]) ? state.messagesByReg[regKey].slice() : [];
+    messages.sort(function(a, b) {
+      return String(b && b.timestamp || '').localeCompare(String(a && a.timestamp || ''));
+    });
+    for (var i = 0; i < messages.length; i++) {
+      var msg = messages[i];
+      if (!_ffIsInreachMessage_(msg)) continue;
+      var link = _ffExtractInreachReplyUrl_(msg) || _ffExtractLastUrl_(_ffMessageBlob_(msg));
+      if (link) return link;
+    }
+    return '';
+  }
+
+  function _ffExtractReplyUrlForMessage_(reg, msg) {
+    return _ffExtractInreachReplyUrl_(msg) || _ffExtractLastUrl_(_ffMessageBlob_(msg)) || _ffMostRecentGarminLinkForReg_(reg);
+  }
+
+  function _ffReplyPrefillText_(msg) {
+    var blob = _ffMessageBlob_(msg);
+    if (/dispatch|despacho/i.test(blob)) return 'Mensagem de despacho recebida. ';
+    if (/decol(?:agem|ou)|take\s*off|airborne|off\s*blocks/i.test(blob)) return 'Mensagem de decolagem recebida. ';
+    if (/pouso|landed|landing|safely\s+landed|on\s+blocks/i.test(blob)) return 'Mensagem de pouso recebida. ';
+    return 'Mensagem recebida. ';
+  }
+
+  function _ffInreachReplyPreviewText_(reply) {
+    var text = String(reply && reply.text || '').replace(/\s+/g, ' ').trim();
+    if (!text) return '';
+    return text.length > 120 ? text.slice(0, 117).trim() + '...' : text;
+  }
+
+  function _ffInreachReplyRowHtml_(reg, messageKey, reply) {
+    var sent = !!(reply && reply.sent);
+    var archived = !!(reply && reply.archived);
+    var replyId = String(reply && reply.id || '');
+    var createdAt = String(reply && reply.createdAt || '');
+    var sentAt = String(reply && reply.sentAt || '');
+    var stamp = sent && sentAt ? sentAt : createdAt;
+    var previewText = _ffInreachReplyPreviewText_(reply);
+    var fullText = String(reply && reply.text || '').trim();
+    var replyRowId = 'ff-reply-' + safeId(messageKey + '|' + replyId);
+    var regArg = encodeURIComponent(String(reg || ''));
+    var messageKeyArg = encodeURIComponent(String(messageKey || ''));
+    var replyIdArg = encodeURIComponent(replyId);
+    var archivedNext = archived ? 'false' : 'true';
+    return '' +
+      '<tr class="ff-chat-row ff-chat-row-reply' + (sent ? ' sent' : ' draft') + '">' +
+        '<td><span class="ff-chat-dir-badge">' + (sent ? 'Resposta enviada' : 'Rascunho') + '</span></td>' +
+        '<td>' + esc(String(reg || '').toUpperCase()) + '</td>' +
+        '<td>' + esc(stamp ? _ffFormatZuluTime_(stamp) : '') + '</td>' +
+        '<td class="ff-chat-message-cell-reply">' +
+          '<div class="ff-reply-row-tools">' +
+            '<button type="button" class="ff-reply-sent-btn' + (sent ? ' sent' : '') + '" data-reg="' + regArg + '" data-message-key="' + messageKeyArg + '" data-reply-id="' + replyIdArg + '" onclick="ffToggleInreachReplySent(this.dataset.reg, this.dataset.messageKey, this.dataset.replyId, true)">' + (sent ? 'Resposta enviada' : 'Marcar como enviada') + '</button>' +
+          '</div>' +
+          '<details id="' + replyRowId + '" class="ff-chat-reply-details" onclick="event.stopPropagation();">' +
+            '<summary class="ff-chat-reply-summary">' +
+              '<div class="ff-chat-message-preview">' + esc(previewText || '(sem texto)') + '</div>' +
+            '</summary>' +
+            '<div class="ff-chat-reply-full">' +
+              esc(fullText || '(sem texto)') +
+              '<div class="ff-reply-bubble-footer" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
+                '<span>' + (reply && reply.garminUrl ? '<a href="' + esc(reply.garminUrl) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">Abrir Garmin</a>' : '') + '</span>' +
+              '</div>' +
+            '</div>' +
+          '</details>' +
+        '</td>' +
+        '<td class="ff-chat-reply-actions">' +
+          '<button type="button" class="ff-chat-row-btn" onclick="event.stopPropagation();var d=document.getElementById(\'' + replyRowId + '\'); if(d) d.open = !d.open;">Ver</button> ' +
+          '<button type="button" class="ff-chat-row-btn" data-reg="' + regArg + '" data-message-key="' + messageKeyArg + '" data-reply-id="' + replyIdArg + '" data-archived-next="' + archivedNext + '" onclick="event.stopPropagation();ffToggleInreachReplyArchived(this.dataset.reg, this.dataset.messageKey, this.dataset.replyId, this.dataset.archivedNext)">' + (archived ? 'Restaurar' : 'Arquivar') + '</button>' +
+        '</td>' +
+      '</tr>';
+  }
+
+  function _ffInreachReplyBubbleHtml_(reg, messageKey, reply) {
+    var sent = !!(reply && reply.sent);
+    var replyId = String(reply && reply.id || '');
+    var createdAt = String(reply && reply.createdAt || '');
+    var sentAt = String(reply && reply.sentAt || '');
+    var stamp = sent && sentAt ? sentAt : createdAt;
+    var previewText = _ffInreachReplyPreviewText_(reply);
+    var regArg = encodeURIComponent(String(reg || ''));
+    var messageKeyArg = encodeURIComponent(String(messageKey || ''));
+    var replyIdArg = encodeURIComponent(replyId);
+    var html = '' +
+      '<details class="ff-reply-bubble' + (sent ? ' sent' : '') + '" onclick="event.stopPropagation();">' +
+        '<summary class="ff-reply-bubble-summary">' +
+          '<div class="ff-reply-bubble-head">' +
+            '<span>' + (sent ? 'Resposta enviada' : 'Rascunho de resposta') + '</span>' +
+            '<span>' + esc(stamp ? _ffFormatZuluStamp_(stamp) : '') + '</span>' +
+          '</div>' +
+          '<div class="ff-reply-bubble-summary-text">' + esc(previewText || '(sem texto)') + '</div>' +
+        '</summary>' +
+        '<div class="ff-reply-bubble-body">' +
+          '<div class="ff-reply-bubble-text">' + esc(String(reply && reply.text || '')) + '</div>' +
+          '<div class="ff-reply-bubble-footer">' +
+            '<label class="ff-reply-sent-toggle">' +
+              '<input type="checkbox" ' + (sent ? 'checked ' : '') + 'data-reg="' + regArg + '" data-message-key="' + messageKeyArg + '" data-reply-id="' + replyIdArg + '" onchange="ffToggleInreachReplySent(this.dataset.reg, this.dataset.messageKey, this.dataset.replyId, this.checked)">' +
+              'Marcar como enviada' +
+            '</label>' +
+            '<span>' + (reply && reply.garminUrl ? '<a href="' + esc(reply.garminUrl) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">Abrir Garmin</a>' : '') + '</span>' +
+          '</div>' +
+        '</div>' +
+      '</details>';
+    return html;
+  }
+
+  function _ffInreachReplyThreadHtml_(reg, msg) {
+    if (!_ffIsInreachMessage_(msg)) return '';
+    var messageKey = _ffMessageKey_(reg, msg);
+    var replies = _ffInreachReplyThread_(reg, msg);
+    if (!replies.length) return '';
+    return '<div class="ff-reply-thread">' + replies.map(function(reply) {
+      return _ffInreachReplyBubbleHtml_(reg, messageKey, reply);
+    }).join('') + '</div>';
+  }
+
+  function _ffBuildInreachReplyComposerHtml_(reg, msg) {
+    var messageKey = _ffMessageKey_(reg, msg);
+    var composerId = 'ff-inreach-reply-' + safeId(messageKey);
+    var draft = _ffInreachReplyDraft_(reg, msg);
+    var prefill = draft || _ffReplyPrefillText_(msg);
+    var regArg = encodeURIComponent(String(reg || ''));
+    var messageKeyArg = encodeURIComponent(String(messageKey || ''));
+    var replyUrl = _ffExtractReplyUrlForMessage_(reg, msg);
+    return '' +
+      '<div class="ff-message-section">' +
+        '<div class="ff-message-section-title">Responder</div>' +
+        '<div class="ff-reply-composer">' +
+          '<textarea id="' + composerId + '" data-reg="' + regArg + '" data-message-key="' + messageKeyArg + '" placeholder="Escreva a resposta em português..." oninput="ffPersistInreachReplyDraft(this.dataset.reg, this.dataset.messageKey, this.value)">' + esc(prefill) + '</textarea>' +
+          '<div class="ff-reply-actions">' +
+            '<button type="button" class="ff-reply-btn" data-reg="' + regArg + '" data-message-key="' + messageKeyArg + '" onclick="ffOpenInreachReplyAndCopy(this.dataset.reg, this.dataset.messageKey)">' + (replyUrl ? 'Abrir link e copiar' : 'Copiar resposta') + '</button>' +
+            '<button type="button" class="ff-reply-btn secondary" onclick="ffCloseMessageModal()">Fechar</button>' +
+          '</div>' +
+          '<div style="font-size:0.72rem;color:#607d8b;line-height:1.4;">A resposta será copiada para a área de transferência. Se houver um link na mensagem, ele será aberto em primeiro plano.</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function _ffBuildInreachMessageModalHtml_(reg, msg) {
+    var sections = _ffParseInreachMessageSections_(msg);
+    var title = String(msg && msg.subject || sections.subject || 'Mensagem').trim() || 'Mensagem';
+    var contentHtml = '<div class="ff-message-content">' + esc(sections.content || '(sem conteúdo)') + '</div>';
+    var replyUrl = _ffExtractReplyUrlForMessage_(reg, msg);
+    var linkHtml = replyUrl ? '<a class="ff-message-link" href="' + esc(replyUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(replyUrl) + '</a>' : '<div class="ff-message-content">(sem link encontrado)</div>';
+    var fullContentHtml = sections.fullContent && sections.fullContent !== sections.content ? '<details><summary>Conteúdo completo</summary><pre>' + esc(sections.fullContent) + '</pre></details>' : '';
+    var junkHtml = '<details><summary>Mostrar detalhes</summary><pre>' + esc(sections.junk || sections.raw || '(sem detalhes extras)') + '</pre></details>';
+    return '' +
+      '<div class="ff-message-section">' +
+        '<div class="ff-message-section-title">Assunto</div>' +
+        '<div class="ff-message-content">' + esc(title) + '</div>' +
+      '</div>' +
+      '<div class="ff-message-section">' +
+        '<div class="ff-message-section-title">Conteúdo</div>' +
+        contentHtml +
+        fullContentHtml +
+      '</div>' +
+      '<div class="ff-message-section">' +
+        '<div class="ff-message-section-title">Link Garmin</div>' +
+        linkHtml +
+      '</div>' +
+      '<div class="ff-message-section ff-message-details">' +
+        '<div class="ff-message-section-title">Detalhes</div>' +
+        junkHtml +
+      '</div>' +
+      _ffBuildInreachReplyComposerHtml_(reg, msg) +
+      '<div class="ff-message-section">' +
+        '<div class="ff-message-section-title">Mensagem bruta</div>' +
+        '<pre>' + esc(sections.raw || '(vazio)') + '</pre>' +
+      '</div>';
+  }
+
   function _ffExtractDispatchLine_(blob, labelRegex) {
     var text = String(blob || '');
     if (!text) return '';
@@ -2085,6 +2799,7 @@
     if (!text) return 0;
 
     var patterns = [
+      /^Combust[íi]vel\s+Tab\s*2\s*:\s*(\d{2,5}(?:[\.,]\d{1,2})?)\s*(?:L|LTS?|LITROS?)\b/i,
       /(?:FUEL|AVGAS|COMBUST(?:[ÍI]VEL)?)\s*(?:ON\s*BOARD|A\s*BORDO|BOARD|ATUAL|CURRENT|REMANESCENTE|RESTANTE|TOTAL)?\s*[:=\-]?\s*(\d{2,5}(?:[\.,]\d{1,2})?)\s*(?:L|LTS?|LITROS?)\b/i,
       /(\d{2,5}(?:[\.,]\d{1,2})?)\s*(?:L|LTS?|LITROS?)\s*(?:OF\s*)?(?:FUEL|AVGAS|COMBUST(?:[ÍI]VEL)?)\b/i,
       /(?:COMBUST(?:[ÍI]VEL)?|FUEL|AVGAS)\s*[:=\-]?\s*(\d{2,5}(?:[\.,]\d{1,2})?)\b/i
@@ -2098,6 +2813,27 @@
       }
     }
     return 0;
+  }
+
+  function _ffExtractPlannedFlightLevel_(blob) {
+    var text = String(blob || '');
+    if (!text) return '';
+    var lines = text.split(/\r?\n/);
+    var patterns = [
+      /^N[íi]vel\s+planejado\s*[:=\-]?\s*(?:FL\s*)?(\d{2,3})\b/i,
+      /^FL\s*[:=\-]?\s*(\d{2,3})\b/i,
+      /^Flight\s*Level\s*[:=\-]?\s*(?:FL\s*)?(\d{2,3})\b/i
+    ];
+    for (var i = 0; i < lines.length; i++) {
+      var line = String(lines[i] || '').trim();
+      if (!line) continue;
+      for (var j = 0; j < patterns.length; j++) {
+        var m = line.match(patterns[j]);
+        if (m && m[1]) return String(m[1]).padStart(3, '0');
+      }
+    }
+    var fallback = text.match(/\b(?:N[íi]vel\s+planejado|FL|Flight\s*Level)\s*[:=\-]?\s*(?:FL\s*)?(\d{2,3})\b/i);
+    return fallback && fallback[1] ? String(fallback[1]).padStart(3, '0') : '';
   }
 
   function _ffExtractPob_(blob) {
@@ -2175,6 +2911,7 @@
     var out = {
       planCode: '',
       plvoTime: '',
+      plannedFlightLevel: '',
       takeoffTime: '',
       eteTime: '',
       noFlightPlan: false,
@@ -2206,6 +2943,7 @@
       }
       if (!out.planCode) out.planCode = _ffExtractPlanCode_(blob);
       if (!out.plvoTime && !out.noFlightPlan) out.plvoTime = _ffExtractPlvoTime_(blob);
+      if (!out.plannedFlightLevel) out.plannedFlightLevel = _ffExtractPlannedFlightLevel_(blob);
       if (!out.takeoffTime) out.takeoffTime = _ffExtractTakeoffTime_(blob);
       if (!out.eteTime) out.eteTime = _ffExtractEteTime_(blob);
       if (!out.fuelLiters) out.fuelLiters = _ffExtractFuelLiters_(blob);
@@ -2250,8 +2988,21 @@
   function _ffStartPolling() {
     if (_ffPollTimer) clearInterval(_ffPollTimer);
     _ffPollTimer = setInterval(_ffPollLivePositions, 15000);
+    if (_ffInreachPollTimer) clearInterval(_ffInreachPollTimer);
+    _ffInreachPollTimer = setInterval(_ffPollInreachKml, _ffInreachPollMs);
     if (_ffMsgPollTimer) clearInterval(_ffMsgPollTimer);
     _ffMsgPollTimer = setInterval(_ffPollMessages, 30000);
+  }
+
+  function _ffPollInreachKml() {
+    if (!state.activeFlights.size) return;
+    if (!_ffHasGoogleScriptRun_()) return;
+    state.activeFlights.forEach(function(key) {
+      var mode = state.mapModeByKey[key] || 'inhouse';
+      if (mode !== 'inreach' && mode !== 'both') return;
+      var reg = key.split('|')[0];
+      _ffRenderInreachFrame(key, reg, mode, true);
+    });
   }
 
   function _ffPollMessages() {
@@ -2737,6 +3488,84 @@
       '<path d="M22.5 19.5l9.5 3.8 9.5-3.8" fill="none" stroke="#1d1d1d" stroke-width="2" stroke-linecap="round"/>' +
       '</svg></div>';
     return L.divIcon({ html: html, iconSize: [34, 34], iconAnchor: [17, 17], className: 'ff-aircraft-icon' });
+  }
+
+  function _ffCessnaDivIcon(bearing) {
+    var rotation = isFinite(bearing) ? Math.round(bearing) : 0;
+    var html = '<div style="width:22px;height:22px;transform:rotate(' + rotation + 'deg);transform-origin:50% 50%;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.45));">' +
+      '<svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true">' +
+      '<path d="M30 4c1.8 0 3.2 1.4 3.2 3.2v11l14.7 6.1c1.7.7 2.6 2.6 2 4.4l-.8 2.5-15.9-3.9v10.2l5.7 4.4c1.1.9 1.6 2.4 1.1 3.8l-1.2 3.4-7.7-3-7.7 3-1.2-3.4c-.5-1.4 0-2.9 1.1-3.8l5.7-4.4V27.3l-15.9 3.9-.8-2.5c-.6-1.8.3-3.7 2-4.4l14.7-6.1v-11C28.8 5.4 30.2 4 32 4h-2z" fill="#f8fbff" stroke="#263238" stroke-width="2" stroke-linejoin="round"/>' +
+      '<path d="M29.5 11h5v23h-5z" fill="#1e88e5" opacity="0.95"/>' +
+      '<path d="M23 20l9 3.6 9-3.6" fill="none" stroke="#263238" stroke-width="2" stroke-linecap="round"/>' +
+      '</svg></div>';
+    return L.divIcon({ html: html, iconSize: [22, 22], iconAnchor: [11, 11], className: 'ff-cessna-icon' });
+  }
+
+  function _ffInreachTrackPointWhenText_(point) {
+    var when = String(point && point.when || '').trim();
+    if (!when) return '';
+    var ts = Date.parse(when);
+    if (!isFinite(ts)) return when;
+    try {
+      return new Date(ts).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, 'Z');
+    } catch (e) {
+      return when;
+    }
+  }
+
+  function _ffInreachTrackPointAltitudeFt_(point) {
+    var altM = Number(point && point.altM);
+    if (!isFinite(altM)) return '';
+    return Math.round(altM * 3.28084);
+  }
+
+  function _ffInreachTrackPointSpeedKts_(prevPoint, point, nextPoint) {
+    function calc(fromPoint, toPoint) {
+      if (!fromPoint || !toPoint) return NaN;
+      var t0 = Date.parse(String(fromPoint.when || '').trim());
+      var t1 = Date.parse(String(toPoint.when || '').trim());
+      if (!isFinite(t0) || !isFinite(t1) || t1 <= t0) return NaN;
+      var lat0 = Number(fromPoint.lat);
+      var lon0 = Number(fromPoint.lon);
+      var lat1 = Number(toPoint.lat);
+      var lon1 = Number(toPoint.lon);
+      if (!isFinite(lat0) || !isFinite(lon0) || !isFinite(lat1) || !isFinite(lon1)) return NaN;
+      var hours = (t1 - t0) / 3600000;
+      if (hours <= 0) return NaN;
+      return _ffDistNm(lat0, lon0, lat1, lon1) / hours;
+    }
+    return calc(prevPoint, point) || calc(point, nextPoint) || NaN;
+  }
+
+  function _ffInreachTrackPointBearing_(fromPoint, toPoint) {
+    if (!fromPoint || !toPoint) return NaN;
+    var lat1 = Number(fromPoint.lat);
+    var lon1 = Number(fromPoint.lon);
+    var lat2 = Number(toPoint.lat);
+    var lon2 = Number(toPoint.lon);
+    if (!isFinite(lat1) || !isFinite(lon1) || !isFinite(lat2) || !isFinite(lon2)) return NaN;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+    var x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+    var brng = Math.atan2(y, x) * 180 / Math.PI;
+    return (brng + 360) % 360;
+  }
+
+  function _ffInreachTrackPointPopupHtml_(placemarkName, feature, point, idx, total, prevPoint, nextPoint) {
+    var title = String(placemarkName || 'InReach').trim();
+    var whenText = _ffInreachTrackPointWhenText_(point);
+    var altitudeFt = _ffInreachTrackPointAltitudeFt_(point);
+    var speedKts = _ffInreachTrackPointSpeedKts_(prevPoint, point, nextPoint);
+    var parts = [];
+    parts.push('<strong>' + esc(title) + '</strong>');
+    parts.push('<div style="margin-top:4px;font-size:0.82rem;line-height:1.35">');
+    parts.push('Ponto ' + (idx + 1) + ' de ' + total);
+    if (whenText) parts.push('<br>Timestamp: ' + esc(whenText));
+    if (isFinite(altitudeFt)) parts.push('<br>Altitude: ' + Math.round(altitudeFt) + ' ft');
+    if (isFinite(speedKts)) parts.push('<br>Velocidade: ' + Math.round(speedKts) + ' kt');
+    parts.push('<br>Lat/Lon: ' + Number(point.lat).toFixed(5) + ', ' + Number(point.lon).toFixed(5));
+    parts.push('</div>');
+    return parts.join('');
   }
 
   function _ffClearLayerGroup_(store, key) {
@@ -3378,23 +4207,28 @@
     var liveWrap    = document.getElementById('ff-live-wrap-' + sreg);
     var inreachWrap = document.getElementById('ff-inreach-wrap-' + sreg);
     var modeBtn = document.getElementById('ff-map-mode-cycle-' + sreg);
-    var showLive    = mode === 'inhouse' || mode === 'both';
+    var showInternal = mode === 'inhouse' || mode === 'both';
     var showInreach = mode === 'inreach' || mode === 'both';
-    if (liveWrap)    liveWrap.style.display    = showLive    ? '' : 'none';
-    if (inreachWrap) inreachWrap.style.display = showInreach ? '' : 'none';
+    if (liveWrap) liveWrap.style.display = '';
+    if (inreachWrap) inreachWrap.style.display = 'none';
     if (modeBtn) {
       modeBtn.className = 'ff-map-toggle-btn active';
       modeBtn.textContent = 'Mapa: ' + (mode === 'inhouse' ? 'Interno' : (mode === 'inreach' ? 'InReach' : 'Ambos'));
     }
-    // Invalidate Leaflet size if shown
-    if (showLive) {
-      var map = state.leafletMapsByKey[key];
-      if (map) setTimeout(function(){ map.invalidateSize(); }, 50);
+    var map = state.leafletMapsByKey[key];
+    var mission = _ffMissionForKey_(key);
+    if (map) {
+      setTimeout(function(){ map.invalidateSize(); }, 50);
+      _ffSetInternalTrackVisible_(key, map, mission, showInternal);
+      if (!showInternal && state.leafletMarkersByKey[key]) {
+        if (typeof state.leafletMarkersByKey[key].remove === 'function') state.leafletMarkersByKey[key].remove();
+        delete state.leafletMarkersByKey[key];
+      }
     }
     var satMap = state.satMapsByKey[key];
     if (satMap) setTimeout(function(){ satMap.invalidateSize(); }, 50);
-    // Load InReach iframe if url set
-    if (showInreach) _ffRenderInreachFrame(key, reg);
+    if (showInreach) _ffRenderInreachFrame(key, reg, mode);
+    else _ffClearInreachOverlay_(key);
   }
 
   window.ffSetInreachUrl = function(key, url) {
@@ -3409,22 +4243,398 @@
       state.mapModeByKey[key] = 'both';
       _ffApplyMapModeUI(key, reg, 'both');
     } else {
-      _ffRenderInreachFrame(key, reg);
+      _ffRenderInreachFrame(key, reg, mode, true);
     }
   };
 
-  function _ffRenderInreachFrame(key, reg) {
-    var sreg = safeId(key);
-    var wrap = document.getElementById('ff-inreach-wrap-' + sreg);
-    if (!wrap) return;
+  function _ffRenderInreachFrame(key, reg, mode, forceRefresh) {
+    var url = _ffInreachConfiguredUrl_(key, reg);
+    var map = state.leafletMapsByKey[key];
+    if (!map) {
+      _ffInitMap(key, reg, _ffMissionForKey_(key));
+      map = state.leafletMapsByKey[key];
+    }
+    if (!map) return;
+    if (forceRefresh) {
+      state.mapViewByKey[key] = _ffCaptureMapView_(map) || state.mapViewByKey[key] || null;
+    }
+    if (!url) {
+      if (mode === 'inreach') _ffSetInternalTrackVisible_(key, map, _ffMissionForKey_(key), true);
+      _ffClearInreachOverlay_(key);
+      return;
+    }
+
+    var cachedUrl = String(state.inreachKmlUrlByKey[key] || '').trim();
+    var cachedPayload = state.inreachKmlPayloadByKey[key] || null;
+    if (!forceRefresh && cachedUrl === url && cachedPayload) {
+      if (cachedPayload.ok) {
+        _ffRenderInreachKmlMap_(key, reg, url, cachedPayload, mode);
+      } else {
+        if (mode === 'inreach') _ffSetInternalTrackVisible_(key, map, _ffMissionForKey_(key), true);
+        _ffClearInreachOverlay_(key);
+      }
+      return;
+    }
+
+    if (String(state.inreachKmlLoadingByKey[key] || '').trim() === url) {
+      return;
+    }
+
+    state.inreachKmlLoadingByKey[key] = url;
+
+    if (!_ffHasGoogleScriptRun_()) {
+      state.inreachKmlLoadingByKey[key] = '';
+      if (mode === 'inreach') _ffSetInternalTrackVisible_(key, map, _ffMissionForKey_(key), true);
+      _ffClearInreachOverlay_(key);
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (String(state.inreachKmlLoadingByKey[key] || '').trim() !== url) return;
+        state.inreachKmlLoadingByKey[key] = '';
+        state.inreachKmlUrlByKey[key] = url;
+        state.inreachKmlPayloadByKey[key] = res || { ok: false };
+        if (res && res.ok) _ffRenderInreachKmlMap_(key, reg, url, res, mode, forceRefresh);
+        else {
+          if (mode === 'inreach') _ffSetInternalTrackVisible_(key, map, _ffMissionForKey_(key), true);
+          _ffClearInreachOverlay_(key);
+        }
+      })
+      .withFailureHandler(function() {
+        if (String(state.inreachKmlLoadingByKey[key] || '').trim() !== url) return;
+        state.inreachKmlLoadingByKey[key] = '';
+        state.inreachKmlUrlByKey[key] = url;
+        state.inreachKmlPayloadByKey[key] = { ok: false };
+        if (mode === 'inreach') _ffSetInternalTrackVisible_(key, map, _ffMissionForKey_(key), true);
+        _ffClearInreachOverlay_(key);
+      })
+      .fetchFlightFollowKml(url);
+  }
+
+  function _ffInreachConfiguredUrl_(key, reg) {
     var regKey = String(reg || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     var configured = String((state.inreachByReg || {})[regKey] || '').trim();
-    var url = state.inreachUrlByKey[key] || configured || '';
+    var url = String(state.inreachUrlByKey[key] || configured || '').trim();
     if (!state.inreachUrlByKey[key] && configured) state.inreachUrlByKey[key] = configured;
-    if (!url) { /* leave fallback text */ return; }
-    var existing = wrap.querySelector('iframe');
-    if (existing && existing.src === url) return; // already loaded
-    wrap.innerHTML = '<iframe class="ff-inreach-iframe" src="' + url.replace(/"/g,'&quot;') + '" allowfullscreen sandbox="allow-scripts allow-forms"></iframe>';
+    if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+    return url;
+  }
+
+  function _ffClearInreachOverlay_(key) {
+    _ffClearLayerGroup_(state.leafletInreachLayersByKey, key);
+  }
+
+  function _ffPointSignature_(point) {
+    if (!point) return '';
+    return [
+      Number(point.lat).toFixed(5),
+      Number(point.lon).toFixed(5),
+      String(point.when || '').trim(),
+      String(point.altM || '').trim(),
+      String(point.speedKts || '').trim(),
+      String(point.headingDeg || '').trim()
+    ].join('|');
+  }
+
+  function _ffInreachTrackGroupKey_(placemarkName, point) {
+    var deviceId = String((point && (point.deviceIdentifier || point.deviceId || point.imei || point.name)) || '').trim().toLowerCase();
+    var title = String(placemarkName || (point && point.title) || '').trim().toLowerCase();
+    return deviceId || title || 'inreach';
+  }
+
+  function _ffStoreInreachBreadcrumbPoints_(key, points) {
+    var clean = [];
+    (Array.isArray(points) ? points : []).forEach(function(point) {
+      var lat = Number(point && point.lat);
+      var lon = Number(point && point.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+      clean.push({
+        lat: lat,
+        lon: lon,
+        altM: isFinite(Number(point && point.altM)) ? Number(point && point.altM) : NaN,
+        when: String(point && point.when || '').trim(),
+        speedKts: isFinite(Number(point && point.speedKts)) ? Number(point && point.speedKts) : NaN,
+        headingDeg: isFinite(Number(point && point.headingDeg)) ? Number(point && point.headingDeg) : NaN,
+        title: String(point && point.title || '').trim()
+      });
+    });
+    if (!clean.length) return state.inreachBreadcrumbPointsByKey[key] || [];
+
+    var history = state.inreachBreadcrumbPointsByKey[key] || [];
+    if (clean.length > 1) {
+      history = clean;
+    } else {
+      var nextPoint = clean[0];
+      var sig = _ffPointSignature_(nextPoint);
+      if (state.inreachBreadcrumbSigByKey[key] === sig) return history;
+      state.inreachBreadcrumbSigByKey[key] = sig;
+      if (history.length) {
+        var last = history[history.length - 1];
+        if (_ffDistNm(Number(last.lat), Number(last.lon), nextPoint.lat, nextPoint.lon) >= 0.005) {
+          history.push(nextPoint);
+        }
+      } else {
+        history.push(nextPoint);
+      }
+      if (history.length > 960) history.splice(0, history.length - 960);
+    }
+    state.inreachBreadcrumbPointsByKey[key] = history;
+    return history;
+  }
+
+  function _ffPointPopupHtml_(placemarkName, point, idx, total, prevPoint, nextPoint) {
+    var title = String(placemarkName || 'InReach').trim();
+    var whenText = String(point && point.when || '').trim();
+    var altitudeFt = isFinite(Number(point && point.altM)) ? Math.round(Number(point.altM) * 3.28084) : '';
+    var speedKts = isFinite(Number(point && point.speedKts)) ? Math.round(Number(point && point.speedKts)) : '';
+    if (speedKts === '' || !isFinite(speedKts)) {
+      var computed = _ffInreachTrackPointSpeedKts_(prevPoint, point, nextPoint);
+      if (isFinite(computed)) speedKts = Math.round(computed);
+    }
+    var headingDeg = isFinite(Number(point && point.headingDeg)) ? Math.round(Number(point && point.headingDeg)) : '';
+    var html = ['<strong>' + esc(title) + '</strong>', '<div style="margin-top:4px;font-size:0.82rem;line-height:1.35">', 'Ponto ' + (idx + 1) + ' de ' + total];
+    if (whenText) html.push('<br>Timestamp UTC: ' + esc(_ffFormatZuluStamp_(whenText) || whenText));
+    if (altitudeFt !== '') html.push('<br>Altitude: ' + altitudeFt + ' ft');
+    if (speedKts !== '' && isFinite(speedKts)) html.push('<br>Velocidade: ' + speedKts + ' kt');
+    if (headingDeg !== '') html.push('<br>Rumo: ' + headingDeg + '°');
+    html.push('<br>Lat/Lon: ' + Number(point.lat).toFixed(5) + ', ' + Number(point.lon).toFixed(5));
+    html.push('</div>');
+    return html.join('');
+  }
+
+  function _ffRenderInreachBreadcrumbLayer_(key, map, points, placemarkName, layer) {
+    var usingExistingLayer = !!layer;
+    if (!layer) {
+      _ffClearLayerGroup_(state.leafletInreachLayersByKey, key);
+      layer = L.layerGroup();
+    }
+    var latlngs = [];
+    (Array.isArray(points) ? points : []).forEach(function(point, idx) {
+      var lat = Number(point && point.lat);
+      var lon = Number(point && point.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+      latlngs.push([lat, lon]);
+      var prevPoint = idx > 0 ? points[idx - 1] : null;
+      var nextPoint = idx < points.length - 1 ? points[idx + 1] : null;
+      var popupHtml = _ffPointPopupHtml_(placemarkName, point, idx, points.length, prevPoint, nextPoint);
+      if (idx === points.length - 1) {
+        L.marker([lat, lon], {
+          icon: _ffCessnaDivIcon(isFinite(Number(point && point.headingDeg)) ? Number(point.headingDeg) : _ffInreachTrackPointBearing_(prevPoint || point, point)),
+          keyboard: false,
+          opacity: 0.98
+        }).bindPopup(popupHtml).addTo(layer);
+      } else {
+        L.circleMarker([lat, lon], {
+          radius: 2.6,
+          color: '#d32f2f',
+          weight: 1,
+          fillColor: '#ffccbc',
+          fillOpacity: 0.85
+        }).bindPopup(popupHtml).addTo(layer);
+      }
+    });
+    if (latlngs.length >= 2) {
+      L.polyline(latlngs, { color: '#d32f2f', weight: 3, opacity: 0.75 }).addTo(layer);
+    }
+    if (!usingExistingLayer) {
+      layer.addTo(map);
+      state.leafletInreachLayersByKey[key] = layer;
+    }
+    return layer;
+  }
+
+  function _ffSetInternalTrackVisible_(key, map, mission, visible) {
+    if (!map) return;
+    if (visible) {
+      var routed = _ffRenderRouteLayer(map, key, mission);
+      if (!routed) {
+        _ffPlotMissionTrace(map, mission, { color: '#1565c0', weight: 2, opacity: 0.7, dashArray: '8 6', addEndpoints: true });
+      }
+      _ffRefreshBreadcrumbLayer(key, map);
+      _ffRefreshDbLayers(key, map, mission);
+      return;
+    }
+    _ffClearLayerGroup_(state.leafletRouteLayersByKey, key);
+    _ffClearLayerGroup_(state.breadcrumbLayersByKey, key);
+    _ffClearLayerGroup_(state.leafletDbLayersByKey, key);
+  }
+
+  function _ffRenderInreachKmlMap_(key, reg, url, payload, mode, forceRefresh) {
+    var map = state.leafletMapsByKey[key];
+    if (!map || !payload || !payload.ok) return;
+
+    _ffClearLayerGroup_(state.leafletInreachLayersByKey, key);
+    var layer = L.layerGroup();
+    var allLatLngs = [];
+    var breadcrumbGroups = {};
+    var breadcrumbLayer = L.layerGroup();
+
+    function addLatLng(lat, lon) {
+      if (!isFinite(lat) || !isFinite(lon)) return;
+      allLatLngs.push([lat, lon]);
+    }
+
+    function bindPopup(layerObj, title, description) {
+      var html = '<strong>' + esc(title || 'KML') + '</strong>';
+      if (description) html += '<br>' + esc(description);
+      layerObj.bindPopup(html);
+    }
+
+    function addBreadcrumbPoint(trackKey, point, label) {
+      if (!trackKey || !point) return;
+      if (!breadcrumbGroups[trackKey]) breadcrumbGroups[trackKey] = { points: [], label: '' };
+      if (label && !breadcrumbGroups[trackKey].label) breadcrumbGroups[trackKey].label = label;
+      breadcrumbGroups[trackKey].points.push(point);
+    }
+
+    (payload.placemarks || []).forEach(function(placemark) {
+      var placemarkName = String(placemark && placemark.name || '').trim();
+      var placemarkDescription = String(placemark && placemark.description || '').trim();
+      (placemark && placemark.features || []).forEach(function(feature) {
+        var title = placemarkName || feature.type || 'KML';
+        if (feature.type === 'Point') {
+          var p = feature.coordinates && feature.coordinates[0] ? feature.coordinates[0] : null;
+          if (!p) return;
+          var pointMeta = feature.point || {};
+          var deviceIdentifier = String((pointMeta.raw && (pointMeta.raw.deviceidentifier || pointMeta.raw.deviceid || pointMeta.raw.imei || pointMeta.raw.name || pointMeta.raw.mapdisplayname)) || placemarkName || title || '').trim();
+          var point = {
+            lat: Number(p[0]),
+            lon: Number(p[1]),
+            altM: isFinite(Number(pointMeta.altitudeM)) ? Number(pointMeta.altitudeM) : (isFinite(Number(p[2])) ? Number(p[2]) : NaN),
+            when: String(pointMeta.when || '').trim(),
+            speedKts: isFinite(Number(pointMeta.speedKts)) ? Number(pointMeta.speedKts) : NaN,
+            headingDeg: isFinite(Number(pointMeta.headingDeg)) ? Number(pointMeta.headingDeg) : NaN,
+            deviceIdentifier: deviceIdentifier,
+            title: title
+          };
+          addLatLng(Number(p[0]), Number(p[1]));
+          addBreadcrumbPoint(_ffInreachTrackGroupKey_(placemarkName, point), point, placemarkName || point.deviceIdentifier || title);
+          var marker = L.marker([point.lat, point.lon], {
+            icon: _ffCessnaDivIcon(isFinite(point.headingDeg) ? point.headingDeg : 0),
+            keyboard: false,
+            opacity: 0.98
+          });
+          marker.bindPopup(_ffPointPopupHtml_(title, point, 0, 1, null, null));
+          marker.addTo(layer);
+        } else if (feature.type === 'LineString') {
+          var latlngs = [];
+          (feature.coordinates || []).forEach(function(coord) {
+            var lat = Number(coord[0]);
+            var lon = Number(coord[1]);
+            if (!isFinite(lat) || !isFinite(lon)) return;
+            latlngs.push([lat, lon]);
+            addLatLng(lat, lon);
+          });
+          if (!latlngs.length) return;
+          var polyline = L.polyline(latlngs, {
+            color: '#1565c0',
+            weight: 4,
+            opacity: 0.9,
+            dashArray: '6 5'
+          });
+          bindPopup(polyline, title, placemarkDescription);
+          polyline.addTo(layer);
+        } else if (feature.type === 'Track') {
+          var trackPoints = Array.isArray(feature.points) && feature.points.length ? feature.points : [];
+          if (!trackPoints.length) {
+            (feature.coordinates || []).forEach(function(coord) {
+              var lat = Number(coord[0]);
+              var lon = Number(coord[1]);
+              var alt = coord.length > 2 ? Number(coord[2]) : NaN;
+              if (!isFinite(lat) || !isFinite(lon)) return;
+              trackPoints.push({ lat: lat, lon: lon, altM: isFinite(alt) ? alt : NaN, when: '' });
+            });
+          }
+          var latlngs = [];
+          trackPoints.forEach(function(point) {
+            var lat = Number(point.lat);
+            var lon = Number(point.lon);
+            if (!isFinite(lat) || !isFinite(lon)) return;
+            latlngs.push([lat, lon]);
+            addLatLng(lat, lon);
+          });
+          if (!latlngs.length) return;
+          var trackPolyline = L.polyline(latlngs, {
+            color: '#d32f2f',
+            weight: 4,
+            opacity: 0.9
+          });
+          bindPopup(trackPolyline, title, placemarkDescription);
+          trackPolyline.addTo(layer);
+
+          trackPoints.forEach(function(point, idx) {
+            var prevPoint = idx > 0 ? trackPoints[idx - 1] : null;
+            var nextPoint = idx < trackPoints.length - 1 ? trackPoints[idx + 1] : null;
+            var lat = Number(point.lat);
+            var lon = Number(point.lon);
+            if (!isFinite(lat) || !isFinite(lon)) return;
+            var isLatest = idx === trackPoints.length - 1;
+            var popupHtml = _ffInreachTrackPointPopupHtml_(placemarkName || title, feature, point, idx, trackPoints.length, prevPoint, nextPoint);
+            if (isLatest) {
+              var bearing = _ffInreachTrackPointBearing_(prevPoint || point, point);
+              var cessna = L.marker([lat, lon], { icon: _ffCessnaDivIcon(bearing), keyboard: false, opacity: 0.98 });
+              cessna.bindPopup(popupHtml).addTo(layer);
+            } else {
+              L.circleMarker([lat, lon], {
+                radius: 2.6,
+                color: '#d32f2f',
+                weight: 1,
+                fillColor: '#ffccbc',
+                fillOpacity: 0.85
+              }).bindPopup(popupHtml).addTo(layer);
+            }
+          });
+        } else if (feature.type === 'Polygon') {
+          var ring = [];
+          (feature.coordinates || []).forEach(function(coord) {
+            var lat = Number(coord[0]);
+            var lon = Number(coord[1]);
+            if (!isFinite(lat) || !isFinite(lon)) return;
+            ring.push([lat, lon]);
+            addLatLng(lat, lon);
+          });
+          if (!ring.length) return;
+          var polygon = L.polygon(ring, { color: '#2e7d32', weight: 3, fillColor: '#81c784', fillOpacity: 0.18 });
+          bindPopup(polygon, title, placemarkDescription);
+          polygon.addTo(layer);
+        }
+      });
+    });
+
+    Object.keys(breadcrumbGroups).forEach(function(groupKey) {
+      var group = breadcrumbGroups[groupKey];
+      var historyKey = key + '::' + groupKey;
+      var breadcrumbHistory = _ffStoreInreachBreadcrumbPoints_(historyKey, group.points);
+      var breadcrumbTrail = breadcrumbHistory.length > 1 ? breadcrumbHistory.slice(0, breadcrumbHistory.length - 1) : [];
+      if (breadcrumbTrail.length) {
+        _ffRenderInreachBreadcrumbLayer_(key, map, breadcrumbTrail, group.label || payload.title || 'InReach', breadcrumbLayer);
+      }
+    });
+
+    if (breadcrumbLayer.getLayers && breadcrumbLayer.getLayers().length) {
+      breadcrumbLayer.eachLayer(function(childLayer) {
+        layer.addLayer(childLayer);
+      });
+    }
+
+    layer.addTo(map);
+    state.leafletInreachLayersByKey[key] = layer;
+
+    var savedView = state.mapViewByKey[key] || null;
+    if ((forceRefresh || savedView) && savedView) {
+      _ffApplySavedView_(map, savedView);
+    } else if (mode === 'inreach' || mode === 'both') {
+      if (allLatLngs.length === 1) {
+        map.setView(allLatLngs[0], 12, { animate: false });
+      } else if (allLatLngs.length > 1) {
+        map.fitBounds(L.latLngBounds(allLatLngs), { padding: [18, 18] });
+      } else if (payload.bounds && isFinite(payload.bounds.minLat) && isFinite(payload.bounds.minLon) && isFinite(payload.bounds.maxLat) && isFinite(payload.bounds.maxLon)) {
+        map.fitBounds([[payload.bounds.minLat, payload.bounds.minLon], [payload.bounds.maxLat, payload.bounds.maxLon]], { padding: [18, 18] });
+      }
+    }
+
+    setTimeout(function() { map.invalidateSize(); }, 50);
   }
 
   function loadAircraftAndMissions() {
@@ -3563,13 +4773,13 @@
 
     if (state.loadingFlights) {
       host.innerHTML = '<div class="ff-empty-state" style="padding:26px 10px;">Carregando voos...</div>' +
-        '<div class="ff-list-version-tag">Page version 3</div>';
+        '<div class="ff-list-version-tag">FF-UI ' + esc(String(FF_UI_VERSION || '')) + '</div>';
       return;
     }
 
     if (!rows.length) {
       host.innerHTML = '<div class="ff-empty-state" style="padding:26px 10px;">Nenhum voo encontrado.</div>' +
-        '<div class="ff-list-version-tag">Page version 3</div>';
+        '<div class="ff-list-version-tag">FF-UI ' + esc(String(FF_UI_VERSION || '')) + '</div>';
       return;
     }
 
@@ -3585,7 +4795,7 @@
         '</tr>';
       }).join('') +
       '</tbody></table>' +
-      '<div class="ff-list-version-tag">Page version 3</div>';
+      '<div class="ff-list-version-tag">FF-UI ' + esc(String(FF_UI_VERSION || '')) + '</div>';
 
     if (state.pendingOpenKey) {
       var found = rows.some(function(r) { return r.key === state.pendingOpenKey; });
@@ -3778,6 +4988,8 @@
     var plannedTime = String(hints.plvoTime || '').trim().replace(/\D/g, '').slice(0, 4);
     var dateText = _ffDateLabelPt_(mission && mission.date || '--');
     var planCode = String(hints.planCode || '').trim() || '--';
+    var plannedFlightLevel = String(hints.plannedFlightLevel || '').trim();
+    var plannedFlightLevelLabel = plannedFlightLevel ? ('FL ' + plannedFlightLevel) : '--';
     var takeoffSuggested = String(hints.takeoffTime || '').trim().replace(/\D/g, '').slice(0, 4);
     var takeoffSuggestedLabel = _ffTimeLabel_(takeoffSuggested);
     var roleText = String(mission && mission.copilot || '').trim() || 'Sem co-piloto/aluno';
@@ -3787,6 +4999,9 @@
     var parsedEte = _ffZuluTimeLabel_(hints.eteTime || '');
     var eteValue = storedEte || parsedEte;
     if (!storedEte && parsedEte) state.eteByKey[key] = parsedEte;
+    var importState = state.checksByReg[key] || { fuel: false, data: false, importVerified: false };
+    var importVerified = !!importState.importVerified;
+    var importSummary = planCode !== '--' || plannedTime || plannedFlightLevel || fuelL > 0 ? 'Campos importados da mensagem máquina.' : 'Aguardando mensagem máquina para importar dados.';
     var closeBtn = '<button class="ff-flight-close-btn" type="button" onclick="ffCloseFlightFromWatch(\'' + esc(key) + '\')" title="Close this flight">&times;</button>';
     return '<div class="ff-focus-card" id="ff-focus-card-' + safeId(key) + '">' +
       closeBtn +
@@ -3797,8 +5012,8 @@
           value: flightFollowerDefault,
           id: 'ff-field-follower-' + safeId(key)
         }) +
-        ffFieldReadonly_('PLVO Codigo', planCode, { id: 'ff-plvo-code-' + safeId(key) }) +
-        ffFieldReadonly_('PLVO Horario', plannedTime ? plannedTime + 'Z' : '--', { id: 'ff-plvo-time-' + safeId(key) }) +
+        ffFieldReadonly_('PLVO Codigo', planCode, { id: 'ff-plvo-code-' + safeId(key), className: planCode !== '--' ? 'ff-field-imported' : '' }) +
+        ffFieldReadonly_('PLVO Horario', plannedTime ? plannedTime + 'Z' : '--', { id: 'ff-plvo-time-' + safeId(key), className: plannedTime ? 'ff-field-imported' : '' }) +
         ffFieldInput_('Horario de Decolagem', '00:00', {
           id: 'ff-decolagem-input-' + safeId(key),
           value: '',
@@ -3813,9 +5028,15 @@
           value: eteValue,
           attrs: ' data-ff-key="' + esc(key) + '" oninput="ffHandleEteInput(\'' + esc(key) + '\')" onblur="ffNormalizeEteInput(\'' + esc(key) + '\')"'
         }) +
-        ffFieldReadonly_('Avgas (L)', isFinite(fuelL) && fuelL > 0 ? String(Math.round(fuelL)) : '--', { id: 'ff-avgas-' + safeId(key) }) +
-        ffFieldReadonly_('Autonomia', range, { id: 'ff-autonomia-' + safeId(key) }) +
+        ffFieldReadonly_('FL', plannedFlightLevelLabel, { id: 'ff-fl-' + safeId(key), className: plannedFlightLevel ? 'ff-field-imported' : '' }) +
+        ffFieldReadonly_('Avgas (L)', isFinite(fuelL) && fuelL > 0 ? String(Math.round(fuelL)) : '--', { id: 'ff-avgas-' + safeId(key), className: fuelL > 0 ? 'ff-field-imported' : '' }) +
+        ffFieldReadonly_('Autonomia', range, { id: 'ff-autonomia-' + safeId(key), className: range !== '--:--' ? 'ff-field-imported' : '' }) +
         ffFieldReadonly_('POB', String(pob), { id: 'ff-pob-' + safeId(key) }) +
+      '</div>' +
+
+      '<div class="ff-import-banner">' +
+        '<span>' + esc(importSummary) + '</span>' +
+        '<button type="button" class="ff-import-verify-btn' + (importVerified ? ' locked' : '') + '" ondblclick="ffToggleCheck(\'' + esc(key) + '\',\'importVerified\')" title="Duplo clique para confirmar os campos importados">' + (importVerified ? '🔒 Verificado' : '🔓 Duplo clique para verificar') + '</button>' +
       '</div>' +
 
       '<div id="ff-route-host-' + safeId(key) + '">' + _ffBuildRouteTableHtml_(key, reg, mission) + '</div>' +
@@ -3826,6 +5047,7 @@
           '<button class="ff-map-filter-btn active" id="ff-map-filter-asphalt-' + smap + '" onclick="ffToggleMapFilter(\''+key+'\',\'asphalt\')"><span class="ff-map-leg-dot" style="background:#263238;"></span>Asfalto ON</button>' +
           '<button class="ff-map-filter-btn active" id="ff-map-filter-waypoint-' + smap + '" onclick="ffToggleMapFilter(\''+key+'\',\'waypoint\')"><span class="ff-map-leg-tri"></span>Waypoint ON</button>' +
           '<button class="ff-map-filter-btn" id="ff-map-mode-cycle-' + smap + '" onclick="ffCycleMapMode(\''+key+'\')">Mapa: Interno</button>' +
+          '<button class="ff-map-filter-btn" type="button" onclick="ffOpenInreachRawDiagnostic(\'' + esc(key) + '\')">KML Raw</button>' +
           '<span class="ff-map-wx-row">' + _ffBuildWxToolbarControls_(key, smap) + '</span>' +
         '</div>' +
         '<div class="ff-map-content-grid" id="ff-map-grid-' + smap + '">' +
@@ -3835,6 +5057,7 @@
               '<div class="ff-leaflet-map" id="ff-live-map-' + smap + '"></div>' +
             '</div>' +
             '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + smap + '" style="display:none">' +
+              '<div class="ff-inreach-map" id="ff-inreach-map-' + smap + '" style="display:none"></div>' +
               '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + smap + '">' +
                 'Link MapShare não configurado para esta aeronave.<br>' +
                 '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">Defina em Ferramentas > Master Config > Flight Following.</span>' +
@@ -3855,10 +5078,6 @@
       '<div class="ff-chat-container" style="margin-top:10px;">' +
         '<div class="ff-chat-header"><span>InReach Messages</span><span class="ff-chat-header-actions"><button class="ff-chat-toggle-btn" id="ff-chat-archived-toggle-' + sreg + '" onclick="ffToggleArchivedMessages(\'' + esc(reg) + '\')">Show archived</button><button class="ff-chat-sync-btn" id="ff-chat-sync-' + sreg + '" onclick="ffSyncNow(\'' + esc(reg) + '\')">Sync now</button></span></div>' +
         '<div class="ff-chat-messages" id="ff-chat-' + sreg + '"></div>' +
-        '<div class="ff-chat-input-group">' +
-          '<input class="ff-chat-input" id="ff-chat-input-' + sreg + '" placeholder="Message to aircraft via inReach email" onkeypress="if(event.key===\'Enter\'){ffSendChat(\'' + esc(reg) + '\');}">' +
-          '<button class="ff-chat-send" onclick="ffSendChat(\'' + esc(reg) + '\')">Send</button>' +
-        '</div>' +
       '</div>' +
       '<div class="ff-pax-summary" id="ff-pax-summary-' + safeId(key) + '">' + _ffPaxSummaryHtml_(mission, hints, pob) + '</div>' +
     '</div>';
@@ -3867,7 +5086,8 @@
   function ffFieldReadonly_(label, value, opts) {
     var o = opts || {};
     var valueId = o.id ? ' id="' + esc(o.id) + '"' : '';
-    return '<div class="ff-field"><div class="ff-field-label">' + esc(label) + '</div><div class="ff-field-value"' + valueId + '>' + esc(value) + '</div></div>';
+    var extraClass = o.className ? ' ff-field-imported' : '';
+    return '<div class="ff-field"><div class="ff-field-label">' + esc(label) + '</div><div class="ff-field-value' + extraClass + '"' + valueId + '>' + esc(value) + '</div></div>';
   }
 
   function ffFieldInput_(label, placeholder, opts) {
@@ -3935,19 +5155,29 @@
       var skey = safeId(key);
       var plvoCodeEl = document.getElementById('ff-plvo-code-' + skey);
       var plvoTimeEl = document.getElementById('ff-plvo-time-' + skey);
+      var flEl = document.getElementById('ff-fl-' + skey);
       var avgasEl = document.getElementById('ff-avgas-' + skey);
       var autonomiaEl = document.getElementById('ff-autonomia-' + skey);
       var pobEl = document.getElementById('ff-pob-' + skey);
+      var importBannerEl = document.querySelector('#ff-focus-card-' + skey + ' .ff-import-banner span');
+      var importVerifyBtn = document.querySelector('#ff-focus-card-' + skey + ' .ff-import-verify-btn');
       var paxSummaryEl = document.getElementById('ff-pax-summary-' + skey);
       var decInputEl = document.getElementById('ff-decolagem-input-' + skey);
       var eteInputEl = document.getElementById('ff-ete-input-' + skey);
       if (plvoCodeEl) plvoCodeEl.textContent = hints.planCode || '--';
+      if (plvoCodeEl) plvoCodeEl.classList.toggle('ff-field-imported', !!(hints.planCode && hints.planCode !== '--'));
       if (plvoTimeEl) plvoTimeEl.textContent = hints.plvoTime ? (hints.plvoTime + 'Z') : '--';
+      if (plvoTimeEl) plvoTimeEl.classList.toggle('ff-field-imported', !!hints.plvoTime);
+      if (flEl) flEl.textContent = hints.plannedFlightLevel ? ('FL ' + hints.plannedFlightLevel) : '--';
+      if (flEl) flEl.classList.toggle('ff-field-imported', !!hints.plannedFlightLevel);
       var fuelL = Number(hints.fuelLiters || 0);
       if (avgasEl) avgasEl.textContent = (isFinite(fuelL) && fuelL > 0) ? String(Math.round(fuelL)) : '--';
+      if (avgasEl) avgasEl.classList.toggle('ff-field-imported', !!(isFinite(fuelL) && fuelL > 0));
       if (autonomiaEl) {
-        var burn = Number((state.aircraft.find(function(a) { return a.reg === keyReg; }) || {}).burnLph || 0);
+        var aircraft = state.aircraft.find(function(a) { return a.reg === keyReg; }) || {};
+        var burn = Number(aircraft.burnLph || aircraft.burn || 0);
         autonomiaEl.textContent = (burn > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burn) : '--:--';
+        autonomiaEl.classList.toggle('ff-field-imported', !!(burn > 0 && fuelL > 0));
       }
       var pobValue = _ffResolvePob_(mission, hints);
       if (pobEl) pobEl.textContent = String(pobValue);
@@ -3964,6 +5194,14 @@
         decInputEl.setAttribute('data-suggested-time', hints.takeoffTime);
         var btn = document.getElementById('ff-decolagem-verify-' + skey);
         if (btn) btn.textContent = 'Verificar? ' + _ffTimeLabel_(hints.takeoffTime);
+      }
+      if (importBannerEl) {
+        importBannerEl.textContent = (hints.planCode || hints.plvoTime || hints.plannedFlightLevel || fuelL > 0) ? 'Campos importados da mensagem máquina.' : 'Aguardando mensagem máquina para importar dados.';
+      }
+      if (importVerifyBtn) {
+        var importState = state.checksByReg[key] || { importVerified: false };
+        importVerifyBtn.classList.toggle('locked', !!importState.importVerified);
+        importVerifyBtn.textContent = importState.importVerified ? '🔒 Verificado' : '🔓 Duplo clique para verificar';
       }
       _ffSetDecolagemVerifyState_(key);
     });
@@ -4012,11 +5250,21 @@
     var missionId = mission.missionId || '';
     var key = flightKey(reg, missionId);
     var smap = safeId(key);
-    var checks = state.checksByReg[key] || { fuel: false, data: false };
+    var checks = state.checksByReg[key] || { fuel: false, data: false, importVerified: false };
     var pax = Array.isArray(mission.pax) ? mission.pax : [];
     var waypoints = Array.isArray(mission.waypoints) ? mission.waypoints : [];
-    var flMatch = String(mission.planId || '').match(/F(\d{3})/i);
-    var fl = flMatch ? flMatch[1] : '--';
+    var hints = _ffMissionMessageHints_(reg, mission);
+    var fl = String(hints.plannedFlightLevel || '').trim();
+    if (!fl) {
+      var flMatch = String(mission.planId || '').match(/F(\d{3})/i);
+      fl = flMatch ? flMatch[1] : '--';
+    }
+    var fuelL = Number(hints.fuelLiters || mission.fuelL || 0);
+    var burn = Number((acft && (acft.burnLph || acft.burn)) || 0);
+    var autonomia = (burn > 0 && fuelL > 0) ? ffFormatDuration_(fuelL / burn) : '--:--';
+    var plvoCode = String(hints.planCode || '').trim() || (mission.noPlan ? 'NO PLAN' : (mission.planId || '--'));
+    var plvoTime = hints.plvoTime ? (hints.plvoTime + 'Z') : (mission.takeoffUTC ? mission.takeoffUTC + 'Z' : '--');
+    var importSummary = (hints.planCode || hints.plvoTime || hints.plannedFlightLevel || fuelL > 0) ? 'Campos importados da mensagem máquina.' : 'Aguardando mensagem máquina para importar dados.';
 
     var paxRows = pax.length ? pax.map(function(p) {
       var ageSex = [p.sex || '', p.age || ''].filter(Boolean).join(' / ');
@@ -4058,8 +5306,8 @@
             '<td><input class="ff-input-cell" value="' + esc(mission.pilot || '') + '"></td>' +
             '<td><input class="ff-input-cell" value="' + esc(mission.copilot || '') + '"></td>' +
             '<td>' + esc(mission.date || '--') + '</td>' +
-            '<td>' + esc(mission.noPlan ? 'NO PLAN' : (mission.planId || '--')) + '</td>' +
-            '<td>' + esc(mission.takeoffUTC ? mission.takeoffUTC + 'Z' : '--') + '</td>' +
+            '<td>' + esc(plvoCode) + '</td>' +
+            '<td>' + esc(plvoTime) + '</td>' +
             '<td><input class="ff-input-cell" value="" placeholder="00:00"></td>' +
           '</tr></tbody>' +
         '</table>' +
@@ -4070,11 +5318,16 @@
             '<td><input class="ff-input-cell" value="' + esc(mission.copilot || '') + '"></td>' +
             '<td><input class="ff-input-cell" value=""></td>' +
             '<td><input class="ff-input-cell" value=""></td>' +
-            '<td>' + esc(mission.fuelL || '--') + '</td>' +
-            '<td><input class="ff-input-cell" value="0:00"></td>' +
-            '<td>' + esc(mission.pob || '--') + '</td>' +
+            '<td>' + esc(fuelL > 0 ? String(Math.round(fuelL)) : '--') + '</td>' +
+            '<td>' + esc(autonomia) + '</td>' +
+            '<td>' + esc(_ffResolvePob_(mission, hints) || mission.pob || '--') + '</td>' +
           '</tr></tbody>' +
         '</table>' +
+
+        '<div class="ff-import-banner">' +
+          '<span>' + esc(importSummary) + '</span>' +
+          '<button type="button" class="ff-import-verify-btn' + (checks.importVerified ? ' locked' : '') + '" ondblclick="ffToggleCheck(\'' + esc(key) + '\',\'importVerified\')" title="Duplo clique para confirmar os campos importados">' + (checks.importVerified ? '🔒 Verificado' : '🔓 Duplo clique para verificar') + '</button>' +
+        '</div>' +
 
         '<div class="ff-checklist">' +
           '<div class="ff-check-row"><span>Combustível: Coerente com o FS e suficiente para o voo?</span><button class="ff-check-box ' + (checks.fuel ? 'checked' : '') + '" onclick="ffToggleCheck(\'' + esc(key) + '\',\'fuel\')">' + (checks.fuel ? 'OK' : '') + '</button></div>' +
@@ -4114,6 +5367,7 @@
                 '<div class="ff-leaflet-map" id="ff-live-map-' + smap + '"></div>' +
               '</div>' +
               '<div class="ff-inreach-wrap" id="ff-inreach-wrap-' + smap + '" style="display:none">' +
+                '<div class="ff-inreach-map" id="ff-inreach-map-' + smap + '" style="display:none"></div>' +
                 '<div class="ff-inreach-fallback" id="ff-inreach-fallback-' + smap + '">' +
                   'Link MapShare não configurado para esta aeronave.<br>' +
                   '<span style="font-size:0.72rem;font-weight:400;color:#607d8b;">Defina em Ferramentas > Master Config > Flight Following.</span>' +
@@ -4134,10 +5388,6 @@
         '<div class="ff-chat-container">' +
           '<div class="ff-chat-header"><span>InReach Messages</span><span class="ff-chat-header-actions"><button class="ff-chat-toggle-btn" id="ff-chat-archived-toggle-' + sreg + '" onclick="ffToggleArchivedMessages(\'' + esc(reg) + '\')">Show archived</button><button class="ff-chat-sync-btn" id="ff-chat-sync-' + sreg + '" onclick="ffSyncNow(\'' + esc(reg) + '\')">Sync now</button></span></div>' +
           '<div class="ff-chat-messages" id="ff-chat-' + sreg + '"></div>' +
-          '<div class="ff-chat-input-group">' +
-            '<input class="ff-chat-input" id="ff-chat-input-' + sreg + '" placeholder="Message to aircraft via inReach email" onkeypress="if(event.key===\'Enter\'){ffSendChat(\'' + esc(reg) + '\');}">' +
-            '<button class="ff-chat-send" onclick="ffSendChat(\'' + esc(reg) + '\')">Send</button>' +
-          '</div>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -4196,24 +5446,31 @@
           '<th>Message</th>' +
           '<th class="ff-chat-col-actions">Actions</th>' +
         '</tr></thead>' +
-        '<tbody>' + visibleMessages.map(function(msg) {
+          '<tbody>' + visibleMessages.map(function(msg) {
           var direction = _ffDirectionLabel_(msg);
           var preview = _ffPreviewText_(msg);
           var messageKey = _ffMessageKey_(reg, msg);
           var encodedMessageKey = encodeURIComponent(messageKey);
-          var archiveLabel = showArchived ? 'Restore' : 'Archive';
-          return '<tr class="ff-chat-row">' +
+          var archiveLabel = showArchived ? 'Restaurar' : 'Arquivar';
+            var rows = ['<tr class="ff-chat-row">' +
             '<td><span class="ff-chat-dir-badge ' + direction.toLowerCase() + '">' + direction + '</span></td>' +
             '<td>' + esc(String(reg || '').toUpperCase()) + '</td>' +
             '<td>' + esc(_ffFormatZuluTime_(msg.timestamp)) + '</td>' +
             '<td style="cursor:pointer;" onclick="ffShowMessageBody(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">' +
-              '<div class="ff-chat-message-preview">' + esc(preview || '(empty message)') + '</div>' +
+                '<div class="ff-chat-message-preview">' + esc(preview || '(empty message)') + '</div>' +
             '</td>' +
             '<td>' +
-              '<button type="button" class="ff-chat-row-btn" onclick="event.stopPropagation();ffShowMessageDetails(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">View</button> ' +
-              '<button type="button" class="ff-chat-row-btn" onclick="ffToggleArchiveMessage(\'' + esc(reg) + '\', \'' + encodedMessageKey + '\')">' + archiveLabel + '</button>' +
-            '</td>' +
-          '</tr>';
+              '<button type="button" class="ff-chat-row-btn" data-action="details" data-reg="' + esc(reg) + '" data-message-key="' + encodedMessageKey + '" onclick="event.stopPropagation();ffChatRowAction(this)">Ver</button> ' +
+              '<button type="button" class="ff-chat-row-btn" data-action="archive" data-reg="' + esc(reg) + '" data-message-key="' + encodedMessageKey + '" onclick="event.stopPropagation();ffChatRowAction(this)">' + archiveLabel + '</button>' +
+              '</td>' +
+            '</tr>'];
+            var replies = _ffInreachReplyThread_(reg, msg).filter(function(reply) {
+              return showArchived ? true : !reply.archived;
+            });
+            for (var i = 0; i < replies.length; i++) {
+              rows.push(_ffInreachReplyRowHtml_(reg, messageKey, replies[i]));
+            }
+            return rows.join('');
         }).join('') + '</tbody>' +
       '</table>';
 
@@ -4242,25 +5499,20 @@
   };
 
   window.ffShowMessageDetails = function(reg, messageKey) {
-    messageKey = decodeURIComponent(String(messageKey || ''));
-    var msg = _ffFindMessageByKey_(reg, messageKey);
-    var modal = document.getElementById('ff-message-modal');
-    var body = document.getElementById('ff-message-modal-body');
-    var displayMessage = _ffOperationalMessageText_(msg && msg.text);
-    if (!msg || !modal || !body) return;
-    body.innerHTML = '' +
-      '<div class="ff-modal-grid">' +
-        '<div class="ff-modal-field"><div class="ff-modal-label">Direction</div><div class="ff-modal-value">' + esc(_ffDirectionLabel_(msg)) + '</div></div>' +
-        '<div class="ff-modal-field"><div class="ff-modal-label">Reg</div><div class="ff-modal-value">' + esc(String(reg || '').toUpperCase()) + '</div></div>' +
-        '<div class="ff-modal-field"><div class="ff-modal-label">Time</div><div class="ff-modal-value">' + esc(_ffFormatZuluStamp_(msg.timestamp)) + '</div></div>' +
-        '<div class="ff-modal-field"><div class="ff-modal-label">Archived</div><div class="ff-modal-value">' + (_ffIsArchived_(reg, msg) ? 'Yes' : 'No') + '</div></div>' +
-        '<div class="ff-modal-field"><div class="ff-modal-label">From</div><div class="ff-modal-value">' + esc(msg.from || '') + '</div></div>' +
-        '<div class="ff-modal-field"><div class="ff-modal-label">Subject</div><div class="ff-modal-value">' + esc(msg.subject || '') + '</div></div>' +
-        '<div class="ff-modal-field"><div class="ff-modal-label">Verified</div><div class="ff-modal-value">' + (msg.verified ? 'Yes' : 'No') + '</div></div>' +
-        '<div class="ff-modal-field"><div class="ff-modal-label">Message Key</div><div class="ff-modal-value">' + esc(messageKey) + '</div></div>' +
-      '</div>' +
-      '<div class="ff-modal-message"><div class="ff-modal-label">Message</div><pre>' + esc(displayMessage || msg.text || '') + '</pre></div>';
-    _ffOpenModal_(modal);
+    window.ffShowMessageBody(reg, messageKey);
+  };
+
+  window.ffChatRowAction = function(btn) {
+    var action = String(btn && btn.dataset && btn.dataset.action || '').trim().toLowerCase();
+    var reg = String(btn && btn.dataset && btn.dataset.reg || '');
+    var messageKey = String(btn && btn.dataset && btn.dataset.messageKey || '');
+    if (action === 'details') {
+      window.ffShowMessageDetails(reg, messageKey);
+      return;
+    }
+    if (action === 'archive') {
+      window.ffToggleArchiveMessage(reg, messageKey);
+    }
   };
 
   window.ffShowMessageBody = function(reg, messageKey) {
@@ -4268,11 +5520,10 @@
     var msg = _ffFindMessageByKey_(reg, messageKey);
     var modal = document.getElementById('ff-message-modal');
     var body = document.getElementById('ff-message-modal-body');
-    var displayMessage = _ffOperationalMessageText_(msg && msg.text);
     if (!msg || !modal || !body) return;
     var titleEl = modal.querySelector('.ff-modal-title');
     if (titleEl) titleEl.textContent = 'Mensagem';
-    body.innerHTML = '<pre style="white-space:pre-wrap;word-break:break-word;font-family:monospace;font-size:0.85rem;line-height:1.55;padding:8px;margin:0;">' + esc(displayMessage || msg.text || '(empty)') + '</pre>';
+    body.innerHTML = _ffBuildInreachMessageModalHtml_(reg, msg);
     _ffOpenModal_(modal);
   };
 
@@ -4303,6 +5554,117 @@
     modal.style.setProperty('display', 'none', 'important');
   };
 
+  window.ffPersistInreachReplyDraft = function(reg, messageKey, text) {
+    reg = decodeURIComponent(String(reg || ''));
+    messageKey = decodeURIComponent(String(messageKey || ''));
+    var msg = _ffFindMessageByKey_(reg, messageKey);
+    if (!msg) return;
+    _ffPersistInreachReplyDraft_(reg, msg, text);
+  };
+
+  window.ffToggleInreachReplySent = function(reg, messageKey, replyId, sent) {
+    reg = decodeURIComponent(String(reg || ''));
+    messageKey = decodeURIComponent(String(messageKey || ''));
+    replyId = decodeURIComponent(String(replyId || ''));
+    var msg = _ffFindMessageByKey_(reg, messageKey);
+    if (!msg) return;
+    if (_ffToggleInreachReplySent_(reg, msg, replyId, sent)) {
+      if (state.messagesByReg[reg]) renderMessages(reg);
+      var modal = document.getElementById('ff-message-modal');
+      if (modal && modal.classList.contains('open')) {
+        window.ffShowMessageBody(reg, encodeURIComponent(messageKey));
+      }
+    }
+  };
+
+  window.ffOpenInreachReplyAndCopy = function(reg, messageKey) {
+    reg = decodeURIComponent(String(reg || ''));
+    messageKey = decodeURIComponent(String(messageKey || ''));
+    var msg = _ffFindMessageByKey_(reg, messageKey);
+    if (!msg) return;
+    var modal = document.getElementById('ff-message-modal');
+    var body = document.getElementById('ff-message-modal-body');
+    var composer = document.getElementById('ff-inreach-reply-' + safeId(messageKey));
+    var replyText = String((composer && composer.value) || _ffInreachReplyDraft_(reg, msg) || '').trim();
+    if (!replyText) {
+      if (window.M) M.toast({ html: 'Escreva a resposta primeiro.', classes: 'orange darken-2', displayLength: 2800 });
+      return;
+    }
+    var replyUrl = _ffExtractReplyUrlForMessage_(reg, msg);
+    var reply = {
+      id: String(Date.now()) + '-' + Math.random().toString(16).slice(2, 8),
+      text: replyText,
+      garminUrl: replyUrl,
+      createdAt: new Date().toISOString(),
+      sent: false,
+      sentAt: ''
+    };
+    _ffAddInreachReply_(reg, msg, reply);
+    _ffPersistInreachReplyDraft_(reg, msg, '');
+    if (state.messagesByReg[reg]) renderMessages(reg);
+    if (modal) ffCloseMessageModal();
+    _ffCopyTextToClipboard_(replyText).then(function(ok) {
+      if (window.M) {
+        M.toast({
+          html: ok ? 'Resposta copiada para a área de transferência.' : 'Não foi possível copiar automaticamente; copie manualmente.',
+          classes: ok ? 'green darken-2' : 'orange darken-2',
+          displayLength: 3200
+        });
+      }
+    });
+    if (replyUrl) {
+      var popup = window.open(replyUrl, 'ffReplyLink_' + safeId(messageKey), _ffGarminPopupFeatures_());
+      if (popup && typeof popup.focus === 'function') popup.focus();
+    } else if (window.M) {
+      M.toast({ html: 'Nenhum link encontrado nesta mensagem.', classes: 'red darken-2', displayLength: 3200 });
+    }
+    if (body) body.innerHTML = '';
+  };
+
+  window.ffOpenInreachRawDiagnostic = function(key) {
+    var k = String(key || '').trim();
+    if (!k) return;
+    var reg = String(k.split('|')[0] || '').trim();
+    var url = _ffInreachConfiguredUrl_(k, reg);
+    var modal = document.getElementById('ff-message-modal');
+    var body = document.getElementById('ff-message-modal-body');
+    var titleEl = modal ? modal.querySelector('.ff-modal-title') : null;
+    if (!modal || !body || !titleEl) return;
+
+    titleEl.textContent = 'InReach Raw KML';
+    body.innerHTML = '<div class="ff-modal-message"><div class="ff-modal-label">Status</div><div class="ff-modal-value">Running diagnostic...</div></div>';
+    _ffOpenModal_(modal);
+
+    if (!url) {
+      body.innerHTML = '<div class="ff-modal-message"><div class="ff-modal-label">Status</div><div class="ff-modal-value">No inReach URL configured for this aircraft.</div></div>';
+      return;
+    }
+    if (!_ffHasGoogleScriptRun_()) {
+      body.innerHTML = '<div class="ff-modal-message"><div class="ff-modal-label">Status</div><div class="ff-modal-value">google.script.run unavailable.</div></div>';
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        var parsed = res && res.parsed ? res.parsed : null;
+        var preview = String(res && res.rawPreview || '').trim();
+        var summaryHtml =
+          '<div class="ff-modal-grid">' +
+            '<div class="ff-modal-field"><div class="ff-modal-label">URL</div><div class="ff-modal-value">' + esc(String(res && res.sourceUrl || url)) + '</div></div>' +
+            '<div class="ff-modal-field"><div class="ff-modal-label">HTTP</div><div class="ff-modal-value">' + esc(String(res && res.status || '')) + '</div></div>' +
+            '<div class="ff-modal-field"><div class="ff-modal-label">Raw Length</div><div class="ff-modal-value">' + esc(String(res && res.rawLength || 0)) + '</div></div>' +
+            '<div class="ff-modal-field"><div class="ff-modal-label">Points</div><div class="ff-modal-value">' + esc(String(parsed && parsed.summary ? parsed.summary.pointCount : 0)) + '</div></div>' +
+            '<div class="ff-modal-field"><div class="ff-modal-label">Tracks</div><div class="ff-modal-value">' + esc(String(parsed && parsed.summary ? parsed.summary.trackCount : 0)) + '</div></div>' +
+            '<div class="ff-modal-field"><div class="ff-modal-label">Features</div><div class="ff-modal-value">' + esc(String(parsed && parsed.summary ? parsed.summary.featureCount : 0)) + '</div></div>' +
+          '</div>';
+        body.innerHTML = summaryHtml + '<div class="ff-modal-message"><div class="ff-modal-label">Raw Preview</div><pre>' + esc(preview || String(res && res.error || 'No preview returned.')) + '</pre></div>';
+      })
+      .withFailureHandler(function(err) {
+        body.innerHTML = '<div class="ff-modal-message"><div class="ff-modal-label">Status</div><div class="ff-modal-value">Diagnostic failed: ' + esc(String((err && err.message) || err || 'unknown error')) + '</div></div>';
+      })
+      .diagnoseFlightFollowKml(url);
+  };
+
   function loadSyncMetadata() {
     if (!_ffHasGoogleScriptRun_()) return;
     google.script.run
@@ -4320,71 +5682,10 @@
   }
 
   window.ffToggleCheck = function(key, field) {
-    if (!state.checksByReg[key]) state.checksByReg[key] = { fuel: false, data: false };
+    if (!state.checksByReg[key]) state.checksByReg[key] = { fuel: false, data: false, importVerified: false };
+    if (typeof state.checksByReg[key][field] !== 'boolean') state.checksByReg[key][field] = false;
     state.checksByReg[key][field] = !state.checksByReg[key][field];
     renderGrid();
-  };
-
-  window.ffSendChat = function(reg) {
-    var input = document.getElementById('ff-chat-input-' + safeId(reg));
-    if (!input) return;
-    var text = String(input.value || '').trim();
-    if (!text) return;
-
-    var mission = null;
-    var selectedKey = String(state.selectedFlightKey || '');
-    if (selectedKey) {
-      var selectedParts = selectedKey.split('|');
-      if (String(selectedParts[0] || '') === String(reg || '')) {
-        var selectedMissionId = String(selectedParts[1] || '');
-        mission = (state.missionsByReg[reg] || []).find(function(m) {
-          return String(m && m.missionId || '') === selectedMissionId;
-        }) || null;
-      }
-    }
-    if (!mission) {
-      mission = (state.missionsByReg[reg] || [])[0] || null;
-    }
-
-    var payload = {
-      reg: String(reg || '').trim().toUpperCase(),
-      missionId: mission ? String(mission.missionId || '') : '',
-      flightLegId: mission ? String(mission.flightLegId || '') : '',
-      route: mission ? String(mission.routeSummary || mission.route || '') : '',
-      sender: 'FlightFollowing UI',
-      text: text
-    };
-
-    input.disabled = true;
-    google.script.run
-      .withSuccessHandler(function(res) {
-        input.disabled = false;
-        if (!res || !res.success) {
-          if (window.M) M.toast({ html: 'Send failed.', classes: 'red darken-2', displayLength: 3000 });
-          return;
-        }
-        if (!state.messagesByReg[reg]) state.messagesByReg[reg] = [];
-        state.messagesByReg[reg].push({
-          timestamp: res.timestamp || new Date().toISOString(),
-          direction: 'OUTBOUND',
-          from: 'dispatch@ui',
-          subject: res.subject || '',
-          text: text,
-          previewText: text,
-          verified: true
-        });
-        renderMessages(reg);
-        input.value = '';
-        if (window.M) M.toast({ html: 'Message sent to Flight Following inbox.', classes: 'green darken-2', displayLength: 2200 });
-      })
-      .withFailureHandler(function(err) {
-        input.disabled = false;
-        if (window.M) {
-          var msg = (err && err.message) ? err.message : String(err || 'Unknown error');
-          M.toast({ html: 'Send error: ' + esc(msg), classes: 'red darken-2', displayLength: 3800 });
-        }
-      })
-      .sendFlightFollowMessage(payload);
   };
 
   window.ffSyncNow = function(reg) {

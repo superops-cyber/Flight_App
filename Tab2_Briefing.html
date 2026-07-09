@@ -244,6 +244,10 @@
   width: 6.8ch;
   text-align: center;
 }
+#briefing-content .leg-inputs .fieldbox input.flight-level-input {
+  width: 7.6ch;
+  text-align: center;
+}
 #briefing-content .fieldbox.no-plan-box { display: flex; flex-direction: column; align-items: flex-start; }
 #briefing-content .fieldbox.no-plan-box label { display: block; }
 #briefing-content .no-plan-wrap { display: flex; align-items: center; justify-content: center; gap: 0; height: 26px; min-width: 18px; }
@@ -949,12 +953,14 @@ function briefCollectLegInputs_() {
     const flightLegId = String(card && card.dataset && card.dataset.flightLegId || '').trim();
     const key = flightLegId || String(idx + 1);
     const planInput = card.querySelector('.plan-id-input');
+    const flightLevelInput = card.querySelector('.flight-level-input');
     const zuluInput = card.querySelector('.zulu-input');
     const noPlanInput = card.querySelector('.no-plan-checkbox');
     const noPlan = Boolean(noPlanInput && noPlanInput.checked);
     entries[key] = {
       flightLegId: flightLegId,
       planId: noPlan ? '' : String(planInput && planInput.value || '').trim().toUpperCase(),
+      plannedFlightLevel: noPlan ? '' : String(flightLevelInput && flightLevelInput.value || '').trim().toUpperCase(),
       takeoffUTC: noPlan ? '' : String(zuluInput && zuluInput.value || '').trim(),
       noPlan: noPlan
     };
@@ -973,6 +979,7 @@ window.briefCaptureLegInputs_ = function() {
       const row = entries[fid];
       if (!row) return;
       leg.planId = row.planId || '';
+      leg.plannedFlightLevel = row.plannedFlightLevel || '';
       leg.takeoffUTC = row.takeoffUTC || '';
       leg.noFlightPlan = !!row.noPlan;
     });
@@ -999,10 +1006,12 @@ window.briefHydrateLegInputs_ = function() {
     if (!row) return;
 
     const planInput = card.querySelector('.plan-id-input');
+    const flightLevelInput = card.querySelector('.flight-level-input');
     const zuluInput = card.querySelector('.zulu-input');
     const noPlanInput = card.querySelector('.no-plan-checkbox');
 
     if (planInput) planInput.value = String(row.planId || '').trim().toUpperCase();
+    if (flightLevelInput) flightLevelInput.value = String(row.plannedFlightLevel || '').trim().toUpperCase();
     if (zuluInput) zuluInput.value = String(row.takeoffUTC || '').trim();
     if (noPlanInput) {
       noPlanInput.checked = !!row.noPlan;
@@ -1015,6 +1024,7 @@ window.briefToggleNoPlan_ = function(cb, skipPersist) {
   var card = cb.closest('.leg-card');
   if (!card) return;
   var planInput = card.querySelector('input[placeholder="X42T70QM"]');
+  var flightLevelInput = card.querySelector('input[placeholder="FL150"]');
   var takeoffInput = card.querySelector('.zulu-input');
   if (planInput) {
     if (cb.checked) {
@@ -1024,6 +1034,16 @@ window.briefToggleNoPlan_ = function(cb, skipPersist) {
     } else {
       planInput.disabled = false;
       planInput.value = planInput.dataset.savedVal || '';
+    }
+  }
+  if (flightLevelInput) {
+    if (cb.checked) {
+      flightLevelInput.dataset.savedVal = flightLevelInput.value;
+      flightLevelInput.value = '';
+      flightLevelInput.disabled = true;
+    } else {
+      flightLevelInput.disabled = false;
+      flightLevelInput.value = flightLevelInput.dataset.savedVal || '';
     }
   }
   if (takeoffInput) {
@@ -1228,6 +1248,7 @@ function renderLegs(mission) {
     const groundTime = parseFloat(leg.groundTime) || 0.5;
     const cacheDraw = leg.isFuelCacheStop ? Math.round(leg.plannedCacheDraw || 0) : 0;
     const routeText = legViaText_(leg);
+    const plannedFlightLevel = String(leg.plannedFlightLevel || leg.flightLevel || '').trim().toUpperCase();
     const runwayLimitWeight = Math.round(Number(leg.limit || leg.runwayLimit || leg.rwyLimit || 0) || 0);
     const aircraftMaxTakeoffWeight = Math.round(Number(
       leg.maxTakeoffWeight ||
@@ -1313,11 +1334,15 @@ function renderLegs(mission) {
           <div class="leg-inputs">
             <div class="fieldbox">
               <label>Plan ID</label>
-              <input type="text" class="plan-id-input" placeholder="X42T70QM" maxlength="8">
+              <input type="text" class="plan-id-input" placeholder="X42T70QM" maxlength="8" value="${String(leg.planId || leg.planDI || '').trim().toUpperCase()}">
+            </div>
+            <div class="fieldbox">
+              <label>FL</label>
+              <input type="text" class="flight-level-input" placeholder="FL150" maxlength="5" value="${plannedFlightLevel}">
             </div>
             <div class="fieldbox js-leg-to-keypad">
               <label>T/O UTC</label>
-              <input type="text" class="zulu-input" readonly placeholder="1345">
+              <input type="text" class="zulu-input" readonly placeholder="1345" value="${String(leg.takeoffUTC || leg.takeoffZulu || '').trim()}">
             </div>
             <div class="fieldbox no-plan-box">
               <label>No Flight Plan</label>
@@ -1514,12 +1539,14 @@ window.submitBriefingLog = async function(missionId, opts) {
 
     const legsData = Array.from(document.querySelectorAll('.leg-card')).map((card, idx) => {
       const plan = card.querySelector('input[placeholder="X42T70QM"]')?.value || '';
+      const flightLevel = card.querySelector('input[placeholder="FL150"]')?.value || '';
       const takeoff = card.querySelector('input[placeholder="1345"]')?.value || '';
       const noPlan = !!(card.querySelector('.no-plan-checkbox')?.checked);
       return {
         index: idx + 1,
         flightLegId: String(card.dataset.flightLegId || '').trim(),
         planId: noPlan ? '' : plan,
+        plannedFlightLevel: noPlan ? '' : flightLevel,
         takeoffUTC: noPlan ? '' : takeoff,
         noPlan: noPlan
       };

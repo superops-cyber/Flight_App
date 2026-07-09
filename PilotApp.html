@@ -12,6 +12,8 @@
 </head>
 <body>
 
+  <div id="app-config" data-web-app-url="<?!= String(typeof webAppUrl === 'string' ? webAppUrl : '').replace(/&/g, '&amp;').replace(/"/g, '&quot;') ?>" style="display:none;"></div>
+
   <div id="connectivity-banner" style="display:none; position:sticky; top:0; z-index:1200; text-align:center; padding:8px 10px; font-weight:800; font-size:0.9rem;"></div>
 
   <div id="pilot-time-trio" style="display:flex; justify-content:flex-end; gap:8px; background:#0b5394; color:#fff; padding:4px 10px; font-size:0.66rem; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; line-height:1;">
@@ -484,7 +486,7 @@
     };
     const DUTY_PROMPTS_ENABLED = false;
     const NEW_FLIGHT_URL = '';
-    const WEB_APP_URL = <?!= JSON.stringify(typeof webAppUrl === 'string' ? webAppUrl : '') ?>;
+    const WEB_APP_URL = String((document.getElementById('app-config') && document.getElementById('app-config').getAttribute('data-web-app-url')) || '');
     let _pilotClockTimer = null;
 
     function _pilotClockText_(timeZone) {
@@ -5536,6 +5538,13 @@
     }
 
     function initiateRelease(missionId) {
+      const resolvedMissionId = String(
+        missionId
+        || (window.currentBriefingMission && window.currentBriefingMission.id)
+        || (window.releaseTab5State && window.releaseTab5State.missionId)
+        || ''
+      ).trim();
+
       const runSetup = function(mission) {
         if (!mission || !mission.legs || !mission.legs.length) {
           M.toast({html: 'Mission legs missing for release', classes: 'orange'});
@@ -5548,12 +5557,17 @@
         }
       };
 
-      if (window.currentBriefingMission && window.currentBriefingMission.id === missionId) {
+      if (window.currentBriefingMission && String(window.currentBriefingMission.id || '').trim() === resolvedMissionId) {
         runSetup(window.currentBriefingMission);
         return;
       }
 
-      fetchMissionDetails(missionId, function(mission) {
+      if (!resolvedMissionId) {
+        runSetup(window.currentBriefingMission || null);
+        return;
+      }
+
+      fetchMissionDetails(resolvedMissionId, function(mission) {
           if (mission) window.currentBriefingMission = mission;
           runSetup(mission);
         }, function(err) {

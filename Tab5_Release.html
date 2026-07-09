@@ -425,7 +425,8 @@
     const perf = window.performanceTab4 || {};
     const activeLeg = leg || _releaseGetActiveLeg_(mission);
     const fromIcao = String(activeLeg && activeLeg.from || '').trim().toUpperCase();
-    const runwayIdx = Number(document.getElementById('perf-runway')?.value || 0);
+    const runwayEl = document.getElementById('perf-runway');
+    const runwayIdx = Number((runwayEl && runwayEl.value) || 0);
     const runwayRows = Array.isArray(perf.runways) ? perf.runways.filter(function(r) {
       return String(r && (r.icao || fromIcao) || '').trim().toUpperCase() === fromIcao;
     }) : [];
@@ -456,7 +457,8 @@
       || 0
     );
     const cutdownFromData = cutdownFromDataRaw > 0 ? Math.round(cutdownFromDataRaw) : null;
-    const cutdownInputRaw = String(document.getElementById('release5-cutdown')?.value || '').trim();
+    const cutdownEl = document.getElementById('release5-cutdown');
+    const cutdownInputRaw = String((cutdownEl && cutdownEl.value) || '').trim();
     const cutdownInputNum = cutdownInputRaw === '' ? NaN : Number(cutdownInputRaw);
     const cutdownAreaM = isFinite(cutdownInputNum) && cutdownInputNum >= 0
       ? Math.round(cutdownInputNum)
@@ -474,15 +476,21 @@
     }
     if (runwayLengthM > 0) abortPointM = Math.min(abortPointM, runwayLengthM);
 
-    const windDir = Math.round(Number(document.getElementById('perf-wind-direction')?.value || 0));
-    const windSpd = Math.round(Number(document.getElementById('perf-wind-speed')?.value || 0));
-    const tempRaw = String(document.getElementById('perf-temp')?.value || '').trim();
+    const windDirEl = document.getElementById('perf-wind-direction');
+    const windSpdEl = document.getElementById('perf-wind-speed');
+    const tempEl = document.getElementById('perf-temp');
+    const flapEl = document.getElementById('perf-flaps');
+    const humidityEl = document.getElementById('perf-humidity');
+    const surfaceConditionEl = document.getElementById('perf-surface-condition');
+    const windDir = Math.round(Number((windDirEl && windDirEl.value) || 0));
+    const windSpd = Math.round(Number((windSpdEl && windSpdEl.value) || 0));
+    const tempRaw = String((tempEl && tempEl.value) || '').trim();
     const tempC = tempRaw === '' ? null : Number(tempRaw);
-    const flapRaw = String(document.getElementById('perf-flaps')?.value || '').trim();
+    const flapRaw = String((flapEl && flapEl.value) || '').trim();
     const flaps = flapRaw === '' ? null : Number(flapRaw);
-    const humidityRaw = String(document.getElementById('perf-humidity')?.value || '').trim();
+    const humidityRaw = String((humidityEl && humidityEl.value) || '').trim();
     const humidity = humidityRaw === '' ? null : Number(humidityRaw);
-    const surfaceCondition = String(document.getElementById('perf-surface-condition')?.value || 'DRY');
+    const surfaceCondition = String((surfaceConditionEl && surfaceConditionEl.value) || 'DRY');
 
     const fromIcaoResolved = String(activeLeg && activeLeg.from || '').trim().toUpperCase();
     const acftReg = String(mission && mission.acft || '').trim().toUpperCase();
@@ -608,6 +616,8 @@
     const riskCategories = ['Pilot', 'Aircraft', 'Runway', 'Weather', 'Mission'];
     const riskBreakdown = riskCategories.map(c =>
       `${c}: ${riskDetail && riskDetail[c] != null ? riskDetail[c] : '-'}`).join(' | ');
+    const plannedFlightLevel = _releaseResolvePlannedFlightLevel_(mission, activeLeg);
+    const fuelTotal = _releaseResolveFuelTotal_(mission);
     const scoreLabel = riskTotal >= 11 ? 'HIGH RISK / NO-GO' : riskTotal >= 9 ? 'CAUTION' : 'Standard Ops';
 
     const full = [
@@ -616,7 +626,9 @@
       `Aircraft: ${mission && mission.acft || 'N/A'}`,
       `PIC: ${mission && mission.pilot || 'N/A'}`,
       `Route: ${route}`,
+      `Nível planejado: ${plannedFlightLevel || 'N/D'}`,
       `Flight Plan: ${flightPlan.full}`,
+      `Combustível Tab 2: ${fuelTotal > 0 ? Math.round(fuelTotal) + ' L' : 'N/D'}`,
       `POB: ${pob}`,
       '',
       'Manifest:',
@@ -631,12 +643,53 @@
       `DISPATCH FLT:${flightId}`,
       `AC:${mission && mission.acft || '?'} PIC:${mission && mission.pilot || '?'}`,
       `ROUTE:${route} POB:${pob}`,
+      `NVL:${plannedFlightLevel || 'N/D'} FUEL:${fuelTotal > 0 ? Math.round(fuelTotal) + 'L' : 'N/D'}`,
       `FP:${flightPlan.compact}`,
       pax.length ? pax.map((p, i) => `${i + 1}.${(p.name || '?').split(' ')[0]}`).join(' ') : 'NO PAX',
       `RISK:${riskTotal}-${scoreLabel.toUpperCase().replace(/ /g,'_')}`
     ].join('\n');
 
     return { full, compact, flightId, pob, manifestLines };
+  }
+
+  function _releaseResolvePlannedFlightLevel_(mission, leg) {
+    const flightLegId = String(leg && leg.flightLegId || '').trim();
+    let row = null;
+
+    if (typeof window.briefGetLegInput_ === 'function' && flightLegId) {
+      row = window.briefGetLegInput_(flightLegId);
+    }
+
+    if (!row && leg) {
+      row = {
+        plannedFlightLevel: String(leg.plannedFlightLevel || leg.flightLevel || '').trim().toUpperCase()
+      };
+    }
+
+    return String(row && row.plannedFlightLevel || '').trim().toUpperCase();
+  }
+
+  function _releaseResolveFuelTotal_(mission) {
+    const snapshotFuel = Number(window.briefFuelSnapshot && window.briefFuelSnapshot.total || 0);
+    if (isFinite(snapshotFuel) && snapshotFuel > 0) return snapshotFuel;
+
+    const activeMission = mission || window.currentBriefingMission || {};
+    const rawLoad = activeMission && activeMission.actualLoadJSON;
+    if (rawLoad) {
+      try {
+        const parsed = typeof rawLoad === 'string' ? JSON.parse(rawLoad) : rawLoad;
+        const fuelTotal = Number(parsed && parsed.fuelTotal || 0);
+        if (isFinite(fuelTotal) && fuelTotal > 0) return fuelTotal;
+      } catch (e) {}
+    }
+
+    const firstLeg = Array.isArray(activeMission && activeMission.legs) ? activeMission.legs[0] : null;
+    if (firstLeg) {
+      const fuelTotal = Number(firstLeg.fuelTotal || firstLeg.takeoffFuel || firstLeg.fuel || 0);
+      if (isFinite(fuelTotal) && fuelTotal > 0) return fuelTotal;
+    }
+
+    return 0;
   }
 
   function _releaseRiskTotal() {

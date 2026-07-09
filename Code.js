@@ -43,6 +43,7 @@ function doGet(e) {
  const isPilot = !isDuty && !isFlightReport && !isHistCapture && (view === "dev_pilot" || view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue);
  const diag = String(getQueryParam_('diag') || '').toLowerCase();
  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', "yyyy-MM-dd HH:mm:ss") + ' | ' + Utilities.getUuid().slice(0, 8);
+ const isDiagProbe = diag === 'probe' || diag === 'includes' || diag === '1';
 
  try {
    console.log('[doGet] view=%s duty=%s pilot=%s hist=%s path=%s hash=%s', view, isDuty, isPilot, isHistCapture, pathInfo, getQueryParam_('hash'));
@@ -57,14 +58,20 @@ function doGet(e) {
      .setMimeType(ContentService.MimeType.JSON);
  }
 
- const fileName = isFlightReport ? 'View_FlightReport' : (isHistCapture ? 'View_HistoricalCapture' : (isDuty ? 'DutyApp' : (isPilot ? 'PilotApp' : 'Index')));
- const title = isFlightReport ? 'Relatorio Pos-Voo' : (isHistCapture ? 'Captura Historico de Voos' : (isDuty ? 'Duty Time' : (isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal')));
+ const fileName = isDiagProbe ? 'PortalDiag' : (isFlightReport ? 'View_FlightReport' : (isHistCapture ? 'View_HistoricalCapture' : (isDuty ? 'DutyApp' : (isPilot ? 'PilotApp' : 'Index'))));
+ const title = isDiagProbe ? 'Portal Diagnostics' : (isFlightReport ? 'Relatorio Pos-Voo' : (isHistCapture ? 'Captura Historico de Voos' : (isDuty ? 'Duty Time' : (isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal'))));
 
  const template = HtmlService.createTemplateFromFile(fileName);
  template.webAppUrl = ScriptApp.getService().getUrl();
  template.buildStamp = stamp;
  template.routeView = view;
  template.routeFlightId = String(getQueryParam_('flightId') || '');
+ template.routePathInfo = pathInfo;
+ template.routeQueryString = queryRaw;
+ template.routeDiagMode = diag;
+ template.routeDiagTarget = String(getQueryParam_('part') || '');
+ template.routeFileName = fileName;
+ template.routeTitle = title;
 
  return template.evaluate()
    .setTitle(title)
@@ -79,6 +86,51 @@ function doGet(e) {
 
 function include(filename) {
 return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function getPortalProbeHtml(part) {
+  var key = String(part || '').trim().toLowerCase();
+  var map = {
+    home: 'Index',
+    dispatch: 'View_Dispatch',
+    supervisor: 'View_Supervisor',
+    flightfollow: 'View_FlightFollowing',
+    tools: 'View_Tools',
+    maintenance: 'View_Maintenance'
+  };
+  var fileName = map[key];
+  if (!fileName) {
+    return {
+      ok: false,
+      error: 'Unknown probe target: ' + key,
+      fileName: ''
+    };
+  }
+
+  var template = HtmlService.createTemplateFromFile(fileName);
+  template.webAppUrl = ScriptApp.getService().getUrl();
+  template.buildStamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', "yyyy-MM-dd HH:mm:ss") + ' | ' + Utilities.getUuid().slice(0, 8);
+  template.routeView = key;
+  template.routeFlightId = '';
+  template.routePathInfo = '';
+  template.routeQueryString = 'diag=probe&part=' + key;
+  template.routeDiagMode = 'probe';
+  template.routeDiagTarget = key;
+  template.routeFileName = fileName;
+  template.routeTitle = 'Portal Probe: ' + fileName;
+
+  var rendered = template.evaluate().getContent();
+  var scriptCount = (rendered.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi) || []).length;
+  var previewHtml = String(rendered || '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '');
+
+  return {
+    ok: true,
+    fileName: fileName,
+    scriptCount: scriptCount,
+    html: previewHtml
+  };
 }
 
 function getToolsBuildVersion() {
@@ -1069,6 +1121,34 @@ const flownStatuses_ = { FLOWN: true, COMPLETE: true, COMPLETED: true };
 const completedLegMap_ = {};
 const departedLegMap_ = {};
 const dispatchLegStateMap_ = {};
+
+const calendarDateToDateObj_ = function(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) return new Date(value.getTime());
+  if (typeof value === 'number' && isFinite(value)) {
+    var serialBase = new Date(1899, 11, 30);
+    var wholeDays = Math.floor(value);
+    var millis = Math.round((value - wholeDays) * 24 * 60 * 60 * 1000);
+    var serialDate = new Date(serialBase.getTime() + (wholeDays * 24 * 60 * 60 * 1000) + millis);
+    if (!isNaN(serialDate.getTime())) return serialDate;
+  }
+  var raw = String(value == null ? '' : value).trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    var ymd = new Date(raw + 'T00:00:00');
+    return isNaN(ymd.getTime()) ? null : ymd;
+  }
+  var br = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) {
+    var dd = Number(br[1]);
+    var mm = Number(br[2]);
+    var yyyy = Number(br[3]);
+    var brDate = new Date(yyyy, mm - 1, dd, 0, 0, 0, 0);
+    return isNaN(brDate.getTime()) ? null : brDate;
+  }
+  var parsed = new Date(raw);
+  return isNaN(parsed.getTime()) ? null : parsed;
+};
+
 try {
   const logSheet = ss.getSheetByName(APP_SHEETS.LOG_FLIGHTS);
   if (logSheet) {
@@ -1231,8 +1311,8 @@ Object.values(missions).forEach(m => {
 
 
  // Safe Date Handling
- let dateObj = (m.date instanceof Date) ? m.date : new Date(m.date);
- if (isNaN(dateObj.getTime())) return;
+ let dateObj = calendarDateToDateObj_(m.date);
+ if (!dateObj || isNaN(dateObj.getTime())) return;
    let status = m.status ? m.status.toString().toUpperCase() : "PENDING";
    const allLegsComplete = m.legs.length > 0 && m.legs.every(function(leg) {
      return leg.flightLegId && completedLegMap_[String(leg.flightLegId)];
@@ -1285,6 +1365,9 @@ Object.values(missions).forEach(m => {
 
  events.push({
    start: dateObj.toISOString().split('T')[0],
+   allDay: true,
+   title: String(m.acft || '').trim() + ' | ' + routeDisplay + ' | ' + String(m.pilot || '').trim(),
+   display: 'block',
    color: color,
    extendedProps: {
      type: 'mission',
@@ -1313,7 +1396,7 @@ Object.values(missions).forEach(m => {
      flightHoursDisplay: totalFlt.toFixed(1),
      flightHoursLabel: isFlown ? 'FLOWN' : 'EST',
      isPastDate: dateObj.getTime() < (new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())).getTime(),
-     maintenanceCurrentHoursToInsp: isFinite(missionCurrentHoursToInsp) ? Number(missionCurrentHoursToInsp.toFixed(1)) : '',
+    maintenanceCurrentHoursToInsp: Number.isFinite(missionCurrentHoursToInsp) ? Number(missionCurrentHoursToInsp.toFixed(1)) : '',
      maintenanceProjectedHoursToInsp: missionProjectedHoursToInsp,
      maintenanceNextInspectionDate: missionNextInspection && missionNextInspection.nextDueDate ? String(missionNextInspection.nextDueDate || '') : '',
      dutyTime: (totalFlt + 1.5).toFixed(1)
@@ -4816,6 +4899,33 @@ function _toolsDutyContext_(overrideEmailRaw) {
   };
 }
 
+function _dutyPreferredEmailKey_(pilotNameRaw) {
+  var pilotKey = String(pilotNameRaw || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return pilotKey ? 'duty_preferred_email_' + pilotKey : '';
+}
+
+function _dutyReadSavedPreferredEmail_(pilotNameRaw) {
+  var key = _dutyPreferredEmailKey_(pilotNameRaw);
+  if (!key) return '';
+  try {
+    return String(PropertiesService.getScriptProperties().getProperty(key) || '').trim().toLowerCase();
+  } catch (e) {
+    return '';
+  }
+}
+
+function _dutySavePreferredEmail_(pilotNameRaw, emailRaw) {
+  var key = _dutyPreferredEmailKey_(pilotNameRaw);
+  var email = String(emailRaw || '').trim().toLowerCase();
+  if (!key) return '';
+  try {
+    var props = PropertiesService.getScriptProperties();
+    if (email) props.setProperty(key, email);
+    else props.deleteProperty(key);
+  } catch (e) {}
+  return email;
+}
+
 function _toolsDutyCanAccessPilot_(ctx, pilotNameRaw) {
   if (ctx && ctx.canManageAll) return true;
   var pilotName = String(pilotNameRaw || '').trim();
@@ -5483,12 +5593,15 @@ function _dutyAppResolvePilotAccess_(pilotNameRaw, overrideEmailRaw) {
   };
 }
 
+var DUTY_APP_BUILD_VERSION = '2026.07.09.8';
+
 function getDutyAppBootstrap(payload) {
   try {
     var body = (payload && typeof payload === 'object') ? payload : {};
     var preferredEmail = String(body.preferredDutyEmail || '').trim().toLowerCase();
     var sessionEmail = _toolsCurrentUserEmail_('');
-    var access = _dutyAppResolvePilotAccess_(body.pilotName, preferredEmail);
+    var savedPreferredEmail = _dutyReadSavedPreferredEmail_(body.pilotName);
+    var access = _dutyAppResolvePilotAccess_(body.pilotName, preferredEmail || savedPreferredEmail);
     if (!access.success) return access;
 
     var todayYmd = _dutyAppTodayBsb_();
@@ -5524,6 +5637,7 @@ function getDutyAppBootstrap(payload) {
 
     return {
       success: true,
+      appVersion: DUTY_APP_BUILD_VERSION,
       currentUser: {
         email: String(access.ctx.userEmail || '').trim().toLowerCase(),
         sessionEmail: sessionEmail,
@@ -5531,6 +5645,7 @@ function getDutyAppBootstrap(payload) {
         staffId: String((access.ctx.me && access.ctx.me.staffId) || '').trim(),
         dbPilotName: String(_dutyLookupPilotNameByEmail_(String(access.ctx.userEmail || '').trim().toLowerCase()) || '').trim()
       },
+      preferredDutyEmail: savedPreferredEmail,
       canManageAll: !!access.ctx.canManageAll,
       selectedPilotName: access.pilotName,
       staff: (access.ctx.staffRows || []).filter(function(staff) {
@@ -5549,6 +5664,20 @@ function getDutyAppBootstrap(payload) {
       logs: logsRes.rows || [],
       dutyConfig: _toolsDutyReadConfigMap_()
     };
+  } catch (e) {
+    return { success: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+
+function saveDutyPreferredEmail(payload) {
+  try {
+    var body = (payload && typeof payload === 'object') ? payload : {};
+    var pilotName = String(body.pilotName || '').trim();
+    if (!pilotName) return { success: false, error: 'pilotName is required.' };
+    var access = _dutyAppResolvePilotAccess_(pilotName, _toolsCurrentUserEmail_(''));
+    if (!access.success) return access;
+    var savedEmail = _dutySavePreferredEmail_(access.pilotName, body.preferredDutyEmail || '');
+    return { success: true, pilotName: access.pilotName, preferredDutyEmail: savedEmail };
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e) };
   }
@@ -9541,9 +9670,18 @@ function _flightFollowIsSyncRelevantMessage_(from, to, cc, subj, body, primaryIn
     toLower.indexOf('inreachmail.com') >= 0 || toLower.indexOf('@garmin.com') >= 0 ||
     ccLower.indexOf('inreachmail.com') >= 0 || ccLower.indexOf('@garmin.com') >= 0;
 
+  var hasInreachSystemMail = fromLower.indexOf('no.reply.inreach@garmin.com') >= 0 ||
+    fromLower.indexOf('no-reply.inreach@garmin.com') >= 0 ||
+    /\binreach\s+message\s+from\s+n[0-9a-z]{3,5}\b/i.test(subjUpper) ||
+    /\binreach\s+message\s+from\s+n[0-9a-z]{3,5}\b/i.test(bodyUpper);
+
   var hasFfTag = subjUpper.indexOf('[FF CHAT]') >= 0 || subjUpper.indexOf('FF CHAT') >= 0 ||
     subjUpperFlat.indexOf('FF CHAT') >= 0 || bodyUpper.indexOf('FLIGHT FOLLOW') >= 0 ||
-    bodyUpperFlat.indexOf('FLIGHT FOLLOW') >= 0;
+    bodyUpperFlat.indexOf('FLIGHT FOLLOW') >= 0 ||
+    subjUpper.indexOf('INREACH MESSAGE FROM') >= 0 ||
+    subjUpperFlat.indexOf('INREACH MESSAGE FROM') >= 0 ||
+    bodyUpper.indexOf('INREACH MESSAGE FROM') >= 0 ||
+    bodyUpperFlat.indexOf('INREACH MESSAGE FROM') >= 0;
 
   var hasRegToken = /\b(?:PT|PR|PP|PU)-?[A-Z0-9]{3,4}\b/.test(subjUpper) ||
     /\b(?:PT|PR|PP|PU)-?[A-Z0-9]{3,4}\b/.test(bodyUpper);
@@ -9569,7 +9707,7 @@ function _flightFollowIsSyncRelevantMessage_(from, to, cc, subj, body, primaryIn
   });
 
   // Single source of truth: require routing through primary inbox and FF-related signal.
-  return hasInreachDomain || touchesOutbound || touchesFfInbox || hasFfTag || hasRegToken;
+  return hasInreachDomain || hasInreachSystemMail || touchesOutbound || touchesFfInbox || hasFfTag || hasRegToken;
 }
 
 function _flightFollowSyncIdentityGate_(primaryInbox) {
@@ -10267,6 +10405,7 @@ function getFlightFollowMissionsForAcft(reg) {
     // Flight plan
     var planId      = String(leg.planId || leg.planDI || raw.planId || '').trim().toUpperCase();
     var takeoffUTC  = String(leg.takeoffUTC || leg.takeoffZulu || raw.takeoffUTC || raw.time || '').trim().replace(/[^0-9]/g,'').slice(0,4);
+    var plannedFlightLevel = String(leg.plannedFlightLevel || leg.flightLevel || raw.plannedFlightLevel || raw.flightLevel || '').trim().toUpperCase();
     var noPlan      = !!(leg.noPlan || raw.noPlan);
     var logPlan = planByFlightId[flightLegId] || null;
     if (logPlan) {
@@ -10342,6 +10481,7 @@ function getFlightFollowMissionsForAcft(reg) {
         pob:         pobCount,
         pax:         paxFiltered.map(function(p) { return { name: String(p.name || ''), phone: String(p.phone || ''), sex: String(p.sex || ''), age: String(p.age || ''), emergencyContact: String(p.emergencyContact || '') }; }),
         planId:      planId,
+        plannedFlightLevel: plannedFlightLevel,
         takeoffUTC:  takeoffUTC,
         noPlan:      noPlan,
         fuelL:       fuel,
@@ -10998,6 +11138,479 @@ function getFlightFollowInit() {
     inreachByReg: inreachByReg,
     currentUserEmail: currentUserEmail
   };
+}
+
+function fetchFlightFollowKml(url) {
+  var sourceUrl = String(url || '').trim();
+  if (!sourceUrl) return { ok: false, error: 'missing_url' };
+  if (!/^https?:\/\//i.test(sourceUrl)) sourceUrl = 'https://' + sourceUrl;
+
+  try {
+    var resp = UrlFetchApp.fetch(sourceUrl, {
+      followRedirects: true,
+      muteHttpExceptions: true,
+      headers: {
+        Accept: 'application/vnd.google-earth.kml+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1'
+      }
+    });
+    var status = resp.getResponseCode();
+    var text = String(resp.getContentText() || '');
+    if (status < 200 || status >= 300) {
+      return {
+        ok: false,
+        sourceUrl: sourceUrl,
+        status: status,
+        error: 'http_' + status,
+        snippet: text.slice(0, 300)
+      };
+    }
+    if (!String(text || '').trim()) {
+      return { ok: false, sourceUrl: sourceUrl, status: status, error: 'empty_response' };
+    }
+
+    var doc;
+    try {
+      doc = XmlService.parse(text);
+    } catch (parseErr) {
+      return {
+        ok: false,
+        sourceUrl: sourceUrl,
+        status: status,
+        error: 'parse_error: ' + String(parseErr && parseErr.message || parseErr),
+        snippet: text.slice(0, 500)
+      };
+    }
+
+    var parsed = _flightFollowParseKmlDocument_(doc.getRootElement(), {
+      sourceUrl: sourceUrl,
+      depth: 0,
+      seen: {}
+    });
+    parsed.ok = true;
+    parsed.sourceUrl = sourceUrl;
+    parsed.status = status;
+    return parsed;
+  } catch (e) {
+    return {
+      ok: false,
+      sourceUrl: sourceUrl,
+      error: String(e && e.message || e)
+    };
+  }
+}
+
+function diagnoseFlightFollowKml(url) {
+  var sourceUrl = String(url || '').trim();
+  if (!sourceUrl) return { ok: false, error: 'missing_url' };
+  if (!/^https?:\/\//i.test(sourceUrl)) sourceUrl = 'https://' + sourceUrl;
+
+  try {
+    var resp = UrlFetchApp.fetch(sourceUrl, {
+      followRedirects: true,
+      muteHttpExceptions: true,
+      headers: {
+        Accept: 'application/vnd.google-earth.kml+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1'
+      }
+    });
+    var status = resp.getResponseCode();
+    var text = String(resp.getContentText() || '');
+    var out = {
+      ok: status >= 200 && status < 300,
+      sourceUrl: sourceUrl,
+      status: status,
+      rawLength: text.length,
+      rawPreview: text.slice(0, 6000)
+    };
+    if (status < 200 || status >= 300) {
+      out.error = 'http_' + status;
+      return out;
+    }
+    if (!String(text || '').trim()) {
+      out.error = 'empty_response';
+      return out;
+    }
+
+    try {
+      var doc = XmlService.parse(text);
+      out.parsed = _flightFollowParseKmlDocument_(doc.getRootElement(), {
+        sourceUrl: sourceUrl,
+        depth: 0,
+        seen: {}
+      });
+    } catch (parseErr) {
+      out.error = 'parse_error: ' + String(parseErr && parseErr.message || parseErr);
+    }
+    return out;
+  } catch (e) {
+    return {
+      ok: false,
+      sourceUrl: sourceUrl,
+      error: String(e && e.message || e)
+    };
+  }
+}
+
+function _flightFollowParseKmlDocument_(root, context) {
+  context = context || {};
+  var sourceUrl = String(context.sourceUrl || '').trim();
+  var depth = Number(context.depth || 0);
+  var seen = context.seen || {};
+  var ns = XmlService.getNamespace('http://www.opengis.net/kml/2.2');
+  var gxNs = XmlService.getNamespace('http://www.google.com/kml/ext/2.2');
+  var out = {
+    title: '',
+    description: '',
+    placemarks: [],
+    summary: {
+      placemarkCount: 0,
+      featureCount: 0,
+      pointCount: 0,
+      lineCount: 0,
+      trackCount: 0,
+      polygonCount: 0,
+      coordinateCount: 0
+    },
+    bounds: null
+  };
+
+  if (!root) return out;
+
+  out.title = _flightFollowKmlChildText_(root, 'name', ns);
+  out.description = _flightFollowKmlChildText_(root, 'description', ns);
+
+  function visit(container, containerUrl, containerDepth) {
+    if (!container) return;
+    var placemarks = container.getChildren('Placemark', ns) || [];
+    for (var i = 0; i < placemarks.length; i++) {
+      var parsedPlacemark = _flightFollowParseKmlPlacemark_(placemarks[i], ns);
+      if (parsedPlacemark) {
+        out.placemarks.push(parsedPlacemark);
+        out.summary.placemarkCount += 1;
+        out.summary.featureCount += parsedPlacemark.features.length;
+        for (var j = 0; j < parsedPlacemark.features.length; j++) {
+          var feature = parsedPlacemark.features[j];
+          if (feature.type === 'Point') out.summary.pointCount += 1;
+          if (feature.type === 'LineString') out.summary.lineCount += 1;
+          if (feature.type === 'Track') out.summary.trackCount += 1;
+          if (feature.type === 'Polygon') out.summary.polygonCount += 1;
+          out.summary.coordinateCount += feature.coordinates.length;
+          for (var k = 0; k < feature.coordinates.length; k++) {
+            out.bounds = _flightFollowExtendBounds_(out.bounds, feature.coordinates[k]);
+          }
+        }
+      }
+    }
+
+    if (containerDepth < 2) {
+      var networkLinks = container.getChildren('NetworkLink', ns) || [];
+      for (var n = 0; n < networkLinks.length; n++) {
+        var networkLink = networkLinks[n];
+        var href = '';
+        try {
+          var linkNode = networkLink.getChild('Link', ns) || networkLink.getChild('Url', ns);
+          if (linkNode) href = _flightFollowKmlChildText_(linkNode, 'href', ns) || _flightFollowKmlChildText_(linkNode, 'url', ns);
+        } catch (e) {}
+        href = _flightFollowResolveKmlUrl_(href, containerUrl || sourceUrl);
+        if (!href || seen[href]) continue;
+        seen[href] = true;
+        try {
+          var linkedResp = UrlFetchApp.fetch(href, {
+            followRedirects: true,
+            muteHttpExceptions: true,
+            headers: {
+              Accept: 'application/vnd.google-earth.kml+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1'
+            }
+          });
+          if (linkedResp.getResponseCode() >= 200 && linkedResp.getResponseCode() < 300) {
+            var linkedText = String(linkedResp.getContentText() || '').trim();
+            if (linkedText) {
+              var linkedDoc = XmlService.parse(linkedText);
+              var linkedParsed = _flightFollowParseKmlDocument_(linkedDoc.getRootElement(), {
+                sourceUrl: href,
+                depth: containerDepth + 1,
+                seen: seen
+              });
+              if (linkedParsed && linkedParsed.placemarks && linkedParsed.placemarks.length) {
+                for (var lp = 0; lp < linkedParsed.placemarks.length; lp++) out.placemarks.push(linkedParsed.placemarks[lp]);
+                out.summary.placemarkCount += linkedParsed.summary.placemarkCount;
+                out.summary.featureCount += linkedParsed.summary.featureCount;
+                out.summary.pointCount += linkedParsed.summary.pointCount;
+                out.summary.lineCount += linkedParsed.summary.lineCount;
+                out.summary.trackCount += linkedParsed.summary.trackCount || 0;
+                out.summary.polygonCount += linkedParsed.summary.polygonCount;
+                out.summary.coordinateCount += linkedParsed.summary.coordinateCount;
+                out.bounds = _flightFollowMergeBounds_(out.bounds, linkedParsed.bounds);
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    var folders = container.getChildren('Folder', ns) || [];
+    for (var f = 0; f < folders.length; f++) visit(folders[f], containerUrl, containerDepth);
+    var documents = container.getChildren('Document', ns) || [];
+    for (var d = 0; d < documents.length; d++) visit(documents[d], containerUrl, containerDepth);
+  }
+
+  visit(root, sourceUrl, depth);
+  return out;
+}
+
+function _flightFollowParseKmlPlacemark_(placemark, ns) {
+  if (!placemark) return null;
+  var placemarkPointMeta = _flightFollowParseKmlPointMeta_(placemark, ns);
+  var out = {
+    name: _flightFollowKmlChildText_(placemark, 'name', ns),
+    description: _flightFollowKmlChildText_(placemark, 'description', ns),
+    features: []
+  };
+
+  var geometries = placemark.getChildren() || [];
+  for (var i = 0; i < geometries.length; i++) {
+    _flightFollowParseKmlGeometry_(geometries[i], ns, out.features, placemarkPointMeta);
+  }
+
+  if (!out.features.length) return null;
+  return out;
+}
+
+function _flightFollowParseKmlGeometry_(node, ns, features, inheritedPointMeta) {
+  if (!node || !features) return;
+  var name = String(node.getName() || '').trim();
+  if (name === 'Point') {
+    var pointCoords = _flightFollowParseKmlCoordinates_(_flightFollowKmlChildText_(node, 'coordinates', ns));
+    if (pointCoords.length) {
+      var pointMeta = _flightFollowParseKmlPointMeta_(node, ns);
+      if (inheritedPointMeta) {
+        if (!pointMeta.when && inheritedPointMeta.when) pointMeta.when = inheritedPointMeta.when;
+        if (inheritedPointMeta.raw) {
+          for (var inheritedKey in inheritedPointMeta.raw) {
+            if (!Object.prototype.hasOwnProperty.call(inheritedPointMeta.raw, inheritedKey)) continue;
+            if (!Object.prototype.hasOwnProperty.call(pointMeta.raw, inheritedKey) || !pointMeta.raw[inheritedKey]) {
+              pointMeta.raw[inheritedKey] = inheritedPointMeta.raw[inheritedKey];
+            }
+          }
+        }
+        if (isNaN(pointMeta.altitudeM) && isFinite(Number(inheritedPointMeta.altitudeM))) pointMeta.altitudeM = Number(inheritedPointMeta.altitudeM);
+        if (isNaN(pointMeta.speedKts) && isFinite(Number(inheritedPointMeta.speedKts))) pointMeta.speedKts = Number(inheritedPointMeta.speedKts);
+        if (isNaN(pointMeta.headingDeg) && isFinite(Number(inheritedPointMeta.headingDeg))) pointMeta.headingDeg = Number(inheritedPointMeta.headingDeg);
+      }
+      features.push({
+        type: 'Point',
+        coordinates: [pointCoords[0]],
+        rawCoordinates: pointCoords,
+        point: pointMeta
+      });
+    }
+    return;
+  }
+  if (name === 'LineString') {
+    var lineCoords = _flightFollowParseKmlCoordinates_(_flightFollowKmlChildText_(node, 'coordinates', ns));
+    if (lineCoords.length) {
+      features.push({ type: 'LineString', coordinates: lineCoords });
+    }
+    return;
+  }
+  if (name === 'Track') {
+    var trackPoints = [];
+    var pendingWhen = '';
+    var children = node.getChildren() || [];
+    for (var t = 0; t < children.length; t++) {
+      var child = children[t];
+      var childName = String(child && child.getName() || '').trim();
+      if (childName === 'when') {
+        pendingWhen = String(child.getText() || '').trim();
+        continue;
+      }
+      if (childName !== 'coord') continue;
+      var coordText = String(child.getText() || '').trim();
+      if (!coordText) continue;
+      var coordParts = coordText.split(/\s+/);
+      if (coordParts.length < 2) continue;
+      var lon = Number(coordParts[0]);
+      var lat = Number(coordParts[1]);
+      var alt = coordParts.length > 2 ? Number(coordParts[2]) : NaN;
+      if (!isFinite(lat) || !isFinite(lon)) continue;
+      trackPoints.push({
+        lat: lat,
+        lon: lon,
+        altM: isFinite(alt) ? alt : NaN,
+        when: pendingWhen
+      });
+      pendingWhen = '';
+    }
+    if (trackPoints.length) {
+      features.push({
+        type: 'Track',
+        coordinates: trackPoints.map(function(point) {
+          return isFinite(point.altM) ? [point.lat, point.lon, point.altM] : [point.lat, point.lon];
+        }),
+        points: trackPoints
+      });
+    }
+    return;
+  }
+  if (name === 'Polygon') {
+    var outer = node.getChild('outerBoundaryIs', ns);
+    var ring = outer && outer.getChild('LinearRing', ns);
+    var polyCoords = ring ? _flightFollowParseKmlCoordinates_(_flightFollowKmlChildText_(ring, 'coordinates', ns)) : [];
+    if (polyCoords.length) {
+      features.push({ type: 'Polygon', coordinates: polyCoords });
+    }
+    return;
+  }
+  if (name === 'MultiGeometry' || name === 'MultiTrack') {
+    var children = node.getChildren() || [];
+    for (var c = 0; c < children.length; c++) {
+      _flightFollowParseKmlGeometry_(children[c], ns, features, inheritedPointMeta);
+    }
+  }
+}
+
+function _flightFollowParseKmlPointMeta_(node, ns) {
+  var meta = {
+    when: '',
+    altitudeM: NaN,
+    speedKts: NaN,
+    headingDeg: NaN,
+    raw: {}
+  };
+  if (!node) return meta;
+  try {
+    var whenNode = node.getChild('TimeStamp', ns);
+    if (whenNode) meta.when = _flightFollowKmlChildText_(whenNode, 'when', ns);
+    if (!meta.when) {
+      whenNode = node.getChild('when', ns);
+      if (whenNode) meta.when = String(whenNode.getText() || '').trim();
+    }
+  } catch (e) {}
+
+  var ext = null;
+  try {
+    ext = node.getChild('ExtendedData', ns);
+  } catch (e) {}
+  if (ext) {
+    var dataNodes = ext.getChildren('Data', ns) || [];
+    for (var i = 0; i < dataNodes.length; i++) {
+      var dataNode = dataNodes[i];
+      var key = String(dataNode && dataNode.getAttribute('name') ? dataNode.getAttribute('name').getValue() : '').trim();
+      var value = String(_flightFollowKmlChildText_(dataNode, 'value', ns) || dataNode.getText() || '').trim();
+      if (!key) continue;
+      var normKey = key.toLowerCase().replace(/[^a-z0-9]+/g, '');
+      meta.raw[normKey] = value;
+    }
+    try {
+      var schemaDataNodes = ext.getChildren('SchemaData', ns) || [];
+      for (var s = 0; s < schemaDataNodes.length; s++) {
+        var schemaData = schemaDataNodes[s];
+        var simpleNodes = schemaData.getChildren('SimpleData', ns) || [];
+        for (var j = 0; j < simpleNodes.length; j++) {
+          var simpleNode = simpleNodes[j];
+          var simpleKey = String(simpleNode && simpleNode.getAttribute('name') ? simpleNode.getAttribute('name').getValue() : '').trim();
+          var simpleValue = String(simpleNode.getText() || '').trim();
+          if (!simpleKey) continue;
+          meta.raw[simpleKey.toLowerCase().replace(/[^a-z0-9]+/g, '')] = simpleValue;
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (!meta.when) {
+    meta.when = String(
+      meta.raw.timeutc ||
+      meta.raw.time ||
+      meta.raw.timestamp ||
+      meta.raw.whenu ||
+      ''
+    ).trim();
+  }
+
+  var altitudeRaw = meta.raw.altitudeft || meta.raw.altitudem || meta.raw.altitude || meta.raw.alt || meta.raw.elevation || '';
+  var speedRaw = meta.raw.speedkts || meta.raw.groundspeedkts || meta.raw.speed || meta.raw.groundspeed || '';
+  var headingRaw = meta.raw.headingdeg || meta.raw.heading || meta.raw.course || '';
+  var altitudeM = Number(altitudeRaw);
+  if (isFinite(altitudeM) && Math.abs(altitudeM) > 1000 && String(altitudeRaw).indexOf('ft') >= 0) {
+    altitudeM = altitudeM / 3.28084;
+  }
+  if (isFinite(altitudeM)) meta.altitudeM = altitudeM;
+  var speedKts = Number(speedRaw);
+  if (isFinite(speedKts)) meta.speedKts = speedKts;
+  var headingDeg = Number(headingRaw);
+  if (isFinite(headingDeg)) meta.headingDeg = headingDeg;
+  return meta;
+}
+
+function _flightFollowResolveKmlUrl_(href, sourceUrl) {
+  href = String(href || '').trim();
+  if (!href) return '';
+  if (/^https?:\/\//i.test(href)) return href;
+  sourceUrl = String(sourceUrl || '').trim();
+  if (!sourceUrl) return href;
+  var originMatch = sourceUrl.match(/^(https?:\/\/[^\/]+)(\/.*)?$/i);
+  if (!originMatch) return href;
+  var origin = originMatch[1];
+  if (href.charAt(0) === '/') return origin + href;
+  var basePath = (originMatch[2] || '/').replace(/\/[^\/]*$/, '/');
+  return origin + basePath + href.replace(/^\.\//, '');
+}
+
+function _flightFollowMergeBounds_(left, right) {
+  if (!right) return left || null;
+  if (!left) {
+    return {
+      minLat: right.minLat,
+      maxLat: right.maxLat,
+      minLon: right.minLon,
+      maxLon: right.maxLon
+    };
+  }
+  if (right.minLat < left.minLat) left.minLat = right.minLat;
+  if (right.maxLat > left.maxLat) left.maxLat = right.maxLat;
+  if (right.minLon < left.minLon) left.minLon = right.minLon;
+  if (right.maxLon > left.maxLon) left.maxLon = right.maxLon;
+  return left;
+}
+
+function _flightFollowParseKmlCoordinates_(raw) {
+  var coords = [];
+  String(raw || '').trim().split(/\s+/).forEach(function(chunk) {
+    var cleaned = String(chunk || '').trim();
+    if (!cleaned) return;
+    var parts = cleaned.split(',');
+    if (parts.length < 2) return;
+    var lon = Number(parts[0]);
+    var lat = Number(parts[1]);
+    var alt = parts.length > 2 ? Number(parts[2]) : NaN;
+    if (!isFinite(lat) || !isFinite(lon)) return;
+    if (isFinite(alt)) coords.push([lat, lon, alt]);
+    else coords.push([lat, lon]);
+  });
+  return coords;
+}
+
+function _flightFollowKmlChildText_(node, childName, ns) {
+  if (!node) return '';
+  try {
+    var child = node.getChild(childName, ns);
+    if (child) return String(child.getText() || '').trim();
+  } catch (e) {}
+  return '';
+}
+
+function _flightFollowExtendBounds_(bounds, coord) {
+  if (!coord || !coord.length) return bounds || null;
+  var lat = Number(coord[0]);
+  var lon = Number(coord[1]);
+  if (!isFinite(lat) || !isFinite(lon)) return bounds || null;
+  if (!bounds) {
+    return { minLat: lat, maxLat: lat, minLon: lon, maxLon: lon };
+  }
+  if (lat < bounds.minLat) bounds.minLat = lat;
+  if (lat > bounds.maxLat) bounds.maxLat = lat;
+  if (lon < bounds.minLon) bounds.minLon = lon;
+  if (lon > bounds.maxLon) bounds.maxLon = lon;
+  return bounds;
 }
 
 function saveMissionFplToDrive(missionId, fplXml) {
@@ -12029,20 +12642,11 @@ function _postFlightResolveOnboardPilotEmails_(ss, report, payload, trainingDebr
   addName(payload && payload.pilotName);
   addName(lesson.instructorName);
   addName(lesson.traineeName);
-  addName(funds.studentName);
-  addName(trainingDebrief && trainingDebrief.instructorName);
-  addName(trainingDebrief && trainingDebrief.traineeName);
-
-  var recipients = [];
   var seen = {};
+  var recipients = [];
   var resolveEmailForName = function(name) {
-    var preferredTypes = ['OPS_PILOT', 'STAFF', 'STUDENT', ''];
-    for (var i = 0; i < preferredTypes.length; i++) {
-      var email = _postFlightResolveEmailByNames_(ss, [name], preferredTypes[i]);
-      email = String(email || '').trim().toLowerCase();
-      if (email && /.+@.+\..+/.test(email)) return email;
-    }
-    return '';
+    var email = _postFlightResolveEmailByNames_(ss, [name], '');
+    return String(email || '').trim().toLowerCase();
   };
 
   names.forEach(function(name) {
@@ -12056,6 +12660,22 @@ function _postFlightResolveOnboardPilotEmails_(ss, report, payload, trainingDebr
 }
 
 function _postFlightBuildStudentEmailBody_(report, externalLink) {
+  function formatPtDate_(value) {
+    var text = String(value || '').trim();
+    if (!text) return '---';
+    var months = { '01': 'jan', '02': 'fev', '03': 'mar', '04': 'abr', '05': 'mai', '06': 'jun', '07': 'jul', '08': 'ago', '09': 'set', '10': 'out', '11': 'nov', '12': 'dez' };
+    var ymd = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (ymd) return ymd[3] + '-' + (months[ymd[2]] || ymd[2]) + '-' + ymd[1];
+    var d = new Date(text);
+    if (!isNaN(d.getTime())) {
+      var dd = String(d.getDate()).padStart(2, '0');
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var yyyy = String(d.getFullYear());
+      return dd + '-' + (months[mm] || mm) + '-' + yyyy;
+    }
+    return text;
+  }
+
   var summary = (report && report.summary && typeof report.summary === 'object') ? report.summary : {};
   var log = (report && report.log && typeof report.log === 'object') ? report.log : {};
   var wb = (report && report.wb && typeof report.wb === 'object') ? report.wb : {};
@@ -12068,7 +12688,7 @@ function _postFlightBuildStudentEmailBody_(report, externalLink) {
     'Seu relatorio pos-voo ja esta disponivel.',
     '',
     'Flight ID: ' + String(report && report.flightId || '---'),
-    'Data: ' + String(summary.date || log.date || '---'),
+    'Data: ' + formatPtDate_(summary.date || log.date || '---'),
     'Aeronave: ' + String(summary.aircraft || log.aircraft || '---'),
     'Rota: ' + String(summary.from || log.from || '---') + ' -> ' + String(summary.to || log.to || '---'),
     'Tempo total: ' + String(log.totalTime || log.totalTimeHours || '---'),
@@ -12080,6 +12700,17 @@ function _postFlightBuildStudentEmailBody_(report, externalLink) {
     'Saldo do fundo: ' + (funds.balanceBrl == null ? '---' : ('R$ ' + Number(funds.balanceBrl || 0).toFixed(2))),
     ''
   ];
+
+  var tab8 = (report && report.debrief && report.debrief.tab8 && typeof report.debrief.tab8 === 'object') ? report.debrief.tab8 : {};
+  lines.push('TAB 8 - DEBRIEF');
+  lines.push('Tempo total Tab8: ' + String(tab8.totalTime || '---'));
+  lines.push('Pousos noturnos: ' + String(tab8.nightLdgs == null ? '---' : tab8.nightLdgs));
+  lines.push('Horas noturnas: ' + String(tab8.nightHrs == null ? '---' : tab8.nightHrs));
+  lines.push('Horas IFR: ' + String(tab8.ifrHrs == null ? '---' : tab8.ifrHrs));
+  lines.push('Debrief em: ' + String(tab8.debriefAt || '---'));
+  lines.push('Landing log Tab8: ' + JSON.stringify(Array.isArray(tab8.landingLog) ? tab8.landingLog : []));
+  lines.push('Training debrief Tab8: ' + String(tab8.trainingDebriefText || (tab8.trainingDebrief ? JSON.stringify(tab8.trainingDebrief) : '---')));
+  lines.push('');
 
   if (externalLink) {
     lines.push('Abrir relatorio completo:');
@@ -15919,24 +16550,41 @@ function getToolsFlightDetailReport(payload) {
       }
       return raw;
     };
+    var spreadsheetSerialToDate_ = function(value) {
+      if (typeof value !== 'number' || !isFinite(value)) return null;
+      var base = new Date(1899, 11, 30);
+      var wholeDays = Math.floor(value);
+      var millis = Math.round((value - wholeDays) * 24 * 60 * 60 * 1000);
+      return new Date(base.getTime() + (wholeDays * 24 * 60 * 60 * 1000) + millis);
+    };
+    var normalizeDateObj_ = function(value) {
+      if (value instanceof Date && !isNaN(value.getTime())) return new Date(value.getTime());
+      if (typeof value === 'number' && isFinite(value)) {
+        var serialDate = spreadsheetSerialToDate_(value);
+        if (serialDate && !isNaN(serialDate.getTime())) return serialDate;
+      }
+      var raw = String(value == null ? '' : value).trim();
+      if (!raw) return null;
+      if (/^\d+(?:\.\d+)?$/.test(raw)) {
+        var serial = spreadsheetSerialToDate_(parseFloat(raw));
+        if (serial && !isNaN(serial.getTime())) return serial;
+      }
+      var parsed = new Date(raw);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
     var dateToIso = function(value) {
       if (!value) return '';
-      if (value instanceof Date && !isNaN(value.getTime())) return value.toISOString();
-      var raw = String(value || '').trim();
-      if (!raw) return '';
-      var parsed = new Date(raw);
-      return isNaN(parsed.getTime()) ? raw : parsed.toISOString();
+      var dt = normalizeDateObj_(value);
+      return dt ? dt.toISOString() : String(value || '').trim();
     };
     var dateToYmd = function(value) {
+      var dt = normalizeDateObj_(value);
+      if (dt) return Utilities.formatDate(dt, Session.getScriptTimeZone(), 'yyyy-MM-dd');
       var iso = dateToIso(value);
       return iso && iso.indexOf('T') > 0 ? iso.slice(0, 10) : iso;
     };
     var rowDateToDateObj_ = function(value) {
-      if (value instanceof Date && !isNaN(value.getTime())) return new Date(value.getTime());
-      var raw = String(value || '').trim();
-      if (!raw) return null;
-      var parsed = new Date(raw);
-      return isNaN(parsed.getTime()) ? null : parsed;
+      return normalizeDateObj_(value);
     };
     var durationHoursFromAny = function(value) {
       if (value == null || value === '') return null;

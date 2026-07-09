@@ -594,6 +594,22 @@ function _debr8ResolveFuelStart_(mission, leg, logData) {
   return 0;
 }
 
+function _debr8FormatPtDate_(value) {
+  var text = String(value || '').trim();
+  if (!text) return '---';
+  var months = { '01': 'jan', '02': 'fev', '03': 'mar', '04': 'abr', '05': 'mai', '06': 'jun', '07': 'jul', '08': 'ago', '09': 'set', '10': 'out', '11': 'nov', '12': 'dez' };
+  var ymd = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) return ymd[3] + '-' + (months[ymd[2]] || ymd[2]) + '-' + ymd[1];
+  var d = new Date(text);
+  if (!isNaN(d.getTime())) {
+    var dd = String(d.getDate()).padStart(2, '0');
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var yyyy = String(d.getFullYear());
+    return dd + '-' + (months[mm] || mm) + '-' + yyyy;
+  }
+  return text;
+}
+
 function _debr8Esc_(v) {
   return String(v || '')
     .replace(/&/g, '&amp;')
@@ -907,6 +923,10 @@ function _debr8Render_(mission, leg, logData) {
     <div class="debrief-card">
       <h4>Flight Summary</h4>
       <div class="summary-row">
+        <div class="summary-card">
+          <span class="summary-label">Flight Date</span>
+          <span class="summary-val">${_debr8FormatPtDate_(mission.date || leg?.dateYmd || logData?.date || '---')}</span>
+        </div>
         <div class="summary-card">
           <span class="summary-label">Aircraft</span>
           <span class="summary-val">${mission.acft || 'N/A'}</span>

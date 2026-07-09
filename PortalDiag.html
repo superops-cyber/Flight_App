@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f7fb; color: #102030; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .card { background: #fff; border: 1px solid #d9e3ef; border-radius: 10px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .title { font-size: 1.1rem; font-weight: 900; color: #0b5394; text-transform: uppercase; margin: 0 0 8px 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cfe2f3; background: #eef6ff; color: #0b5394; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 800; }
+    .pill.warn { background: #fff4e5; border-color: #ffd59a; color: #9a5a00; }
+    .pill.good { background: #e9f7ef; border-color: #b7e1c2; color: #1b5e20; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .mono { font-family: Consolas, 'SFMono-Regular', Menlo, monospace; font-size: 0.86rem; white-space: pre-wrap; word-break: break-word; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid #0b5394; background: #0b5394; color: #fff; text-decoration: none; font-weight: 800; font-size: 0.82rem; cursor: pointer; }
+    .btn.alt { background: #fff; color: #0b5394; }
+    .btn.warn { background: #b71c1c; border-color: #b71c1c; }
+    .list { display: grid; gap: 8px; }
+    .probe { border: 1px dashed #c2d4e8; border-radius: 8px; padding: 10px; background: #fbfdff; }
+    .small { font-size: 0.78rem; color: #546e7a; }
+    .preview-shell {
+      border: 1px solid #d9e3ef;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+      min-height: 420px;
+    }
+    .preview-shell.loading {
+      display: grid;
+      place-items: center;
+      color: #607d8b;
+      font-weight: 800;
+      font-size: 0.86rem;
+      background: #f8fbfe;
+    }
+    .preview-frame {
+      width: 100%;
+      min-height: 420px;
+      border: 0;
+      display: block;
+      background: #fff;
+    }
+    .auth-note {
+      border: 1px solid #ffd59a;
+      background: #fff8e1;
+      color: #8d4a00;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+    .auth-note strong {
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-weight: 900;
+    }
+  </style>
+</head>
+<body>
+  <div id="diag-config"
+       data-build-stamp="<?!= encodeURIComponent(String(routeTitle || '').trim() ? String(buildStamp || '') : String(buildStamp || '')) ?>"
+       data-file-name="<?!= encodeURIComponent(String(routeFileName || '')) ?>"
+       data-title="<?!= encodeURIComponent(String(routeTitle || 'Portal Diagnostics')) ?>"
+       data-view="<?!= encodeURIComponent(String(routeView || '')) ?>"
+       data-path="<?!= encodeURIComponent(String(routePathInfo || '')) ?>"
+       data-query="<?!= encodeURIComponent(String(routeQueryString || '')) ?>"
+       data-diag-mode="<?!= encodeURIComponent(String(routeDiagMode || '')) ?>"
+       data-diag-target="<?!= encodeURIComponent(String(routeDiagTarget || '')) ?>"
+       data-web-app-url="<?!= encodeURIComponent(String(webAppUrl || '')) ?>"
+       style="display:none;"></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="title" id="diag-title">Portal Diagnostics</div>
+      <div class="row" style="margin-bottom:10px;" id="diag-pills"></div>
+      <div class="small">Use <span class="mono">?diag=probe&part=flightfollow</span> to load one fragment at a time.</div>
+    </div>
+
+    <div class="auth-note">
+      <strong>Authorization blocked:</strong> if the portal stays white or opens Google’s permission screen, sign in with the ASA Workspace account and approve the Google Apps Script prompt. This page is only for isolating the failing fragment after access is granted.
+    </div>
+
+    <div class="card">
+      <div class="title">Probe Targets</div>
+      <div class="list" id="probe-targets"></div>
+    </div>
+
+    <div class="card">
+      <div class="title">Selected Target</div>
+      <div id="probe-selected" class="probe mono">No target selected.</div>
+    </div>
+
+    <div class="card">
+      <div class="title">Context</div>
+      <div class="grid mono" id="diag-context"></div>
+    </div>
+
+    <div class="card">
+      <div class="title">Rendered Preview</div>
+      <div class="small" id="probe-preview-note">No target loaded yet.</div>
+      <div id="probe-host" class="preview-shell loading">Choose a target above.</div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var el = document.getElementById('diag-config');
+      function dec(name) {
+        try { return decodeURIComponent(String(el.getAttribute(name) || '')); } catch (e) { return String(el.getAttribute(name) || ''); }
+      }
+      var data = {
+        buildStamp: dec('data-build-stamp'),
+        fileName: dec('data-file-name'),
+        title: dec('data-title'),
+        view: dec('data-view'),
+        path: dec('data-path'),
+        query: dec('data-query'),
+        diagMode: dec('data-diag-mode'),
+        diagTarget: dec('data-diag-target'),
+        webAppUrl: dec('data-web-app-url')
+      };
+
+      document.getElementById('diag-title').textContent = data.title || 'Portal Diagnostics';
+      var pills = document.getElementById('diag-pills');
+      [
+        ['File', data.fileName],
+        ['View', data.view || '(blank)'],
+        ['Path', data.path || '(none)'],
+        ['Diag', data.diagMode || '(off)'],
+        ['Target', data.diagTarget || '(none)']
+      ].forEach(function(item) {
+        var span = document.createElement('span');
+        span.className = 'pill';
+        span.textContent = item[0] + ': ' + item[1];
+        pills.appendChild(span);
+      });
+
+      var context = document.getElementById('diag-context');
+      [
+        ['buildStamp', data.buildStamp],
+        ['webAppUrl', data.webAppUrl],
+        ['queryString', data.query]
+      ].forEach(function(item) {
+        var box = document.createElement('div');
+        box.className = 'probe';
+        box.innerHTML = '<div style="font-weight:900; color:#0b5394; margin-bottom:6px; text-transform:uppercase;">' + item[0] + '</div>' +
+          '<div class="mono">' + (item[1] || '(empty)') + '</div>';
+        context.appendChild(box);
+      });
+
+      var targets = [
+        ['home', 'Portal shell'],
+        ['dispatch', 'Dispatch'],
+        ['supervisor', 'Supervisor'],
+        ['flightfollow', 'Flight Following'],
+        ['tools', 'Tools'],
+        ['maintenance', 'Maintenance']
+      ];
+      var selected = String(data.diagTarget || '').trim().toLowerCase();
+      var targetHost = document.getElementById('probe-host');
+      var previewNote = document.getElementById('probe-preview-note');
+      var selectedBox = document.getElementById('probe-selected');
+      var list = document.getElementById('probe-targets');
+
+      function linkFor(part, label) {
+        var a = document.createElement('a');
+        a.className = 'btn alt';
+        a.href = '#';
+        a.setAttribute('role', 'button');
+        a.setAttribute('aria-pressed', part === selected ? 'true' : 'false');
+        a.dataset.part = part;
+        a.textContent = label;
+        return a;
+      }
+
+      targets.forEach(function(item) {
+        var part = item[0];
+        var label = item[1];
+        var row = document.createElement('div');
+        row.className = 'probe';
+        var strong = document.createElement('div');
+        strong.style.fontWeight = '900';
+        strong.style.marginBottom = '6px';
+        strong.textContent = label;
+        row.appendChild(strong);
+        row.appendChild(linkFor(part, 'Preview ' + label));
+        list.appendChild(row);
+      });
+
+      function setPreviewHtml(html) {
+        targetHost.classList.remove('loading');
+        targetHost.innerHTML = '<iframe class="preview-frame" sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals" srcdoc=""></iframe>';
+        var frame = targetHost.querySelector('iframe');
+        frame.srcdoc = html;
+      }
+
+      function setPreviewMessage(message) {
+        targetHost.classList.add('loading');
+        targetHost.textContent = message;
+      }
+
+      function updateTargetFromUrl(part) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('diag', 'probe');
+        if (part) url.searchParams.set('part', part);
+        else url.searchParams.delete('part');
+        history.replaceState({}, '', url.toString());
+      }
+
+      function loadTarget(part) {
+        var normalized = String(part || '').trim().toLowerCase();
+        if (!normalized) {
+          selectedBox.textContent = 'No target selected. Use the buttons above to preview one include at a time.';
+          previewNote.textContent = 'Nothing rendered yet.';
+          setPreviewMessage('Choose a target above.');
+          updateTargetFromUrl('');
+          return;
+        }
+
+        selectedBox.textContent = 'Loading target: ' + normalized;
+        previewNote.textContent = 'Loading target preview for ' + normalized + '...';
+        setPreviewMessage('Loading target preview...');
+        updateTargetFromUrl(normalized);
+
+        if (!(window.google && google.script && google.script.run)) {
+          selectedBox.textContent = 'Authorization blocked while loading ' + normalized;
+          previewNote.textContent = 'google.script.run is unavailable in this session.';
+          setPreviewMessage('Authorization blocked. Sign in with the ASA Workspace account and refresh this page.');
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res || !res.ok) {
+              selectedBox.textContent = 'Preview failed for ' + normalized;
+              previewNote.textContent = (res && res.error) ? res.error : 'Unknown preview failure.';
+              setPreviewMessage(previewNote.textContent);
+              return;
+            }
+            selectedBox.textContent = 'Loaded target: ' + normalized + ' (' + res.fileName + ')';
+            previewNote.textContent = 'Rendered from ' + res.fileName + ' as static HTML preview. ' + String(res.scriptCount || 0) + ' script block(s) stripped for safety.';
+            setPreviewHtml(String(res.html || '<div style="padding:16px;">Empty preview.</div>'));
+          })
+          .withFailureHandler(function(err) {
+            var message = (err && err.message) ? err.message : String(err || 'Unknown error');
+            selectedBox.textContent = 'Preview error for ' + normalized;
+            previewNote.textContent = message;
+            setPreviewMessage(message);
+          })
+          .getPortalProbeHtml(normalized);
+      }
+
+      list.addEventListener('click', function(evt) {
+        var node = evt.target;
+        while (node && node !== list && !node.dataset) node = node.parentNode;
+        if (!node || !node.dataset || !node.dataset.part) return;
+        evt.preventDefault();
+        loadTarget(node.dataset.part);
+      });
+
+      if (!selected) {
+        selectedBox.textContent = 'No target selected. Use the buttons above to probe one include at a time.';
+        previewNote.textContent = 'Nothing rendered yet.';
+        setPreviewMessage('Choose a target above.');
+        return;
+      }
+
+      loadTarget(selected);
+    })();
+  </script>
+</body>
+</html>
