@@ -1086,6 +1086,9 @@
           runwayGap: (safeLeg.runwayGap && typeof safeLeg.runwayGap === 'object') ? safeLeg.runwayGap : null
         };
       });
+      const resolvedLegPoints = normalizedLegs.map(function(leg) {
+        return _supervisorMissionResolveLocation_(leg.to);
+      });
       
       document.getElementById('mTitle').innerText = `${m.id || 'Mission'}: ${meta.pilot || m.pilot || ''} (${meta.acft || m.acft || ''})`;
       const approveBtn = document.getElementById('btnApprove');
@@ -1107,12 +1110,18 @@
       if (totalFlight > 8.0) warnings.push("Flight Time > 8h");
       if (totalDuty > 14.0) warnings.push("Duty Time > 14h");
       
-      const authRaw = String(data && data.authorizedAirports || "");
-      const authList = authRaw.split(',').map(s => s.trim()); 
-      let unauthorizedLegs = false;
-      normalizedLegs.forEach(leg => {
-        const isAuth = authList.some(a => a.trim().toUpperCase() === leg.to.trim().toUpperCase());
-        if (!isAuth) unauthorizedLegs = true;
+      const pilotAuthRaw = String(data && (data.authorizedPilotAirports || data.authorizedAirports) || "");
+      const copilotAuthRaw = String(data && data.authorizedCopilotAirports || "");
+      const pilotAuthList = pilotAuthRaw.split(',').map(s => s.trim()).filter(Boolean);
+      const copilotAuthList = copilotAuthRaw.split(',').map(s => s.trim()).filter(Boolean);
+      const hasCopilotAssigned = !!String(meta.copilot || m.meta.copilot || '').trim();
+      const airportLandingIssues = normalizedLegs.filter(function(leg, idx) {
+        const point = resolvedLegPoints[idx] || null;
+        if (!point || !point.isAirport) return false;
+        const code = String(leg.to || '').trim().toUpperCase();
+        const pilotOk = pilotAuthList.some(function(a) { return String(a || '').trim().toUpperCase() === code; });
+        const copilotOk = !hasCopilotAssigned || copilotAuthList.some(function(a) { return String(a || '').trim().toUpperCase() === code; });
+        return !(pilotOk && copilotOk);
       });
       const runwayGapLegs = normalizedLegs.filter(function(leg) {
         return !!(leg && leg.runwayGap && leg.runwayGap.needsAttention);
@@ -1125,7 +1134,7 @@
         return String(req && req.status || '').trim().toUpperCase() !== 'CLOSED';
       }).length;
       
-      if (unauthorizedLegs && !meta.copilot) warnings.push("Dest Check Needed");
+      if (airportLandingIssues.length) warnings.push("Landing Authorization Needed");
       if (runwayGapLegs.length) warnings.push("Runway Internal Data Alert");
       if (meta.notes) warnings.push(meta.notes);
 
@@ -1162,20 +1171,28 @@
 
       // 3. LEG CARDS
       normalizedLegs.forEach((leg, idx) => {
-        const isAuthorized = authList.some(auth => auth.trim().toUpperCase() === leg.to.trim().toUpperCase());
-        const scheduleBtn = `<button class="btn-small blue lighten-1 z-depth-0" style="font-size:0.7rem; font-weight:bold; margin-left:6px;" onclick="openSupervisorRunwayCheckModal_(${idx})">SCHEDULE RUNWAY CHECK</button>`;
-        const authHtml = isAuthorized
-          ? `<span class="new badge green" data-badge-caption="Checked Out ✅">Pilot</span>${scheduleBtn}`
-          : `<button class="btn-small red lighten-2 z-depth-0" style="font-size:0.7rem; font-weight:bold;" onclick="waiveCheck('${leg.to}')">WAIVE CHECK</button>${scheduleBtn}`;
+        const point = resolvedLegPoints[idx] || null;
+        const isAirportLeg = !!(point && point.isAirport);
+        const code = String(leg.to || '').trim().toUpperCase();
+        const pilotOk = pilotAuthList.some(auth => String(auth || '').trim().toUpperCase() === code);
+        const copilotOk = !copilotAuthList.length || copilotAuthList.some(auth => String(auth || '').trim().toUpperCase() === code);
+        const crewOk = !isAirportLeg || (pilotOk && copilotOk);
+        const briefingBtn = isAirportLeg ? `<button class="btn-small red darken-2 z-depth-0" style="font-size:0.68rem; font-weight:800;" onclick="openSupervisorRunwayBriefing_(${idx})">OPEN BRIEFING CARD</button>` : '';
+        const scheduleBtn = isAirportLeg ? `<button class="btn-small blue lighten-1 z-depth-0" style="font-size:0.7rem; font-weight:bold; margin-left:6px;" onclick="openSupervisorRunwayCheckModal_(${idx})">SCHEDULE RUNWAY CHECK</button>` : '';
+        const authHtml = isAirportLeg
+          ? (crewOk
+            ? `<span class="new badge green" data-badge-caption="Pilot + Copilot ✅">Landing OK</span>${briefingBtn}${scheduleBtn}`
+            : `<button class="btn-small red lighten-2 z-depth-0" style="font-size:0.7rem; font-weight:bold;" onclick="openSupervisorRunwayCheckModal_(${idx})">CHECK LANDING AUTH</button>${briefingBtn}${scheduleBtn}`)
+          : `<span class="new badge blue" data-badge-caption="Waypoint">No Landing Eval</span>`;
         const runwayGap = leg.runwayGap || null;
         const missingItems = runwayGap && Array.isArray(runwayGap.missingItems) ? runwayGap.missingItems : [];
-        const runwayAlertHtml = runwayGap && runwayGap.needsAttention ? `
+        const runwayAlertHtml = isAirportLeg && runwayGap && runwayGap.needsAttention ? `
           <div style="margin:8px 0 10px; padding:8px 10px; border:1px solid #ef9a9a; border-left:4px solid #c62828; background:#ffebee; border-radius:4px;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
               <div style="font-size:0.75rem; color:#b71c1c; font-weight:800; text-transform:uppercase; letter-spacing:0.03em;">Runway Internal Data Alert</div>
               <div style="display:flex; gap:6px; align-items:center;">
                 <button class="btn-small amber darken-3 z-depth-0" style="font-size:0.68rem; font-weight:800;" onclick="askPilotRunwaySurvey_(${idx})">ASK PILOT TO SURVEY RUNWAY</button>
-                <button class="btn-small red darken-2 z-depth-0" style="font-size:0.68rem; font-weight:800;" onclick="openSupervisorRunwayBriefing_(${idx})">OPEN BRIEFING CARD</button>
+                ${briefingBtn}
               </div>
             </div>
             <div style="font-size:0.78rem; color:#5d4037; margin-top:4px;">${runwayGap.summary || 'No internal cutdown / obstacle / slope data found for this destination runway.'}</div>
@@ -1346,6 +1363,11 @@
       const mission = lastLoadedData.mission;
       const leg = mission.legs[Number(legIdx)] || null;
       if (!leg) return;
+      const point = _supervisorMissionResolveLocation_(leg.to);
+      if (!point || !point.isAirport) {
+        if (window.M) M.toast({ html: 'Waypoint legs do not require runway checks.', classes: 'orange' });
+        return;
+      }
 
       const unauthorizedTargets = supervisorGetUnauthorizedRunwayTargets_();
       const selectedRunway = String(leg.to || '').trim().toUpperCase();
@@ -1407,15 +1429,24 @@
 
     function supervisorGetUnauthorizedRunwayTargets_() {
       if (!lastLoadedData || !lastLoadedData.mission || !Array.isArray(lastLoadedData.mission.legs)) return [];
-      const authList = String(lastLoadedData.authorizedAirports || '')
+      const pilotAuthList = String(lastLoadedData.authorizedPilotAirports || lastLoadedData.authorizedAirports || '')
         .split(',')
         .map(function(s){ return String(s || '').trim().toUpperCase(); })
         .filter(Boolean);
+      const copilotAuthList = String(lastLoadedData.authorizedCopilotAirports || '')
+        .split(',')
+        .map(function(s){ return String(s || '').trim().toUpperCase(); })
+        .filter(Boolean);
+      const hasCopilotAssigned = !!String((lastLoadedData.mission.meta && lastLoadedData.mission.meta.copilot) || '').trim();
       const uniq = [];
       lastLoadedData.mission.legs.forEach(function(leg) {
         const to = String((leg && leg.to) || '').trim().toUpperCase();
         if (!to) return;
-        if (authList.indexOf(to) >= 0) return;
+        const point = _supervisorMissionResolveLocation_(to);
+        if (!point || !point.isAirport) return;
+        const pilotOk = pilotAuthList.indexOf(to) >= 0;
+        const copilotOk = !hasCopilotAssigned || copilotAuthList.indexOf(to) >= 0;
+        if (pilotOk && copilotOk) return;
         if (uniq.indexOf(to) >= 0) return;
         uniq.push(to);
       });
@@ -1427,6 +1458,8 @@
       const mission = lastLoadedData.mission;
       const leg = mission.legs[Number(legIdx)] || null;
       if (!leg) return;
+      const point = _supervisorMissionResolveLocation_(leg.to);
+      if (!point || !point.isAirport) return;
 
       const question = 'Are you sure the pilot has enough info to safely land at this location without adding more info now?\n\nOK = send request to pilot now\nCancel = open briefing card to add runway information first.';
       const shouldSendNow = window.confirm(question);
@@ -1469,6 +1502,8 @@
       const mission = lastLoadedData.mission;
       const leg = mission.legs[Number(legIdx)] || null;
       if (!leg) return;
+      const point = _supervisorMissionResolveLocation_(leg.to);
+      if (!point || !point.isAirport) return;
       const gap = (leg.runwayGap && typeof leg.runwayGap === 'object') ? leg.runwayGap : {};
       const icao = String(gap.icao || leg.to || '').trim().toUpperCase();
       const rwyIdent = String(gap.rwyIdent || '').trim().toUpperCase();

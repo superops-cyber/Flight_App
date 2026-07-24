@@ -5,6 +5,38 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <script>
+    (function() {
+      function fallbackPanel_(panelId) {
+        return function() {
+          if (window.toolsOpenPanel) return window.toolsOpenPanel(panelId);
+        };
+      }
+
+      window.toolsOpenDbAdd = window.toolsOpenDbAdd || function(kind) {
+        if (window.toolsOpenPanel) {
+          return window.toolsOpenPanel(String(kind || 'syllabus').toLowerCase());
+        }
+      };
+      window.toolsOpenReportsPanel = window.toolsOpenReportsPanel || fallbackPanel_('reports');
+      window.toolsOpenDiscrepancyPanel = window.toolsOpenDiscrepancyPanel || fallbackPanel_('discrepancy');
+      window.toolsOpenStaffPanel = window.toolsOpenStaffPanel || fallbackPanel_('staff');
+      window.toolsOpenStudentPanel = window.toolsOpenStudentPanel || fallbackPanel_('students');
+      window.toolsOpenPersonalPanel = window.toolsOpenPersonalPanel || fallbackPanel_('personal');
+      window.toolsOpenSavedRoutesPanel = window.toolsOpenSavedRoutesPanel || fallbackPanel_('routesaved');
+      window.toolsOpenTrainingModulePanel = window.toolsOpenTrainingModulePanel || fallbackPanel_('trainingmodule');
+      window.toolsOpenManeuverPanel = window.toolsOpenManeuverPanel || fallbackPanel_('maneuvers');
+      window.toolsOpenPracticalEvalPanel = window.toolsOpenPracticalEvalPanel || fallbackPanel_('practical');
+      window.toolsOpenLessonHistoryPanel = window.toolsOpenLessonHistoryPanel || fallbackPanel_('lessonhistory');
+      window.toolsOpenPdfImportPanel = window.toolsOpenPdfImportPanel || fallbackPanel_('pdfimport');
+      window.toolsOpenSchedulerPanel = window.toolsOpenSchedulerPanel || fallbackPanel_('scheduler');
+      window.toolsOpenMasterConfigPanel = window.toolsOpenMasterConfigPanel || fallbackPanel_('masterconfig');
+      window.toolsOpenPermissionsPanel = window.toolsOpenPermissionsPanel || fallbackPanel_('permissions');
+      window.toolsOpenHistoricalImportsPanel = window.toolsOpenHistoricalImportsPanel || fallbackPanel_('histimports');
+      window.toolsOpenAircraftDocsPanel = window.toolsOpenAircraftDocsPanel || fallbackPanel_('aircraftdocs');
+      window.toolsOpenDutyLogsPanel = window.toolsOpenDutyLogsPanel || fallbackPanel_('dutylogs');
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
@@ -697,7 +729,9 @@
         var due = document.getElementById('mxPlannerDueDate');
         if (due) due.value = portalFormatDatePtBr_(new Date());
       });
-      portalPopulateMaintenanceAircraftSelect_();
+      portalEnsureDropdownData_(function() {
+        portalPopulateMaintenanceAircraftSelect_();
+      });
       portalUpdateCalendarModeUI_();
       renderCalendar();
       initPortalDispatchClocks_();
@@ -740,6 +774,7 @@
     let portalCalendarEditingAssignmentId = '';
     let portalMaintenanceInspectionRows_ = [];
     let portalMaintenanceInspectionLoadSeq_ = 0;
+    let portalDropdownData_ = null;
 
     const portalPtMonthShort_ = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
@@ -791,6 +826,34 @@
       return reg + (isFinite(hours) ? ` (${hours.toFixed(1)} hrs)` : '');
     }
 
+    function portalDropdownAircraftList_() {
+      return Array.isArray(portalDropdownData_ && portalDropdownData_.aircraft) ? portalDropdownData_.aircraft : [];
+    }
+
+    function portalDropdownAirportList_() {
+      return Array.isArray(portalDropdownData_ && portalDropdownData_.airports) ? portalDropdownData_.airports : [];
+    }
+
+    function portalEnsureDropdownData_(cb) {
+      if (portalDropdownData_) {
+        if (typeof cb === 'function') cb(portalDropdownData_);
+        return;
+      }
+      if (!(window.google && google.script && google.script.run)) {
+        if (typeof cb === 'function') cb(null);
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function(res) {
+          portalDropdownData_ = res || {};
+          if (typeof cb === 'function') cb(portalDropdownData_);
+        })
+        .withFailureHandler(function() {
+          if (typeof cb === 'function') cb(null);
+        })
+        .getDropdownData();
+    }
+
     function portalNormalizeFirstName_(value) {
       return String(value || '').trim().split(/\s+/)[0] || '';
     }
@@ -816,8 +879,9 @@
 
     function portalGetAirportByIcao_(icao) {
       const code = String(icao || '').trim().toUpperCase();
-      if (!code || !Array.isArray(appData && appData.airports)) return null;
-      return appData.airports.find(function(airport) {
+      const airports = portalDropdownAirportList_();
+      if (!code || !airports.length) return null;
+      return airports.find(function(airport) {
         return String(airport && airport.icao || airport && airport.ICAO || '').trim().toUpperCase() === code;
       }) || null;
     }
@@ -1070,15 +1134,27 @@
       const sel = document.getElementById('mxPlannerAircraft');
       if (!sel) return;
       const current = String(sel.value || '').trim().toUpperCase();
-      const aircraftList = Array.isArray(appData && appData.aircraft) ? appData.aircraft : [];
-      sel.innerHTML = '<option value="">Selecione a aeronave</option>';
-      aircraftList.forEach(function(a) {
-        const opt = document.createElement('option');
-        opt.value = String(a.reg || '').trim().toUpperCase();
-        opt.textContent = portalAircraftLabel_(a);
-        sel.appendChild(opt);
+      const apply = function() {
+        const aircraftList = portalDropdownAircraftList_();
+        sel.innerHTML = '<option value="">Selecione a aeronave</option>';
+        aircraftList.forEach(function(a) {
+          const opt = document.createElement('option');
+          opt.value = String(a.reg || '').trim().toUpperCase();
+          opt.textContent = portalAircraftLabel_(a);
+          sel.appendChild(opt);
+        });
+        if (current) sel.value = current;
+      };
+
+      if (portalDropdownData_) {
+        apply();
+        return;
+      }
+
+      sel.innerHTML = '<option value="">Carregando aeronaves...</option>';
+      portalEnsureDropdownData_(function() {
+        apply();
       });
-      if (current) sel.value = current;
     }
 
     function portalOpenMaintenancePlanner_(dateStr, eventData) {
@@ -1270,9 +1346,7 @@
               if (maintenanceMode) {
                 const flightLabel = String(p.flightHoursLabel || (p.isPastDate ? 'FLOWN' : 'EST')).trim().toUpperCase();
                 const flightHours = String(p.flightHoursDisplay || p.fltTime || '0.0').trim();
-                const aircraftObj = Array.isArray(appData && appData.aircraft)
-                  ? appData.aircraft.find(function(a) { return String(a && a.reg || '').trim().toUpperCase() === String(p.acft || '').trim().toUpperCase(); })
-                  : null;
+                const aircraftObj = portalDropdownAircraftList_().find(function(a) { return String((a && a.reg) || '').trim().toUpperCase() === String(p.acft || '').trim().toUpperCase(); }) || null;
                 const aircraftLabel = portalAircraftLabel_(aircraftObj || { reg: p.acft });
                 const dueText = portalFormatDatePtBr_(p.maintenanceNextInspectionDate || p.dueDate || arg.event.startStr || '');
                 return {

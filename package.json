@@ -12,9 +12,25 @@
     "test:deploy:quick": "npm run release:deploy:legacy:quick"
   },
   "devDependencies": {
-    "@types/google-apps-script": "^2.0.8"
+    "@types/google-apps-script": "^2.0.11"
   },
   "dependencies": {
     "acorn": "^8.16.0"
-  }
+  },
+  "name": "flight_app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "AirportSyncPhase1.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/superops-cyber/Flight_App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/superops-cyber/Flight_App/issues"
+  },
+  "homepage": "https://github.com/superops-cyber/Flight_App#readme"
 }

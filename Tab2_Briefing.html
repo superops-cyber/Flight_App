@@ -303,6 +303,68 @@
   color: #dff7cf;
   box-shadow: inset 0 0 0 1px rgba(140, 226, 108, 0.35);
 }
+#briefing-content .brief-startup-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+}
+#briefing-content .brief-startup-label {
+  color: #f5f5f5;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+#briefing-content .brief-startup-btn {
+  min-width: 76px;
+  height: 30px;
+  border: 1px solid #4f6380;
+  background: #1d2936;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+#briefing-content .brief-startup-btn.startup-selected {
+  background: #1a3a2a;
+  border-color: #43a047;
+  color: #dff7cf;
+  box-shadow: inset 0 0 0 1px rgba(140, 226, 108, 0.35);
+}
+#briefing-content .brief-startup-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+}
+#briefing-content .brief-startup-label {
+  color: #f5f5f5;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+#briefing-content .brief-startup-btn {
+  min-width: 76px;
+  height: 30px;
+  border: 1px solid #4f6380;
+  background: #1d2936;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+#briefing-content .brief-startup-btn.startup-selected {
+  background: #1a3a2a;
+  border-color: #43a047;
+  color: #dff7cf;
+  box-shadow: inset 0 0 0 1px rgba(140, 226, 108, 0.35);
+}
 
 #briefing-content .brief-entry-grid {
   display: grid;
@@ -436,33 +498,89 @@
 
 <script>
 
-function renderTankSection(mCap, tCap, launchFuel) {
-  function tank(key, fullLabel, cap, type) {
-    return `
-      <div class="brief-tank ${type}">
-        <label>${key}</label>
-        <input type="number"
-               class="brief-tank-input"
-               inputmode="numeric"
-               data-tank-key="${key}"
-               data-max="${cap}"
-               min="0"
-               step="1"
-               oninput="calculateBriefFuelTally()">
-      </div>`;
+function _briefNormalizeTankKey_(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  if (!raw) return '';
+  if (['LM', 'RM', 'LT', 'RT', 'AMBOS'].includes(raw)) return raw;
+  const clean = raw.replace(/[^A-Z0-9 ]/g, ' ');
+  const hasLeft = /\bLEFT\b|\bL\b/.test(clean);
+  const hasRight = /\bRIGHT\b|\bR\b/.test(clean);
+  const hasTip = /\bTIP\b/.test(clean);
+  const hasMain = /\bMAIN\b/.test(clean);
+  if (hasTip && hasLeft) return 'LT';
+  if (hasTip && hasRight) return 'RT';
+  if (hasMain && hasLeft) return 'LM';
+  if (hasMain && hasRight) return 'RM';
+  if (hasMain && !hasLeft && !hasRight) return 'LM';
+  return raw;
+}
+
+function _briefTankKeysFromAircraft_(acftConfig) {
+  const cfg = acftConfig && typeof acftConfig === 'object' ? acftConfig : {};
+  const raw = String(cfg.TANK_NAMES || cfg.tankNames || '').trim();
+  const parsed = [];
+
+  if (raw) {
+    try {
+      const json = JSON.parse(raw);
+      const list = Array.isArray(json) ? json : (json && Array.isArray(json.tanks) ? json.tanks : null);
+      if (Array.isArray(list)) {
+        list.forEach(function(item) {
+          const key = _briefNormalizeTankKey_(item && typeof item === 'object' ? (item.key || item.name || item.label || item.tank) : item);
+          if (key && !parsed.includes(key)) parsed.push(key);
+        });
+      }
+    } catch (e) {
+      raw.split(/[,;|\/]+/).forEach(function(part) {
+        const key = _briefNormalizeTankKey_(part);
+        if (key && !parsed.includes(key)) parsed.push(key);
+      });
+    }
   }
 
-  const safeMainCap = Math.max(0, Number(mCap || 0));
-  const safeTipCap = Math.max(0, Number(tCap || 0));
+  if (!parsed.length) {
+    const tipCap = Math.max(0, Number(cfg.TIP_CAPACITY_L || 0));
+    if (tipCap > 0) {
+      parsed.push('LT', 'LM', 'RM', 'RT');
+    } else {
+      parsed.push('LM', 'RM');
+    }
+  }
+
+  return parsed.filter(function(key) {
+    return ['LM', 'RM', 'LT', 'RT'].includes(key);
+  });
+}
+
+function _briefTankMeta_(key, acftConfig) {
+  const cfg = acftConfig && typeof acftConfig === 'object' ? acftConfig : {};
+  const safeMainCap = Math.max(0, Number(cfg.MAIN_CAPACITY_L || 0));
+  const safeTipCap = Math.max(0, Number(cfg.TIP_CAPACITY_L || 0));
+  if (key === 'LT') return { key: key, label: 'Left Tip', type: 'tip', cap: safeTipCap };
+  if (key === 'RT') return { key: key, label: 'Right Tip', type: 'tip', cap: safeTipCap };
+  if (key === 'LM') return { key: key, label: 'Left Main', type: 'main', cap: safeMainCap };
+  if (key === 'RM') return { key: key, label: 'Right Main', type: 'main', cap: safeMainCap };
+  return { key: key, label: key, type: 'main', cap: 0 };
+}
+
+function renderTankSection(acftConfig, launchFuel) {
+  const tankKeys = _briefTankKeysFromAircraft_(acftConfig);
+  const totalColumns = Math.max(1, tankKeys.length + 1);
+  const cells = tankKeys.map(function(key) {
+    const meta = _briefTankMeta_(key, acftConfig);
+    return `
+      <div class="brief-tank ${meta.type}">
+        <label>${meta.label}</label>
+        <button type="button" class="brief-tank-btn js-tank-keypad" data-label="${meta.label} (${meta.key})" data-tank-key="${meta.key}"></button>
+        <input type="number" style="display:none" class="brief-tank-input" data-tank-key="${meta.key}" data-max="${meta.cap}" value="">
+      </div>`;
+  }).join('');
 
   return `
   <div class="fuel-airframe-wrap">
-    <div class="fuel-airframe-title">Fuel On Board by Tank (Cessna Layout)</div>
-    <div class="fuel-wing-row">
-      ${tank("LT", "Left Tip (LT)", safeTipCap, "tip")}
-      ${tank("LM", "Left Main (LM)", safeMainCap, "main")}
-      ${tank("RM", "Right Main (RM)", safeMainCap, "main")}
-      ${tank("RT", "Right Tip (RT)", safeTipCap, "tip")}
+    <div class="fuel-airframe-title">Fuel On Board by Tank</div>
+    <div class="fuel-wing-row" style="grid-template-columns: repeat(${totalColumns}, minmax(0, 1fr));">
+      ${cells}
       <div id="brief-fuel-total-box" class="brief-total-box">
         <label>Total</label>
         <b id="brief-fuel-tally" data-launch="${launchFuel}">0L</b>
@@ -696,7 +814,7 @@ function calculateBriefFuelTally() {
   const activeMain = String(document.getElementById('brief_startup_tank')?.value || '').trim().toUpperCase();
 
   let total = 0;
-  const tanks = { LM: 0, RM: 0, LT: 0, RT: 0 };
+  const tanks = {};
 
   document.querySelectorAll('.brief-tank-input').forEach(input => {
     const key = String(input.dataset.tankKey || '').trim().toUpperCase();
@@ -709,13 +827,12 @@ function calculateBriefFuelTally() {
       if (window.M) M.toast({ html: `${key} cannot exceed ${Math.round(max)}L`, classes: 'orange', displayLength: 2200 });
     }
     total += val;
-    if (Object.prototype.hasOwnProperty.call(tanks, key)) {
-      tanks[key] = val;
-    }
+    if (key) tanks[key] = val;
   });
 
   tallyEl.innerText = `${Math.round(total)}L`;
   window.briefFuelSnapshot = {
+    tankKeys: Object.keys(tanks),
     ...tanks,
     activeMain: activeMain,
     total: total,
@@ -747,14 +864,14 @@ function calculateBriefFuelTally() {
 
 window.briefRefreshStartupTankUi_ = function() {
   const activeMain = String(document.getElementById('brief_startup_tank')?.value || '').trim().toUpperCase();
-  document.querySelectorAll('#briefing-content .brief-tank-btn[data-tank-key="LM"], #briefing-content .brief-tank-btn[data-tank-key="RM"]').forEach(function(button) {
+  document.querySelectorAll('#briefing-content .brief-startup-btn, #briefing-content .brief-tank-btn[data-tank-key="LM"], #briefing-content .brief-tank-btn[data-tank-key="RM"]').forEach(function(button) {
     button.classList.toggle('startup-selected', String(button.dataset.tankKey || '').trim().toUpperCase() === activeMain);
   });
 };
 
 window.briefSetStartupTank_ = function(tank, btnEl) {
   const normalized = String(tank || '').trim().toUpperCase();
-  if (normalized !== 'LM' && normalized !== 'RM') return;
+  if (normalized !== 'LM' && normalized !== 'RM' && normalized !== 'AMBOS') return;
   const input = document.getElementById('brief_startup_tank');
   if (input) input.value = normalized;
   window.briefRefreshStartupTankUi_();
@@ -1093,7 +1210,7 @@ window.briefOpenTankKeypad_ = function(btnEl, label) {
 window.briefHandleTankTap_ = function(btnEl) {
   if (!btnEl) return;
   var tankKey = String(btnEl.dataset.tankKey || '').trim().toUpperCase();
-  var isMain = tankKey === 'LM' || tankKey === 'RM';
+  var isMain = tankKey === 'LM' || tankKey === 'RM' || tankKey === 'AMBOS';
   if (!isMain) {
     window.briefOpenTankKeypad_(btnEl, btnEl.dataset.label || 'Tank');
     return;
@@ -1400,10 +1517,8 @@ window.setupBriefing = function(mission) {
   const missionDate = mission.date || '';
 
   const acftConfig = appData.aircraft?.find(a => String(a?.reg || '').trim().toUpperCase() === String(mission.acft || '').trim().toUpperCase());
-  const mCap = parseFloat(acftConfig?.MAIN_CAPACITY_L || 0);
-  const tCap = parseFloat(acftConfig?.TIP_CAPACITY_L || 0);
-  const safeMainCap = Math.max(0, mCap);
-  const safeTipCap  = Math.max(0, tCap);
+  const fuelTankKeys = _briefTankKeysFromAircraft_(acftConfig);
+  window.briefAircraftSupportsAmbos_ = !!(acftConfig && (acftConfig.POSICAO_AMBOS || acftConfig.posicaoAmbos));
 
   container.innerHTML = `
   <div id="briefing-content">
@@ -1448,26 +1563,14 @@ window.setupBriefing = function(mission) {
             </div>
             <input type="hidden" id="brief_oil" value="0">
           </div>
-          <div class="brief-tank group-start">
-            <label>Left Tip</label>
-            <button type="button" class="brief-tank-btn js-tank-keypad" data-label="Left Tip (L)" data-tank-key="LT"></button>
-            <input type="number" style="display:none" class="brief-tank-input" data-tank-key="LT" data-max="${safeTipCap}" value="">
-          </div>
-          <div class="brief-tank">
-            <label>Left Main</label>
-            <button type="button" class="brief-tank-btn js-tank-keypad" data-label="Left Main (L)" data-tank-key="LM"></button>
-            <input type="number" style="display:none" class="brief-tank-input" data-tank-key="LM" data-max="${safeMainCap}" value="">
-          </div>
-          <div class="brief-tank">
-            <label>Right Main</label>
-            <button type="button" class="brief-tank-btn js-tank-keypad" data-label="Right Main (L)" data-tank-key="RM"></button>
-            <input type="number" style="display:none" class="brief-tank-input" data-tank-key="RM" data-max="${safeMainCap}" value="">
-          </div>
-          <div class="brief-tank">
-            <label>Right Tip</label>
-            <button type="button" class="brief-tank-btn js-tank-keypad" data-label="Right Tip (L)" data-tank-key="RT"></button>
-            <input type="number" style="display:none" class="brief-tank-input" data-tank-key="RT" data-max="${safeTipCap}" value="">
-          </div>
+          ${renderTankSection(acftConfig, launchFuel)}
+          ${window.briefAircraftSupportsAmbos_ ? `
+          <div class="brief-startup-row">
+            <span class="brief-startup-label">Startup</span>
+            <button type="button" class="brief-startup-btn" data-tank-key="LM" onclick="briefSetStartupTank_('LM', this)">LM</button>
+            <button type="button" class="brief-startup-btn" data-tank-key="RM" onclick="briefSetStartupTank_('RM', this)">RM</button>
+            <button type="button" class="brief-startup-btn" data-tank-key="AMBOS" onclick="briefSetStartupTank_('AMBOS', this)">AMBOS</button>
+          </div>` : ''}
           <input type="hidden" id="brief_startup_tank" value="">
           <div id="brief-fuel-total-box" class="brief-total-box">
             <label>Total</label>
@@ -1475,7 +1578,7 @@ window.setupBriefing = function(mission) {
           </div>
         </div>
         <div id="brief-fuel-warning" class="brief-warning-inline">⚠ Fuel below planned</div>
-        <div class="brief-note">Tap each box to enter values. Double-tap LM or RM to choose startup tank. Use LOAD AIRCRAFT to continue to W&amp;B.</div>
+        <div class="brief-note">Tap each box to enter values. Double-tap LM or RM to choose startup tank. If available, AMBOS can be selected from the startup row. Use LOAD AIRCRAFT to continue to W&amp;B.</div>
       </div>
     </div>
   </div>
@@ -1484,11 +1587,13 @@ window.setupBriefing = function(mission) {
   renderLegs(mission);
   window.currentBriefingMission = mission;
   window.briefFuelSnapshot = {
+    tankKeys: fuelTankKeys,
     LM: 0,
     RM: 0,
     LT: 0,
     RT: 0,
     activeMain: '',
+    ambosEnabled: !!window.briefAircraftSupportsAmbos_,
     total: 0,
     launch: launchFuel,
     updatedAt: new Date().toISOString()
@@ -1528,11 +1633,11 @@ window.submitBriefingLog = async function(missionId, opts) {
       if (key) tanks[key] = val;
     });
     const activeMain = String(document.getElementById('brief_startup_tank')?.value || '').trim().toUpperCase();
-    if (activeMain !== 'LM' && activeMain !== 'RM') {
-      if (window.M) M.toast({ html: 'Select the startup tank: LM or RM', classes: 'orange', displayLength: 2800 });
+    if (activeMain !== 'LM' && activeMain !== 'RM' && activeMain !== 'AMBOS') {
+      if (window.M) M.toast({ html: 'Select the startup tank: LM, RM or AMBOS', classes: 'orange', displayLength: 2800 });
       return false;
     }
-    if (Number(tanks[activeMain] || 0) <= 0) {
+    if (activeMain !== 'AMBOS' && Number(tanks[activeMain] || 0) <= 0) {
       if (window.M) M.toast({ html: `${activeMain} must have fuel for startup`, classes: 'orange', displayLength: 2800 });
       return false;
     }
@@ -1606,6 +1711,7 @@ window.submitBriefingLog = async function(missionId, opts) {
       flightLegId: firstLegFlightId,  // active leg's flight ID (e.g., ADS26-001-02)
       date: (window.currentBriefingMission && window.currentBriefingMission.date) || new Date().toISOString().split('T')[0],
       pilot: (window.currentBriefingMission && window.currentBriefingMission.pilot) || '',
+      copilot: (window.currentBriefingMission && window.currentBriefingMission.copilot) || '',
       acft: (window.currentBriefingMission && window.currentBriefingMission.acft) || '',
       from: activeLeg_ ? (activeLeg_.from || '') : '',
       to: activeLeg_ ? (activeLeg_.to || '') : '',
@@ -1615,7 +1721,7 @@ window.submitBriefingLog = async function(missionId, opts) {
       activeMain: activeMain,
       oil: oilValue,
       volts: volts,
-      actualLoadJSON: JSON.stringify({ tanks: tanks, activeMain: activeMain, fuelTotal: fuelTotal, oil: oilValue, legs: legsData, savedAt: new Date().toISOString() }),
+      actualLoadJSON: JSON.stringify({ pilot: (window.currentBriefingMission && window.currentBriefingMission.pilot) || '', copilot: (window.currentBriefingMission && window.currentBriefingMission.copilot) || '', tanks: tanks, tankKeys: Object.keys(tanks), activeMain: activeMain, ambosEnabled: !!window.briefAircraftSupportsAmbos_, fuelTotal: fuelTotal, oil: oilValue, legs: legsData, savedAt: new Date().toISOString() }),
       savedAt: new Date().toISOString(),
       userAgent: navigator.userAgent
     };

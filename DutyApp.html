@@ -636,8 +636,12 @@
     <section class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
         <div style="font-size:0.82rem; font-weight:900; text-transform:uppercase; color:#0b5394;">Ultimos registros</div>
-        <button class="primary" type="button" onclick="dutyShowAddDay()" style="min-height:32px; font-size:0.75rem; padding:0 12px;">+ Adicionar dia</button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+          <button class="secondary" type="button" onclick="dutyToggleHistoryView()" style="min-height:32px; font-size:0.75rem; padding:0 12px;">Ver histórico</button>
+          <button class="primary" type="button" onclick="dutyShowAddDay()" style="min-height:32px; font-size:0.75rem; padding:0 12px;">+ Adicionar dia</button>
+        </div>
       </div>
+      <div id="recent-list-hint" style="margin-bottom:8px; font-size:0.74rem; color:#607d8b; font-weight:700;">Mostrando somente o dia atual. Use "Ver histórico" para carregar os ultimos 30 dias.</div>
       <div id="add-day-row" style="display:none; margin-bottom:10px;">
         <div class="field" style="margin-bottom:6px;">
           <label for="add-day-date">Data do dia a adicionar</label>
@@ -808,6 +812,7 @@
       snapshot: null,
       logs: [],
       shifts: [],
+      historyMode: false,
       expandedRegistryDateYmd: '',
       editingDateYmd: '',
       editingShifts: [],
@@ -1214,6 +1219,53 @@
       }).join('');
     }
 
+    function dutyHistoryRangeForSelectedDate_() {
+      const selected = String(dutyState.selectedDateYmd || dutyNowBsb().ymd).trim();
+      const end = new Date(selected + 'T12:00:00');
+      if (isNaN(end.getTime())) {
+        return { fromYmd: selected, toYmd: selected };
+      }
+      const from = new Date(end.getTime());
+      from.setDate(from.getDate() - 29);
+      return {
+        fromYmd: new Intl.DateTimeFormat('sv-SE').format(from),
+        toYmd: selected
+      };
+    }
+
+    function dutyUpdateHistoryUi_() {
+      const btn = document.querySelector('button[onclick="dutyToggleHistoryView()"]');
+      const hint = document.getElementById('recent-list-hint');
+      if (btn) btn.textContent = dutyState.historyMode ? 'Ver hoje' : 'Ver histórico';
+      if (hint) {
+        hint.textContent = dutyState.historyMode
+          ? 'Histórico carregado. Use "Ver hoje" para voltar ao dia atual.'
+          : 'Mostrando somente o dia atual. Use "Ver histórico" para carregar os ultimos 30 dias.';
+      }
+    }
+
+    async function dutyToggleHistoryView() {
+      if (dutyState.historyMode) {
+        await dutyLoadBootstrap('Voltando ao dia atual...', {
+          source: 'history-toggle-current',
+          fromYmd: dutyState.selectedDateYmd,
+          toYmd: dutyState.selectedDateYmd,
+          history: false
+        });
+        return;
+      }
+
+      dutyState.historyMode = true;
+      dutyUpdateHistoryUi_();
+      const range = dutyHistoryRangeForSelectedDate_();
+      await dutyLoadBootstrap('Carregando histórico...', {
+        source: 'history-toggle-load',
+        fromYmd: range.fromYmd,
+        toYmd: range.toYmd,
+        history: true
+      });
+    }
+
     function dutyLockIconMarkup_(isLocked) {
       if (isLocked) {
         return ''
@@ -1314,18 +1366,15 @@
 
     function dutyFormatTimeOnInput(inputEl) {
       if (!inputEl) return;
-      let val = String(inputEl.value || '').trim();
-      if (!val) return;
+      const raw = String(inputEl.value || '').trim();
+      if (!raw) return;
 
-      const digitMatch = val.match(/^(\d{3,4})$/);
-      if (digitMatch) {
-        const digits = String(digitMatch[1]);
-        const h = digits.length === 3 ? digits.substring(0, 1) : digits.substring(0, 2);
-        const m = digits.length === 3 ? digits.substring(1, 3) : digits.substring(2, 4);
-        const hNum = Number(h);
-        const mNum = Number(m);
+      const digitsOnly = raw.replace(/\D+/g, '');
+      if (/^\d{4}$/.test(digitsOnly)) {
+        const hNum = Number(digitsOnly.slice(0, 2));
+        const mNum = Number(digitsOnly.slice(2, 4));
         if (hNum >= 0 && hNum <= 23 && mNum >= 0 && mNum <= 59) {
-          inputEl.value = String(hNum).padStart(2, '0') + ':' + m;
+          inputEl.value = String(hNum).padStart(2, '0') + ':' + String(mNum).padStart(2, '0');
         }
       }
     }
@@ -1373,10 +1422,7 @@
         }
 
         dutySetBanner((kind === 'start' ? 'Inicio' : 'Fim') + ' bloqueado em ' + valueLabel + '.', 'ok');
-        dutyScheduleBootstrapRefresh_('Atualizando após bloquear ' + (kind === 'start' ? 'inicio' : 'fim') + '...', {
-          source: 'lock-' + kind,
-          delayMs: 250
-        });
+        dutyRefreshLocalDutyViews_(dutyState.selectedDateYmd);
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1697,6 +1743,17 @@
     async function dutyLoadBootstrap(statusText, opts) {
       const options = (opts && typeof opts === 'object') ? opts : {};
       const source = String(options.source || statusText || 'bootstrap').trim();
+      const historyMode = !!options.history;
+      if (historyMode) {
+        dutyState.historyMode = true;
+        dutyUpdateHistoryUi_();
+      }
+      const range = historyMode
+        ? dutyHistoryRangeForSelectedDate_()
+        : {
+          fromYmd: String(options.fromYmd || dutyState.selectedDateYmd || dutyNowBsb().ymd).trim(),
+          toYmd: String(options.toYmd || dutyState.selectedDateYmd || dutyNowBsb().ymd).trim()
+        };
       if (dutyState.bootstrapInFlight) {
         dutyState.bootstrapPending = { statusText: statusText, opts: Object.assign({}, options) };
         dutyRecordServerCall_({ methodName: 'getDutyAppBootstrap', phase: 'queued', ok: false, message: 'Bootstrap already in flight', source: source });
@@ -1709,6 +1766,8 @@
         const res = await dutyCallServer('getDutyAppBootstrap', {
           pilotName: dutyState.selectedPilotName,
           dateYmd: dutyState.selectedDateYmd,
+          fromYmd: range.fromYmd,
+          toYmd: range.toYmd,
           _source: source
         });
         if (!res || res.success !== true) {
@@ -1725,6 +1784,7 @@
         dutyState.snapshot = res.snapshot || null;
         dutyState.logs = Array.isArray(res.logs) ? res.logs : [];
         dutyState.dutyConfig = res.dutyConfig || {};
+        dutyState.historyMode = historyMode;
 
         const sessionEmail = String(dutyState.currentUser && dutyState.currentUser.sessionEmail || '').trim().toLowerCase();
         if (!options.restoredPreferredEmail && dutyState.serverPreferredDutyEmail && dutyState.serverPreferredDutyEmail !== sessionEmail) {
@@ -1738,6 +1798,7 @@
         }
 
         dutyRefreshPreferredEmailUi_();
+  dutyUpdateHistoryUi_();
 
         dutyApplyHeader();
         dutyBindPilotSelector();
@@ -1765,6 +1826,7 @@
       const delayMs = Number(options.delayMs || 250);
       const nextOpts = Object.assign({}, options);
       delete nextOpts.delayMs;
+      if (dutyState.bootstrapInFlight) return;
       setTimeout(function() {
         dutyLoadBootstrap(statusText, nextOpts);
       }, isFinite(delayMs) && delayMs >= 0 ? delayMs : 250);
@@ -1811,6 +1873,64 @@
     async function dutySaveShiftPayload(payload) {
       if (payload.rowNumber >= 2) return dutyCallServer('updateDutyAppLog', payload);
       return dutyCallServer('saveDutyAppEntry', payload);
+    }
+
+    function dutyUpsertLocalSavedLog_(saved, fallbackPayload) {
+      const payload = (fallbackPayload && typeof fallbackPayload === 'object') ? fallbackPayload : {};
+      const snapshot = dutyState.snapshot && typeof dutyState.snapshot === 'object' ? dutyState.snapshot : {};
+      const autofill = snapshot && snapshot.autofill && typeof snapshot.autofill === 'object' ? snapshot.autofill : {};
+      const rowNumber = Number(saved && saved.rowNumber || payload.rowNumber || 0);
+      const dateYmd = String((saved && saved.dateYmd) || payload.dateYmd || dutyState.selectedDateYmd || '').trim();
+      const existing = Array.isArray(dutyState.logs)
+        ? dutyState.logs.find(function(row) {
+          return rowNumber >= 2 && Number(row.rowNumber || 0) === rowNumber;
+        })
+        : null;
+      const merged = Object.assign({}, existing || {});
+
+      merged.rowNumber = rowNumber >= 2 ? rowNumber : Number(existing && existing.rowNumber || 0);
+      merged.dateYmd = dateYmd;
+      merged.pilotName = String((saved && saved.pilotName) || payload.pilotName || merged.pilotName || dutyState.selectedPilotName || '').trim();
+      merged.status = String((saved && saved.status) || payload.status || merged.status || '').trim();
+      merged.startTime = String((saved && saved.startTime) || payload.startTime || merged.startTime || '').trim();
+      merged.endTime = String((saved && saved.endTime) || payload.endTime || merged.endTime || '').trim();
+
+      const flightHoursRaw = (saved && saved.flightHours !== '' && saved.flightHours != null)
+        ? saved.flightHours
+        : (payload.flightHours != null ? payload.flightHours : merged.flightHours);
+      merged.flightHours = (flightHoursRaw === '' || flightHoursRaw == null) ? '' : Number(flightHoursRaw);
+      merged.storedFlightHours = merged.flightHours;
+      merged.derivedFlightHours = Number((saved && saved.derivedFlightHours) || merged.derivedFlightHours || autofill.totalFlightHours || 0);
+      merged.totalDutyHours = Number((saved && saved.totalDutyHours) || merged.totalDutyHours || 0);
+      merged.notes = String((saved && saved.notes) || payload.notes || merged.notes || '').trim();
+      merged.description = String((saved && saved.description) || payload.description || merged.description || '').trim();
+      merged.summaryText = String((saved && saved.summaryText) || payload.summaryText || merged.summaryText || autofill.summaryLine || '').trim();
+      merged.updatedAt = String((saved && saved.updatedAt) || merged.updatedAt || new Date().toISOString()).trim();
+      merged.flightSummary = String((saved && saved.flightSummary) || merged.flightSummary || autofill.summaryLine || '').trim();
+      merged.flights = Array.isArray(saved && saved.flights) ? saved.flights : (Array.isArray(merged.flights) ? merged.flights : (Array.isArray(autofill.flights) ? autofill.flights : []));
+
+      if (!Array.isArray(dutyState.logs)) dutyState.logs = [];
+      const idx = rowNumber >= 2
+        ? dutyState.logs.findIndex(function(row) { return Number(row.rowNumber || 0) === rowNumber; })
+        : -1;
+      if (idx >= 0) dutyState.logs[idx] = merged;
+      else dutyState.logs.push(merged);
+
+      dutyState.logs.sort(function(a, b) {
+        const dateCompare = String(b.dateYmd || '').localeCompare(String(a.dateYmd || ''));
+        if (dateCompare !== 0) return dateCompare;
+        return Number(b.rowNumber || 0) - Number(a.rowNumber || 0);
+      });
+
+      return merged;
+    }
+
+    function dutyRefreshLocalDutyViews_(targetDateYmd) {
+      const dayKey = String(targetDateYmd || '').trim();
+      if (dayKey && dayKey === String(dutyState.selectedDateYmd || '')) {
+        dutyApplyMainFormFromBootstrap();
+      }
+      dutyRenderRecentRegistries();
     }
 
     function dutyFindOpenShiftIndex(shifts) {
@@ -1872,8 +1992,9 @@
           throw new Error(res && res.error ? res.error : 'Falha ao salvar inicio da jornada');
         }
 
+        dutyUpsertLocalSavedLog_(res, payload);
         dutySetBanner('Inicio registrado as ' + dutyEscape(shift.startTime) + '.', 'ok');
-        dutyScheduleBootstrapRefresh_('Atualizando após registrar inicio...', { source: 'save-start', delayMs: 250 });
+        dutyRefreshLocalDutyViews_(payload.dateYmd);
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1907,8 +2028,9 @@
           throw new Error(res && res.error ? res.error : 'Falha ao salvar fim da jornada');
         }
 
+        dutyUpsertLocalSavedLog_(res, payload);
         dutySetBanner('Fim registrado as ' + dutyEscape(shift.endTime) + '.', 'ok');
-        dutyScheduleBootstrapRefresh_('Atualizando após registrar fim...', { source: 'save-end', delayMs: 250 });
+        dutyRefreshLocalDutyViews_(payload.dateYmd);
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -1922,6 +2044,7 @@
         if (!department) return;
         dutySetLoading(true);
         dutySetBanner(isEdit ? 'Salvando edicao...' : 'Fechando dia...', 'info');
+        const refreshDateYmd = String(isEdit ? dutyState.editingDateYmd : dutyState.selectedDateYmd || '').trim();
         const shifts = dutyReadShiftList(!!isEdit);
         if (!isEdit) {
           const openIdx = dutyFindOpenShiftIndex(shifts);
@@ -1952,14 +2075,12 @@
           if (!res || res.success !== true) {
             throw new Error(res && res.error ? res.error : 'Falha ao salvar shift ' + (i + 1));
           }
+          dutyUpsertLocalSavedLog_(res, payload);
         }
 
         dutySetBanner(isEdit ? 'Edicao salva.' : 'Dia encerrado e salvo.', 'ok');
         if (isEdit) dutyCloseEditModal();
-        dutyScheduleBootstrapRefresh_(isEdit ? 'Recarregando edicao salva...' : 'Recarregando jornada fechada...', {
-          source: isEdit ? 'finalize-edit' : 'finalize-day',
-          delayMs: 300
-        });
+        dutyRefreshLocalDutyViews_(refreshDateYmd);
       } catch (err) {
         dutySetBanner(err && err.message ? err.message : String(err), 'bad');
       } finally {
@@ -2051,11 +2172,12 @@
       const todayYmd = dutyNowBsb().ymd;
       const overlay = document.getElementById('edit-overlay');
       const editOpen = !!(overlay && overlay.style.display === 'flex');
-      return !editOpen && String(dutyState.selectedDateYmd || '') === String(todayYmd);
+      return !editOpen && !dutyState.historyMode && String(dutyState.selectedDateYmd || '') === String(todayYmd);
     }
 
     function dutyRefreshIfCurrentDay_() {
       if (!dutyCanAutoRefresh_()) return;
+      if (dutyState.bootstrapInFlight || dutyState.bootstrapPending) return;
       dutyScheduleBootstrapRefresh_('Atualizando jornada atual...', { source: 'auto-refresh-current-day', delayMs: 200 });
     }
 
@@ -2072,6 +2194,8 @@
 
     document.addEventListener('DOMContentLoaded', function() {
       dutyState.selectedDateYmd = dutyNowBsb().ymd;
+      dutyState.historyMode = false;
+      dutyUpdateHistoryUi_();
       dutyRefreshPreferredEmailUi_();
 
       const pilotSelect = document.getElementById('pilot-select');

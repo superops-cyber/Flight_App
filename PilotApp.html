@@ -3139,16 +3139,20 @@
     }
 
     function _offfltFindAircraft(reg) {
-      const key = String(reg || '').trim().toUpperCase();
+      const key = _offfltNormalizeReg_(reg);
       const aircraftPrimary = (appData && Array.isArray(appData.aircraft)) ? appData.aircraft : [];
       const cachedDropdown = cacheGet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA) || {};
       const aircraftFallback = Array.isArray(cachedDropdown.aircraft) ? cachedDropdown.aircraft : [];
       const findMatch = function(list) {
         return (Array.isArray(list) ? list : []).find(function(a) {
-          return String((a && a.reg) || '').trim().toUpperCase() === key;
+          return _offfltNormalizeReg_(a && a.reg) === key;
         }) || null;
       };
       return findMatch(aircraftPrimary) || findMatch(aircraftFallback);
+    }
+
+    function _offfltNormalizeReg_(value) {
+      return String(value || '').trim().toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9-]/g, '');
     }
 
     function _offfltAirportLatLon(airport) {
@@ -4661,8 +4665,9 @@
           }
 
           // Find the aircraft in our local database
+          const missionKey = _offfltNormalizeReg_(missionAcft);
           const acft = acftList.find(function(a) {
-            return String((a && a.reg) || '').trim().toUpperCase() === missionAcft;
+            return _offfltNormalizeReg_(a && a.reg) === missionKey;
           });
 
           if (!acft) {

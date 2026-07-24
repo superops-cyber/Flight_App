@@ -147,6 +147,7 @@
   .tools-ac-grid { display:grid; grid-template-columns:repeat(2, minmax(180px, 1fr)); gap:8px; }
   .tools-ac-field label { display:block; font-size:0.72rem; font-weight:700; color:#607d8b; margin-bottom:4px; }
   .tools-ac-field input { width:100%; height:34px; border:1px solid #d1dbe6; border-radius:6px; padding:0 8px; font-size:0.8rem; box-sizing:border-box; }
+  .tools-ac-field select { display:block; width:100%; min-width:100%; height:34px; border:1px solid #d1dbe6; border-radius:6px; padding:0 8px; font-size:0.8rem; box-sizing:border-box; background:#fff; color:#263238; appearance:auto; }
   .tools-ac-envelope-preview { margin-top:10px; border:1px solid #dbe4ee; border-radius:8px; background:#f8fbff; padding:8px; }
   .tools-ac-envelope-note { font-size:0.74rem; color:#607d8b; margin-bottom:6px; }
   .tools-ac-envelope-svg { width:100%; height:230px; display:block; }
@@ -184,6 +185,9 @@
   .tools-route-preview-coords { display:none; margin-top:6px; font-size:0.8rem; font-weight:700; color:#0b5394; }
   .tools-route-muted { font-size:0.76rem; color:#607d8b; }
   .tools-route-select-wrap { margin-bottom:10px; }
+  .tools-syl-via-list { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+  .tools-syl-via-row { display:flex; gap:6px; align-items:center; }
+  .tools-syl-via-row input { flex:1 1 auto; }
   @media (max-width: 760px) {
     .tools-route-manager-grid { grid-template-columns:1fr; }
   }
@@ -250,6 +254,13 @@
   .tools-discrepancy-actions { display:flex; gap:6px; flex-wrap:wrap; }
   .tools-master-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
   .tools-master-note { font-size:0.78rem; color:#546e7a; margin:0 0 10px 0; }
+  .tools-master-accordion { border:1px solid #dbe4ee; border-radius:10px; background:#f9fcff; margin-top:10px; overflow:hidden; }
+  .tools-master-accordion > summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:#eff5fb; color:#0b5394; font-size:0.82rem; font-weight:900; text-transform:uppercase; letter-spacing:0.02em; }
+  .tools-master-accordion > summary::-webkit-details-marker { display:none; }
+  .tools-master-accordion > summary::after { content:'+'; color:#1565c0; font-size:1rem; font-weight:900; }
+  .tools-master-accordion[open] > summary::after { content:'−'; }
+  .tools-master-accordion-body { padding:12px; border-top:1px solid #dbe4ee; }
+  .tools-master-accordion-meta { font-size:0.72rem; font-weight:700; color:#607d8b; text-transform:none; letter-spacing:0; }
   .tools-master-ff-mapshare-list { display:grid; gap:6px; margin-top:8px; }
   .tools-master-ff-mapshare-row { display:grid; grid-template-columns:120px minmax(0,1fr); gap:8px; align-items:center; }
   .tools-master-ff-mapshare-reg { font-size:0.78rem; font-weight:900; color:#0b5394; background:#eff5fb; border:1px solid #dbe7f3; border-radius:6px; height:32px; display:flex; align-items:center; justify-content:center; }
@@ -1237,134 +1248,188 @@
 
   <div id="tools-panel-masterconfig" class="tools-panel">
     <div class="tools-panel-header">
-      <h3 class="tools-panel-title">Master Configuration</h3>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <h3 class="tools-panel-title" style="margin:0;">Master Configuration</h3>
+        <span id="tools-master-version" style="display:inline-flex; align-items:center; min-height:24px; padding:0 8px; border-radius:999px; border:1px solid #cfe2ff; background:#eef6ff; color:#0b5394; font-size:0.72rem; font-weight:900; letter-spacing:0.02em;">v?</span>
+      </div>
       <button class="tools-panel-close" onclick="toolsClosePanel('masterconfig')">&times;</button>
     </div>
     <p class="tools-master-note">Configurações centrais da operação. A seção abaixo controla os gatilhos automáticos de duty time.</p>
-    <div class="tools-report-section">
-      <div class="tools-report-section-head">
-        <h4>Duty Time Configurations</h4>
-        <div id="tools-master-meta" class="tools-report-meta"></div>
-      </div>
-      <div class="tools-master-grid">
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label>Pontos de Geofence <span style="font-weight:400; color:#78909c; font-size:0.78rem;">(clique no mapa para adicionar, ou digite abaixo)</span></label>
-          <div id="tools-master-geofence-map" style="height:220px; border:1px solid #d1dbe6; border-radius:8px; margin-bottom:8px;"></div>
-          <ol id="tools-master-geofence-list" style="margin:0 0 8px 0; padding-left:20px; font-size:0.82rem; color:#37474f; min-height:24px;"></ol>
-          <div style="display:flex; gap:6px; align-items:flex-start;">
-            <textarea id="tools-master-home-airports" placeholder="-3.1416, -60.0212&#10;45°33'34.76&quot;N, 93°36'19.44&quot;W" style="flex:1; min-height:70px; font-size:0.8rem;"></textarea>
-            <div style="display:flex; flex-direction:column; gap:4px;">
-              <button class="btn-ts" type="button" style="white-space:nowrap;" onclick="toolsMasterGeofencePreview_()">VISUALIZAR</button>
-              <button class="btn-ts" type="button" style="white-space:nowrap;" onclick="toolsMasterGeofenceClearAll_()">LIMPAR</button>
+    <details class="tools-master-accordion">
+      <summary>
+        <span>Configurações de Duty Time</span>
+        <span id="tools-master-meta" class="tools-master-accordion-meta"></span>
+      </summary>
+      <div class="tools-master-accordion-body">
+        <div class="tools-master-grid">
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label>Pontos de Geofence <span style="font-weight:400; color:#78909c; font-size:0.78rem;">(clique no mapa para adicionar, ou digite abaixo)</span></label>
+            <div id="tools-master-geofence-map" style="height:220px; border:1px solid #d1dbe6; border-radius:8px; margin-bottom:8px;"></div>
+            <ol id="tools-master-geofence-list" style="margin:0 0 8px 0; padding-left:20px; font-size:0.82rem; color:#37474f; min-height:24px;"></ol>
+            <div style="display:flex; gap:6px; align-items:flex-start;">
+              <textarea id="tools-master-home-airports" placeholder="-3.1416, -60.0212&#10;45°33'34.76&quot;N, 93°36'19.44&quot;W" style="flex:1; min-height:70px; font-size:0.8rem;"></textarea>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <button class="btn-ts" type="button" style="white-space:nowrap;" onclick="toolsMasterGeofencePreview_()">VISUALIZAR</button>
+                <button class="btn-ts" type="button" style="white-space:nowrap;" onclick="toolsMasterGeofenceClearAll_()">LIMPAR</button>
+              </div>
             </div>
+            <div class="tools-dbadd-help">Uma coordenada por linha. Aceita decimal (ex: -3.14, -60.02), DMS (ex: S 03°08'30&quot;, W 060°01'16&quot;) ou decimal-minutos.</div>
           </div>
-          <div class="tools-dbadd-help">Uma coordenada por linha. Aceita decimal (ex: -3.14, -60.02), DMS (ex: S 03°08'30&quot;, W 060°01'16&quot;) ou decimal-minutos.</div>
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-alert-recipients">Alert Recipients</label>
-          <input id="tools-master-alert-recipients" type="text" placeholder="ops@empresa.com, chefe@empresa.com">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-morning-time">Morning Alert Time</label>
-          <input id="tools-master-morning-time" type="time" placeholder="08:00">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-evening-time">Evening Alert Time</label>
-          <input id="tools-master-evening-time" type="time" placeholder="17:00">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-morning-window">Morning Window (min)</label>
-          <input id="tools-master-morning-window" type="number" inputmode="numeric" min="10" step="5" placeholder="120">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-evening-window">Evening Window (min)</label>
-          <input id="tools-master-evening-window" type="number" inputmode="numeric" min="10" step="5" placeholder="180">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-geofence-km">Geofence Radius (metros)</label>
-          <input id="tools-master-geofence-km" type="number" inputmode="decimal" min="100" step="50" placeholder="8000">
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label for="tools-master-pax-statement-1">Passenger Statement 1</label>
-          <textarea id="tools-master-pax-statement-1" style="min-height:56px; font-size:0.84rem;"></textarea>
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label for="tools-master-pax-statement-2">Passenger Statement 2</label>
-          <textarea id="tools-master-pax-statement-2" style="min-height:56px; font-size:0.84rem;"></textarea>
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label for="tools-master-pax-statement-3">Passenger Statement 3</label>
-          <textarea id="tools-master-pax-statement-3" style="min-height:56px; font-size:0.84rem;"></textarea>
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label for="tools-master-pax-statement-4">Passenger Statement 4</label>
-          <textarea id="tools-master-pax-statement-4" style="min-height:56px; font-size:0.84rem;"></textarea>
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label for="tools-master-pax-qr-prompt">Passenger QR Prompt</label>
-          <input id="tools-master-pax-qr-prompt" type="text" placeholder="Vou escanear este QR Code para apoiar ou compartilhar este ministério.">
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label for="tools-master-pax-qr-url">Passenger QR Destination URL</label>
-          <input id="tools-master-pax-qr-url" type="url" placeholder="https://...">
+          <div class="tools-field">
+            <label for="tools-master-alert-recipients">Alert Recipients</label>
+            <input id="tools-master-alert-recipients" type="text" placeholder="ops@empresa.com, chefe@empresa.com">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-duty-log-viewers">Duty Log Viewers</label>
+            <input id="tools-master-duty-log-viewers" type="text" placeholder="super.ops@asasdesocorro.org.br, outro@dominio.com">
+            <div class="tools-dbadd-help">Emails que podem ver todos os staffs no Duty Time Logs sem permissões de edição.</div>
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-morning-time">Morning Alert Time</label>
+            <input id="tools-master-morning-time" type="time" placeholder="08:00">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-evening-time">Evening Alert Time</label>
+            <input id="tools-master-evening-time" type="time" placeholder="17:00">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-morning-window">Morning Window (min)</label>
+            <input id="tools-master-morning-window" type="number" inputmode="numeric" min="10" step="5" placeholder="120">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-evening-window">Evening Window (min)</label>
+            <input id="tools-master-evening-window" type="number" inputmode="numeric" min="10" step="5" placeholder="180">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-geofence-km">Geofence Radius (metros)</label>
+            <input id="tools-master-geofence-km" type="number" inputmode="decimal" min="100" step="50" placeholder="8000">
+          </div>
         </div>
       </div>
-      <div class="tools-btn-row">
-        <button class="btn-ts" type="button" onclick="toolsLoadMasterConfig_()">RELOAD</button>
-        <button class="btn-tp" type="button" onclick="toolsSaveMasterConfig_()">SAVE CONFIG</button>
-      </div>
-    </div>
-    <div class="tools-report-section" style="margin-top:10px;">
-      <div class="tools-report-section-head">
-        <h4>Scheduler Configurations</h4>
-        <div id="tools-master-scheduler-meta" class="tools-report-meta"></div>
-      </div>
-      <div class="tools-master-grid">
-        <div class="tools-field">
-          <label for="tools-master-sched-calendar-id">Availability Calendar ID</label>
-          <input id="tools-master-sched-calendar-id" type="text" placeholder="intranet@asasdesocorro.org.br">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-flight-calendar-link">Flight Calendar Share Link</label>
-          <input id="tools-master-flight-calendar-link" type="url" placeholder="https://calendar.google.com/calendar/u/0/r?cid=...">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-maint-calendar-link">Maintenance Calendar Share Link</label>
-          <input id="tools-master-maint-calendar-link" type="url" placeholder="https://calendar.google.com/calendar/u/0/r?cid=...">
-        </div>
-        <div class="tools-field">
-          <label for="tools-master-sched-publish-day">Publish Day Of Month</label>
-          <input id="tools-master-sched-publish-day" type="number" min="1" max="31" inputmode="numeric" placeholder="15">
-        </div>
-      </div>
-      <div style="font-size:0.78rem; color:#607d8b; margin-top:4px;">Paste the Google Calendar share link here. The app extracts the calendar ID from the link and publishes flight or maintenance events to it.</div>
-    </div>
+    </details>
 
-    <div class="tools-report-section" style="margin-top:10px;">
-      <div class="tools-report-section-head">
-        <h4>Flight Following Configurations</h4>
-        <div id="tools-master-ff-meta" class="tools-report-meta"></div>
-      </div>
-      <div class="tools-master-grid">
-        <div class="tools-field">
-          <label for="tools-master-ff-recipients">Inbound/Ops Recipients</label>
-          <input id="tools-master-ff-recipients" type="text" placeholder="acompanhamento@asasdesocorro.org.br, supervisor@empresa.com">
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label for="tools-master-ff-outbound-map">Outbound Device Emails By Aircraft</label>
-          <textarea id="tools-master-ff-outbound-map" placeholder="PTABC=inreach-address-1@inreach.garmin.com&#10;PTDEF=inreach-address-2@inreach.garmin.com" style="min-height:90px; font-size:0.8rem;"></textarea>
-          <div class="tools-dbadd-help">Uma linha por aeronave. Formato: REG=EMAIL (ex: PTABC=inreach@garmin.com). Se não houver mapeamento, usa Inbound/Ops Recipients.</div>
-        </div>
-        <div class="tools-field" style="grid-column:1/-1;">
-          <label>MapShare InReach por Aeronave</label>
-          <div class="tools-dbadd-help">Defina aqui o link do dispositivo para cada matrícula da DB_Aircraft. Ex.: https://share.garmin.com/ASASKPS</div>
-          <div id="tools-master-ff-mapshare-list" class="tools-master-ff-mapshare-list"></div>
+    <details class="tools-master-accordion">
+      <summary>
+        <span>Configurações de E-mail do Flight Following</span>
+        <span id="tools-master-ff-meta" class="tools-master-accordion-meta"></span>
+      </summary>
+      <div class="tools-master-accordion-body">
+        <div class="tools-master-grid">
+          <div class="tools-field">
+            <label for="tools-master-ff-recipients">Inbound/Ops Recipients</label>
+            <input id="tools-master-ff-recipients" type="text" placeholder="acompanhamento@asasdesocorro.org.br, supervisor@empresa.com">
+          </div>
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label for="tools-master-ff-outbound-map">Outbound Device Emails By Aircraft</label>
+            <textarea id="tools-master-ff-outbound-map" placeholder="PTABC=inreach-address-1@inreach.garmin.com&#10;PTDEF=inreach-address-2@inreach.garmin.com" style="min-height:90px; font-size:0.8rem;"></textarea>
+            <div class="tools-dbadd-help">Uma linha por aeronave. Formato: REG=EMAIL (ex: PTABC=inreach@garmin.com). Se não houver mapeamento, usa Inbound/Ops Recipients.</div>
+          </div>
         </div>
       </div>
-      <div class="tools-btn-row">
-        <button class="btn-ts" type="button" onclick="toolsLoadMasterFlightFollowConfig_()">RELOAD FF</button>
-        <button class="btn-tp" type="button" onclick="toolsSaveMasterFlightFollowConfig_()">SAVE FF CONFIG</button>
+    </details>
+
+    <details class="tools-master-accordion">
+      <summary>
+        <span>Configurações de INreach</span>
+        <span class="tools-master-accordion-meta">MapShare por aeronave</span>
+      </summary>
+      <div class="tools-master-accordion-body">
+        <div class="tools-master-grid">
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label>MapShare InReach por Aeronave</label>
+            <div class="tools-dbadd-help">Defina aqui o link do dispositivo para cada matrícula da DB_Aircraft. Ex.: https://share.garmin.com/ASASKPS</div>
+            <div id="tools-master-ff-mapshare-list" class="tools-master-ff-mapshare-list"></div>
+          </div>
+        </div>
       </div>
+    </details>
+
+    <details class="tools-master-accordion">
+      <summary>
+        <span>Configurações de Passageiros</span>
+        <span class="tools-master-accordion-meta">Termos e QR</span>
+      </summary>
+      <div class="tools-master-accordion-body">
+        <div class="tools-master-grid">
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label for="tools-master-pax-statement-1">Passenger Statement 1</label>
+            <textarea id="tools-master-pax-statement-1" style="min-height:56px; font-size:0.84rem;"></textarea>
+          </div>
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label for="tools-master-pax-statement-2">Passenger Statement 2</label>
+            <textarea id="tools-master-pax-statement-2" style="min-height:56px; font-size:0.84rem;"></textarea>
+          </div>
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label for="tools-master-pax-statement-3">Passenger Statement 3</label>
+            <textarea id="tools-master-pax-statement-3" style="min-height:56px; font-size:0.84rem;"></textarea>
+          </div>
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label for="tools-master-pax-statement-4">Passenger Statement 4</label>
+            <textarea id="tools-master-pax-statement-4" style="min-height:56px; font-size:0.84rem;"></textarea>
+          </div>
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label for="tools-master-pax-qr-prompt">Passenger QR Prompt</label>
+            <input id="tools-master-pax-qr-prompt" type="text" placeholder="Vou escanear este QR Code para apoiar ou compartilhar este ministério.">
+          </div>
+          <div class="tools-field" style="grid-column:1/-1;">
+            <label for="tools-master-pax-qr-url">Passenger QR Destination URL</label>
+            <input id="tools-master-pax-qr-url" type="url" placeholder="https://...">
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="tools-master-accordion">
+      <summary>
+        <span>Configurações do Scheduler</span>
+        <span id="tools-master-scheduler-meta" class="tools-master-accordion-meta"></span>
+      </summary>
+      <div class="tools-master-accordion-body">
+        <div class="tools-master-grid">
+          <div class="tools-field">
+            <label for="tools-master-sched-calendar-id">Availability Calendar ID</label>
+            <input id="tools-master-sched-calendar-id" type="text" placeholder="intranet@asasdesocorro.org.br">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-flight-calendar-link">Flight Calendar Share Link</label>
+            <input id="tools-master-flight-calendar-link" type="url" placeholder="https://calendar.google.com/calendar/u/0/r?cid=...">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-maint-calendar-link">Maintenance Calendar Share Link</label>
+            <input id="tools-master-maint-calendar-link" type="url" placeholder="https://calendar.google.com/calendar/u/0/r?cid=...">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-sched-publish-day">Publish Day Of Month</label>
+            <input id="tools-master-sched-publish-day" type="number" min="1" max="31" inputmode="numeric" placeholder="15">
+          </div>
+        </div>
+        <div style="font-size:0.78rem; color:#607d8b; margin-top:4px;">Paste the Google Calendar share link here. The app extracts the calendar ID from the link and publishes flight or maintenance events to it.</div>
+      </div>
+    </details>
+
+    <details class="tools-master-accordion">
+      <summary>
+        <span>Configurações de Velocidades para Reconhecimento de Pouso</span>
+        <span class="tools-master-accordion-meta">Landing + T&amp;G</span>
+      </summary>
+      <div class="tools-master-accordion-body">
+        <div class="tools-master-grid">
+          <div class="tools-field">
+            <label for="tools-master-landing-threshold-kts">Limiar de pouso (kts)</label>
+            <input id="tools-master-landing-threshold-kts" type="number" inputmode="numeric" min="10" step="1" placeholder="30">
+          </div>
+          <div class="tools-field">
+            <label for="tools-master-touchandgo-confirm-kts">Confirmação de T&amp;G (kts)</label>
+            <input id="tools-master-touchandgo-confirm-kts" type="number" inputmode="numeric" min="15" step="1" placeholder="40">
+          </div>
+        </div>
+        <div class="tools-master-note" style="margin-top:8px; margin-bottom:0;">Usado pela detecção automática de pouso e recolagem no duty app.</div>
+      </div>
+    </details>
+
+    <div class="tools-btn-row" style="margin-top:10px;">
+      <button class="btn-ts" type="button" onclick="toolsLoadMasterConfig_()">RELOAD</button>
+      <button class="btn-tp" type="button" onclick="toolsSaveMasterConfig_()">SAVE CONFIG</button>
     </div>
   </div>
 
@@ -1402,6 +1467,7 @@
             <th>Status</th>
             <th>Start</th>
             <th>End</th>
+            <th>Total Duty</th>
             <th>Flight Hrs</th>
             <th>Action</th>
           </tr>
@@ -1412,14 +1478,6 @@
     <div id="tools-dutylogs-editor" class="tools-dutylogs-editor" style="display:none;">
       <div id="tools-dutylogs-edit-head" class="tools-report-meta" style="margin-bottom:8px;"></div>
       <div id="tools-dutylogs-edit-flight-meta" class="tools-report-meta" style="margin-bottom:8px;"></div>
-      <div id="tools-dutylogs-edit-summary-box" class="tools-dutylogs-detailbox" style="display:none;">
-        <div class="tools-dutylogs-detailtitle">Activity Summary</div>
-        <div id="tools-dutylogs-edit-summary-view" class="tools-dutylogs-detailtext"></div>
-      </div>
-      <div id="tools-dutylogs-edit-description-box" class="tools-dutylogs-detailbox" style="display:none;">
-        <div class="tools-dutylogs-detailtitle">Activity Details</div>
-        <div id="tools-dutylogs-edit-description-view" class="tools-dutylogs-detailtext"></div>
-      </div>
       <div id="tools-dutylogs-edit-flights-box" class="tools-dutylogs-detailbox" style="display:none;">
         <div class="tools-dutylogs-detailtitle">Flights Logged That Day</div>
         <div id="tools-dutylogs-edit-flights-view"></div>
@@ -1430,8 +1488,7 @@
         <div class="tools-field"><label for="tools-dutylogs-edit-end">End Time</label><input id="tools-dutylogs-edit-end" type="text" placeholder="18:25"></div>
         <div class="tools-field"><label for="tools-dutylogs-edit-flight-hours">Flight Hours</label><input id="tools-dutylogs-edit-flight-hours" type="number" inputmode="decimal" min="0" step="0.1"></div>
       </div>
-      <div class="tools-field"><label for="tools-dutylogs-edit-summary">Summary</label><input id="tools-dutylogs-edit-summary" type="text"></div>
-      <div class="tools-field"><label for="tools-dutylogs-edit-description">Description</label><textarea id="tools-dutylogs-edit-description" style="min-height:80px;"></textarea></div>
+      <div class="tools-field"><label for="tools-dutylogs-edit-notes">Activity Notes</label><textarea id="tools-dutylogs-edit-notes" style="min-height:96px;" placeholder="One editable note for the duty day"></textarea></div>
       <div class="tools-btn-row">
         <button class="btn-ts" type="button" onclick="toolsDutyLogClearEditor_()">CLEAR</button>
         <button class="btn-tp" type="button" onclick="toolsDutyLogSaveEditor_()">SAVE LOG</button>
@@ -1828,7 +1885,7 @@
   var _toolsDutyCanManageAll = false;
   var _toolsPermRows = [];
   var _toolsPermCanManage = false;
-  var _toolsBuildTag = 'dev-2026-04-17.11';
+  var _toolsBuildTag = 'lesson-plan-v2';
   var _toolsWaypointMode = '';
   var _toolsDiagSeq = 0;
   var _toolsDiscrepancyRows = [];
@@ -1873,6 +1930,10 @@
       .replace(/[_]+/g, ' ')
       .trim()
       .replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+  }
+
+  function toolsAircraftTruthy_(value) {
+    return /^(1|TRUE|T|YES|Y|SIM|S|ON)$/i.test(String(value == null ? '' : value).trim());
   }
 
   function toolsGetUniqueAircraftTypes_() {
@@ -2048,7 +2109,7 @@
       });
       if (window.M && M.Datepicker) {
         M.Datepicker.init(input, {
-          autoClose: true,
+          autoClose: false,
           format: isPtShort ? 'dd-mmm-yyyy' : (isBr ? 'dd/mm/yyyy' : 'yyyy-mm-dd'),
           defaultDate: toolsDateValueToDate_(input.value),
           setDefaultDate: !!toolsDateValueToDate_(input.value),
@@ -4823,8 +4884,10 @@
     google.script.run
       .withSuccessHandler(function(res) {
         _toolsManeuverCatalog = (res && Array.isArray(res.maneuvers)) ? res.maneuvers : [];
+        _toolsManeuverCatalogLoaded = true;
         toolsManeuverPopulateSelect_();
         toolsManeuverRenderList_();
+        toolsSyllabusRefreshManeuverSelect_();
         toolsManeuverClearForm_();
       })
       .withFailureHandler(function(err) {
@@ -4841,6 +4904,42 @@
     });
     sel.innerHTML = '<option value="">-- Select to edit --</option>' + list.map(function(m) {
       return '<option value="' + toolsEscapeHtml_(m.maneuverId) + '">' + toolsEscapeHtml_(m.name || m.maneuverId) + (m.category ? ' [' + m.category + ']' : '') + '</option>';
+    }).join('');
+  }
+
+  var _toolsManeuverCatalogLoaded = false;
+
+  function toolsLoadManeuverCatalog_(cb) {
+    var done = typeof cb === 'function' ? cb : function() {};
+    if (_toolsManeuverCatalogLoaded) {
+      done(_toolsManeuverCatalog);
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        _toolsManeuverCatalog = (res && Array.isArray(res.maneuvers)) ? res.maneuvers : [];
+        _toolsManeuverCatalogLoaded = true;
+        toolsSyllabusRefreshManeuverSelect_();
+        done(_toolsManeuverCatalog);
+      })
+      .withFailureHandler(function(err) {
+        toolsToast_('Erro ao carregar manobras: ' + (err && err.message ? err.message : String(err)), 'red');
+        _toolsManeuverCatalogLoaded = true;
+        done([]);
+      })
+      .getManeuversForTools();
+  }
+
+  function toolsSyllabusRefreshManeuverSelect_() {
+    var sel = document.getElementById('tools-syl-maneuver-pick');
+    if (!sel) return;
+    var list = (_toolsManeuverCatalog || []).slice().sort(function(a, b) {
+      return String(a.name || a.maneuverId || '').localeCompare(String(b.name || b.maneuverId || ''));
+    });
+    sel.innerHTML = '<option value="">Selecione...</option>' + list.map(function(m) {
+      var value = String(m.name || m.maneuverId || '').trim();
+      if (!value) return '';
+      return '<option value="' + toolsEscapeHtml_(value) + '">' + toolsEscapeHtml_(value) + '</option>';
     }).join('');
   }
 
@@ -6002,15 +6101,24 @@
     el.style.color = color || '#607d8b';
   }
 
+  function toolsSetMasterVersionBadge_(text) {
+    var el = document.getElementById('tools-master-version');
+    if (!el) return;
+    el.textContent = String(text || '').trim() || 'v?';
+  }
+
   function toolsMasterConfigPayload_() {
     return {
       DUTY_GEOFENCE_COORDS: String((document.getElementById('tools-master-home-airports') || {}).value || '').trim(),
       DUTY_ALERT_RECIPIENTS: String((document.getElementById('tools-master-alert-recipients') || {}).value || '').trim(),
+      DUTY_LOG_VIEWERS: String((document.getElementById('tools-master-duty-log-viewers') || {}).value || '').trim(),
       DUTY_MORNING_ALERT_TIME: String((document.getElementById('tools-master-morning-time') || {}).value || '').trim(),
       DUTY_EVENING_ALERT_TIME: String((document.getElementById('tools-master-evening-time') || {}).value || '').trim(),
       DUTY_MORNING_WINDOW_MIN: String((document.getElementById('tools-master-morning-window') || {}).value || '').trim(),
       DUTY_EVENING_WINDOW_MIN: String((document.getElementById('tools-master-evening-window') || {}).value || '').trim(),
       DUTY_GEOFENCE_RADIUS_KM: String((document.getElementById('tools-master-geofence-km') || {}).value || '').trim(),  // stored as meters now
+      DUTY_LANDING_THRESHOLD_KTS: String((document.getElementById('tools-master-landing-threshold-kts') || {}).value || '').trim(),
+      DUTY_TOUCH_AND_GO_CONFIRM_KTS: String((document.getElementById('tools-master-touchandgo-confirm-kts') || {}).value || '').trim(),
       PASSENGER_TERMS_STATEMENT_1: String((document.getElementById('tools-master-pax-statement-1') || {}).value || '').trim(),
       PASSENGER_TERMS_STATEMENT_2: String((document.getElementById('tools-master-pax-statement-2') || {}).value || '').trim(),
       PASSENGER_TERMS_STATEMENT_3: String((document.getElementById('tools-master-pax-statement-3') || {}).value || '').trim(),
@@ -6024,6 +6132,7 @@
     var c = cfg || {};
     document.getElementById('tools-master-home-airports').value = String(c.DUTY_GEOFENCE_COORDS || '');
     document.getElementById('tools-master-alert-recipients').value = String(c.DUTY_ALERT_RECIPIENTS || '');
+    document.getElementById('tools-master-duty-log-viewers').value = String(c.DUTY_LOG_VIEWERS || '');
     // Strip full Date string if sheet stored as Date — keep only HH:MM
     var morningRaw = String(c.DUTY_MORNING_ALERT_TIME || '');
     var eveningRaw = String(c.DUTY_EVENING_ALERT_TIME || '');
@@ -6039,6 +6148,8 @@
     // If value <= 50 it's km (legacy); if > 50 it's already meters
     var radiusMeters = radiusRaw > 50 ? Math.round(radiusRaw) : Math.round(radiusRaw * 1000);
     document.getElementById('tools-master-geofence-km').value = radiusMeters || '';
+    document.getElementById('tools-master-landing-threshold-kts').value = String(c.DUTY_LANDING_THRESHOLD_KTS || '');
+    document.getElementById('tools-master-touchandgo-confirm-kts').value = String(c.DUTY_TOUCH_AND_GO_CONFIRM_KTS || '');
     var st1 = document.getElementById('tools-master-pax-statement-1');
     var st2 = document.getElementById('tools-master-pax-statement-2');
     var st3 = document.getElementById('tools-master-pax-statement-3');
@@ -6205,6 +6316,7 @@
           return;
         }
         _toolsMasterConfigData = res;
+        toolsSetMasterVersionBadge_(res.appVersion || _toolsBuildTag);
         toolsApplyMasterConfig_(res.dutyConfig || {});
         var msg = res.canManageConfig ? 'Config mode: edição habilitada.' : 'Modo piloto: visualização apenas.';
         toolsSetMasterMeta_(msg, res.canManageConfig ? '#2e7d32' : '#ef6c00');
@@ -6238,6 +6350,7 @@
         toolsLoadMasterFlightFollowConfig_();
       })
       .withFailureHandler(function(err) {
+        toolsSetMasterVersionBadge_(_toolsBuildTag);
         toolsSetMasterMeta_('Error: ' + (err && err.message ? err.message : String(err)), '#c62828');
         toolsSetMasterSchedulerMeta_('Error: ' + (err && err.message ? err.message : String(err)), '#c62828');
         toolsSetMasterFfMeta_('Error: ' + (err && err.message ? err.message : String(err)), '#c62828');
@@ -6326,11 +6439,12 @@
           return;
         }
         _toolsDutyCanManageAll = !!res.canManageAll;
+        var canViewAllLogs = !!res.canViewAllLogs;
         var sel = document.getElementById('tools-dutylogs-pilot');
         if (sel) {
           var staff = Array.isArray(res.staff) ? res.staff : [];
           var myName = String(((res.currentUser || {}).staffName) || '').trim();
-          if (_toolsDutyCanManageAll) {
+          if (canViewAllLogs || _toolsDutyCanManageAll) {
             var baseOptions = '<option value="">Todos os pilotos</option>';
             var staffOptions = staff.map(function(s) {
               var label = String(s.staffName || s.email || '').trim();
@@ -6396,12 +6510,13 @@
     var tbody = document.getElementById('tools-dutylogs-list');
     if (!tbody) return;
     if (!_toolsDutyLogsRows.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="color:#90a4ae;">Nenhum log encontrado no período.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="color:#90a4ae;">Nenhum log encontrado no período.</td></tr>';
       toolsDutyLogClearEditor_();
       return;
     }
     tbody.innerHTML = _toolsDutyLogsRows.map(function(row, idx) {
       var rn = Number(row.rowNumber || 0);
+      var resolvedDuty = toolsFmtDurationAny_(row.totalDutyHours != null && row.totalDutyHours !== '' ? row.totalDutyHours : '');
       var resolvedFlight = toolsFmtDurationAny_(row.flightHours != null && row.flightHours !== '' ? row.flightHours : row.derivedFlightHours);
       return '<tr>'
         + '<td><button type="button" class="tools-dutylogs-linkbtn" onclick="toolsDutyLogEditRow_(' + rn + ', ' + idx + ')">' + toolsAircraftEscape_(String(row.dateYmd || '')) + '</button></td>'
@@ -6409,6 +6524,7 @@
         + '<td>' + toolsAircraftEscape_(String(row.status || '')) + '</td>'
         + '<td>' + toolsAircraftEscape_(String(row.startTime || '')) + '</td>'
         + '<td>' + toolsAircraftEscape_(String(row.endTime || '')) + '</td>'
+        + '<td>' + toolsAircraftEscape_(resolvedDuty || '---') + '</td>'
         + '<td>' + toolsAircraftEscape_(resolvedFlight || '0') + '</td>'
         + '<td><button class="tools-mini-btn commit" type="button" onclick="toolsDutyLogEditRow_(' + rn + ', ' + idx + ')">VIEW</button></td>'
         + '</tr>';
@@ -6454,29 +6570,13 @@
     var useDerivedHours = mergedDerivedHours > 0 && !(isFinite(storedHoursNum) && storedHoursNum > 0);
     var editorFlightHours = useDerivedHours ? String(Number(mergedDerivedHours.toFixed(2))) : String(row.flightHours == null ? '' : row.flightHours);
     document.getElementById('tools-dutylogs-edit-flight-hours').value = editorFlightHours;
-    document.getElementById('tools-dutylogs-edit-summary').value = String(row.summaryText || '');
-    document.getElementById('tools-dutylogs-edit-description').value = String(row.description || '');
+    document.getElementById('tools-dutylogs-edit-notes').value = String(row.notes || row.description || row.summaryText || '');
 
     var flightMeta = document.getElementById('tools-dutylogs-edit-flight-meta');
     if (flightMeta) {
-      var sourceText = useDerivedHours ? 'Derived from LOG_Flights' : (String(row.storedFlightHours || '').trim() ? 'Saved on duty log' : 'Derived from LOG_Flights');
-      flightMeta.textContent = 'Flight hours: ' + String(editorFlightHours || '0') + ' | Source: ' + sourceText;
-    }
-
-    var summaryBox = document.getElementById('tools-dutylogs-edit-summary-box');
-    var summaryView = document.getElementById('tools-dutylogs-edit-summary-view');
-    if (summaryBox && summaryView) {
-      var summaryText = String(row.summaryText || '').trim();
-      summaryBox.style.display = summaryText ? 'block' : 'none';
-      summaryView.textContent = summaryText;
-    }
-
-    var descBox = document.getElementById('tools-dutylogs-edit-description-box');
-    var descView = document.getElementById('tools-dutylogs-edit-description-view');
-    if (descBox && descView) {
-      var descText = String(row.description || '').trim();
-      descBox.style.display = descText ? 'block' : 'none';
-      descView.textContent = descText;
+      var sourceText = String(row.flightHoursSource || '').trim() || (useDerivedHours ? 'LOG_Flights' : 'LOG_Duty');
+      var dutyText = toolsFmtDurationAny_(row.totalDutyHours != null && row.totalDutyHours !== '' ? row.totalDutyHours : '');
+      flightMeta.textContent = 'Flight hours: ' + String(editorFlightHours || '0') + ' | Source: ' + sourceText + ' | Total duty: ' + String(dutyText || '---');
     }
 
     var flightsBox = document.getElementById('tools-dutylogs-edit-flights-box');
@@ -6505,23 +6605,19 @@
     _toolsDutyEditRow = null;
     var box = document.getElementById('tools-dutylogs-editor');
     if (box) box.style.display = 'none';
-    ['tools-dutylogs-edit-status','tools-dutylogs-edit-start','tools-dutylogs-edit-end','tools-dutylogs-edit-flight-hours','tools-dutylogs-edit-summary','tools-dutylogs-edit-description','tools-dutylogs-edit-head','tools-dutylogs-edit-flight-meta'].forEach(function(id) {
+    ['tools-dutylogs-edit-status','tools-dutylogs-edit-start','tools-dutylogs-edit-end','tools-dutylogs-edit-flight-hours','tools-dutylogs-edit-notes','tools-dutylogs-edit-head','tools-dutylogs-edit-flight-meta'].forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) return;
       if (id === 'tools-dutylogs-edit-head') el.textContent = '';
       else if (id === 'tools-dutylogs-edit-flight-meta') el.textContent = '';
       else el.value = '';
     });
-    ['tools-dutylogs-edit-summary-box','tools-dutylogs-edit-description-box','tools-dutylogs-edit-flights-box'].forEach(function(id) {
+    ['tools-dutylogs-edit-flights-box'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
     var flightsView = document.getElementById('tools-dutylogs-edit-flights-view');
     if (flightsView) flightsView.innerHTML = '';
-    var summaryView = document.getElementById('tools-dutylogs-edit-summary-view');
-    if (summaryView) summaryView.textContent = '';
-    var descView = document.getElementById('tools-dutylogs-edit-description-view');
-    if (descView) descView.textContent = '';
   }
 
   function toolsDutyLogSaveEditor_() {
@@ -6539,8 +6635,7 @@
       startTime: String((document.getElementById('tools-dutylogs-edit-start') || {}).value || '').trim(),
       endTime: String((document.getElementById('tools-dutylogs-edit-end') || {}).value || '').trim(),
       flightHours: String((document.getElementById('tools-dutylogs-edit-flight-hours') || {}).value || '').trim(),
-      summaryText: String((document.getElementById('tools-dutylogs-edit-summary') || {}).value || '').trim(),
-      description: String((document.getElementById('tools-dutylogs-edit-description') || {}).value || '').trim()
+      notes: String((document.getElementById('tools-dutylogs-edit-notes') || {}).value || '').trim()
     };
     google.script.run
       .withSuccessHandler(function(res) {
@@ -6788,23 +6883,6 @@
     return key ? toolsDbInputByKey_(key) : null;
   }
 
-  function toolsSyllabusDefaultManeuverOptions_() {
-    return [
-      'STALLS',
-      'TURNING STALLS',
-      'STEEP TURNS',
-      'SLOW FLIGHT',
-      'POWER-ON STALLS',
-      'POWER-OFF STALLS',
-      'EMERGENCY DESCENT',
-      'GO-AROUND',
-      'SHORT FIELD TAKEOFF',
-      'SHORT FIELD LANDING',
-      'SOFT FIELD TAKEOFF',
-      'SOFT FIELD LANDING'
-    ];
-  }
-
   function toolsSyllabusPickRowField_(row, candidates) {
     var src = (row && typeof row === 'object') ? row : {};
     var keys = Object.keys(src);
@@ -6821,16 +6899,11 @@
 
   function toolsSyllabusManeuverOptions_() {
     var out = {};
-    toolsSyllabusDefaultManeuverOptions_().forEach(function(item) {
-      var key = String(item || '').trim().toUpperCase();
-      if (key) out[key] = true;
-    });
-
-    // Pull from the maneuver catalog (Ref_Maneuvers) if loaded
+    // Pull names directly from Ref_Maneuvers.
     (_toolsManeuverCatalog || []).forEach(function(m) {
       if (!m || m.active === false) return;
-      var key = String(m.maneuverId || m.name || '').trim().toUpperCase();
-      if (key) out[key] = true;
+      var name = String(m.name || '').trim();
+      if (name) out[name] = true;
     });
 
     var rows = (toolsGetData_().syllabus || []);
@@ -6851,13 +6924,13 @@
           ? parsed
           : (Array.isArray(parsed && parsed.maneuvers) ? parsed.maneuvers : []);
         list.forEach(function(mv) {
-          var key = String(mv || '').trim().toUpperCase();
+          var key = String(mv || '').trim();
           if (key) out[key] = true;
         });
       } catch (e) {}
     });
 
-    return Object.keys(out).sort();
+    return Object.keys(out).sort(function(a, b) { return String(a).localeCompare(String(b)); });
   }
 
   function toolsSyllabusSetEditorMode_(mode, code, rowNumber) {
@@ -6914,14 +6987,21 @@
         if (planData.category) state.category = String(planData.category || state.category || 'ROUTE_CHECK').trim().toUpperCase();
         if (planData.routeCheckPrompt != null) state.routeCheckPrompt = String(planData.routeCheckPrompt || '');
         if (planData.runwayCheckLocation != null) state.runwayCheckLocation = String(planData.runwayCheckLocation || '');
+        if (Array.isArray(planData.viaPoints)) {
+          state.viaPoints = planData.viaPoints.map(function(v) { return String(v || '').trim().toUpperCase(); }).filter(Boolean);
+        }
         var fromStops = Array.isArray(parsed) ? parsed : (Array.isArray(parsed && parsed.stops) ? parsed.stops : []);
         stopsFromJson = fromStops.map(function(s, i) {
+          var approachCount = Math.max(0, parseInt((s && s.approaches != null) ? s.approaches : (s && s.plannedApproaches), 10) || 0);
           return {
             sequence: i + 1,
             location: String(s && s.location || '').trim().toUpperCase(),
             landingType: String(s && s.landingType || 'TOUCH_AND_GO'),
             breakStop: !!(s && s.breakStop),
-            notes: String(s && s.notes || '')
+            notes: String(s && s.notes || ''),
+            landings: Math.max(0, parseInt(s && s.landings, 10) || 0),
+            touchAndGos: Math.max(0, parseInt(s && s.touchAndGos, 10) || 0),
+            approaches: approachCount
           };
         }).filter(function(s) { return !!s.location; });
       }
@@ -6944,10 +7024,26 @@
         : (routeTokens.length ? routeTokens : runwayTokens);
       var defaultLandingType = (String(state.category || '').toUpperCase() === 'RUNWAY_CHECK') ? 'FULL_STOP' : 'TOUCH_AND_GO';
       stopsFromJson = fallbackTokens.map(function(tok, idx) {
-        return { sequence: idx + 1, location: tok, landingType: defaultLandingType, breakStop: false, notes: '' };
+        return { sequence: idx + 1, location: tok, landingType: defaultLandingType, breakStop: false, notes: '', landings: 0, touchAndGos: 0, approaches: 0 };
       });
+      state.viaPoints = fallbackTokens.slice(1, Math.max(1, fallbackTokens.length - 1));
     }
-    state.stops = stopsFromJson.length ? stopsFromJson : [{ sequence: 1, location: '', landingType: 'TOUCH_AND_GO', breakStop: false, notes: '' }];
+    state.stops = stopsFromJson.length ? stopsFromJson : [{ sequence: 1, location: '', landingType: 'TOUCH_AND_GO', breakStop: false, notes: '', landings: 0, touchAndGos: 0, approaches: 0 }];
+    if ((!state.viaPoints || !state.viaPoints.length) && state.stops.length > 2) {
+      state.viaPoints = state.stops.slice(1, -1).map(function(stop) { return String(stop.location || '').trim().toUpperCase(); }).filter(Boolean);
+    }
+
+    var hydratedState = {
+      category: state.category,
+      externalLessonName: state.externalLessonName,
+      routeCheckPrompt: state.routeCheckPrompt,
+      runwayCheckLocation: state.runwayCheckLocation,
+      invalidRouteTokens: (state.invalidRouteTokens || []).slice(),
+      viaPoints: (state.viaPoints || []).slice(),
+      stops: (state.stops || []).map(function(stop) { return Object.assign({}, stop); }),
+      maneuvers: (state.maneuvers || []).slice(),
+      customManeuvers: (state.customManeuvers || []).slice()
+    };
 
     try {
       var rawMv = String(src.maneuversJson || '').trim();
@@ -6975,6 +7071,16 @@
     }
 
     toolsRenderDbAddForm();
+    state.category = hydratedState.category;
+    state.externalLessonName = hydratedState.externalLessonName;
+    state.routeCheckPrompt = hydratedState.routeCheckPrompt;
+    state.runwayCheckLocation = hydratedState.runwayCheckLocation;
+    state.invalidRouteTokens = hydratedState.invalidRouteTokens;
+    state.viaPoints = hydratedState.viaPoints;
+    state.stops = hydratedState.stops;
+    state.maneuvers = hydratedState.maneuvers;
+    state.customManeuvers = hydratedState.customManeuvers;
+    toolsSyllabusRenderRouteViaList_();
     toolsSyllabusBindMetaUi_();
     toolsRenderSyllabusPlan_();
     toolsSyllabusSyncFromUi_();
@@ -7047,16 +7153,6 @@
     toolsSyllabusLoadByCode_();
   }
 
-  function toolsSyllabusResetEditorMode_() {
-    _toolsSyllabusEditRow = 0;
-    _toolsSyllabusEditCode = '';
-    toolsSyllabusSetEditorMode_('create');
-    var codeInput = document.getElementById('tools-syl-load-code');
-    if (codeInput) codeInput.value = '';
-    var selectEl = document.getElementById('tools-syl-select-existing');
-    if (selectEl) selectEl.value = '';
-  }
-
   function toolsSyllabusPlanState_() {
     if (!window._toolsSyllabusPlanState) {
       window._toolsSyllabusPlanState = {
@@ -7065,6 +7161,7 @@
         routeCheckPrompt: '',
         runwayCheckLocation: '',
         invalidRouteTokens: [],
+        viaPoints: [],
         stops: [],
         maneuvers: [],
         customManeuvers: []
@@ -7133,13 +7230,52 @@
     return html.join('');
   }
 
+  function toolsSyllabusRouteViaValues_() {
+    return Array.prototype.slice.call(document.querySelectorAll('[data-syl-route-via]') || [])
+      .map(function(el) { return String(el && el.value || '').trim().toUpperCase(); })
+      .filter(Boolean);
+  }
+
+  function toolsSyllabusRenderRouteViaList_() {
+    var wrap = document.getElementById('tools-syl-via-list');
+    if (!wrap) return;
+    var state = toolsSyllabusPlanState_();
+    var viaPoints = Array.isArray(state.viaPoints) ? state.viaPoints.slice() : [];
+    if (!viaPoints.length) viaPoints = [''];
+    wrap.innerHTML = viaPoints.map(function(token, idx) {
+      return '<div class="tools-syl-via-row">'
+        + '<input type="text" data-syl-route-via="' + idx + '" list="tools-syl-route-points-list" placeholder="Ponto intermediário ' + (idx + 1) + '" value="' + toolsAircraftEscape_(token || '') + '" oninput="toolsSyllabusSyncFromUi_()" onchange="toolsSyllabusSyncFromUi_()">'
+        + '<button type="button" class="btn-ts" style="padding:0 10px;height:32px;" onclick="toolsSyllabusRemoveViaPoint_(' + idx + ')">X</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function toolsSyllabusAddViaPoint_() {
+    toolsSyllabusSyncFromUi_();
+    var state = toolsSyllabusPlanState_();
+    state.viaPoints = toolsSyllabusRouteViaValues_();
+    state.viaPoints.push('');
+    toolsSyllabusRenderRouteViaList_();
+  }
+
+  function toolsSyllabusRemoveViaPoint_(idx) {
+    toolsSyllabusSyncFromUi_();
+    var state = toolsSyllabusPlanState_();
+    var viaPoints = toolsSyllabusRouteViaValues_();
+    var next = Number(idx);
+    if (next < 0 || next >= viaPoints.length) return;
+    viaPoints.splice(next, 1);
+    state.viaPoints = viaPoints;
+    toolsSyllabusRenderRouteViaList_();
+    toolsSyllabusSyncFromUi_();
+  }
+
   function toolsSyllabusBindMetaUi_() {
     var state = toolsSyllabusPlanState_();
     var catEl = document.getElementById('tools-syl-category');
     var extEl = document.getElementById('tools-syl-external-name');
     var autoEl = document.getElementById('tools-syl-autoname');
     var originEl = document.getElementById('tools-syl-origin');
-    var viaEl = document.getElementById('tools-syl-via');
     var destEl = document.getElementById('tools-syl-destination');
     if (catEl && catEl.dataset.bound !== '1') {
       catEl.dataset.bound = '1';
@@ -7166,7 +7302,7 @@
       });
     }
 
-    [originEl, viaEl, destEl].forEach(function(el) {
+    [originEl, destEl].forEach(function(el) {
       if (!el || el.dataset.bound === '1') return;
       el.dataset.bound = '1';
       el.addEventListener('input', function() {
@@ -7285,7 +7421,6 @@
 
   function toolsSyllabusRouteTokensFromForm_() {
     var originRaw = String((document.getElementById('tools-syl-origin') || {}).value || '').trim();
-    var viaRaw = String((document.getElementById('tools-syl-via') || {}).value || '').trim();
     var destRaw = String((document.getElementById('tools-syl-destination') || {}).value || '').trim();
     var tokens = [];
 
@@ -7295,7 +7430,7 @@
     }
 
     if (originRaw) tokens.push(normalizePoint(originRaw));
-    toolsSyllabusRouteTokens_(viaRaw).forEach(function(token) { tokens.push(normalizePoint(token)); });
+    toolsSyllabusRouteViaValues_().forEach(function(token) { tokens.push(normalizePoint(token)); });
     if (destRaw) tokens.push(normalizePoint(destRaw));
     return tokens.filter(Boolean);
   }
@@ -7446,17 +7581,19 @@
           var loc = String(stop.location || '').trim().toUpperCase();
           var landings = Number(stop.landings || 0);
           var tng = Number(stop.touchAndGos || 0);
+          var approaches = Number(stop.approaches || 0);
           return '<div class="tools-syl-order-row">'
             + '<div class="tools-syl-order-idx">' + (idx + 1) + '</div>'
             + '<div class="tools-syl-order-label">' + loc + '</div>'
             + '<div style="display:flex; gap:6px; align-items:center;">'
             + '<label style="font-size:0.72rem; color:#455a64; font-weight:700;">Pousos <input type="number" min="0" step="1" data-syl-stop-landings="' + idx + '" value="' + landings + '" style="width:58px; height:30px; margin-left:4px;"></label>'
             + '<label style="font-size:0.72rem; color:#455a64; font-weight:700;">T&G <input type="number" min="0" step="1" data-syl-stop-tng="' + idx + '" value="' + tng + '" style="width:58px; height:30px; margin-left:4px;"></label>'
+            + '<label style="font-size:0.72rem; color:#455a64; font-weight:700;">IFR <input type="number" min="0" step="1" data-syl-stop-approaches="' + idx + '" value="' + approaches + '" style="width:58px; height:30px; margin-left:4px;"></label>'
             + '</div>'
             + '</div>';
         }).join('');
       }
-      document.querySelectorAll('[data-syl-stop-landings], [data-syl-stop-tng]').forEach(function(el) {
+      document.querySelectorAll('[data-syl-stop-landings], [data-syl-stop-tng], [data-syl-stop-approaches]').forEach(function(el) {
         if (el.dataset.bound === '1') return;
         el.dataset.bound = '1';
         el.addEventListener('input', toolsSyllabusSyncFromUi_);
@@ -7472,6 +7609,7 @@
     var prior = state.stops || [];
     var validTokens = [];
     state.invalidRouteTokens = [];
+    state.viaPoints = toolsSyllabusRouteViaValues_();
 
     var routeTokens = [];
     if (String(state.category || '') === 'RUNWAY_CHECK' && String(state.runwayCheckLocation || '').trim()) {
@@ -7491,22 +7629,29 @@
 
     state.stops = validTokens.map(function(token, idx) {
       var prev = prior.find(function(p) { return String(p.location || '').toUpperCase() === String(token || '').toUpperCase(); }) || {};
+      var landingCount = String(state.category || '') === 'RUNWAY_CHECK' ? Math.max(1, Number(prev.landings || 1) || 1) : Number(prev.landings || 0);
+      var tngCount = Number(prev.touchAndGos || 0);
+      var approachCount = Number(prev.approaches || 0);
       return {
         sequence: idx + 1,
         location: token,
-        landingType: String(state.category || '') === 'RUNWAY_CHECK' ? 'FULL_STOP' : 'TOUCH_AND_GO',
+        landingType: (landingCount > 0 || tngCount > 0 || approachCount > 0) ? 'FULL_STOP' : 'NONE',
         breakStop: false,
         notes: '',
-        landings: String(state.category || '') === 'RUNWAY_CHECK' ? Math.max(1, Number(prev.landings || 1) || 1) : Number(prev.landings || 0),
-        touchAndGos: Number(prev.touchAndGos || 0)
+        landings: landingCount,
+        touchAndGos: tngCount,
+        approaches: approachCount
       };
     });
 
     (state.stops || []).forEach(function(stop, idx) {
       var lEl = document.querySelector('[data-syl-stop-landings="' + idx + '"]');
       var tEl = document.querySelector('[data-syl-stop-tng="' + idx + '"]');
+      var aEl = document.querySelector('[data-syl-stop-approaches="' + idx + '"]');
       if (lEl) stop.landings = Math.max(0, parseInt(lEl.value, 10) || 0);
       if (tEl) stop.touchAndGos = Math.max(0, parseInt(tEl.value, 10) || 0);
+      if (aEl) stop.approaches = Math.max(0, parseInt(aEl.value, 10) || 0);
+      stop.landingType = (Number(stop.landings || 0) > 0 || Number(stop.touchAndGos || 0) > 0 || Number(stop.approaches || 0) > 0) ? 'FULL_STOP' : 'NONE';
     });
 
     var extEl = document.getElementById('tools-syl-external-name');
@@ -7525,19 +7670,24 @@
     toolsSyllabusSyncFromUi_();
     var state = toolsSyllabusPlanState_();
     var stops = (state.stops || []).map(function(stop, i) {
+      var landings = Math.max(0, parseInt(stop.landings, 10) || 0);
+      var touchAndGos = Math.max(0, parseInt(stop.touchAndGos, 10) || 0);
+      var approaches = Math.max(0, parseInt(stop.approaches, 10) || 0);
       return {
         sequence: i + 1,
         location: String(stop.location || '').trim().toUpperCase(),
-        landingType: (Number(stop.landings || 0) > 0 || Number(stop.touchAndGos || 0) > 0) ? 'FULL_STOP' : 'NONE',
+        landingType: (landings > 0 || touchAndGos > 0 || approaches > 0) ? 'FULL_STOP' : 'NONE',
         breakStop: false,
         notes: '',
-        landings: Math.max(0, parseInt(stop.landings, 10) || 0),
-        touchAndGos: Math.max(0, parseInt(stop.touchAndGos, 10) || 0)
+        landings: landings,
+        touchAndGos: touchAndGos,
+        approaches: approaches
       };
     }).filter(function(stop) { return !!stop.location; });
     return {
       version: 2,
       stops: stops,
+      viaPoints: Array.isArray(state.viaPoints) ? state.viaPoints.slice() : [],
       maneuvers: (state.maneuvers || []).filter(Boolean),
       customManeuvers: []
     };
@@ -7565,9 +7715,9 @@
       + (state.runwayCheckLocation ? ('Pista check: <b>' + state.runwayCheckLocation.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</b><br>') : '')
       + '</div>'
       + '<h3>Rota e Pousos Planejados</h3>'
-      + '<table><thead><tr><th>#</th><th>Ponto</th><th>Pousos</th><th>Toque e Arremetida</th></tr></thead><tbody>'
+      + '<table><thead><tr><th>#</th><th>Ponto</th><th>Pousos</th><th>Toque e Arremetida</th><th>Aproximações IFR</th></tr></thead><tbody>'
       + (plan.stops || []).map(function(s, idx){
-          return '<tr><td>' + (idx + 1) + '</td><td>' + String(s.location || '') + '</td><td>' + Number(s.landings || 0) + '</td><td>' + Number(s.touchAndGos || 0) + '</td></tr>';
+          return '<tr><td>' + (idx + 1) + '</td><td>' + String(s.location || '') + '</td><td>' + Number(s.landings || 0) + '</td><td>' + Number(s.touchAndGos || 0) + '</td><td>' + Number(s.approaches || 0) + '</td></tr>';
         }).join('')
       + '</tbody></table>'
       + '<h3>Manobras (ordem)</h3>'
@@ -7616,14 +7766,18 @@
     var routeKey = toolsDbFindKey_(['ROUTE']);
     var runwayKey = toolsDbFindKey_(['RUNWAY_CHECKOUT']);
     var landingsKey = toolsDbFindKey_(['PLANNED_LANDINGS']);
+    var approachesKey = toolsDbFindKey_(['PLANNED_APPROACHES', 'PLANNED_INSTRUMENT_APPROACHES', 'INSTRUMENT_APPROACHES']);
     var notesKey = toolsDbFindKey_(['NOTES', 'DESCRIPTION']);
 
     var route = plan.stops.map(function(stop) { return stop.location; }).join(', ');
     var plannedLandings = plan.stops.reduce(function(sum, stop) {
       return sum + Math.max(0, parseInt(stop.landings, 10) || 0) + Math.max(0, parseInt(stop.touchAndGos, 10) || 0);
     }, 0);
+    var plannedApproaches = plan.stops.reduce(function(sum, stop) {
+      return sum + Math.max(0, parseInt(stop.approaches, 10) || 0);
+    }, 0);
     var runwayCheckout = plan.stops
-      .filter(function(stop) { return String(stop.landingType || '') !== 'NONE'; })
+      .filter(function(stop) { return String(stop.landingType || '') !== 'NONE' || Math.max(0, parseInt(stop.approaches, 10) || 0) > 0; })
       .map(function(stop) { return String(stop.location || '').toUpperCase(); })
       .filter(Boolean)
       .filter(function(loc, idx, arr) { return arr.indexOf(loc) === idx; })
@@ -7636,6 +7790,7 @@
     if (routeKey && route) payload[routeKey] = route;
     if (runwayKey && runwayCheckout && !String(payload[runwayKey] || '').trim()) payload[runwayKey] = runwayCheckout;
     if (landingsKey && plannedLandings > 0) payload[landingsKey] = String(plannedLandings);
+    if (approachesKey && plannedApproaches > 0) payload[approachesKey] = String(plannedApproaches);
 
     var planEnvelope = {
       version: 2,
@@ -7662,7 +7817,7 @@
       var profile = plan.stops.map(function(stop) {
         var lt = String(stop.landingType || 'TOUCH_AND_GO');
         var shortLt = (lt === 'FULL_STOP') ? 'FS' : (lt === 'NONE' ? 'NL' : 'TNG');
-        return String(stop.location || '') + '(' + shortLt + ')';
+        return String(stop.location || '') + '(' + shortLt + ',A' + Number(stop.approaches || 0) + ')';
       }).filter(Boolean).join(', ');
       var maneuversText = plan.maneuvers.concat(plan.customManeuvers).filter(Boolean).join(', ');
       var snippets = [];
@@ -7672,6 +7827,7 @@
       if (state.runwayCheckLocation) snippets.push('Pista Check: ' + String(state.runwayCheckLocation));
       if (profile) snippets.push('Perfil Planejado: ' + profile + ' (somente referência)');
       if (maneuversText) snippets.push('Manobras Planejadas: ' + maneuversText);
+      if (plannedApproaches > 0) snippets.push('Aproximações IFR Planejadas: ' + String(plannedApproaches));
       var current = String(payload[notesKey] || '').trim();
       var compact = snippets.join(' | ');
       if (compact) payload[notesKey] = current ? (current + ' | ' + compact) : compact;
@@ -7756,7 +7912,7 @@
         + (String((window._toolsSyllabusPlanState || {}).category || 'ROUTE_CHECK') !== 'RUNWAY_CHECK'
           ? ('<div class="tools-syl-route-grid">'
             + '<div class="tools-syl-q"><label for="tools-syl-origin">Origem (ICAO/WP)</label><input id="tools-syl-origin" type="text" list="tools-syl-route-points-list" placeholder="SWXX"></div>'
-            + '<div class="tools-syl-q"><label for="tools-syl-via">Via (separar por vírgula)</label><input id="tools-syl-via" type="text" list="tools-syl-route-points-list" placeholder="SJMH, PAPA-PALIMIU"></div>'
+            + '<div class="tools-syl-q"><label>Intermediários (ICAO/WP)</label><div id="tools-syl-via-list" class="tools-syl-via-list"></div><button class="btn-ts" type="button" style="margin-top:6px;" onclick="toolsSyllabusAddViaPoint_()">+ INTERMEDIÁRIO</button><div class="tools-syl-plan-note" style="margin-top:4px;">Uma caixa por ponto. Use aeroportos ou fixes/waypoints existentes.</div></div>'
             + '<div class="tools-syl-q"><label for="tools-syl-destination">Destino (ICAO/WP)</label><input id="tools-syl-destination" type="text" list="tools-syl-route-points-list" placeholder="SBCF"></div>'
             + '</div>')
           : ('<div class="tools-syl-q"><label>Pistas de Cheque</label><div style="padding:8px; background:#f5f5f5; border-radius:3px; font-size:0.9rem; color:#424242;">' + (String((window._toolsSyllabusPlanState || {}).runwayCheckLocation || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') || 'Nenhuma pista selecionada') + '</div></div>'))
@@ -7805,13 +7961,17 @@
       state.routeCheckPrompt = '';
       state.runwayCheckLocation = '';
       state.invalidRouteTokens = [];
+      state.viaPoints = [];
       state.stops = [];
       state.maneuvers = [];
       state.customManeuvers = [];
       toolsRenderSyllabusPlan_();
       toolsSyllabusBindMetaUi_();
       toolsSyllabusAutoName_(false);
+      toolsSyllabusRefreshManeuverSelect_();
+      toolsLoadManeuverCatalog_();
       toolsDbRouteDatalist_();
+      toolsSyllabusRenderRouteViaList_();
       toolsSyllabusSyncFromUi_();
       toolsSyllabusSetEditorMode_('create');
     } else {
@@ -9264,10 +9424,20 @@
       + '</div>';
     var fields = headers.map(function(h) {
       var key = String((h && h.key) || '');
-      var label = toolsPrettyLabel_(String((h && h.label) || key));
+      var label = key === 'POSICAO_AMBOS' ? 'Posição ambos?' : toolsPrettyLabel_(String((h && h.label) || key));
       var value = '';
       if (Object.prototype.hasOwnProperty.call(row, key)) value = row[key];
       else if (Object.prototype.hasOwnProperty.call(row, h.label)) value = row[h.label];
+      if (key === 'POSICAO_AMBOS') {
+        var checked = toolsAircraftTruthy_(value);
+        return '<div class="tools-ac-field">'
+          + '<label>' + toolsAircraftEscape_(label) + '</label>'
+          + '<select data-ac-section="' + sectionName + '" data-ac-row="' + idx + '" data-ac-key="' + toolsAircraftEscape_(key) + '" style="display:block;width:100%;min-width:100%;" onchange="toolsAircraftHandleInput_(this)">'
+          + '<option value="SIM"' + (checked ? ' selected' : '') + '>Sim</option>'
+          + '<option value="NAO"' + (!checked ? ' selected' : '') + '>Não</option>'
+          + '</select>'
+          + '</div>';
+      }
       return '<div class="tools-ac-field">'
         + '<label>' + toolsAircraftEscape_(label) + '</label>'
         + '<input type="text" data-ac-section="' + sectionName + '" data-ac-row="' + idx + '" data-ac-key="' + toolsAircraftEscape_(key) + '" value="' + toolsAircraftEscape_(value) + '" oninput="toolsAircraftHandleInput_(this)">'
@@ -9413,7 +9583,7 @@
   function toolsAircraftCollectSection_(sectionName) {
     var container = document.getElementById('tools-ac-' + sectionName + '-rows');
     if (!container) return [];
-    var inputs = container.querySelectorAll('input[data-ac-section="' + sectionName + '"]');
+    var inputs = container.querySelectorAll('input[data-ac-section="' + sectionName + '"], select[data-ac-section="' + sectionName + '"]');
     var grouped = {};
     for (var i = 0; i < inputs.length; i++) {
       var rowIdx = String(inputs[i].getAttribute('data-ac-row') || '0');
@@ -11068,4 +11238,7 @@
   window.toolsOpenSchedulerPanel = toolsOpenSchedulerPanel;
   window.toolsOpenMasterConfigPanel = toolsOpenMasterConfigPanel;
   window.toolsOpenPermissionsPanel = toolsOpenPermissionsPanel;
+  window.toolsOpenHistoricalImportsPanel = toolsOpenHistoricalImportsPanel;
+  window.toolsOpenAircraftDocsPanel = toolsOpenAircraftDocsPanel;
+  window.toolsOpenDutyLogsPanel = toolsOpenDutyLogsPanel;
 </script>

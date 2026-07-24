@@ -1004,6 +1004,7 @@
 
   function buildLocalPerformanceSetup_(icao) {
     const airportCode = String(icao || '').trim().toUpperCase();
+    const aircraftTypeKey = _perfAircraftTypeMatchKey_(window.performanceTab4 && window.performanceTab4.aircraftType || '');
     const airports = (window.appData && Array.isArray(window.appData.airports)) ? window.appData.airports : [];
     const runwayRows = airports.filter(function(r) {
       return String(r && r.icao || '').trim().toUpperCase() === airportCode;
@@ -1078,8 +1079,13 @@
 
     const fallbackRef = readGlobalPerformanceReference_() || { baseRows: [], perfRows: [] };
     const activeRef = window.performanceTab4.calcReference || fallbackRef;
+    const perfRows = (Array.isArray(activeRef && activeRef.perfRows) ? activeRef.perfRows : []).filter(function(row) {
+      if (!aircraftTypeKey) return true;
+      return _perfAircraftTypeMatchKey_(_perfCalcValue(row, ['AIRCRAFT_TYPE', 'TYPE_FOR_PERFORMANCE'], '')) === aircraftTypeKey;
+    });
+    const flapSourceRows = perfRows.length ? perfRows : (Array.isArray(activeRef && activeRef.perfRows) ? activeRef.perfRows : []);
     const flapSet = {};
-    (Array.isArray(activeRef && activeRef.perfRows) ? activeRef.perfRows : []).forEach(function(row) {
+    flapSourceRows.forEach(function(row) {
       const flapVal = _perfCalcNum(_perfCalcValue(row, ['FLAP_SETTING'], NaN), NaN);
       if (!isNaN(flapVal)) flapSet[flapVal] = true;
     });
@@ -1137,16 +1143,17 @@
     return `${n.toFixed(3)} (${sign}${pct.toFixed(0)}%)`;
   }
 
-  function perfSetupCacheKey_(icao) {
-    return 'mba_cache_perfsetup_' + String(icao || '').trim().toUpperCase();
+  function perfSetupCacheKey_(icao, aircraftType) {
+    return 'mba_cache_perfsetup_' + String(icao || '').trim().toUpperCase() + '_' + _perfAircraftTypeMatchKey_(aircraftType || '');
   }
 
-  function cachePerformanceSetup_(icao, data) {
+  function cachePerformanceSetup_(icao, data, aircraftType) {
     try {
-      const key = perfSetupCacheKey_(icao);
+      const key = perfSetupCacheKey_(icao, aircraftType);
       if (!key || !icao || !data) return;
       localStorage.setItem(key, JSON.stringify({
         icao: String(icao || '').trim().toUpperCase(),
+        aircraftType: String(aircraftType || '').trim(),
         cachedAt: new Date().toISOString(),
         payload: data
       }));
@@ -1155,9 +1162,9 @@
     }
   }
 
-  function readCachedPerformanceSetup_(icao) {
+  function readCachedPerformanceSetup_(icao, aircraftType) {
     try {
-      const raw = localStorage.getItem(perfSetupCacheKey_(icao));
+      const raw = localStorage.getItem(perfSetupCacheKey_(icao, aircraftType));
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       return parsed && parsed.payload ? parsed.payload : null;
@@ -1870,7 +1877,7 @@
 
     _bindPerfLiveHandlers();
 
-    const cachedSetup = readCachedPerformanceSetup_(window.performanceTab4.fromIcao || '');
+    const cachedSetup = readCachedPerformanceSetup_(window.performanceTab4.fromIcao || '', window.performanceTab4.aircraftType || '');
     const localSetup = buildLocalPerformanceSetup_(window.performanceTab4.fromIcao || '');
 
     if (!window.google || !google.script || !google.script.run) {
@@ -1879,7 +1886,7 @@
         return;
       }
       if (localSetup) {
-        cachePerformanceSetup_(window.performanceTab4.fromIcao || '', localSetup);
+        cachePerformanceSetup_(window.performanceTab4.fromIcao || '', localSetup, window.performanceTab4.aircraftType || '');
         applyPerformanceSetupData_(localSetup);
         if (window.M) M.toast({ html: 'Offline: built performance setup from cached airport data', classes: 'orange', displayLength: 5000 });
       }
@@ -1888,7 +1895,7 @@
 
     google.script.run
       .withSuccessHandler(function(data) {
-        cachePerformanceSetup_(window.performanceTab4.fromIcao || '', data);
+        cachePerformanceSetup_(window.performanceTab4.fromIcao || '', data, window.performanceTab4.aircraftType || '');
         applyPerformanceSetupData_(data);
       })
       .withFailureHandler(function(err) {
@@ -1902,7 +1909,7 @@
         }
 
         if (localSetup) {
-          cachePerformanceSetup_(window.performanceTab4.fromIcao || '', localSetup);
+          cachePerformanceSetup_(window.performanceTab4.fromIcao || '', localSetup, window.performanceTab4.aircraftType || '');
           applyPerformanceSetupData_(localSetup);
           if (window.M) M.toast({ html: 'Offline: built performance setup from airport cache', classes: 'orange', displayLength: 5000 });
           return;
@@ -1936,7 +1943,7 @@
           }
         }
       })
-      .getPerformanceSetup(window.performanceTab4.fromIcao || '');
+        .getPerformanceSetup(window.performanceTab4.fromIcao || '', window.performanceTab4.aircraftType || '');
   };
 
   // Helper to lock/unlock surface, length, slope fields from DB data

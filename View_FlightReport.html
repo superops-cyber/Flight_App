@@ -273,10 +273,11 @@
             { k: 'Data', v: ptDate(summary.date || log.date || '---') },
             { k: 'Aeronave', v: summary.aircraft || log.aircraft || '---' },
             { k: 'Piloto', v: summary.pilot || log.pilot || '---' },
+            { k: 'Copiloto', v: summary.copilot || log.copilot || '---' },
             { k: 'Origem', v: summary.from || log.from || '---' },
             { k: 'Destino', v: summary.to || log.to || '---' },
-            { k: 'Rota', v: summary.route || '---' },
-            { k: 'Tempo Total', v: log.totalTimeHours != null ? num(log.totalTimeHours, 2) + ' h' : (log.totalTime || '---') },
+            { k: 'Rota', v: data.routeDisplay || summary.route || '---' },
+            { k: 'Tempo Total', v: data.totalTimeDisplay || log.totalTimeDisplay || (log.totalTimeHours != null ? num(log.totalTimeHours, 2) + ' h' : '---') },
             { k: 'Pousos', v: num(log.numLandings, 0) },
             { k: 'Touch and Go', v: num(log.numTouchAndGos, 0) }
           ]) +
@@ -286,13 +287,27 @@
           '<h3>Resumo do Plano de Aula</h3>' +
           buildKv([
             { k: 'Código Treinamento', v: lesson.trainingCode || '---' },
-            { k: 'Aula', v: lesson.lessonName || '---' },
+            { k: 'Aula', v: lesson.lessonName || data.lessonName || '---' },
             { k: 'Aluno', v: lesson.traineeName || '---' },
             { k: 'Instrutor', v: lesson.instructorName || '---' },
             { k: 'Resultado', v: lesson.flightResult || '---' },
             { k: 'Cheque de Pista', v: String(Number(lesson.runwayChecksPassed || 0)) + '/' + String(Number(lesson.runwayChecksTotal || 0)) },
             { k: 'Avaliação', v: (lesson.evaluation && lesson.evaluation.result) ? lesson.evaluation.result : '---' },
             { k: 'Média', v: (lesson.evaluation && lesson.evaluation.averageScore != null) ? String(lesson.evaluation.averageScore) : '---' }
+          ]) +
+        '</section>' +
+
+        '<section class="card">' +
+          '<h3>Debrief</h3>' +
+          buildKv([
+            { k: 'Tempo total', v: data.totalTimeDisplay || tab8.totalTimeDisplay || '---' },
+            { k: 'Tempo de instrução', v: tab8.instructionTimeDisplay || data.instructionTimeDisplay || '---' },
+            { k: 'Dual recebido', v: tab8.dualRecvdDisplay || data.dualRecvdDisplay || '---' },
+            { k: 'Dual dado', v: tab8.dualGivenDisplay || data.dualGivenDisplay || '---' },
+            { k: 'Pousos noturnos', v: String(tab8.nightLdgs == null ? '---' : tab8.nightLdgs) },
+            { k: 'Horas noturnas', v: String(tab8.nightHrs == null ? '---' : tab8.nightHrs) },
+            { k: 'Horas IFR', v: String(tab8.ifrHrs == null ? '---' : tab8.ifrHrs) },
+            { k: 'Debrief em', v: dt(tab8.debriefAt) }
           ]) +
         '</section>' +
 

@@ -679,8 +679,12 @@
 
   function mxFindAircraftTrace_(aircraftReg){
     var reg=String(aircraftReg||'').trim().toUpperCase();
+    var regNorm=String(reg||'').replace(/[^A-Z0-9]/g,'');
     var fleet=(window.appData&&Array.isArray(window.appData.aircraft)) ? window.appData.aircraft : [];
-    var acft=fleet.find(function(row){ return String(row && row.reg || '').trim().toUpperCase()===reg; }) || null;
+    var acft=fleet.find(function(row){
+      var rowReg=String(row && row.reg || '').trim().toUpperCase();
+      return rowReg===reg || (regNorm && String(rowReg).replace(/[^A-Z0-9]/g,'')===regNorm);
+    }) || null;
     return {
       reg: reg,
       currentTach: acft && acft.currentTach != null ? Number(acft.currentTach) : null,

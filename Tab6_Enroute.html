@@ -1,5 +1,5 @@
 <style>
-  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v123 ===== */
+  /* ===== TAB 6 ENROUTE — MISSION RUGGED — Build: v124 ===== */
 
   #enroute6-wrap {
     background:
@@ -934,7 +934,7 @@
 <div id="enroute6-wrap">
   <div class="enroute6-panel">
     <span id="enroute-gs-badge" class="gs-badge"></span>
-    <div style="font-size:10px;color:#666;text-align:right;margin-bottom:2px;">Tab6 Build: v122</div>
+    <div style="font-size:10px;color:#666;text-align:right;margin-bottom:2px;">Tab6 Build: v124</div>
 
     <div class="enroute-card">
       <div class="roll-tool-row">
@@ -1252,6 +1252,30 @@
     }
   }
 
+  function _enrouteApplyMasterConfig_(masterCfg) {
+    var cfg = _enrouteReadConfig_();
+    var raw = masterCfg || {};
+    if (raw.DUTY_LANDING_THRESHOLD_KTS != null) {
+      cfg.landedThresholdKts = Math.max(10, Number(raw.DUTY_LANDING_THRESHOLD_KTS || cfg.landedThresholdKts));
+    }
+    if (raw.DUTY_TOUCH_AND_GO_CONFIRM_KTS != null) {
+      cfg.airborneConfirmKts = Math.max(15, Number(raw.DUTY_TOUCH_AND_GO_CONFIRM_KTS || cfg.airborneConfirmKts));
+    }
+    localStorage.setItem('enrouteConfigV1', JSON.stringify(cfg));
+    _enrouteApplyConfig_(cfg, true);
+  }
+
+  function _enrouteSyncConfigFromMaster_() {
+    if (!window.google || !google.script || !google.script.run || typeof google.script.run.getToolsDutyAdminBootstrap !== 'function') return;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success || !res.dutyConfig) return;
+        _enrouteApplyMasterConfig_(res.dutyConfig);
+      })
+      .withFailureHandler(function() {})
+      .getToolsDutyAdminBootstrap();
+  }
+
   window.saveEnrouteConfig = function() {
     var cfg = {
       autoPassThresholdNm: Math.max(0.5, Number((document.getElementById('enroute-config-autopass') || {}).value || 0.8)),
@@ -1270,6 +1294,12 @@
     _enrouteApplyConfig_(cfg, true);
     if (window.M) M.toast({ html: 'Enroute config reset to defaults', classes: 'blue', displayLength: 2500 });
   };
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(_enrouteSyncConfigFromMaster_, 0);
+  } else {
+    document.addEventListener('DOMContentLoaded', _enrouteSyncConfigFromMaster_);
+  }
 
   function _enrouteResolveVrFromAircraft_(acftObj, flapSetting) {
     var flapRaw = Number(flapSetting || 0);
@@ -3660,6 +3690,12 @@
     banner.textContent = '';
   }
 
+  function _enrouteNormalizeMainTank_(value, allowAmbos) {
+    const raw = String(value || '').trim().toUpperCase();
+    if (allowAmbos && raw === 'AMBOS') return 'AMBOS';
+    return raw === 'LM' ? 'LM' : 'RM';
+  }
+
   function _enrouteFuelCellHtml_(idx, isNext) {
     const f = window.enroute6.fuel || {};
     const activeTransfer = window.enroute6.transferActive || null;
@@ -3669,14 +3705,18 @@
     return `
       <div class="fuel-cell-stack">
         <div class="fuel-cell-grid">
-          ${['LT', 'LM', 'RM', 'RT'].map(function(tank) {
-            const isMain = tank === 'LM' || tank === 'RM';
-            const isActiveMain = isMain && tank === f.activeMain;
+          ${['LT', 'LM', 'AMBOS', 'RM', 'RT'].filter(function(tank) {
+            return tank !== 'AMBOS' || !!f.ambosEnabled || String(f.activeMain || '').trim().toUpperCase() === 'AMBOS';
+          }).map(function(tank) {
+            const isMain = tank === 'LM' || tank === 'RM' || tank === 'AMBOS';
+            const isActiveMain = tank === 'AMBOS'
+              ? String(f.activeMain || '').trim().toUpperCase() === 'AMBOS'
+              : (isMain && (tank === f.activeMain || String(f.activeMain || '').trim().toUpperCase() === 'AMBOS'));
             const isTransferLive = !!(activeTransfer && activeTransfer.tip === tank);
             return `<button class="fuel-chip-btn ${isActiveMain ? 'active-main' : ''} ${isTransferLive ? 'transfer-live' : ''}" onclick="tapFuelTank('${tank}')"><span>${tank}: ${Math.round(Number(f[tank] || 0))}</span></button>`;
           }).join('')}
         </div>
-        <div class="fuel-cell-hint">Tap other main to switch. Tap a tip to start or stop transfer.</div>
+        <div class="fuel-cell-hint">Tap a main to switch. Tap AMBOS to split main tanks. Tap a tip to start or stop transfer.</div>
       </div>`;
   }
 
@@ -3826,18 +3866,23 @@
 
   function _enrouteFuelSnapshot_(fuelObj) {
     const f = fuelObj || window.enroute6.fuel || {};
+    const activeMain = _enrouteNormalizeMainTank_(f.activeMain, true);
     return {
       LT: Math.round(Number(f.LT || 0)),
       LM: Math.round(Number(f.LM || 0)),
       RM: Math.round(Number(f.RM || 0)),
       RT: Math.round(Number(f.RT || 0)),
-      activeMain: String(f.activeMain || 'RM').trim().toUpperCase() === 'LM' ? 'LM' : 'RM'
+      activeMain: activeMain,
+      ambosEnabled: !!f.ambosEnabled
     };
   }
 
   function _enrouteFuelSnapshotText_(fuelObj) {
     const snap = _enrouteFuelSnapshot_(fuelObj);
-    return `LT ${snap.LT} | LM ${snap.LM}${snap.activeMain === 'LM' ? '*' : ''} | RM ${snap.RM}${snap.activeMain === 'RM' ? '*' : ''} | RT ${snap.RT}`;
+    const lmMark = snap.activeMain === 'LM' || snap.activeMain === 'AMBOS' ? '*' : '';
+    const rmMark = snap.activeMain === 'RM' || snap.activeMain === 'AMBOS' ? '*' : '';
+    const ambosText = snap.ambosEnabled ? ` | AMBOS${snap.activeMain === 'AMBOS' ? '*' : ''}` : '';
+    return `LT ${snap.LT} | LM ${snap.LM}${lmMark} | RM ${snap.RM}${rmMark} | RT ${snap.RT}${ambosText}`;
   }
 
   function _enrouteSetFuelHistoryStart_(reason) {
@@ -4238,7 +4283,7 @@
   window.tapFuelTank = async function(tankName) {
     const f = window.enroute6.fuel;
     const transferActive = window.enroute6.transferActive || null;
-    if (tankName === 'LM' || tankName === 'RM') {
+    if (tankName === 'LM' || tankName === 'RM' || tankName === 'AMBOS') {
       if (transferActive) {
         if (window.M) M.toast({ html: 'Stop the active tip transfer first', classes: 'orange' });
         return;
@@ -4267,11 +4312,13 @@
   window.switchMainTankPrompt = async function(targetTank) {
     const f = window.enroute6.fuel;
     const from = f.activeMain;
-    const to = targetTank === 'LM' || targetTank === 'RM' ? targetTank : (from === 'RM' ? 'LM' : 'RM');
+    const allowAmbos = !!f.ambosEnabled;
+    const to = _enrouteNormalizeMainTank_(targetTank, allowAmbos);
     const eventRowIdx = _enrouteActiveFuelWaypointIdx_();
+    const enteringAmbos = to === 'AMBOS';
     const burnedRaw = await _enrouteOpenFuelKeypad_({
-      title: `Trocar de ${from} para ${to}`,
-      note: 'Informe o combustível gasto antes da troca.',
+      title: enteringAmbos ? `Ativar AMBOS a partir de ${from}` : `Trocar de ${from} para ${to}`,
+      note: enteringAmbos ? 'Informe o combustível gasto antes de ativar AMBOS.' : 'Informe o combustível gasto antes da troca.',
       quickValues: [25, 30, 40, 50, 60, 70, 75, 100]
     });
     if (burnedRaw == null) return;
@@ -4285,15 +4332,44 @@
     const before = _enrouteFuelSnapshot_(f);
     f[from] = Math.max(0, Number(f[from] || 0) - burned);
     f.activeMain = to;
+    if (enteringAmbos) {
+      const lmRemaining = await _enrouteOpenFuelKeypad_({
+        title: 'AMBOS - combustível remanescente LM',
+        note: 'Informe quanto restou no tanque esquerdo principal.',
+        quickValues: [20, 30, 40, 50, 60, 70, 80, 100]
+      });
+      if (lmRemaining == null) {
+        f.activeMain = from;
+        f[from] = Number(f[from] || 0) + burned;
+        renderFuelStrip();
+        return;
+      }
+      const rmRemaining = await _enrouteOpenFuelKeypad_({
+        title: 'AMBOS - combustível remanescente RM',
+        note: 'Informe quanto restou no tanque direito principal.',
+        quickValues: [20, 30, 40, 50, 60, 70, 80, 100]
+      });
+      if (rmRemaining == null) {
+        f.activeMain = from;
+        f[from] = Number(f[from] || 0) + burned;
+        renderFuelStrip();
+        return;
+      }
+      f.LM = Math.max(0, Number(lmRemaining || 0));
+      f.RM = Math.max(0, Number(rmRemaining || 0));
+      f.ambosEnabled = true;
+    }
     const after = _enrouteFuelSnapshot_(f);
     _enrouteRecordFuelEvent_({ rowIdx: eventRowIdx, usedLiters: burned });
     _enrouteAppendFuelHistoryEntry_({
       kind: 'main-switch',
-      title: `${from} -> ${to} troca`,
-      detail: `Usado ${Math.round(burned)} L. Antes: ${_enrouteFuelSnapshotText_(before)}. Depois: ${_enrouteFuelSnapshotText_(after)}.`,
+      title: enteringAmbos ? `${from} -> AMBOS troca` : `${from} -> ${to} troca`,
+      detail: enteringAmbos
+        ? `Usado ${Math.round(burned)} L. Remanescentes LM/RM informados manualmente. Antes: ${_enrouteFuelSnapshotText_(before)}. Depois: ${_enrouteFuelSnapshotText_(after)}.`
+        : `Usado ${Math.round(burned)} L. Antes: ${_enrouteFuelSnapshotText_(before)}. Depois: ${_enrouteFuelSnapshotText_(after)}.`,
       snapshot: after
     });
-    if (window.M) M.toast({ html: `Tanque ativo trocado para ${to}`, classes: 'green', displayLength: 2400 });
+    if (window.M) M.toast({ html: enteringAmbos ? 'Layout AMBOS ativado' : `Tanque ativo trocado para ${to}`, classes: 'green', displayLength: 2400 });
     renderFuelStrip();
     recalcWaypointsFromGs();
   };
@@ -4799,6 +4875,107 @@
       if (compact.indexOf('-') >= 0) {
         var compactTokens = compact.split('-').map(function(s) { return String(s || '').trim().toUpperCase(); }).filter(Boolean);
         if (compactTokens.length >= 2) {
+    function _enrouteNormalizeFuelTankKey_(value) {
+      const raw = String(value || '').trim().toUpperCase();
+      if (!raw) return '';
+      if (['LM', 'RM', 'LT', 'RT'].includes(raw)) return raw;
+      const clean = raw.replace(/[^A-Z0-9 ]/g, ' ');
+      const hasLeft = /\bLEFT\b/.test(clean);
+      const hasRight = /\bRIGHT\b/.test(clean);
+      const hasTip = /\bTIP\b/.test(clean);
+      const hasMain = /\bMAIN\b/.test(clean);
+      if (hasTip && hasLeft) return 'LT';
+      if (hasTip && hasRight) return 'RT';
+      if (hasMain && hasLeft) return 'LM';
+      if (hasMain && hasRight) return 'RM';
+      if (hasMain && !hasLeft && !hasRight) return 'LM';
+      return '';
+    }
+  
+    function _enrouteFuelTankKeysFromAircraft_(acftObj) {
+      const cfg = acftObj && typeof acftObj === 'object' ? acftObj : {};
+      const raw = String(cfg.TANK_NAMES || cfg.tankNames || '').trim();
+      const keys = [];
+  
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          const list = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.tanks) ? parsed.tanks : null);
+          if (Array.isArray(list)) {
+            list.forEach(function(item) {
+              const key = _enrouteNormalizeFuelTankKey_(item && typeof item === 'object' ? (item.key || item.name || item.label || item.tank) : item);
+              if (key && !keys.includes(key)) keys.push(key);
+            });
+          }
+        } catch (e) {
+          raw.split(/[,;|\/]+/).forEach(function(part) {
+            const key = _enrouteNormalizeFuelTankKey_(part);
+            if (key && !keys.includes(key)) keys.push(key);
+          });
+        }
+      }
+  
+      if (!keys.length) {
+        const tipCap = Math.max(0, Number(cfg.TIP_CAPACITY_L || 0));
+        if (tipCap > 0) {
+          keys.push('LT', 'LM', 'RM', 'RT');
+        } else {
+          keys.push('LM', 'RM');
+        }
+      }
+  
+      return keys.filter(function(key) {
+        return ['LM', 'RM', 'LT', 'RT'].includes(key);
+      });
+    }
+  
+    function _enrouteFuelLabel_(tank) {
+      if (tank === 'LT') return 'LT';
+      if (tank === 'RT') return 'RT';
+      if (tank === 'LM') return 'LM';
+      if (tank === 'RM') return 'RM';
+      return String(tank || '').trim().toUpperCase();
+    }
+  
+    function _enrouteFuelTankKeys_(fuelObj) {
+      const f = fuelObj && typeof fuelObj === 'object' ? fuelObj : {};
+      const fromMeta = Array.isArray(f.tankKeys) ? f.tankKeys.map(_enrouteNormalizeFuelTankKey_).filter(Boolean) : [];
+      if (fromMeta.length) return fromMeta;
+      const fromFuel = Object.keys(f).filter(function(key) {
+        return ['LM', 'RM', 'LT', 'RT'].includes(String(key || '').trim().toUpperCase()) && Number(f[key] || 0) >= 0;
+      }).map(function(key) { return String(key || '').trim().toUpperCase(); });
+      if (fromFuel.length) return fromFuel;
+      return ['LM', 'RM'];
+    }
+  
+    function _enrouteFuelDefaultState_(tankKeys, mainStart, tipCap, allowAmbos) {
+      const state = {
+        tankKeys: Array.isArray(tankKeys) ? tankKeys.slice() : [],
+        activeMain: 'RM',
+        ambosEnabled: !!allowAmbos
+      };
+      state.tankKeys.forEach(function(key) {
+        if (key === 'LM' || key === 'RM') {
+          state[key] = Math.max(0, Number(mainStart || 0));
+        } else if (key === 'LT' || key === 'RT') {
+          state[key] = Math.max(0, Number(tipCap || 0));
+        }
+      });
+      return state;
+    }
+  
+    function _enrouteFuelVisibleKeys_(fuelObj) {
+      const f = fuelObj && typeof fuelObj === 'object' ? fuelObj : {};
+      const keys = _enrouteFuelTankKeys_(f);
+      const showAmbos = !!f.allowAmbos || !!f.ambosEnabled;
+      if (showAmbos && keys.indexOf('LM') >= 0 && keys.indexOf('RM') >= 0 && keys.indexOf('AMBOS') < 0) {
+        const out = keys.slice();
+        const insertAt = Math.max(1, out.indexOf('LM') + 1);
+        out.splice(insertAt, 0, 'AMBOS');
+        return out;
+      }
+      return keys;
+    }
           if (!legFrom || legFrom === 'ORIG') legFrom = compactTokens[0];
           if (!legTo || legTo === 'DEST') legTo = compactTokens[compactTokens.length - 1];
           legWaypoints = compactTokens;
@@ -4806,22 +4983,20 @@
       }
     }
 
-    // --- DB_Routes lookup ---
+      const keys = _enrouteFuelVisibleKeys_(f);
     // If legWaypoints is empty OR is exactly one token that contains a hyphen
     // (i.e. the whole route concatenated as "SDRM-SJMH-PAPA-PALIMIU-SBBV"),
     // look up the canonical middle-leg waypoints from window.appData.routes.
-    const _legWaypointsAreBad = function(wps, from, to) {
-      if (!wps || !wps.length) return true;
-      if (wps.length === 1) {
-        const t = String(wps[0] || '');
+            ${keys.map(function(tank) {
+              const isMain = tank === 'LM' || tank === 'RM';
         // Single token that is neither origin nor dest, contains a hyphen → whole route string
         if (t !== from && t !== to && t.indexOf('-') >= 0) return true;
       }
       return false;
-    };
+              return `<button class="fuel-chip-btn ${isActiveMain ? 'active-main' : ''} ${isTransferLive ? 'transfer-live' : ''}" onclick="tapFuelTank('${tank}')"><span>${_enrouteFuelLabel_(tank)}: ${Math.round(Number(f[tank] || 0))}</span></button>`;
     if (_legWaypointsAreBad(legWaypoints, legFrom, legTo) && legFrom && legTo) {
       const _dbRoutes = (window.appData && Array.isArray(window.appData.routes)) ? window.appData.routes : [];
-      const _dbMatch = _dbRoutes.find(function(r) {
+          <div class="fuel-cell-hint">Tap a main to switch. Tap a tip to start or stop transfer.</div>
         return r.origin === legFrom && r.destination === legTo;
       }) || _dbRoutes.find(function(r) {
         return r.origin === legTo && r.destination === legFrom;
@@ -4830,48 +5005,57 @@
         const _dbTokens = String(_dbMatch.waypoint_list || '')
           .split(/[,;]+/)
           .map(function(s) { return s.trim().toUpperCase(); })
-          .filter(Boolean);
-        if (_dbTokens.length) {
-          legWaypoints = _dbTokens;
-          _enrouteDiag('DB_Routes lookup used: ' + legFrom + '->' + legTo + ' wps=' + _dbTokens.join(','));
-        }
-      }
+      const keys = _enrouteFuelVisibleKeys_(f);
+      return keys.map(function(tank) {
+        if (tank === 'AMBOS') return tag('AMBOS', '', String(f.activeMain || '').trim().toUpperCase() === 'AMBOS');
+        return tag(tank, f[tank], f.activeMain === tank);
+      }).join('');
     }
 
     if (!legWaypoints.length) legWaypoints = [legFrom, legTo].filter(Boolean);
     _enrouteDiag('Route init: ' + legFrom + '->' + legTo + ' (' + legWaypoints.length + ' tokens)');
     _enrouteDiag('Mission=' + String(mission && mission.id || 'N/A')
+      const tankKeys = _enrouteFuelTankKeys_(f);
+      const snapshot = { activeMain: activeMain, ambosEnabled: !!f.ambosEnabled, tankKeys: tankKeys };
+      tankKeys.forEach(function(key) {
+        snapshot[key] = Math.round(Number(f[key] || 0));
+      });
       + ' legId=' + String(flightLegId || 'N/A')
-      + ' legs=' + String((mission.legs || []).length)
-      + ' from=' + legFrom + ' to=' + legTo
-      + ' routeT=' + String(routeTokens.length)
-      + ' wpT=' + String(waypointTokens.length));
-    
-    const acft = String(mission.acft || '').trim().toUpperCase();
+        ...snapshot
     const acftObj = (window.appData && Array.isArray(window.appData.aircraft))
       ? window.appData.aircraft.find(a => String(a.reg || '').trim().toUpperCase() === acft)
       : null;
 
     const transferRate = Number(acftObj && acftObj.TRANSFER_RATE_LPM || 0.8);
-    const launchFuel = Number(firstLeg.takeoffFuel || 0);
-    const mainStart = launchFuel > 0 ? Math.round(launchFuel / 2) : 120;
-    const tipCap = Math.round(Number(acftObj && acftObj.TIP_CAPACITY_L || 0) || 0);
-
+      const keys = _enrouteFuelTankKeys_(snap);
+      const parts = keys.map(function(tank) {
+        const active = snap.activeMain === tank || snap.activeMain === 'AMBOS';
+        return `${tank} ${Math.round(Number(snap[tank] || 0))}${active ? '*' : ''}`;
+      });
+      const ambosText = snap.ambosEnabled ? ` | AMBOS${snap.activeMain === 'AMBOS' ? '*' : ''}` : '';
+      return parts.join(' | ') + ambosText;
     const _totalFuel = function(f) {
       if (!f) return 0;
-      return Number(f.LT || 0) + Number(f.LM || 0) + Number(f.RM || 0) + Number(f.RT || 0);
+      const keys = _enrouteFuelTankKeys_(f);
+      return keys.reduce(function(sum, key) {
+        return sum + Number(f[key] || 0);
+      }, 0);
     };
 
     const _fuelFromBriefSnapshot = function() {
-      const snap = window.briefFuelSnapshot || null;
       if (!snap) return null;
+      const activeMain = _enrouteNormalizeMainTank_(snap.activeMain, !!snap.ambosEnabled);
+      const tankKeys = Array.isArray(snap.tankKeys) && snap.tankKeys.length
+        ? snap.tankKeys
+        : _enrouteFuelTankKeysFromAircraft_(acftObj);
       const seeded = {
-        LT: Number(snap.LT || 0),
-        LM: Number(snap.LM || 0),
-        RM: Number(snap.RM || 0),
-        RT: Number(snap.RT || 0),
-        activeMain: (String(snap.activeMain || '').trim().toUpperCase() === 'LM' ? 'LM' : 'RM')
+        tankKeys: tankKeys,
+        activeMain: activeMain,
+        ambosEnabled: !!snap.ambosEnabled
       };
+      tankKeys.forEach(function(key) {
+        seeded[key] = Number(snap[key] || 0);
+      });
       return _totalFuel(seeded) > 0 ? seeded : null;
     };
 
@@ -4879,9 +5063,10 @@
       const seeded = fuelState ? { ...fuelState } : null;
       if (!seeded) return seeded;
       const briefSnap = _fuelFromBriefSnapshot();
-      if (briefSnap && (briefSnap.activeMain === 'LM' || briefSnap.activeMain === 'RM')) {
+      if (briefSnap) {
         seeded.activeMain = briefSnap.activeMain;
-      } else if (String(seeded.activeMain || '').trim().toUpperCase() !== 'LM') {
+        if (briefSnap.ambosEnabled) seeded.ambosEnabled = true;
+      } else if (String(seeded.activeMain || '').trim().toUpperCase() !== 'LM' && String(seeded.activeMain || '').trim().toUpperCase() !== 'AMBOS') {
         seeded.activeMain = 'RM';
       }
       return seeded;
@@ -4942,13 +5127,7 @@
         breadcrumbs: [],           // reset track on each new flight leg
         breadcrumbLayer: null,
         breadcrumbLastTs: 0,
-        fuel: _applyActiveMainPreference(_totalFuel(actualFuel) > 0 ? actualFuel : (_fuelFromBriefSnapshot() || {
-          LT: tipCap,
-          LM: mainStart,
-          RM: mainStart,
-          RT: tipCap,
-          activeMain: 'RM'
-        }))
+        fuel: _applyActiveMainPreference(_totalFuel(actualFuel) > 0 ? actualFuel : (_fuelFromBriefSnapshot() || _enrouteFuelDefaultState_(fuelTankKeys, mainStart, tipCap, allowAmbos)))
       };
       _enrouteResetFuelHistory_();
       _enrouteSetFuelHistoryStart_('Mission fuel loaded');
@@ -5052,13 +5231,18 @@
               try {
                 const parsed = JSON.parse(logData.actualLoadJSON);
                 if (parsed && parsed.tanks) {
+                  const parsedActive = _enrouteNormalizeMainTank_(parsed.activeMain || parsed.tanks.activeMain || '', !!parsed.ambosEnabled);
+                  const parsedTankKeys = Array.isArray(parsed.tankKeys) && parsed.tankKeys.length
+                    ? parsed.tankKeys
+                    : Object.keys(parsed.tanks || {});
                   actualFuel = {
-                    LT: Number(parsed.tanks.LT || 0),
-                    LM: Number(parsed.tanks.LM || 0),
-                    RM: Number(parsed.tanks.RM || 0),
-                    RT: Number(parsed.tanks.RT || 0),
-                    activeMain: (String(parsed.activeMain || parsed.tanks.activeMain || '').trim().toUpperCase() === 'LM' ? 'LM' : 'RM')
+                    tankKeys: parsedTankKeys,
+                    activeMain: parsedActive,
+                    ambosEnabled: !!parsed.ambosEnabled || parsedActive === 'AMBOS'
                   };
+                  parsedTankKeys.forEach(function(key) {
+                    actualFuel[key] = Number(parsed.tanks[key] || 0);
+                  });
                 }
               } catch (e) {
                 console.warn('Failed to parse actualLoadJSON:', e);
