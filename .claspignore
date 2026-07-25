@@ -13,6 +13,7 @@ MX_CAMO/**
 *.txt
 *.csv
 *.docx
+*.backup
 credentials.json
 token.json
 package.json

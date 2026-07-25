@@ -6424,14 +6424,6 @@ function _mxEnsureFrameworkSheets_() {
   ]);
 }
 
-function setupMaintenanceSchedulingFramework() {
-  try {
-    _mxEnsureFrameworkSheets_();
-    return { success: true, message: 'Maintenance framework ready.' };
-  } catch (e) {
-    return { success: false, error: e && e.message ? e.message : String(e) };
-  }
-}
 
 function _mxNormHeaderMap_(headers) {
   var map = {};
