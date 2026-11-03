@@ -1,0 +1,104 @@
+<div style="padding: 20px; max-width: 800px; margin: 0 auto;">
+  <h4 style="color:#0b5394; font-weight: bold; margin-bottom: 20px;">
+    <i class="material-icons" style="vertical-align: middle;">camera_enhance</i> Logbook Scanner AI
+  </h4>
+  
+  <div class="card" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <div class="card-content">
+      <span class="card-title" style="font-weight: bold;">Digitalize your flights</span>
+      <p style="color: #607d8b; margin-bottom: 20px;">Upload a photo of your pilot logbook page, and AI will extract the data directly into a Google Sheet.</p>
+      
+      <div class="row">
+        <div class="col s12 m6">
+          <label>Target Spreadsheet ID (Leave blank to create a new one)</label>
+          <input type="text" id="logbookSheetId" placeholder="e.g. 1BxiMVs0XRY..." value="">
+        </div>
+      </div>
+
+      <div class="file-field input-field" style="margin-top: 30px;">
+        <div class="btn blue darken-3" style="border-radius: 8px;">
+          <span>Select Photo</span>
+          <input type="file" id="logbookImageFile" accept="image/*" capture="environment">
+        </div>
+        <div class="file-path-wrapper">
+          <input class="file-path validate" type="text" placeholder="Take a photo or upload an image">
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <button id="btnScanLogbook" class="btn-large waves-effect waves-light green darken-1" style="border-radius: 8px; font-weight: bold; width: 100%; max-width: 300px;" onclick="startLogbookScan()">
+          <i class="material-icons left">document_scanner</i> SCAN LOGBOOK
+        </button>
+      </div>
+
+      <div id="scanLoader" class="progress" style="display: none; margin-top: 20px;">
+        <div class="indeterminate"></div>
+      </div>
+      <p id="scanStatus" style="text-align: center; color: #0b5394; font-weight: bold; margin-top: 10px;"></p>
+    </div>
+  </div>
+
+  <div id="scanResults" class="card" style="display: none; border-radius: 12px; margin-top: 20px;">
+    <div class="card-content">
+      <span class="card-title" style="font-weight: bold; color: #2e7d32;">Scan Successful!</span>
+      <p id="scanResultSummary"></p>
+      <a id="sheetLink" href="#" target="_blank" class="btn-flat blue-text" style="margin-top: 10px;">Open Google Sheet</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function startLogbookScan() {
+    const fileInput = document.getElementById('logbookImageFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+      M.toast({html: 'Please select an image file first.', classes: 'red rounded'});
+      return;
+    }
+
+    const sheetId = document.getElementById('logbookSheetId').value.trim();
+    
+    document.getElementById('btnScanLogbook').disabled = true;
+    document.getElementById('scanLoader').style.display = 'block';
+    document.getElementById('scanStatus').innerText = 'Uploading image...';
+    document.getElementById('scanResults').style.display = 'none';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64Data = e.target.result.split(',')[1];
+      
+      document.getElementById('scanStatus').innerText = 'Analyzing with AI (this takes a moment)...';
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          document.getElementById('btnScanLogbook').disabled = false;
+          document.getElementById('scanLoader').style.display = 'none';
+          
+          if (response.error) {
+            document.getElementById('scanStatus').innerText = '';
+            M.toast({html: 'Error: ' + response.error, classes: 'red rounded'});
+            return;
+          }
+
+          document.getElementById('scanStatus').innerText = '';
+          document.getElementById('scanResults').style.display = 'block';
+          document.getElementById('scanResultSummary').innerText = `Successfully extracted ${response.count} flight entries!`;
+          document.getElementById('sheetLink').href = 'https://docs.google.com/spreadsheets/d/' + response.sheetId;
+          
+          // Save the sheet ID for next time if it was newly created
+          if (!sheetId && response.sheetId) {
+            document.getElementById('logbookSheetId').value = response.sheetId;
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('btnScanLogbook').disabled = false;
+          document.getElementById('scanLoader').style.display = 'none';
+          document.getElementById('scanStatus').innerText = '';
+          M.toast({html: 'Failed: ' + String(error), classes: 'red rounded'});
+        })
+        .processLogbookScan(base64Data, sheetId);
+    };
+    reader.readAsDataURL(file);
+  }
+</script>

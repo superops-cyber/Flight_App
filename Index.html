@@ -275,6 +275,9 @@
               <a class="nav-dropdown-item" id="nav-copy-duty-link" href="#" onclick="navCopyAppLink_('duty'); return false;">
                 <i class="material-icons">link</i> Copy Duty App Link
               </a>
+              <a class="nav-dropdown-item" id="nav-copy-logbook-link" href="#" onclick="navCopyAppLink_('logbook'); return false;">
+                <i class="material-icons">link</i> Copy Logbook App Link
+              </a>
               <a class="nav-dropdown-item" id="nav-copy-portal-link" href="#" onclick="navCopyAppLink_(''); return false;">
                 <i class="material-icons">link</i> Copy Portal Link
               </a>
@@ -678,7 +681,7 @@
 
     function navOpenApp_(view) {
       document.getElementById('nav-apps-menu').classList.remove('open');
-      const allowedViews = { duty: true };
+      const allowedViews = { duty: true, logbook: true };
       if (!allowedViews[String(view || '').trim()]) return;
       try {
         const url = new URL(_portalBaseUrl_());
@@ -692,7 +695,7 @@
 
     function navCopyAppLink_(view) {
       document.getElementById('nav-apps-menu').classList.remove('open');
-      const allowedViews = { '': true, duty: true };
+      const allowedViews = { '': true, duty: true, logbook: true };
       const normalized = String(view || '').trim();
       if (!Object.prototype.hasOwnProperty.call(allowedViews, normalized)) return;
       try {

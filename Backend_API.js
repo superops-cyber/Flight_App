@@ -36,8 +36,9 @@ function doGet(e) {
  const isFlightReport = view === "flightreport" || view === "postflight";
  const isHistCapture = view === "histcapture" || view === "historicalcapture" || view === "historical" || pathHasHistCapture || looseHistHint;
  const isDuty = view === "duty" || view === "dutyapp";
+ const isLogbookScanner = view === "logbook" || view === "scanner" || view === "logbookscanner";
  const pilotParamTrue = String(getQueryParam_('pilot') || '').toLowerCase() === 'true';
- const isPilot = !isDuty && !isFlightReport && !isHistCapture && (view === "dev_pilot" || view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue);
+ const isPilot = !isDuty && !isLogbookScanner && !isFlightReport && !isHistCapture && (view === "dev_pilot" || view === "pilot" || view === "flightdeck" || view === "pilotapp" || pilotParamTrue);
  const diag = String(getQueryParam_('diag') || '').toLowerCase();
  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', "yyyy-MM-dd HH:mm:ss") + ' | ' + Utilities.getUuid().slice(0, 8);
  const isDiagProbe = diag === 'probe' || diag === 'includes' || diag === '1';
@@ -55,8 +56,8 @@ function doGet(e) {
      .setMimeType(ContentService.MimeType.JSON);
  }
 
- const fileName = isDiagProbe ? 'PortalDiag' : (isFlightReport ? 'View_FlightReport' : (isHistCapture ? 'View_HistoricalCapture' : (isDuty ? 'DutyApp' : (isPilot ? 'PilotApp' : 'Index'))));
- const title = isDiagProbe ? 'Portal Diagnostics' : (isFlightReport ? 'Relatorio Pos-Voo' : (isHistCapture ? 'Captura Historico de Voos' : (isDuty ? 'Duty Time' : (isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal'))));
+ const fileName = isDiagProbe ? 'PortalDiag' : (isLogbookScanner ? 'LogbookApp' : (isFlightReport ? 'View_FlightReport' : (isHistCapture ? 'View_HistoricalCapture' : (isDuty ? 'DutyApp' : (isPilot ? 'PilotApp' : 'Index')))));
+ const title = isDiagProbe ? 'Portal Diagnostics' : (isLogbookScanner ? 'Logbook Scanner' : (isFlightReport ? 'Relatorio Pos-Voo' : (isHistCapture ? 'Captura Historico de Voos' : (isDuty ? 'Duty Time' : (isPilot ? 'Pilot Flight Deck' : 'Flight Ops Portal')))));
 
  const template = HtmlService.createTemplateFromFile(fileName);
  template.webAppUrl = ScriptApp.getService().getUrl();
@@ -127,6 +128,18 @@ function getPortalProbeHtml(part) {
 
 function doPost(e) {
   var output = { success: false, error: 'Unsupported request' };
+  
+  // Define allowed frontend API actions and map them to backend functions
+  var allowedActions = {
+    'ingestHistoricalFlightDocument': ingestHistoricalFlightDocument,
+    'testHistoricalGeminiConnectivity': testHistoricalGeminiConnectivity,
+    'getPilotStartupData': getPilotStartupData,
+    'getDropdownData': getDropdownData,
+    'getPilotAirportData': getPilotAirportData,
+    'getPilotAirportDataChunk': getPilotAirportDataChunk
+    // Add more allowed actions here as needed
+  };
+
   try {
     var raw = String((e && e.postData && e.postData.contents) || '').trim();
     if (!raw) {
@@ -134,18 +147,22 @@ function doPost(e) {
     } else {
       var body = JSON.parse(raw);
       var action = String((body && body.action) || '').trim();
-      if (action === 'ingestHistoricalFlightDocument') {
-        output = ingestHistoricalFlightDocument((body && body.payload) || {});
-      } else if (action === 'testHistoricalGeminiConnectivity') {
-        output = testHistoricalGeminiConnectivity();
+      var payload = body.payload; // Payload can be anything
+
+      if (allowedActions.hasOwnProperty(action)) {
+        // Execute the mapped function, passing the payload if it exists
+        var result = allowedActions[action](payload);
+        output = { success: true, data: result };
       } else {
-        output = { success: false, error: 'Unknown action: ' + action };
+        output = { success: false, error: 'Unknown or unauthorized action: ' + action };
       }
     }
   } catch (err) {
     output = { success: false, error: err && err.message ? err.message : String(err) };
   }
 
+  // To prevent CORS errors from an external PWA, we need to return proper headers.
+  // ContentService JSON responses handle simple CORS automatically.
   return ContentService
     .createTextOutput(JSON.stringify(output))
     .setMimeType(ContentService.MimeType.JSON);
