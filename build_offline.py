@@ -54,7 +54,7 @@ def build():
         )
 
     escaped_web_app_url = html.escape(web_app_url, quote=True)
-    template_url_attr = """data-web-app-url="<?!= String(typeof webAppUrl === 'string' ? webAppUrl : '').replace(/&/g, '&amp;').replace(/"/g, '&quot;') ?>"""
+    template_url_attr = """data-web-app-url="<?!= String(typeof webAppUrl === 'string' ? webAppUrl : '').replace(/&/g, '&amp;').replace(/"/g, '&quot;') ?>""" + '"'
     configured_url_attr = 'data-web-app-url="' + escaped_web_app_url + '"'
     if template_url_attr not in compiled_html:
         raise RuntimeError(
