@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import html
 
 def compile_gas_includes(src_filename):
     with open(src_filename, 'r', encoding='utf-8', errors='ignore') as f:
@@ -42,53 +43,136 @@ def build():
     
     print("Compiling PilotApp.html...")
     compiled_html = compile_gas_includes('PilotApp.html')
+
+    # A static PWA cannot evaluate Apps Script template expressions. Require
+    # the active deployment URL explicitly at build time instead of silently
+    # generating a bundle with unresolved template syntax.
+    web_app_url = os.environ.get('FLIGHT_APP_WEB_APP_URL', '').strip()
+    if not web_app_url.startswith('https://script.google.com/') or not web_app_url.endswith('/exec'):
+        raise RuntimeError(
+            'Set FLIGHT_APP_WEB_APP_URL to the active Apps Script /exec URL before building.'
+        )
+
+    escaped_web_app_url = html.escape(web_app_url, quote=True)
+    compiled_html, config_replacements = re.subn(
+        r'data-web-app-url="[^"]*"(?=\\s+style="display:none;")',
+        'data-web-app-url="' + escaped_web_app_url + '"',
+        compiled_html,
+        count=1
+    )
+    if config_replacements != 1:
+        raise RuntimeError(
+            'Could not locate the app-config data-web-app-url attribute in compiled PilotApp.html.'
+        )
+
+    if '<?!=' in compiled_html or '<?= ' in compiled_html:
+        raise RuntimeError(
+            'Unresolved Apps Script template syntax remains in the static PWA build.'
+        )
     
-    # Inject Mock google.script.run Proxy right after <script> in the compiled HTML
+    # Static PWA compatibility bridge. It must call HTTP directly and must
+    # never route through apiCall(), which would recurse back into this bridge.
     proxy_script = """
-    // PWA OFFLINE MOCK FOR GOOGLE.SCRIPT.RUN
-    if (typeof google === 'undefined') {
-      console.log("PWA Mode: Initializing google.script.run Proxy interceptor.");
-      window.google = {
-        script: {
-          run: (function() {
-            class RunProxy {
-              constructor() {
-                this._success = null;
-                this._failure = null;
-                
-                return new Proxy(this, {
-                  get: (target, prop) => {
-                    if (prop === 'withSuccessHandler') {
-                      return (fn) => { target._success = fn; return target; };
-                    }
-                    if (prop === 'withFailureHandler') {
-                      return (fn) => { target._failure = fn; return target; };
-                    }
-                    
-                    // Route any other function call directly to fetch apiCall()
-                    return async (...args) => {
-                      try {
-                        const payload = args.length > 0 ? args[0] : null;
-                        const result = await apiCall(prop, payload);
-                        if (target._success) target._success(result);
-                      } catch (err) {
-                        if (target._failure) target._failure(err);
-                      }
-                    };
-                  }
-                });
-              }
+    // PWA HTTP bridge: preserve the google.script.run callback style used by
+    // the shared Pilot UI, but send requests directly to the HTTP transport.
+    (function() {
+      function pwaHttpCall(action, args) {
+        var url = String(
+          (document.getElementById('app-config') &&
+           document.getElementById('app-config').getAttribute('data-web-app-url')) || ''
+        ).trim();
+        if (!url) return Promise.reject(new Error('PWA is missing its Apps Script /exec URL.'));
+        var callArgs = Array.isArray(args) ? args : [];
+        var requestBody = {
+          action: String(action || ''),
+          args: callArgs,
+          payload: callArgs.length ? callArgs[0] : null
+        };
+        return fetch(url, {
+          method: 'POST',
+          credentials: 'include',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(requestBody)
+        }).then(function(response) {
+          return response.text().then(function(raw) {
+            var result;
+            try {
+              result = JSON.parse(raw);
+            } catch (parseError) {
+              throw new Error(
+                'Apps Script returned a non-JSON response (HTTP ' +
+                response.status + '). This may be an authentication or cross-origin response issue.'
+              );
             }
-            return new RunProxy();
-          })()
+            if (!response.ok) {
+              throw new Error('Apps Script HTTP ' + response.status);
+            }
+            if (!result || result.success !== true) {
+              throw new Error(result && result.error ? result.error : 'Apps Script request failed.');
+            }
+            return result.data;
+          });
+        });
+      }
+
+      if (!(window.google && window.google.script && window.google.script.run)) {
+        window.google = window.google || {};
+        window.google.script = window.google.script || {};
+
+        function makeRunner(successHandler, failureHandler) {
+          var runner = {
+            withSuccessHandler: function(fn) {
+              return makeRunner(typeof fn === 'function' ? fn : null, failureHandler);
+            },
+            withFailureHandler: function(fn) {
+              return makeRunner(successHandler, typeof fn === 'function' ? fn : null);
+            }
+          };
+          return new Proxy(runner, {
+            get: function(target, property) {
+              if (property in target) return target[property];
+              if (typeof property !== 'string') return target[property];
+              return function() {
+                var args = Array.prototype.slice.call(arguments);
+                pwaHttpCall(property, args).then(function(value) {
+                  if (successHandler) successHandler(value);
+                }).catch(function(error) {
+                  if (failureHandler) failureHandler(error);
+                  else console.error('PWA backend call failed: ' + property, error);
+                });
+              };
+            }
+          });
         }
-      };
-    }
+
+        window.google.script.run = makeRunner(null, null);
+      }
+
+      window.__PWA_HTTP_TRANSPORT__ = pwaHttpCall;
+    })();
     """
-    
-    # Locate <script> tag and inject
+
+    # The PWA bridge above is the transport; navigator.onLine only indicates
+    # that the browser has a network connection, not that Apps Script replied.
+    # Existing synchronous call sites use this as "attempt server calls".
+    server_check = re.compile(
+        r'function isServerAvailable\\(\\)\\s*\\{\\s*return Boolean\\([\\s\\S]*?\\);\\s*\\}',
+        re.MULTILINE
+    )
+    compiled_html, server_check_replacements = server_check.subn(
+        'function isServerAvailable() { return Boolean(navigator.onLine && WEB_APP_URL); }',
+        compiled_html,
+        count=1
+    )
+    if server_check_replacements != 1:
+        raise RuntimeError('Could not replace isServerAvailable() for the static PWA build.')
+
+    # Inject the PWA bridge into the first inline script block.
     if '<script>' in compiled_html:
-        compiled_html = compiled_html.replace('<script>', f'<script>\n{proxy_script}\n', 1)
+        compiled_html = compiled_html.replace('<script>', '<script>\\n' + proxy_script + '\\n', 1)
+    else:
+        raise RuntimeError('Could not find an inline script block for the PWA transport bridge.')
     
     with open(f"{build_dir}/index.html", 'w', encoding='utf-8') as f:
         f.write(compiled_html)
