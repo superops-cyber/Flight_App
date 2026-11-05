@@ -136,7 +136,8 @@ function doPost(e) {
     'getPilotStartupData': getPilotStartupData,
     'getDropdownData': getDropdownData,
     'getPilotAirportData': getPilotAirportData,
-    'getPilotAirportDataChunk': getPilotAirportDataChunk
+    'getPilotAirportDataChunk': getPilotAirportDataChunk,
+    'pwaHealthCheck': function() { return { ok: true }; }
     // Add more allowed actions here as needed
   };
 
