@@ -73,9 +73,11 @@ def build():
     # Static PWA compatibility bridge. It must call HTTP directly and must
     # never route through apiCall(), which would recurse back into this bridge.
     proxy_script = """
-    // PWA HTTP bridge: preserve the google.script.run callback style used by
-    // the shared Pilot UI, but send requests directly to the HTTP transport.
+    // PWA HTTP bridge. Expose the google.script.run compatibility facade
+    // only after a real Apps Script health check succeeds, so offline
+    // branches continue to detect an unavailable backend.
     (function() {
+      var pwaRunner = null;
       function pwaHttpCall(action, args) {
         var url = String(
           (document.getElementById('app-config') &&
@@ -83,11 +85,7 @@ def build():
         ).trim();
         if (!url) return Promise.reject(new Error('PWA is missing its Apps Script /exec URL.'));
         var callArgs = Array.isArray(args) ? args : [];
-        var requestBody = {
-          action: String(action || ''),
-          args: callArgs,
-          payload: callArgs.length ? callArgs[0] : null
-        };
+        var requestBody = { action: String(action || ''), args: callArgs, payload: callArgs.length ? callArgs[0] : null };
         return fetch(url, {
           method: 'POST',
           credentials: 'include',
@@ -97,70 +95,66 @@ def build():
         }).then(function(response) {
           return response.text().then(function(raw) {
             var result;
-            try {
-              result = JSON.parse(raw);
-            } catch (parseError) {
-              throw new Error(
-                'Apps Script returned a non-JSON response (HTTP ' +
-                response.status + '). This may be an authentication or cross-origin response issue.'
-              );
-            }
-            if (!response.ok) {
-              throw new Error('Apps Script HTTP ' + response.status);
-            }
-            if (!result || result.success !== true) {
-              throw new Error(result && result.error ? result.error : 'Apps Script request failed.');
-            }
+            try { result = JSON.parse(raw); }
+            catch (parseError) { throw new Error('Apps Script returned non-JSON (HTTP ' + response.status + '). Check Google sign-in and cross-origin access.'); }
+            if (!response.ok) throw new Error('Apps Script HTTP ' + response.status);
+            if (!result || result.success !== true) throw new Error(result && result.error ? result.error : 'Apps Script request failed.');
             return result.data;
           });
+        }).catch(function(error) {
+          window.__PWA_SERVER_READY__ = false;
+          removeBridge();
+          throw error;
         });
       }
-
-      if (!(window.google && window.google.script && window.google.script.run)) {
+      function makeRunner(successHandler, failureHandler) {
+        var runner = {
+          withSuccessHandler: function(fn) { return makeRunner(typeof fn === 'function' ? fn : null, failureHandler); },
+          withFailureHandler: function(fn) { return makeRunner(successHandler, typeof fn === 'function' ? fn : null); }
+        };
+        return new Proxy(runner, {
+          get: function(target, property) {
+            if (property in target) return target[property];
+            if (typeof property !== 'string') return target[property];
+            return function() {
+              var args = Array.prototype.slice.call(arguments);
+              pwaHttpCall(property, args).then(function(value) { if (successHandler) successHandler(value); })
+                .catch(function(error) { if (failureHandler) failureHandler(error); else console.error('PWA backend call failed: ' + property, error); });
+            };
+          }
+        });
+      }
+      function installBridge() {
+        if (window.google && window.google.script && window.google.script.run && !window.__PWA_HTTP_RUNNER__) return;
         window.google = window.google || {};
         window.google.script = window.google.script || {};
-
-        function makeRunner(successHandler, failureHandler) {
-          var runner = {
-            withSuccessHandler: function(fn) {
-              return makeRunner(typeof fn === 'function' ? fn : null, failureHandler);
-            },
-            withFailureHandler: function(fn) {
-              return makeRunner(successHandler, typeof fn === 'function' ? fn : null);
-            }
-          };
-          return new Proxy(runner, {
-            get: function(target, property) {
-              if (property in target) return target[property];
-              if (typeof property !== 'string') return target[property];
-              return function() {
-                var args = Array.prototype.slice.call(arguments);
-                pwaHttpCall(property, args).then(function(value) {
-                  if (successHandler) successHandler(value);
-                }).catch(function(error) {
-                  if (failureHandler) failureHandler(error);
-                  else console.error('PWA backend call failed: ' + property, error);
-                });
-              };
-            }
-          });
-        }
-
-        window.google.script.run = makeRunner(null, null);
+        pwaRunner = makeRunner(null, null);
+        window.google.script.run = pwaRunner;
+        window.__PWA_HTTP_RUNNER__ = pwaRunner;
       }
-
-      window.__PWA_SERVER_READY__ = false;
+      function removeBridge() {
+        if (window.__PWA_HTTP_RUNNER__ && window.google && window.google.script && window.google.script.run === window.__PWA_HTTP_RUNNER__) {
+          delete window.google.script.run;
+        }
+        window.__PWA_HTTP_RUNNER__ = null;
+        pwaRunner = null;
+      }
       function probeBackend() {
         window.__PWA_SERVER_READY__ = false;
+        removeBridge();
         pwaHttpCall('pwaHealthCheck', []).then(function() {
           window.__PWA_SERVER_READY__ = true;
-        }).catch(function() {
-          window.__PWA_SERVER_READY__ = false;
+          installBridge();
+          window.dispatchEvent(new Event('pwa-backend-ready'));
+        }).catch(function(error) {
+          console.warn('PWA backend health check failed:', error);
         });
       }
+      window.__PWA_SERVER_READY__ = false;
       window.addEventListener('online', probeBackend);
-      probeBackend();
+      window.addEventListener('offline', function() { window.__PWA_SERVER_READY__ = false; removeBridge(); });
       window.__PWA_HTTP_TRANSPORT__ = pwaHttpCall;
+      probeBackend();
     })();
     """
 
@@ -178,6 +172,18 @@ def build():
     )
     if server_check_replacements != 1:
         raise RuntimeError('Could not replace isServerAvailable() for the static PWA build.')
+
+    release_check = re.compile(
+        r'function _releaseDispatchOnline_\(\)\s*\{\s*return Boolean\([\s\S]*?\);\s*\}',
+        re.MULTILINE
+    )
+    compiled_html, release_check_replacements = release_check.subn(
+        'function _releaseDispatchOnline_() { return Boolean(window.__PWA_SERVER_READY__); }',
+        compiled_html,
+        count=1
+    )
+    if release_check_replacements != 1:
+        raise RuntimeError('Could not replace _releaseDispatchOnline_() for the static PWA build.')
 
     # Inject the PWA bridge into the first inline script block.
     if '<script>' in compiled_html:
