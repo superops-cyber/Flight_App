@@ -147,11 +147,15 @@ function doPost(e) {
     } else {
       var body = JSON.parse(raw);
       var action = String((body && body.action) || '').trim();
-      var payload = body.payload; // Payload can be anything
+      var payload = body.payload; // Backward-compatible single-payload format
+      var args = (body && Array.isArray(body.args))
+        ? body.args
+        : [payload];
 
-      if (allowedActions.hasOwnProperty(action)) {
-        // Execute the mapped function, passing the payload if it exists
-        var result = allowedActions[action](payload);
+      if (Object.prototype.hasOwnProperty.call(allowedActions, action)) {
+        // The HTTP bridge may send positional arguments. The allowlist remains
+        // deliberately restrictive; adding an action requires separate review.
+        var result = allowedActions[action].apply(null, args);
         output = { success: true, data: result };
       } else {
         output = { success: false, error: 'Unknown or unauthorized action: ' + action };
