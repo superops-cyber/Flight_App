@@ -86,6 +86,7 @@ def build():
         if (!url) return Promise.reject(new Error('PWA is missing its Apps Script /exec URL.'));
         var callArgs = Array.isArray(args) ? args : [];
         var requestBody = { action: String(action || ''), args: callArgs, payload: callArgs.length ? callArgs[0] : null };
+        var receivedValidResponse = false;
         return fetch(url, {
           method: 'POST',
           credentials: 'include',
@@ -98,12 +99,15 @@ def build():
             try { result = JSON.parse(raw); }
             catch (parseError) { throw new Error('Apps Script returned non-JSON (HTTP ' + response.status + '). Check Google sign-in and cross-origin access.'); }
             if (!response.ok) throw new Error('Apps Script HTTP ' + response.status);
+            receivedValidResponse = true;
             if (!result || result.success !== true) throw new Error(result && result.error ? result.error : 'Apps Script request failed.');
             return result.data;
           });
         }).catch(function(error) {
-          window.__PWA_SERVER_READY__ = false;
-          removeBridge();
+          if (!receivedValidResponse) {
+            window.__PWA_SERVER_READY__ = false;
+            removeBridge();
+          }
           throw error;
         });
       }
