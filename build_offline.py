@@ -54,16 +54,13 @@ def build():
         )
 
     escaped_web_app_url = html.escape(web_app_url, quote=True)
-    compiled_html, config_replacements = re.subn(
-        r'(data-web-app-url=")[^"]*(")',
-        r'\1' + escaped_web_app_url + r'\2',
-        compiled_html,
-        count=1
-    )
-    if config_replacements != 1:
+    template_url_attr = """data-web-app-url="<?!= String(typeof webAppUrl === 'string' ? webAppUrl : '').replace(/&/g, '&amp;').replace(/"/g, '&quot;') ?>"""
+    configured_url_attr = 'data-web-app-url="' + escaped_web_app_url + '"'
+    if template_url_attr not in compiled_html:
         raise RuntimeError(
-            'Could not locate the app-config data-web-app-url attribute in compiled PilotApp.html.'
+            'Could not locate the expected app-config webAppUrl template expression in PilotApp.html.'
         )
+    compiled_html = compiled_html.replace(template_url_attr, configured_url_attr, 1)
 
     if '<?!=' in compiled_html or '<?= ' in compiled_html:
         raise RuntimeError(
