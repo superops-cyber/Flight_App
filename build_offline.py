@@ -55,8 +55,8 @@ def build():
 
     escaped_web_app_url = html.escape(web_app_url, quote=True)
     compiled_html, config_replacements = re.subn(
-        r'data-web-app-url="[^"]*"(?=\\s+style="display:none;")',
-        'data-web-app-url="' + escaped_web_app_url + '"',
+        r'(data-web-app-url=")[^"]*(")',
+        r'\1' + escaped_web_app_url + r'\2',
         compiled_html,
         count=1
     )
@@ -149,6 +149,17 @@ def build():
         window.google.script.run = makeRunner(null, null);
       }
 
+      window.__PWA_SERVER_READY__ = false;
+      function probeBackend() {
+        window.__PWA_SERVER_READY__ = false;
+        pwaHttpCall('pwaHealthCheck', []).then(function() {
+          window.__PWA_SERVER_READY__ = true;
+        }).catch(function() {
+          window.__PWA_SERVER_READY__ = false;
+        });
+      }
+      window.addEventListener('online', probeBackend);
+      probeBackend();
       window.__PWA_HTTP_TRANSPORT__ = pwaHttpCall;
     })();
     """
@@ -157,11 +168,11 @@ def build():
     # that the browser has a network connection, not that Apps Script replied.
     # Existing synchronous call sites use this as "attempt server calls".
     server_check = re.compile(
-        r'function isServerAvailable\\(\\)\\s*\\{\\s*return Boolean\\([\\s\\S]*?\\);\\s*\\}',
+        r'function isServerAvailable\(\)\s*\{\s*return Boolean\([\s\S]*?\);\s*\}',
         re.MULTILINE
     )
     compiled_html, server_check_replacements = server_check.subn(
-        'function isServerAvailable() { return Boolean(navigator.onLine && WEB_APP_URL); }',
+        'function isServerAvailable() { return Boolean(window.__PWA_SERVER_READY__); }',
         compiled_html,
         count=1
     )
@@ -170,7 +181,7 @@ def build():
 
     # Inject the PWA bridge into the first inline script block.
     if '<script>' in compiled_html:
-        compiled_html = compiled_html.replace('<script>', '<script>\\n' + proxy_script + '\\n', 1)
+        compiled_html = compiled_html.replace('<script>', '<script>\n' + proxy_script + '\n', 1)
     else:
         raise RuntimeError('Could not find an inline script block for the PWA transport bridge.')
     
