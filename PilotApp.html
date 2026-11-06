@@ -524,7 +524,318 @@
     const DUTY_PROMPTS_ENABLED = false;
     const NEW_FLIGHT_URL = '';
     const WEB_APP_URL = String((document.getElementById('app-config') && document.getElementById('app-config').getAttribute('data-web-app-url')) || '');
+    const DEMO_MODE = (() => {
+      try {
+        const url = new URL(window.location.href);
+        return String(url.searchParams.get('demo') || '').trim() === '1';
+      } catch (e) {
+        return /(?:[?&])demo=1(?:[&]|$)/.test(String(window.location.search || ''));
+      }
+    })();
+    const DEMO_STORAGE_PREFIX = 'mba_demo_';
     let _pilotClockTimer = null;
+
+    function isDemoModeEnabled() {
+      return !!DEMO_MODE;
+    }
+
+    function demoStorageKey(rawKey) {
+      const key = String(rawKey || '');
+      if (!isDemoModeEnabled()) return key;
+      if (!key) return key;
+      if (key.indexOf(DEMO_STORAGE_PREFIX) === 0) return key;
+      if (key.indexOf('mba_') === 0) return `${DEMO_STORAGE_PREFIX}${key.slice(4)}`;
+      return `${DEMO_STORAGE_PREFIX}${key}`;
+    }
+
+    function buildDemoAircraftData() {
+      return [
+        {
+          reg: 'PP-ACF',
+          aircraftType: 'PC12',
+          model: 'Pilatus PC-12 NG',
+          mtow: 4750,
+          maxFuel: 1160,
+          burn: 215,
+          maxPax: 6,
+          License_Required: 'MNTE',
+          currentTach: 1832.4,
+          hoursToInspection: 94.1,
+          currentHours: 1832.4,
+          status: 'DEMO'
+        }
+      ];
+    }
+
+    function buildDemoEnvelopeData() {
+      return {
+        aircraft: 'PP-ACF',
+        aircraftType: 'PC12',
+        cachedAt: new Date().toISOString(),
+        envelopeData: [
+          { AIRCRAFT_TYPE: 'PC12', POINT_SEQUENCE: 1, CG_Arm_X: 80.5, Weight_Y: 2100 },
+          { AIRCRAFT_TYPE: 'PC12', POINT_SEQUENCE: 2, CG_Arm_X: 92.0, Weight_Y: 2850 },
+          { AIRCRAFT_TYPE: 'PC12', POINT_SEQUENCE: 3, CG_Arm_X: 101.5, Weight_Y: 3300 },
+          { AIRCRAFT_TYPE: 'PC12', POINT_SEQUENCE: 4, CG_Arm_X: 109.0, Weight_Y: 2950 }
+        ]
+      };
+    }
+
+    function buildDemoMissionData() {
+      return {
+        id: 'DEMO-2026-11-06-001',
+        date: '2026-11-06',
+        acft: 'PP-ACF',
+        pilot: 'Ana Silva',
+        copilot: 'R. Oliveira',
+        type: 'DEMO MISSION',
+        notes: 'Demo mission for isolated offline pilot workflow.',
+        meta: {
+          acft: 'PP-ACF',
+          pilot: 'Ana Silva',
+          copilot: 'R. Oliveira',
+          notes: 'Demo mission for isolated offline pilot workflow.',
+          training: { code: 'VFR-AB', route: 'SBGR,SBRJ' }
+        },
+        legs: [{
+          flightLegId: 'DEMO-2026-11-06-001-01',
+          from: 'SBGR',
+          to: 'SBRJ',
+          route: 'SBGR-SBRJ',
+          waypoints: ['SBGR', 'SBSP', 'SBRJ'],
+          time: 2.9,
+          groundTime: 0.6,
+          dist: 221.5,
+          fuel: 680,
+          takeoffFuel: 1180,
+          landingFuel: 420,
+          limit: 3200,
+          limitType: 'MTOW',
+          pax: []
+        }]
+      };
+    }
+
+    function buildDemoStartupData() {
+      const mission = buildDemoMissionData();
+      const aircraft = buildDemoAircraftData();
+      const airports = [
+        { icao: 'SBGR', nome: 'Guarulhos Intl', lat: -23.4356, lon: -46.4731, fuelAvailable: 'JET A1', runwayIdent: '09L/27R', runwayLength: '3600', runwayWidth: '45', runwaySurfaceActual: 'asphalt' },
+        { icao: 'SBSP', nome: 'Congonhas', lat: -23.5000, lon: -46.6167, fuelAvailable: 'JET A1', runwayIdent: '15/33', runwayLength: '1800', runwayWidth: '35', runwaySurfaceActual: 'asphalt' },
+        { icao: 'SBRJ', nome: 'Rio Santos Dumont', lat: -22.8100, lon: -43.2506, fuelAvailable: 'JET A1', runwayIdent: '02R/20L', runwayLength: '2200', runwayWidth: '45', runwaySurfaceActual: 'asphalt' }
+      ];
+      return {
+        nextId: 'DEMO-2026-11-06-001',
+        pilots: [{
+          name: 'Ana Silva',
+          weight: 72,
+          Medical_Expiry: '2026-12-12',
+          MNTE_Validity: '2026-12-12',
+          MNAF_Validity: '2026-12-12'
+        }],
+        pilotDestinationChecks: {},
+        funds: [],
+        rates: ['1/5', '2/5', '1/2', '3/5', '4/5', '1/1'],
+        fuelCaches: [{ icao: 'SBGR', location: 'Guarulhos', qty: 2400, type: 'JET A1' }],
+        syllabus: [{
+          code: 'VFR-AB',
+          description: 'Demo VFR route validation',
+          aircraftType: 'PC12',
+          hours: 2.5,
+          plannedLandings: 1,
+          fuel: 120,
+          requiredBallast: 0,
+          route: 'SBGR-SBSP-SBRJ',
+          runwayCheckout: 'RUNWAY 09L',
+          lessonPlanJson: JSON.stringify({ stops: ['SBGR', 'SBSP', 'SBRJ'] }),
+          plannedStopsJson: JSON.stringify(['SBGR', 'SBSP', 'SBRJ']),
+          maneuversJson: JSON.stringify({})
+        }],
+        waypoints: [
+          { wp_id: 'SBGR', lat: '-23.4356', lon: '-46.4731', type: 'APT' },
+          { wp_id: 'SBSP', lat: '-23.5000', lon: '-46.6167', type: 'APT' },
+          { wp_id: 'SBRJ', lat: '-22.8100', lon: '-43.2506', type: 'APT' }
+        ],
+        routes: [{ rowNumber: 2, origin: 'SBGR', destination: 'SBRJ', waypoint_list: 'SBGR,SBSP,SBRJ' }],
+        airports: airports,
+        aircraft: aircraft,
+        passengers: [],
+        passengerConsentConfig: { requireConsent: false },
+        missions: [mission]
+      };
+    }
+
+    function demoPersistMission(payload) {
+      const mission = (payload && typeof payload === 'object') ? payload : {};
+      const id = String(mission.id || mission.missionId || 'DEMO-' + Date.now()).trim();
+      const enriched = Object.assign({
+        id: id,
+        date: mission.date || new Date().toISOString().slice(0, 10),
+        acft: mission.acft || 'PP-ACF',
+        pilot: mission.pilot || 'Ana Silva',
+        meta: {
+          acft: mission.acft || 'PP-ACF',
+          pilot: mission.pilot || 'Ana Silva',
+          copilot: mission.copilot || '',
+          notes: mission.notes || ''
+        },
+        legs: Array.isArray(mission.legs) ? mission.legs : []
+      }, mission);
+      const list = Array.isArray(cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS)) ? cacheGet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS) : [];
+      const job = {
+        id: enriched.id,
+        date: enriched.date,
+        acft: enriched.acft,
+        pilot: enriched.pilot,
+        from: (Array.isArray(enriched.legs) && enriched.legs[0] && enriched.legs[0].from) ? enriched.legs[0].from : '',
+        to: (Array.isArray(enriched.legs) && enriched.legs[0] && enriched.legs[0].to) ? enriched.legs[0].to : '',
+        status: 'DEMO_OK'
+      };
+      const deduped = list.filter(item => String(item.id || '') !== String(enriched.id));
+      deduped.unshift(job);
+      cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, deduped);
+      cacheSet(missionCacheKey(enriched.id), enriched);
+      return { success: true, missionId: enriched.id, demo: true, storedLocally: true };
+    }
+
+    function demoLocalOutboxAction(record) {
+      const items = getOutboxItems();
+      const action = (record && typeof record === 'object') ? record : {};
+      items.push({
+        id: `demo_outbox_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        method: String(action.method || 'demoAction'),
+        args: Array.isArray(action.args) ? action.args : [],
+        label: String(action.label || action.method || 'demoAction'),
+        queuedAt: new Date().toISOString(),
+        status: 'demo_local',
+        attempts: 0,
+        lastError: ''
+      });
+      setOutboxItems(items);
+    }
+
+    function demoHandleBackendCall(actionName, args) {
+      const method = String(actionName || '').trim();
+      const mission = buildDemoMissionData();
+      const startup = buildDemoStartupData();
+      const envelope = buildDemoEnvelopeData();
+      const localArgs = Array.isArray(args) ? args : [];
+
+      if (method === 'getPilotStartupData' || method === 'getDropdownData') {
+        return startup;
+      }
+      if (method === 'getPilotAirportData') {
+        return { airports: startup.airports };
+      }
+      if (method === 'getPilotAirportDataChunk') {
+        const offset = Math.max(0, Number(localArgs[0]) || 0);
+        const limit = Math.max(1, Number(localArgs[1]) || 1200);
+        const page = startup.airports.slice(offset, offset + limit);
+        return { airports: page, nextOffset: offset + page.length, done: offset + page.length >= startup.airports.length, total: startup.airports.length };
+      }
+      if (method === 'getScheduledMissions') {
+        return [mission];
+      }
+      if (method === 'getMissionById') {
+        const target = String(localArgs[0] || '').trim();
+        return target && String(mission.id || '') === target ? mission : null;
+      }
+      if (method === 'getWbEnvelopeByAircraft') {
+        const reg = String(localArgs[0] || '').trim().toUpperCase();
+        return reg === 'PP-ACF' ? envelope : { aircraft: reg, aircraftType: reg, cachedAt: new Date().toISOString(), envelopeData: [
+          { AIRCRAFT_TYPE: reg, POINT_SEQUENCE: 1, CG_Arm_X: 80, Weight_Y: 2000 },
+          { AIRCRAFT_TYPE: reg, POINT_SEQUENCE: 2, CG_Arm_X: 92, Weight_Y: 2500 },
+          { AIRCRAFT_TYPE: reg, POINT_SEQUENCE: 3, CG_Arm_X: 105, Weight_Y: 3000 }
+        ] };
+      }
+      if (method === 'getAircraftDocsForTools') {
+        return { success: true, docs: [] };
+      }
+      if (method === 'saveMission' || method === 'saveMissionToLog' || method === 'saveWBToLog' || method === 'savePilotDutyReport') {
+        const payload = localArgs[0] || {};
+        return demoPersistMission(payload && payload.id ? payload : (payload.payload || payload));
+      }
+      if (method === 'saveMissionFplToDrive') {
+        return { success: true, demo: true, storedLocally: true };
+      }
+      if (method === 'addWaypointToDatabase') {
+        return { success: true, demo: true, storedLocally: true };
+      }
+      return { success: true, demo: true, action: method };
+    }
+
+    function buildDemoGoogleScriptRunProxy() {
+      const state = { successHandler: null, failureHandler: null };
+      const proxy = new Proxy(function() {}, {
+        get: function(target, prop) {
+          if (prop === 'withSuccessHandler') {
+            return function(fn) {
+              state.successHandler = fn;
+              return proxy;
+            };
+          }
+          if (prop === 'withFailureHandler') {
+            return function(fn) {
+              state.failureHandler = fn;
+              return proxy;
+            };
+          }
+          if (prop === 'then' || prop === 'catch' || prop === 'finally') {
+            return undefined;
+          }
+          return function() {
+            const args = Array.prototype.slice.call(arguments);
+            try {
+              const result = demoHandleBackendCall(String(prop), args);
+              if (result && result.error && typeof state.failureHandler === 'function') {
+                state.failureHandler(new Error(result.error));
+              } else if (typeof state.successHandler === 'function') {
+                state.successHandler(result);
+              }
+            } catch (err) {
+              if (typeof state.failureHandler === 'function') {
+                state.failureHandler(err);
+              }
+            }
+            return proxy;
+          };
+        }
+      });
+      return proxy;
+    }
+
+    function applyDemoModeBootstrap() {
+      if (!isDemoModeEnabled()) return;
+      window.__DEMO_MODE__ = true;
+      if (!window.google) window.google = {};
+      if (!window.google.script) window.google.script = {};
+      window.google.script.run = buildDemoGoogleScriptRunProxy();
+      const seeded = buildDemoStartupData();
+      cacheSet(OFFLINE_CACHE_KEYS.DROPDOWN_DATA, seeded);
+      const mission = buildDemoMissionData();
+      cacheSet(OFFLINE_CACHE_KEYS.SCHEDULED_MISSIONS, [mission]);
+      cacheSet(missionCacheKey(mission.id), mission);
+      cacheSet(`mba_cache_envelope_PP-ACF`, buildDemoEnvelopeData());
+      const indicator = document.getElementById('demo-mode-indicator');
+      if (!indicator && document.body) {
+        const pill = document.createElement('div');
+        pill.id = 'demo-mode-indicator';
+        pill.textContent = 'DEMO MODE';
+        pill.style.position = 'fixed';
+        pill.style.top = '14px';
+        pill.style.right = '18px';
+        pill.style.zIndex = '99999';
+        pill.style.padding = '6px 10px';
+        pill.style.borderRadius = '999px';
+        pill.style.background = '#ffb300';
+        pill.style.color = '#1a1a1a';
+        pill.style.fontSize = '11px';
+        pill.style.fontWeight = '900';
+        pill.style.letterSpacing = '0.12em';
+        pill.style.boxShadow = '0 4px 12px rgba(0,0,0,0.18)';
+        document.body.appendChild(pill);
+      }
+    }
 
     function _pilotClockText_(timeZone) {
       return new Intl.DateTimeFormat('en-GB', {
@@ -1519,6 +1830,7 @@
     }
 
     function cacheSet(key, value) {
+      const storageKey = isDemoModeEnabled() ? demoStorageKey(key) : key;
       const envelope = {
         savedAt: Date.now(),
         value: value
@@ -1526,22 +1838,22 @@
       const serialized = JSON.stringify(envelope);
 
       try {
-        localStorage.setItem(key, serialized);
+        localStorage.setItem(storageKey, serialized);
         if (isMissionCacheKey(key)) {
           pruneMissionCache(OFFLINE_CACHE_MAX_MISSIONS);
         }
         return true;
       } catch (e) {
-        console.warn('cacheSet failed, trying prune', key, e);
+        console.warn('cacheSet failed, trying prune', storageKey, e);
         try {
           pruneMissionCache(Math.max(10, OFFLINE_CACHE_MAX_MISSIONS - 10));
-          localStorage.setItem(key, serialized);
+          localStorage.setItem(storageKey, serialized);
           if (isMissionCacheKey(key)) {
             pruneMissionCache(OFFLINE_CACHE_MAX_MISSIONS);
           }
           return true;
         } catch (retryErr) {
-          console.warn('cacheSet retry failed', key, retryErr);
+          console.warn('cacheSet retry failed', storageKey, retryErr);
           return false;
         }
       }
@@ -1549,7 +1861,8 @@
 
     function getCacheEnvelope(key) {
       try {
-        const raw = localStorage.getItem(key);
+        const storageKey = isDemoModeEnabled() ? demoStorageKey(key) : key;
+        const raw = localStorage.getItem(storageKey);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         return parsed && typeof parsed === 'object' ? parsed : null;
@@ -1559,7 +1872,9 @@
     }
 
     function isMissionCacheKey(key) {
-      return String(key || '').startsWith('mba_cache_mission_');
+      const normalized = String(key || '');
+      const demoPrefix = `${DEMO_STORAGE_PREFIX}cache_mission_`;
+      return normalized.startsWith('mba_cache_mission_') || normalized.startsWith(demoPrefix);
     }
 
     function listMissionCacheEntries() {
@@ -1600,12 +1915,13 @@
 
     function cacheGet(key) {
       try {
-        const raw = localStorage.getItem(key);
+        const storageKey = isDemoModeEnabled() ? demoStorageKey(key) : key;
+        const raw = localStorage.getItem(storageKey);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         return parsed && Object.prototype.hasOwnProperty.call(parsed, 'value') ? parsed.value : null;
       } catch (e) {
-        console.warn('cacheGet failed', key, e);
+        console.warn('cacheGet failed', storageKey || key, e);
         return null;
       }
     }
@@ -1724,6 +2040,17 @@
       const h = handlers || {};
       if (!action || !action.method) {
         if (typeof h.onFailure === 'function') h.onFailure(new Error('Invalid action'));
+        return;
+      }
+
+      if (isDemoModeEnabled()) {
+        const result = demoHandleBackendCall(action.method, action.args || []);
+        if (result && result.error && typeof h.onFailure === 'function') {
+          h.onFailure(new Error(result.error));
+          return;
+        }
+        if (typeof h.onSuccess === 'function') h.onSuccess(result);
+        updateOutboxButtonState();
         return;
       }
 
@@ -2710,6 +3037,9 @@
     }
 
     function isServerAvailable() {
+      if (isDemoModeEnabled()) {
+        return false;
+      }
       return Boolean(window.google && google.script && google.script.run && navigator.onLine);
     }
 
@@ -3841,6 +4171,9 @@
 
     // Initial Load
     document.addEventListener('DOMContentLoaded', function() {
+      if (isDemoModeEnabled()) {
+        applyDemoModeBootstrap();
+      }
       pruneMissionCache(OFFLINE_CACHE_MAX_MISSIONS);
       renderPilotTabVersions_();
       renderLessonLinkBar_();
@@ -3888,6 +4221,24 @@
     });
 
     function loadInitialData() {
+      if (isDemoModeEnabled()) {
+        applyDemoModeBootstrap();
+        const demoData = buildDemoStartupData();
+        appData = demoData;
+        window.appData = appData;
+        updateConnectivityBanner();
+        updateOfflineCacheStatus();
+        updateOutboxButtonState();
+        updateNewFlightButtonState();
+        updateOfflineFlightButtonState();
+        renderMissionList();
+        M.AutoInit();
+        if (typeof M !== 'undefined' && M.toast) {
+          M.toast({ html: 'DEMO MODE enabled: using local simulated mission data', classes: 'orange' });
+        }
+        return;
+      }
+
       if (typeof M === 'undefined') {
         setTimeout(loadInitialData, 500);
         return;
