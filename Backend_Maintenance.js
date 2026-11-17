@@ -118,8 +118,16 @@ function getMxApprovalQueue() {
 }
 
 function getMaintenanceScheduleData(payload) {
+  return _mxReadScheduleData_(payload, false);
+}
+
+function _mxReadScheduleData_(payload, readOnly) {
   try {
-    _mxEnsureFrameworkSheets_();
+    if (readOnly) {
+      _mxValidateReadOnlyScheduleSchema_();
+    } else {
+      _mxEnsureFrameworkSheets_();
+    }
     var body = (payload && typeof payload === 'object') ? payload : {};
     var filterReg = String(body.aircraftReg || '').trim().toUpperCase();
     var filterRegNorm = _toolsNormalizeAircraftReg_(filterReg);
@@ -634,10 +642,16 @@ function seedU206MaintenanceBaselineTemplates() {
 }
 
 function getDispatchMaintenanceStatus(payload) {
+  return _mxReadDispatchMaintenanceStatus_(payload, false);
+}
+
+function _mxReadDispatchMaintenanceStatus_(payload, readOnly) {
   try {
     var body = (payload && typeof payload === 'object') ? payload : {};
     var aircraftReg = String(body.aircraftReg || '').trim().toUpperCase();
-    var res = getMaintenanceScheduleData({ aircraftReg: aircraftReg });
+    var res = readOnly
+      ? _mxReadScheduleData_({ aircraftReg: aircraftReg }, true)
+      : getMaintenanceScheduleData({ aircraftReg: aircraftReg });
     if (!res || !res.success) return { success: false, error: (res && res.error) || 'Could not load maintenance schedule.' };
     var rows = Array.isArray(res.rows) ? res.rows.slice() : [];
     var grouped = {};
@@ -690,6 +704,26 @@ function getDispatchMaintenanceStatus(payload) {
   } catch (e) {
     return { success: false, error: e && e.message ? e.message : String(e), byAircraft: {} };
   }
+}
+
+function _mxValidateReadOnlyScheduleSchema_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var required = [
+    [APP_SHEETS.MAINT_ASSIGNMENTS, [
+      'ASSIGNMENT_ID', 'AIRCRAFT_REG', 'TASK_CODE', 'TASK_NAME', 'CATEGORY', 'REFERENCE',
+      'DUE_MODE', 'INTERVAL_HOURS', 'INTERVAL_DAYS', 'INTERVAL_MONTHS', 'INTERVAL_YEARS',
+      'START_TACH', 'START_DATE', 'ACTIVE', 'NOTES'
+    ]],
+    [APP_SHEETS.MAINT_LOG, ['ASSIGNMENT_ID', 'COMPLETED_DATE', 'COMPLETED_TACH', 'CREATED_AT']],
+    [APP_SHEETS.AIRCRAFT, ['REGISTRATION', 'CURRENT_TACH']]
+  ];
+  required.forEach(function(entry) {
+    var sheet = getRequiredSheet_(ss, entry[0], 'offline maintenance');
+    var values = sheet.getDataRange().getValues();
+    var headers = _mxNormHeaderMap_(values[0] || []);
+    var missing = entry[1].filter(function(key) { return headers[key] == null; });
+    if (missing.length) throw new Error(entry[0] + ': missing columns ' + missing.join(', '));
+  });
 }
 
 function approveMissionMxReview(missionId, supervisorName, supervisorNotes, approvalPassword) {

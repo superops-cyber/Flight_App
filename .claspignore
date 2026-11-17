@@ -25,5 +25,7 @@ _*.js
 extracted_script.js
 extracted_scripts.js
 temp_script_check.js
+scripts/test-offline-package.js
+iframe-test.html
 DocPackSync.js
 test_mission_data.js

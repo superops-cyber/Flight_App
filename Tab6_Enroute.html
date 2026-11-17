@@ -4840,7 +4840,7 @@
     let legTo = String(firstLeg && (firstLeg.to || firstLeg.destination) || '').trim().toUpperCase();
     // Prefer canonical route text tokens over legacy waypoint arrays that may have been split incorrectly.
     let legWaypoints = (routeTokens.length ? routeTokens : waypointTokens);
-    
+
     // Ensure we have at least origin/destination, even if just placeholders
     if (!legFrom && routeTokens.length) legFrom = routeTokens[0];
     if (!legTo && routeTokens.length > 1) legTo = routeTokens[routeTokens.length - 1];
@@ -4875,6 +4875,13 @@
       if (compact.indexOf('-') >= 0) {
         var compactTokens = compact.split('-').map(function(s) { return String(s || '').trim().toUpperCase(); }).filter(Boolean);
         if (compactTokens.length >= 2) {
+          if (!legFrom || legFrom === 'ORIG') legFrom = compactTokens[0];
+          if (!legTo || legTo === 'DEST') legTo = compactTokens[compactTokens.length - 1];
+          legWaypoints = compactTokens;
+        }
+      }
+    }
+
     function _enrouteNormalizeFuelTankKey_(value) {
       const raw = String(value || '').trim().toUpperCase();
       if (!raw) return '';
@@ -4891,12 +4898,12 @@
       if (hasMain && !hasLeft && !hasRight) return 'LM';
       return '';
     }
-  
+
     function _enrouteFuelTankKeysFromAircraft_(acftObj) {
       const cfg = acftObj && typeof acftObj === 'object' ? acftObj : {};
       const raw = String(cfg.TANK_NAMES || cfg.tankNames || '').trim();
       const keys = [];
-  
+
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
@@ -4914,21 +4921,21 @@
           });
         }
       }
-  
+
       if (!keys.length) {
-        const tipCap = Math.max(0, Number(cfg.TIP_CAPACITY_L || 0));
-        if (tipCap > 0) {
+        const tipCapLocal = Math.max(0, Number(cfg.TIP_CAPACITY_L || 0));
+        if (tipCapLocal > 0) {
           keys.push('LT', 'LM', 'RM', 'RT');
         } else {
           keys.push('LM', 'RM');
         }
       }
-  
+
       return keys.filter(function(key) {
         return ['LM', 'RM', 'LT', 'RT'].includes(key);
       });
     }
-  
+
     function _enrouteFuelLabel_(tank) {
       if (tank === 'LT') return 'LT';
       if (tank === 'RT') return 'RT';
@@ -4936,7 +4943,7 @@
       if (tank === 'RM') return 'RM';
       return String(tank || '').trim().toUpperCase();
     }
-  
+
     function _enrouteFuelTankKeys_(fuelObj) {
       const f = fuelObj && typeof fuelObj === 'object' ? fuelObj : {};
       const fromMeta = Array.isArray(f.tankKeys) ? f.tankKeys.map(_enrouteNormalizeFuelTankKey_).filter(Boolean) : [];
@@ -4947,7 +4954,7 @@
       if (fromFuel.length) return fromFuel;
       return ['LM', 'RM'];
     }
-  
+
     function _enrouteFuelDefaultState_(tankKeys, mainStart, tipCap, allowAmbos) {
       const state = {
         tankKeys: Array.isArray(tankKeys) ? tankKeys.slice() : [],
@@ -4963,7 +4970,7 @@
       });
       return state;
     }
-  
+
     function _enrouteFuelVisibleKeys_(fuelObj) {
       const f = fuelObj && typeof fuelObj === 'object' ? fuelObj : {};
       const keys = _enrouteFuelTankKeys_(f);
@@ -4976,64 +4983,102 @@
       }
       return keys;
     }
-          if (!legFrom || legFrom === 'ORIG') legFrom = compactTokens[0];
-          if (!legTo || legTo === 'DEST') legTo = compactTokens[compactTokens.length - 1];
-          legWaypoints = compactTokens;
+
+    const _legWaypointsAreBad = function(waypoints, from, to) {
+      if (!Array.isArray(waypoints) || !waypoints.length) return true;
+      const fromNorm = String(from || '').trim().toUpperCase();
+      const toNorm = String(to || '').trim().toUpperCase();
+      const tokens = waypoints.map(function(item) {
+        return String(item || '').trim().toUpperCase();
+      }).filter(Boolean);
+      if (!tokens.length) return true;
+      if (tokens.length === 1) {
+        const t = tokens[0];
+        if (t.indexOf('-') >= 0) return true;
+        if (fromNorm && toNorm && t !== fromNorm && t !== toNorm) return true;
+      }
+      return false;
+    };
+
+    // If legWaypoints is empty OR is exactly one token that contains a hyphen
+    // (i.e. the whole route concatenated as "SDRM-SJMH-PAPA-PALIMIU-SBBV"),
+    // look up the canonical middle-leg waypoints from window.appData.routes.
+    if (_legWaypointsAreBad(legWaypoints, legFrom, legTo) && legFrom && legTo) {
+      const _dbRoutes = (window.appData && Array.isArray(window.appData.routes)) ? window.appData.routes : [];
+      const _routeOrigin = function(r) { return String((r && (r.origin || r.ORIGIN || r.from || r.FROM)) || '').trim().toUpperCase(); };
+      const _routeDestination = function(r) { return String((r && (r.destination || r.DESTINATION || r.to || r.TO)) || '').trim().toUpperCase(); };
+      const _dbMatch = _dbRoutes.find(function(r) {
+        return _routeOrigin(r) === legFrom && _routeDestination(r) === legTo;
+      }) || _dbRoutes.find(function(r) {
+        return _routeOrigin(r) === legTo && _routeDestination(r) === legFrom;
+      });
+      if (_dbMatch) {
+        const _routeText = String((_dbMatch.waypoint_list || _dbMatch.WAYPOINT_LIST || _dbMatch.route || _dbMatch.ROUTE || '') || '').trim();
+        if (_routeText) {
+          let _dbTokens = _tokensFrom(_routeText);
+          const _isReverse = _routeOrigin(_dbMatch) === legTo && _routeDestination(_dbMatch) === legFrom;
+          if (_isReverse) _dbTokens = _dbTokens.reverse();
+          if (_dbTokens.length) {
+            if (_dbTokens[0] !== legFrom) _dbTokens.unshift(legFrom);
+            if (_dbTokens[_dbTokens.length - 1] !== legTo) _dbTokens.push(legTo);
+            legWaypoints = _dbTokens;
+          }
         }
       }
     }
 
-      const keys = _enrouteFuelVisibleKeys_(f);
-    // If legWaypoints is empty OR is exactly one token that contains a hyphen
-    // (i.e. the whole route concatenated as "SDRM-SJMH-PAPA-PALIMIU-SBBV"),
-    // look up the canonical middle-leg waypoints from window.appData.routes.
-            ${keys.map(function(tank) {
-              const isMain = tank === 'LM' || tank === 'RM';
-        // Single token that is neither origin nor dest, contains a hyphen → whole route string
-        if (t !== from && t !== to && t.indexOf('-') >= 0) return true;
-      }
-      return false;
-              return `<button class="fuel-chip-btn ${isActiveMain ? 'active-main' : ''} ${isTransferLive ? 'transfer-live' : ''}" onclick="tapFuelTank('${tank}')"><span>${_enrouteFuelLabel_(tank)}: ${Math.round(Number(f[tank] || 0))}</span></button>`;
-    if (_legWaypointsAreBad(legWaypoints, legFrom, legTo) && legFrom && legTo) {
-      const _dbRoutes = (window.appData && Array.isArray(window.appData.routes)) ? window.appData.routes : [];
-          <div class="fuel-cell-hint">Tap a main to switch. Tap a tip to start or stop transfer.</div>
-        return r.origin === legFrom && r.destination === legTo;
-      }) || _dbRoutes.find(function(r) {
-        return r.origin === legTo && r.destination === legFrom;
-      });
-      if (_dbMatch && _dbMatch.waypoint_list) {
-        const _dbTokens = String(_dbMatch.waypoint_list || '')
-          .split(/[,;]+/)
-          .map(function(s) { return s.trim().toUpperCase(); })
-      const keys = _enrouteFuelVisibleKeys_(f);
-      return keys.map(function(tank) {
-        if (tank === 'AMBOS') return tag('AMBOS', '', String(f.activeMain || '').trim().toUpperCase() === 'AMBOS');
-        return tag(tank, f[tank], f.activeMain === tank);
-      }).join('');
-    }
-
+    if (!Array.isArray(legWaypoints)) legWaypoints = [];
     if (!legWaypoints.length) legWaypoints = [legFrom, legTo].filter(Boolean);
+    const acft = String((mission && mission.acft) || (window.currentBriefingMission && window.currentBriefingMission.acft) || '').trim().toUpperCase();
     _enrouteDiag('Route init: ' + legFrom + '->' + legTo + ' (' + legWaypoints.length + ' tokens)');
-    _enrouteDiag('Mission=' + String(mission && mission.id || 'N/A')
-      const tankKeys = _enrouteFuelTankKeys_(f);
-      const snapshot = { activeMain: activeMain, ambosEnabled: !!f.ambosEnabled, tankKeys: tankKeys };
-      tankKeys.forEach(function(key) {
-        snapshot[key] = Math.round(Number(f[key] || 0));
-      });
-      + ' legId=' + String(flightLegId || 'N/A')
-        ...snapshot
+    _enrouteDiag('Mission=' + String(mission && mission.id || 'N/A') + ' legId=' + String(flightLegId || 'N/A') + ' acft=' + String(acft || 'N/A'));
+
     const acftObj = (window.appData && Array.isArray(window.appData.aircraft))
       ? window.appData.aircraft.find(a => String(a.reg || '').trim().toUpperCase() === acft)
       : null;
 
     const transferRate = Number(acftObj && acftObj.TRANSFER_RATE_LPM || 0.8);
-      const keys = _enrouteFuelTankKeys_(snap);
-      const parts = keys.map(function(tank) {
-        const active = snap.activeMain === tank || snap.activeMain === 'AMBOS';
-        return `${tank} ${Math.round(Number(snap[tank] || 0))}${active ? '*' : ''}`;
-      });
-      const ambosText = snap.ambosEnabled ? ` | AMBOS${snap.activeMain === 'AMBOS' ? '*' : ''}` : '';
-      return parts.join(' | ') + ambosText;
+    const fuelTankKeys = _enrouteFuelTankKeysFromAircraft_(acftObj);
+    const tipCap = Math.max(0, Number(acftObj && acftObj.TIP_CAPACITY_L || 0));
+    const allowAmbosRaw = String((acftObj && (acftObj.ALLOW_AMBOS || acftObj.ambosEnabled || acftObj.AMBOS_ENABLED)) || '').trim().toUpperCase();
+    const allowAmbos = (allowAmbosRaw === 'TRUE' || allowAmbosRaw === '1' || allowAmbosRaw === 'YES' || allowAmbosRaw === 'Y');
+    const firstLegFuelTotal = Math.max(0, Number(firstLeg && (firstLeg.fuelTotal || firstLeg.takeoffFuel || firstLeg.fuel || firstLeg.fuelLiters) || 0));
+    const mainStart = firstLegFuelTotal > 0 ? (firstLegFuelTotal / 2) : 0;
+
+    const _rawMissionLoad = String((firstLeg && firstLeg.actualLoadJSON) || (mission && mission.actualLoadJSON) || (window.currentBriefingMission && window.currentBriefingMission.actualLoadJSON) || '').trim();
+    let snap = null;
+    if (_rawMissionLoad) {
+      try {
+        const parsedLoad = JSON.parse(_rawMissionLoad);
+        const parsedTanks = parsedLoad && parsedLoad.tanks && typeof parsedLoad.tanks === 'object' ? parsedLoad.tanks : null;
+        if (parsedTanks) {
+          const parsedKeys = Array.isArray(parsedLoad.tankKeys) && parsedLoad.tankKeys.length
+            ? parsedLoad.tankKeys
+            : Object.keys(parsedTanks);
+          snap = {
+            tankKeys: parsedKeys.map(_enrouteNormalizeFuelTankKey_).filter(Boolean),
+            activeMain: _enrouteNormalizeMainTank_(parsedLoad.activeMain || parsedTanks.activeMain || '', !!parsedLoad.ambosEnabled),
+            ambosEnabled: !!parsedLoad.ambosEnabled
+          };
+          snap.tankKeys.forEach(function(key) {
+            snap[key] = Number(parsedTanks[key] || 0);
+          });
+        }
+      } catch (e) {
+        console.warn('Invalid actualLoadJSON in mission payload', e);
+      }
+    }
+
+    const _formatFuelDiag = function(fuelObj) {
+      if (!fuelObj) return 'n/a';
+      const keys = _enrouteFuelTankKeys_(fuelObj);
+      return keys.map(function(tank) {
+        const active = String(fuelObj.activeMain || '').trim().toUpperCase() === tank || String(fuelObj.activeMain || '').trim().toUpperCase() === 'AMBOS';
+        return _enrouteFuelLabel_(tank) + ' ' + Math.round(Number(fuelObj[tank] || 0)) + (active ? '*' : '');
+      }).join(' | ');
+    };
+    _enrouteDiag('Fuel seed keys=' + fuelTankKeys.join(',') + ' tipCap=' + Math.round(tipCap) + 'L start=' + Math.round(mainStart) + 'L ambos=' + (allowAmbos ? 'Y' : 'N') + ' brief=' + _formatFuelDiag(snap));
+
     const _totalFuel = function(f) {
       if (!f) return 0;
       const keys = _enrouteFuelTankKeys_(f);

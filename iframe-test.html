@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Apps Script Iframe Test</title>
+</head>
+<body>
+  <h2>Apps Script Iframe Test</h2>
+  <p id="status">Loading Apps Script page...</p>
+
+  <iframe
+    id="pilotFrame"
+    src="https://script.google.com/a/macros/asasdesocorro.org.br/s/AKfycbzKo7_CdAdN4MBgBoizGJudMn7Ov5HcyNdA1qzNj-beviFsU01FGIQV_sFl5dbXOn2xjg/exec?view=pilot"
+    style="width:100%; height:700px; border:2px solid #888;"
+    allow="clipboard-read; clipboard-write">
+  </iframe>
+
+  <script>
+    const frame = document.getElementById('pilotFrame');
+    const status = document.getElementById('status');
+
+    frame.addEventListener('load', function() {
+      status.textContent =
+        'Iframe load event fired. Check whether the Pilot App is visible below.';
+    });
+
+    frame.addEventListener('error', function() {
+      status.textContent = 'Iframe failed to load.';
+    });
+  </script>
+</body>
+</html>
