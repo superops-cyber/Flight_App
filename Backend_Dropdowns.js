@@ -1,4 +1,8 @@
 function getDropdownData() {
+return _getDropdownData_(false);
+}
+
+function _getDropdownData_(readOnly) {
 const ss = SpreadsheetApp.getActiveSpreadsheet();
 getRequiredSheet_(ss, APP_SHEETS.DISPATCH, "getDropdownData");
 
@@ -65,7 +69,10 @@ const wpData = getSheetData(APP_SHEETS.WAYPOINTS);
 const routeData = getSheetData(APP_SHEETS.ROUTES);
 const pilots = getSheetData(APP_SHEETS.PILOTS);
 const checks = getSheetData(APP_SHEETS.CHECKS);
-const mxMaintenance = getDispatchMaintenanceStatus({});
+const mxMaintenance = readOnly ? _mxReadDispatchMaintenanceStatus_({}, true) : getDispatchMaintenanceStatus({});
+if (readOnly && (!mxMaintenance || !mxMaintenance.success)) {
+  throw new Error('Offline maintenance dependency: ' + (mxMaintenance && mxMaintenance.error || 'unavailable'));
+}
 
 // Diagnostics: log presence and header info for key sheets to help trace missing data
 try {
@@ -305,6 +312,14 @@ return { error: e.message };
 
 function getPilotStartupData() {
   var data = getDropdownData();
+  return _pilotStartupDataFromDropdown_(data);
+}
+
+function _getPilotStartupDataReadOnly_() {
+  return _pilotStartupDataFromDropdown_(_getDropdownData_(true));
+}
+
+function _pilotStartupDataFromDropdown_(data) {
   if (data && data.error) return data;
   return {
     nextId: data && data.nextId || '',

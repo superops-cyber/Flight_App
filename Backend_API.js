@@ -137,6 +137,10 @@ function doPost(e) {
     'getDropdownData': getDropdownData,
     'getPilotAirportData': getPilotAirportData,
     'getPilotAirportDataChunk': getPilotAirportDataChunk,
+    'getScheduledMissions': getScheduledMissions,
+    'getMissionById': getMissionById,
+    'getPerformanceSetup': getPerformanceSetup,
+    'getAircraftDocsForTools': getAircraftDocsForTools,
     'pwaHealthCheck': function() { return { ok: true }; }
     // Add more allowed actions here as needed
   };

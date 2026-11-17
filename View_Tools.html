@@ -288,6 +288,7 @@
     <span id="tools-build-version" style="font-size:0.68rem; color:#42a5f5; font-weight:600;">Build: Loading...</span>
   </div>
   <div class="tools-action-grid">
+    <button class="tools-action-btn" onclick="toolsOpenPanel('offlinedownload')"><i class="material-icons">download</i><span>Offline Download</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPanel('pax')"><i class="material-icons">person_add</i><span>Add Passenger</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPassengerEditor()"><i class="material-icons">manage_accounts</i><span>Edit Passenger</span></button>
     <button class="tools-action-btn" onclick="toolsOpenPanel('fuel')"><i class="material-icons">local_gas_station</i><span>Fuel Cache</span></button>
@@ -316,6 +317,28 @@
     <button class="tools-action-btn" onclick="toolsOpenDonationImport()"><i class="material-icons">upload_file</i><span>Import Donations</span></button>
   </div>
   <div id="tools-build-meta" class="tools-build-meta">Tools build: loading...</div>
+
+  <div id="tools-panel-offlinedownload" class="tools-panel">
+    <div class="tools-panel-header">
+      <h3 class="tools-panel-title">Offline Mission Download</h3>
+      <button class="tools-panel-close" onclick="toolsClosePanel('offlinedownload')">&times;</button>
+    </div>
+    <p>Export approved or already-started missions assigned to you. Supervisors and flight coordinators can export all eligible missions. This does not save flights or upload changes.</p>
+    <div class="tools-field">
+      <label for="tools-offline-days">Upcoming missions (including today)</label>
+      <select id="tools-offline-days" class="browser-default">
+        <option value="7">7 days</option>
+        <option value="14">14 days</option>
+      </select>
+    </div>
+    <div class="tools-btn-row">
+      <button id="tools-offline-prepare" type="button" class="btn-ta" onclick="toolsPrepareOfflineDownload()">Prepare JSON package</button>
+    </div>
+    <p id="tools-offline-status" role="status" aria-live="polite">No package prepared.</p>
+    <ul id="tools-offline-report"></ul>
+    <a id="tools-offline-download" style="display:none">Download JSON</a>
+    <p>Keep this file in organizational storage. Charts, photos, map tiles and application assets are not embedded. PWA file import is not implemented yet.</p>
+  </div>
 
   <!-- Passenger Panel -->
   <div id="tools-panel-pax" class="tools-panel">
@@ -1846,6 +1869,59 @@
 </div>
 
 <script>
+  var _toolsOfflineDownloadUrl = '';
+
+  function toolsPrepareOfflineDownload() {
+    var button = document.getElementById('tools-offline-prepare');
+    var status = document.getElementById('tools-offline-status');
+    var report = document.getElementById('tools-offline-report');
+    var link = document.getElementById('tools-offline-download');
+    if (button.disabled) return;
+    button.disabled = true;
+    link.style.display = 'none';
+    link.removeAttribute('href');
+    report.textContent = '';
+    if (_toolsOfflineDownloadUrl) URL.revokeObjectURL(_toolsOfflineDownloadUrl);
+    _toolsOfflineDownloadUrl = '';
+    status.textContent = 'Reading mission dependencies. No flight data will be changed...';
+    var fail = function(error) {
+      button.disabled = false;
+      status.textContent = 'Download failed: ' + (error && error.message ? error.message : String(error));
+      status.style.color = '#c62828';
+    };
+    if (!window.google || !google.script || !google.script.run) {
+      fail(new Error('Open Offline Download inside the authenticated Flight App.'));
+      return;
+    }
+    google.script.run.withSuccessHandler(function(pack) {
+      try {
+        if (!pack || pack.kind !== 'flightapp.offline-package' || !pack.completeness) {
+          throw new Error('Invalid offline package response');
+        }
+        var complete = pack.completeness;
+        status.textContent = complete.ready
+          ? 'Package data complete: ' + complete.eligibleCount + ' missions. Select Download JSON to save the file.'
+          : 'Package NOT READY. Review missing dependencies below. A diagnostic JSON download is available.';
+        status.style.color = complete.ready ? '#2e7d32' : '#c62828';
+        var messages = (complete.errors || []).slice();
+        (complete.missionResults || []).forEach(function(result) {
+          messages.push(result.missionId + ': ' + (result.ready ? 'Data complete' : result.missing.join('; ')));
+        });
+        messages.forEach(function(message) {
+          var item = document.createElement('li');
+          item.textContent = message;
+          report.appendChild(item);
+        });
+        _toolsOfflineDownloadUrl = URL.createObjectURL(new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json;charset=utf-8' }));
+        link.href = _toolsOfflineDownloadUrl;
+        link.download = 'flightapp-' + pack.window.fromDate + '-' + pack.window.days + 'days-' + pack.packageId + '.json';
+        link.textContent = complete.ready ? 'Download JSON' : 'Download incomplete diagnostic JSON';
+        link.style.display = 'inline-block';
+        button.disabled = false;
+      } catch (error) { fail(error); }
+    }).withFailureHandler(fail).exportOfflineMissionPackage(Number(document.getElementById('tools-offline-days').value));
+  }
+
   var _toolsWpPreviewMap = null, _toolsWpPreviewMarker = null;
   var _toolsPageBootstrapped = false;
   var _toolsSelectedCache = null, _toolsContactLoadingIcao = null;
@@ -1901,7 +1977,7 @@
   var _toolsAircraftDocsFolderUrl = '';
   var _toolsAircraftBuilderSourceReg = '';
   var _toolsAircraftBuilderSourceType = '';
-  var _toolsPanelIds = ['pax','fuel','waypoint','airports','reports','discrepancy','staff','students','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations','histimports'];
+  var _toolsPanelIds = ['offlinedownload','pax','fuel','waypoint','airports','reports','discrepancy','staff','students','trainingmodule','maneuvers','practical','readiness','lessonhistory','pdfimport','scheduler','masterconfig','dutylogs','permissions','dbadd','routesaved','aircraftbuild','aircraftdocs','donations','histimports'];
 
   function toolsCurrentAdmin_() {
     var userEl = document.getElementById('userDisplay');
