@@ -4,6 +4,26 @@ function exportOfflineMissionPackage(windowDays) {
   var email = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
   if (!email) throw new Error('Offline download requires an authenticated organizational account.');
   var staffRows = _toolsLoadStaffRows_();
+  console.log('Staff records loaded: ' + staffRows.length);
+console.log('Matching email records: ' +
+  staffRows.filter(function(person) {
+    return person.email === email;
+  }).length
+);
+console.log('Matching staff active status: ' +
+  JSON.stringify(
+    staffRows
+      .filter(function(person) {
+        return person.email === email;
+      })
+      .map(function(person) {
+        return {
+          active: person.active,
+          staffId: person.staffId
+        };
+      })
+  )
+);
   var staff = staffRows.filter(function(person) { return person.active && person.email === email; });
   if (staff.length !== 1) throw new Error('Offline download requires one active staff record for your account.');
   var person = staff[0];
@@ -43,25 +63,49 @@ function exportOfflineMissionPackage(windowDays) {
       groups[id].push(row);
     }
   });
-  var candidates = Object.keys(groups).filter(function(id) {
-    var rows = groups[id];
-    var done = ['FLOWN', 'COMPLETE', 'COMPLETED'];
-    var loadable = ['APPROVED', 'IN-FLIGHT', 'IN FLIGHT', 'DEPARTED'].concat(done);
-    if (!rows.every(function(row) { return loadable.indexOf(String(row[DISPATCH_COL.STATUS] || '').trim().toUpperCase()) >= 0; })) return false;
-    if (!rows.some(function(row) {
-      var date = _offlinePackageDate_(row[DISPATCH_COL.DATE], timeZone);
-      return date && date >= fromDate && date < toDate
-        && done.indexOf(String(row[DISPATCH_COL.STATUS] || '').trim().toUpperCase()) < 0;
-    })) return false;
-    return canCoordinate || rows.every(function(row) {
-      return [row[DISPATCH_COL.PILOT], row[DISPATCH_COL.COPILOT]].some(function(crew) {
-        var value = String(crew || '').trim().toUpperCase();
-        return value && [person.email, person.staffId, person.staffName].some(function(identity) {
-          return identity && String(identity).trim().toUpperCase() === value;
-        });
-      });
-    });
-  }).sort();
+ var candidates = Object.keys(groups).filter(function(id) {
+  var rows = groups[id];
+
+  var done = ['FLOWN', 'COMPLETE', 'COMPLETED'];
+  var loadable = [
+    'APPROVED',
+    'IN-FLIGHT',
+    'IN FLIGHT',
+    'DEPARTED'
+  ].concat(done);
+
+  // Only include missions with recognized statuses.
+  if (!rows.every(function(row) {
+    var status = String(
+      row[DISPATCH_COL.STATUS] || ''
+    ).trim().toUpperCase();
+
+    return loadable.indexOf(status) >= 0;
+  })) return false;
+
+  // Exclude missions where every leg is completed.
+  if (!rows.some(function(row) {
+    var status = String(
+      row[DISPATCH_COL.STATUS] || ''
+    ).trim().toUpperCase();
+
+    return done.indexOf(status) < 0;
+  })) return false;
+
+  // Include unfinished past missions and missions
+  // scheduled before the end of the future window.
+  // Do not restrict by assigned pilot.
+  return rows.some(function(row) {
+    var date = _offlinePackageDate_(
+      row[DISPATCH_COL.DATE],
+      timeZone
+    );
+
+    var status = String(row[DISPATCH_COL.STATUS] || '').trim().toUpperCase();
+    return date && date < toDate && done.indexOf(status) < 0;
+  });
+
+}).sort();
   var flightIdCounts = Object.create(null);
   dispatch.rows.forEach(function(row) {
     var fid = String(row[DISPATCH_COL.FLIGHT_ID] || '').trim();
@@ -83,13 +127,13 @@ function exportOfflineMissionPackage(windowDays) {
     [APP_SHEETS.FUNDS, ['NAME|FUND_NAME', 'CURRENT_BALANCE']],
     [APP_SHEETS.SYLLABUS, ['TRAINING_CODE', 'REQUIRED_HOURS', 'REQUIRED_FUEL']],
     [APP_SHEETS.FUEL_CACHES, ['ICAO', 'CURRENT_QTY', 'FUEL_TYPE']],
-    [APP_SHEETS.FUEL_LOGS, ['FLIGHT_ID', 'ICAO', 'CHANGE_QTY', 'TYPE', 'VERIFIED']],
+    [APP_SHEETS.FUEL_LOGS, ['FLIGHT_ID|FLIGHT_LEG_ID', 'ICAO', 'CHANGE_QTY', 'TYPE', 'VERIFIED']],
     [APP_SHEETS.LOG_FLIGHTS, ['FLIGHT_ID', 'ACTUAL_LOAD_JSON', 'BRAKES_RELEASE', 'AIRBORNE', 'LANDED']],
     [APP_SHEETS.SCHED_CONFIG, ['CONFIG_KEY', 'CONFIG_VALUE']],
     [APP_SHEETS.MAINT_ASSIGNMENTS, ['ASSIGNMENT_ID']],
     [APP_SHEETS.MAINT_LOG, ['ASSIGNMENT_ID']],
     ['Aircraft_Roll_Numbers', ['AIRCRAFT_TYPE', 'WEIGHT_KG|WEIGHT', 'TO_ROLL_M|TO_ROLL', 'LDG_ROLL_M|LDG_ROLL']],
-    ['Performance_Multipliers', ['AIRCRAFT_TYPE', 'FLAP_SETTING', 'TO_MULTIPLIER', 'LDG_MULTIPLIER',
+    ['Performance_Multipliers', ['FLAP_SETTING', 'TO_MULTIPLIER', 'LDG_MULTIPLIER',
       'DA_FT|DA', 'WIND_KTS|WIND', 'HUMIDITY', 'HUMIDITY_FACTOR', 'FLAP_FACTOR', 'SLOPE', 'SURFACE',
       'TAKEOFF_HEAD', 'TAKEOFF_TAIL', 'LANDING_HEAD', 'LANDING_TAIL',
       'TAKEOFF_UP', 'TAKEOFF_DOWN', 'LANDING_UP', 'LANDING_DOWN',
@@ -98,7 +142,7 @@ function exportOfflineMissionPackage(windowDays) {
   specs.forEach(function(spec) { read(spec[0], spec[1]); });
   // These existing readers still use fixed column indexes.
   [
-    [APP_SHEETS.FUEL_LOGS, FUEL_LOG_COL, ['ICAO', 'CHANGE_QTY', 'TYPE', 'VERIFIED', 'FLIGHT_ID']],
+    [APP_SHEETS.FUEL_LOGS, FUEL_LOG_COL, ['ICAO', 'CHANGE_QTY', 'TYPE', 'VERIFIED']],
     [APP_SHEETS.LOG_FLIGHTS, LOG_FLIGHT_COL, ['FLIGHT_ID', 'BRAKES_RELEASE', 'LANDED', 'BRAKES_APPLIED']]
   ].forEach(function(spec) {
     var table = tables[spec[0]];
@@ -276,12 +320,12 @@ function exportOfflineMissionPackage(windowDays) {
             && _offlinePackagePositive_(_perfValue(row, ['TO_ROLL_M', 'TO_ROLL'], ''))
             && _offlinePackagePositive_(_perfValue(row, ['LDG_ROLL_M', 'LDG_ROLL'], ''));
         }), 'Missing/invalid performance base rows: ' + type);
+        // Multipliers are shared by all aircraft types; only base roll numbers are type-specific.
         check(performance.perfRows.some(function(row) {
-          return _perfAircraftTypeKey_(row.AIRCRAFT_TYPE) === typeKey
-            && _offlinePackageFinite_(row.FLAP_SETTING)
+          return _offlinePackageFinite_(row.FLAP_SETTING)
             && _offlinePackagePositive_(row.TO_MULTIPLIER) && _offlinePackagePositive_(row.LDG_MULTIPLIER);
         }),
-          'Missing performance multipliers for aircraft type: ' + type);
+          'Missing global performance multipliers');
         [
           [['DA_FT', 'DA'], ['TO_MULTIPLIER', 'LDG_MULTIPLIER']],
           [['WIND_KTS', 'WIND'], ['TAKEOFF_HEAD', 'TAKEOFF_TAIL', 'LANDING_HEAD', 'LANDING_TAIL']],
@@ -417,14 +461,18 @@ function exportOfflineMissionPackage(windowDays) {
   }
   pack.completeness.ready = candidates.length > 0 && !pack.completeness.errors.length
     && pack.completeness.missionResults.every(function(result) { return result.ready; });
-  if (!candidates.length) pack.completeness.errors.push('No eligible missions in this window for your account.');
+  if (!candidates.length) pack.completeness.errors.push('No eligible unfinished missions in the selected window.');
   pack.sourceRevision = _offlinePackageDigest_(Object.keys(tables).map(function(name) { return [name, tables[name].snapshot]; }));
   return _offlinePackageJsonSafe_(pack);
 }
 
 function _offlinePackageTable_(ss, name, requiredColumns) {
   var values = getRequiredSheet_(ss, name, 'Offline download').getDataRange().getValues();
-  var headers = (values[0] || []).map(function(value) { return String(value || '').trim().toUpperCase().replace(/\s+/g, '_'); });
+  var headers = (values[0] || []).map(function(value) {
+    return String(value || '').trim().toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  });
   var missing = requiredColumns.filter(function(group) {
     return !group.split('|').some(function(key) { return headers.indexOf(key) >= 0; });
   });
@@ -434,6 +482,12 @@ function _offlinePackageTable_(ss, name, requiredColumns) {
     objects: values.slice(1).map(function(row) {
       var result = {};
       headers.forEach(function(key, index) { result[key] = row[index]; });
+      // Fuel logs use FLIGHT_LEG_ID in Sheets; the offline package and existing
+      // flight-log consumers use FLIGHT_ID for the same flight-leg identifier.
+      if (name === APP_SHEETS.FUEL_LOGS && !headers.includes('FLIGHT_ID')
+          && headers.includes('FLIGHT_LEG_ID')) {
+        result.FLIGHT_ID = result.FLIGHT_LEG_ID;
+      }
       return result;
     })
   };
@@ -492,4 +546,137 @@ function _offlinePackageJsonSafe_(value) {
     if (item === undefined) return null;
     return item;
   }));
+}
+
+function testOfflinePackageExport() {
+  var pack = exportOfflineMissionPackage(7);
+
+  console.log(JSON.stringify({
+    ready: pack.completeness.ready,
+    missionCount: pack.missions.length,
+    errors: pack.completeness.errors,
+    sourceRevision: pack.sourceRevision,
+    jsonSizeKB: Math.round(
+      JSON.stringify(pack).length / 1024
+    )
+  }));
+}
+function testOfflineUserIdentity() {
+  console.log(
+    'Active user: ' + Session.getActiveUser().getEmail()
+  );
+  console.log(
+    'Effective user: ' + Session.getEffectiveUser().getEmail()
+  );
+}
+function testOfflineDispatchStatus() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+
+  console.log('Dispatch rows: ' + (data.length - 1));
+  console.log('Headers: ' + JSON.stringify(headers));
+
+  var statusIndex = headers.indexOf('STATUS');
+  var dateIndex = headers.indexOf('DATE');
+
+  var counts = {};
+  data.slice(1).forEach(function(row) {
+    var status = String(row[statusIndex] || '').trim();
+    counts[status] = (counts[status] || 0) + 1;
+  });
+
+  console.log('Status counts: ' + JSON.stringify(counts));
+
+  console.log('Sample dates: ' + JSON.stringify(
+    data.slice(1, 6).map(function(row) {
+      return String(row[dateIndex] || '');
+    })
+  ));
+}
+function testOfflineMissionGroups() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0].map(function(h) {
+    return String(h).trim().toUpperCase();
+  });
+
+  var missionIdx = headers.indexOf('MISSION_ID');
+  var statusIdx = headers.indexOf('STATUS');
+  var groups = {};
+
+  data.slice(1).forEach(function(row) {
+    var id = String(row[missionIdx] || '').trim();
+    if (!id) return;
+
+    if (!groups[id]) groups[id] = [];
+
+    groups[id].push(
+      String(row[statusIdx] || '').trim().toUpperCase()
+    );
+  });
+
+  Object.keys(groups).forEach(function(id, index) {
+    console.log(JSON.stringify({
+      missionNumber: index + 1,
+      legCount: groups[id].length,
+      statuses: groups[id]
+    }));
+  });
+}
+function testOfflineDateConversion() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var tz = ss.getSpreadsheetTimeZone();
+  var sheet = ss.getSheetByName(APP_SHEETS.DISPATCH);
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+
+  var dateIdx = headers.indexOf('DATE');
+  var statusIdx = headers.indexOf('STATUS');
+
+  var today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+
+  console.log('Today: ' + today);
+  console.log('Spreadsheet timezone: ' + tz);
+
+  data.slice(1).forEach(function(row, index) {
+    var status = String(row[statusIdx] || '').trim().toUpperCase();
+
+    if (status === 'IN-FLIGHT') {
+      var converted = _offlinePackageDate_(row[dateIdx], tz);
+
+      console.log(JSON.stringify({
+        row: index + 2,
+        originalDate: String(row[dateIdx]),
+        convertedDate: converted,
+        beforeToday: converted ? converted < today : null
+      }));
+    }
+  });
+}
+function testOfflineSchemaHeaders() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  [
+    APP_SHEETS.FUEL_LOGS,
+    'Aircraft_Roll_Numbers',
+    'Performance_Multipliers'
+  ].forEach(function(name) {
+    var sheet = ss.getSheetByName(name);
+
+    if (!sheet) {
+      console.log(name + ': SHEET NOT FOUND');
+      return;
+    }
+
+    var headers = sheet.getRange(
+      1, 1, 1, sheet.getLastColumn()
+    ).getValues()[0];
+
+    console.log(
+      name + ': ' + JSON.stringify(headers)
+    );
+  });
 }
